@@ -147,6 +147,105 @@
           
           
             
+              <a class="post-title-link" href="/2015/08/10/10read/" itemprop="url">
+                今日阅读
+              </a>
+            
+          
+        </h1>
+      
+
+      <div class="post-meta">
+        <span class="post-time">
+          发表于
+          <time itemprop="dateCreated" datetime="2015-08-10T17:02:24+08:00" content="2015-08-10">
+            2015-08-10
+          </time>
+        </span>
+
+        
+          <span class="post-category" >
+            &nbsp; | &nbsp; 分类于
+            
+              <span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a href="/categories/spring-boot/" itemprop="url" rel="index"><span itemprop="name">spring boot</span></a></span>
+
+              
+              
+
+            
+          </span>
+        
+
+        
+          
+            <span class="post-comments-count">
+              &nbsp; | &nbsp;
+              <a href="/2015/08/10/10read/#comments" itemprop="discussionUrl">
+                <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/10/10read/" itemprop="commentsCount"></span>
+              </a>
+            </span>
+          
+        
+      </div>
+    </header>
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody"><h3 id="restcontroller">restcontroller</h3><p>@restController的注解，相当于@Controller和@ResponseBody的集合，相当在类上加上@ResponseBody的注解。同时，在RestController的注解中，还包含@Async的部分。</p>
+<h3 id="security">security</h3><p>关于spring-boot-security部分，采用SecurityProperites的方式，来进行configure，实现HttpSecurity和AuthenticationManagerBuilder</p>
+<h3 id="default">default</h3><p>java8中针对接口部分，可以利用default来实现具体方法，类似于不用abstract类的方式</p>
+<h3 id="jpaReposity">jpaReposity</h3><p>jpa的注解方式，在注解中写sql，</p>
+<h3 id="redisTemplate">redisTemplate</h3><p>关于redis部分，一般的使用</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">JedisPoolConfig jedisPoolConfig = <span class="keyword">new</span> JedisPoolConfig();</div><div class="line">jedisPoolConfig.setMaxTotal(<span class="number">20</span>);</div><div class="line"></div><div class="line">jedisPool = <span class="keyword">new</span> JedisPool(jedisPoolConfig,</div><div class="line">                        NightConfig.getConfigValueByKey(<span class="string">"nightingale.query.redis.host"</span>),</div><div class="line">                        NightConfig.getConfigIntValueByKey(<span class="string">"nightingale.query.redis.port"</span>, <span class="number">6379</span>));</div><div class="line"></div><div class="line"></div><div class="line">  Jedis jedis = jedisPool.getResource();</div><div class="line">  String value = jedis.get(key);</div><div class="line">  jedisPool.returnResourceObject(jedis);</div></pre></td></tr></table></figure>
+<p>这样的使用，导致每次需要显式地释放redis链接，代码的倾入性太高。</p>
+<p>这时候，可以使用RedisTemplate封装相关的redis，避免每次显式释放链接的痛苦。原因在于每次redis执行时，相当于redisTemplate执行一个叫做RedisCallback的东西，</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><div class="line"><span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">			<span class="keyword">if</span> (enableTransactionSupport) &#123;</div><div class="line">				<span class="comment">// only bind resources in case of potential transaction synchronization</span></div><div class="line">				conn = RedisConnectionUtils.bindConnection(factory, enableTransactionSupport);</div><div class="line">			&#125; <span class="keyword">else</span> &#123;</div><div class="line">				conn = RedisConnectionUtils.getConnection(factory);</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			<span class="keyword">boolean</span> existingConnection = TransactionSynchronizationManager.hasResource(factory);</div><div class="line"></div><div class="line">			RedisConnection connToUse = preProcessConnection(conn, existingConnection);</div><div class="line"></div><div class="line">			<span class="keyword">boolean</span> pipelineStatus = connToUse.isPipelined();</div><div class="line">			<span class="keyword">if</span> (pipeline &amp;&amp; !pipelineStatus) &#123;</div><div class="line">				connToUse.openPipeline();</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			RedisConnection connToExpose = (exposeConnection ? connToUse : createRedisConnectionProxy(connToUse));</div><div class="line">			T result = action.doInRedis(connToExpose);</div><div class="line"></div><div class="line">			<span class="comment">// close pipeline</span></div><div class="line">			<span class="keyword">if</span> (pipeline &amp;&amp; !pipelineStatus) &#123;</div><div class="line">				connToUse.closePipeline();</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			<span class="comment">// <span class="doctag">TODO:</span> any other connection processing?</span></div><div class="line">			<span class="keyword">return</span> postProcessResult(result, connToUse, existingConnection);</div><div class="line">		&#125; <span class="keyword">finally</span> &#123;</div><div class="line"></div><div class="line">			<span class="keyword">if</span> (!enableTransactionSupport) &#123;</div><div class="line">				RedisConnectionUtils.releaseConnection(conn, factory);</div><div class="line">			&#125;</div><div class="line">		&#125;</div></pre></td></tr></table></figure>
+<p>从上面的代码可以看到，运行完action后，最后都会有finally，通过RedisConnectionUtils去releaseConnection，从而避免我们写的代码里去显式地调用释放链接</p>
+<h3 id="json部分">json部分</h3><p>json这块可以使用Jackson或者Gson</p>
+<p>jackson的注解为JsonAutoDectect,同时辅以JsonIgnoreProperites来使用，有一个mapWrapper来写</p>
+<p>gson部分，使用New GsonBuilder.create().toJson的方式，同时辅以@Expose的注解，表明序列化哪一个field，从而起跟上面一样的反效果。不过需要使用<br><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">new GsonBuilder.excluedFieldWithoutExposeFields().create()</div></pre></td></tr></table></figure></p>
+<h3 id="注解相关">注解相关</h3><p>@Configuration</p>
+<p>@SpringBootApplication  表明是一个spring-boot的程序</p>
+<p>@Cached redis相关？</p>
+<p>@EnableAutoConfiguration tells Spring Boot to start adding beans based on classpath settings, other beans, and various property settings. </p>
+<p>@PropertySource 跟autoConfiguration配对？</p>
+<p>@ComponentScan  相关controller和service的扫描</p>
+<p>@Bean</p>
+</span>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      
+      
+        <h1 class="post-title" itemprop="name headline">
+          
+          
+            
               <a class="post-title-link" href="/2015/08/07/7read/" itemprop="url">
                 今日阅读列表
               </a>
@@ -531,152 +630,6 @@
 
 
     
-      
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      
-      
-        <h1 class="post-title" itemprop="name headline">
-          
-          
-            
-              <a class="post-title-link" href="/2015/08/01/scala1/" itemprop="url">
-                scala学习第三天
-              </a>
-            
-          
-        </h1>
-      
-
-      <div class="post-meta">
-        <span class="post-time">
-          发表于
-          <time itemprop="dateCreated" datetime="2015-08-01T13:27:09+08:00" content="2015-08-01">
-            2015-08-01
-          </time>
-        </span>
-
-        
-          <span class="post-category" >
-            &nbsp; | &nbsp; 分类于
-            
-              <span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a href="/categories/scala/" itemprop="url" rel="index"><span itemprop="name">scala</span></a></span>
-
-              
-              
-
-            
-          </span>
-        
-
-        
-          
-            <span class="post-comments-count">
-              &nbsp; | &nbsp;
-              <a href="/2015/08/01/scala1/#comments" itemprop="discussionUrl">
-                <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/01/scala1/" itemprop="commentsCount"></span>
-              </a>
-            </span>
-          
-        
-      </div>
-    </header>
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody"><a id="more"></a>
-<h3 id="控制抽象">控制抽象</h3><p>函数值用做参数</p>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">filesMatching</span></span>(query: <span class="type">String</span>,</div><div class="line">	matcher: (<span class="type">String</span>, <span class="type">String</span>) =&gt; <span class="type">Boolean</span>) = &#123;</div><div class="line"><span class="keyword">for</span> (file &lt;- filesHere; <span class="keyword">if</span> matcher(file.getName, query))</div><div class="line">	<span class="keyword">yield</span> file</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>闭包，自由变量？</p>
-<p>List的高阶函数exists 配合占位符</p>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">containsOdd</span></span>(nums: <span class="type">List</span>[<span class="type">Int</span>]) = nums.exists(_ % <span class="number">2</span> == <span class="number">1</span>)</div></pre></td></tr></table></figure>
-<p>Curry化</p>
-<p>curry化函数被应用于多个参数列表，</p>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">first</span></span>(x: <span class="type">Int</span>) = (y: <span class="type">Int</span>) =&gt; x+y</div></pre></td></tr></table></figure>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">withPrintWriter</span></span>(file: <span class="type">File</span>, op: <span class="type">PrintWriter</span> =&gt; <span class="type">Unit</span>) &#123;</div><div class="line">	<span class="keyword">val</span> writer = <span class="keyword">new</span> <span class="type">PrintWriter</span>(file)</div><div class="line">	<span class="keyword">try</span>&#123;</div><div class="line">		op(writer)</div><div class="line">	&#125; <span class="keyword">finally</span> &#123;</div><div class="line">		writer.close()</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">withPrintWriter(</div><div class="line">	<span class="keyword">new</span> <span class="type">File</span>(<span class="symbol">'date</span>.txt'),</div><div class="line">	writer =&gt; writer.println(<span class="keyword">new</span> java.util.<span class="type">Date</span>)</div><div class="line">)</div></pre></td></tr></table></figure>
-<p>使用大括号代替小括号包围参数列表，实现内建控制结构</p>
-<p>叫名函数</p>
-<h3 id="组合和继承">组合和继承</h3><p>elem(s:String): Element</p>
-<p>抽象类，无法被实例化，</p>
-<p>无参数方法，且仅通过读含有对象的方式访问可变状态</p>
-<p>字段值在类初始化的时候被预计算，而方法调用在每次调用的时候都要计算。</p>
-<p>scala定义不带参数也没有副作用的方法为无参数方法，省略空的括号，是鼓励的风格，另一方面，永远不要定义没有括号的带副作用的方法。</p>
-<p>子类和超类</p>
-<p>scala仅微定义准备了两个命令空间，值（字段，方法，包还有单例对象），类型（类和特质名）</p>
-<p>多态和动态绑定</p>
-<p>使用组合与继承</p>
-<p>for循环中的until<br><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span>(i &lt;- <span class="number">0</span> until <span class="keyword">this</span>.contents.length)</div></pre></td></tr></table></figure></p>
-<h3 id="scala的层级">scala的层级</h3><p>42为Int的实例，不能使用new Int</p>
-<p>java中基本类型和引用类型的区别，</p>
-<p>Any &lt;- AnyVal, AnyRef, ScalaObject &lt;- …</p>
-<p>AnyRef定义了eq方法，它不能被重写，并且实现为引用相等。 通过eq 引用的相等比较它们的实例部分？那就是==代表为实例的相等？</p>
-<p>scala.Null: 每个引用类型的子类，不兼容值类型</p>
-<p>Scala.Nothing： 任何其他类型的子类，</p>
-<h3 id="特质_trait">特质 trait</h3><p>混入”特质”，而不是继承它们</p>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">trait</span> <span class="title">a</span> </span>&#123;</div><div class="line">	<span class="function"><span class="keyword">def</span> <span class="title">b</span> </span>= &#123;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>with 超类中混入特质，</p>
-<p>类似带有方法的java接口？</p>
-<p>特质不能有”类”参数，构造函数不允许有参数，</p>
-<p>class extends trait 构造的时候，需要指明？</p>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">R</span>(<span class="params">val topLeft: <span class="type">Point</span>, val rightLeft: <span class="type">Ponit</span></span>) <span class="keyword">extends</span></span></div></pre></td></tr></table></figure>
-<p>Ordered 用来compare 类似于comparator？</p>
-<p>可堆叠改变特质？</p>
-<p>更类似与切面，但切面也可继承超类以及相关？</p>
-<p>with的次序很重要，一般，越靠近右侧，越先起作用，</p>
-<p>多重继承？trait extends超类，使用super部分，线性化解释super的方式？</p>
-<h3 id="包和引用">包和引用</h3><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">import</span> x.x</div><div class="line"><span class="keyword">import</span> x._</div></pre></td></tr></table></figure>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">showFruit</span></span>(fruit: <span class="type">Fruit</span>) &#123;</div><div class="line">	<span class="keyword">import</span> fruit._</div><div class="line">	println(name + <span class="string">"a "</span> + color)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">import</span> <span class="type">Fruits</span>.&#123;<span class="type">Apple</span> =&gt; a, <span class="type">Orange</span>&#125;</div></pre></td></tr></table></figure>
-<p>java允许外部类访问其内部类的私有成员</p>
-<p>伴生对象？</p>
-<h3 id="样式类和模式匹配">样式类和模式匹配</h3><p>case class 和 pattern matching</p>
-<p>选择器 match {备选项}</p>
-<p>match同switch的比较:</p>
-<ul>
-<li>match始终以值为结果</li>
-<li>备选表达式永远不会掉到下一个case</li>
-<li>如果没有模式匹配，会抛出matchError</li>
-</ul>
-<p><code>case _ =&gt;</code> 通配  </p>
-<p>模式的种类:</p>
-<ul>
-<li>通配模式</li>
-<li>常量模式</li>
-<li>变量模式</li>
-<li>构造器模式</li>
-<li>元组模式</li>
-<li>类型模式</li>
-<li>变量绑定</li>
-</ul>
-<p>模式防卫</p>
-<p>模式重叠</p>
-<p>模式部分，用来进行消息的处理？</p>
-</span>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -716,7 +669,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">83</span>
+              <span class="site-state-item-count">84</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

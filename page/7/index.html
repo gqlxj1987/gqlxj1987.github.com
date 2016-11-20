@@ -147,6 +147,106 @@
           
           
             
+              <a class="post-title-link" href="/2015/11/01/mysql-max-connection/" itemprop="url">
+                mysql最大连接数
+              </a>
+            
+          
+        </h1>
+      
+
+      <div class="post-meta">
+        <span class="post-time">
+          发表于
+          <time itemprop="dateCreated" datetime="2015-11-01T18:14:20+08:00" content="2015-11-01">
+            2015-11-01
+          </time>
+        </span>
+
+        
+          <span class="post-category" >
+            &nbsp; | &nbsp; 分类于
+            
+              <span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a></span>
+
+              
+              
+
+            
+          </span>
+        
+
+        
+          
+            <span class="post-comments-count">
+              &nbsp; | &nbsp;
+              <a href="/2015/11/01/mysql-max-connection/#comments" itemprop="discussionUrl">
+                <span class="post-comments-count ds-thread-count" data-thread-key="2015/11/01/mysql-max-connection/" itemprop="commentsCount"></span>
+              </a>
+            </span>
+          
+        
+      </div>
+    </header>
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody"><h4 id="问题出现的背景">问题出现的背景</h4><p>字体管家的后台接口返回很慢，登录到相关机器，发现机器的负载高达28，30左右，定位为数据库的问题</p>
+<h4 id="定位的思路">定位的思路</h4><ul>
+<li><p>查看数据库的慢查询语句，发现相关sdk统计的sql，执行了14s，猜测可能是相关慢查询语句阻碍了正常的查询，导致负载偏高，遂将相关的查询的入口暂时禁掉</p>
+</li>
+<li><p>禁掉后，重启数据库后，发现问题依旧，于是查看show proceslist;的内容，猜测，是否是由于某些大量频繁的sql的短查询导致整体的负载高。在show processlist;的过程中，发现大量的unthencated user；的请求链接</p>
+</li>
+<li><p>通过网上查询，发现，unthencation user 这种请求，可能是mysql的一个Bug，由于是针对需要进行dns反查的这种，于是，在mysql的配置文件中，增加skip-resolve-name选项，取消掉这种dns反查的设置。重启mysql后，发现现象依旧</p>
+</li>
+<li><p>通过观察，发现mysql初期的时候show processlist;还比较正常，但没多久，负载就非常高，猜测可能不是查询的问题导致的。然后，想起来这周将mysql的max-connection调成了5000，结合php使用mysql的方式，定位为该原因。将max-connection调整为1000，重启mysql后，问题解决</p>
+</li>
+</ul>
+<h4 id="问题的结论">问题的结论</h4><p>问题的主要的点，还是在于php使用mysql的方式。由于php没有像java的那种线程池，其对数据库的访问都是以短socket的方式来进行。由于将max-connection设置为5000，由于流量的增大，php就可以不断地获取到数据库的连接，从而进行相关数据的操作。但同时的访问很多，连接不断的增多，导致mysql所需要的资源也越多，这也解释了mysql导致系统负载偏高的原因。</p>
+<p>关于最大连接数这个参数，由于php采用短socket的方式，连接-&gt;操作-&gt;释放，没有线程池的概念，所以，这块的最大连接数基本代表了1s内的数据库的请求并发数。但是，随着流量变大，请求的增多，请求所需要的连接数也会不断地增大。为了保证数据库操作的快速，迅捷，基本都会增加最大连接数这个参数，保证相关数据库操作能够快速地进行，而不是在那里等待上个数据库连接的释放。但是，增加连接数也带来了另一个问题，相关连接的资源消耗也是巨大的，包括cpu,内存，文件句柄数，网络等等。所以，最大连接数这部分也不宜太大。</p>
+<p>问题出现的原因，就是最大连接数设置的太大，导致php请求，可以无限制地获取到数据库连接，请求的增多，导致瞬间增大了当前的数据库连接数，极大地增加了mysql的资源损耗，从而导致整体系统负载非常高。</p>
+<h4 id="问题的发散">问题的发散</h4><ul>
+<li>关于最大连接数部分，比较适合的参数大小是多少？</li>
+</ul>
+<p>以前的java由于存在连接池的概念，在应用里设置的获取的最大连接数也没超过200，对应日均2000的网站。那这块是否可以借鉴呢？</p>
+<ul>
+<li>php这种短socket的方式，固然可以快速地进行数据库的操作，但它的连接的管理方面，完全靠数据库端来进行，例如：最大连接数等。这块php有没有比较好的思路，借鉴类似java这种连接池的思路来管理这种数据库连接呢？</li>
+</ul>
+</span>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      
+      
+        <h1 class="post-title" itemprop="name headline">
+          
+          
+            
               <a class="post-title-link" href="/2015/10/25/oneweek/" itemprop="url">
                 10.25一周总结
               </a>
@@ -575,113 +675,6 @@
 
 
     
-      
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      
-      
-        <h1 class="post-title" itemprop="name headline">
-          
-          
-            
-              <a class="post-title-link" href="/2015/10/07/ngxtop/" itemprop="url">
-                ngxtop命令使用
-              </a>
-            
-          
-        </h1>
-      
-
-      <div class="post-meta">
-        <span class="post-time">
-          发表于
-          <time itemprop="dateCreated" datetime="2015-10-07T22:42:24+08:00" content="2015-10-07">
-            2015-10-07
-          </time>
-        </span>
-
-        
-          <span class="post-category" >
-            &nbsp; | &nbsp; 分类于
-            
-              <span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a href="/categories/ngxtop/" itemprop="url" rel="index"><span itemprop="name">ngxtop</span></a></span>
-
-              
-              
-
-            
-          </span>
-        
-
-        
-          
-            <span class="post-comments-count">
-              &nbsp; | &nbsp;
-              <a href="/2015/10/07/ngxtop/#comments" itemprop="discussionUrl">
-                <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/07/ngxtop/" itemprop="commentsCount"></span>
-              </a>
-            </span>
-          
-        
-      </div>
-    </header>
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody"><p>ngxtop作为分析nginx日志一个很重要的工具，记录一些相关的使用和命令部分</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">ngxtop --help</div></pre></td></tr></table></figure>
-<p>一些说明:</p>
-<p>Options:</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-l &lt;file&gt;, --access-log &lt;file&gt; access log file to parse</div></pre></td></tr></table></figure>
-<p>指定access log</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-f &lt;format&gt;, --log-format &lt;format&gt; log format as specify in log_format directive. [default: combined]</div></pre></td></tr></table></figure>
-<p>指定 log format</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">--no-follow ngxtop default behavior is to ignore current lines in log and only watch for new lines as they are written to the access log. Use this flag to tell ngxtop to process the current content of the access log instead</div></pre></td></tr></table></figure>
-<p>ngxtop默认会对accesslog的新增行进行统计， 通过这个选项可以让ngxtop统计旧log</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-t &lt;seconds&gt;, --interval &lt;seconds&gt; report interval when running in follow mode [default: 2.0]</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-g &lt;var&gt;, --group-by &lt;var&gt; group by variable [default: request_path]</div></pre></td></tr></table></figure>
-<p>基于字段分组</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-w &lt;var&gt;, --having &lt;expr&gt; having clause [default: 1]</div></pre></td></tr></table></figure>
-<p>分组之后再筛选</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-o &lt;var&gt;, --order-by &lt;var&gt; order of output for default query [default: count]</div></pre></td></tr></table></figure>
-<p>排序字段</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-n &lt;number&gt;, --limit &lt;number&gt; limit the number of records included in report for top command [default: 10]</div></pre></td></tr></table></figure>
-<p>默认显示前多少条</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-a &lt;exp&gt; ..., --a &lt;exp&gt; ... add exp (must be aggregation exp: sum, avg, min, max, etc.) into output</div></pre></td></tr></table></figure>
-<p>对输出字段做附加条件 sum/avg/min/max 可选</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-v, --verbose more verbose output</div><div class="line">-d, --debug print every line and parsed record</div><div class="line">-h, --help print this help message.</div><div class="line">--version print version information.</div></pre></td></tr></table></figure>
-<p>Advanced / experimental options:</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-c &lt;file&gt;, --config &lt;file&gt; allow ngxtop to parse nginx config file for log format and location</div></pre></td></tr></table></figure>
-<p>指定nginx config文件，ngxtop 会自动解析配置文件，分析出access log的位置以及格式</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">-i &lt;filter-expression&gt;, --filter &lt;filter-expression&gt; filter in, records satisfied given expression are processed</div><div class="line"></div><div class="line">-p &lt;filter-expression&gt;, --pre-filter &lt;filter-expression&gt; in-filter expression to check in pre-parsing phase</div></pre></td></tr></table></figure>
-<p>常用的一些demo：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">$ ngxtop -l nginx.log</div><div class="line"></div><div class="line">top 10 request path with status 404:</div><div class="line"></div><div class="line">$ ngxtop top request_path --filter &apos;status == 404&apos;</div><div class="line"></div><div class="line">top 10 requests with highest total bytes sent</div><div class="line"></div><div class="line">$ ngxtop --order-by &apos;avg(bytes_sent) * count&apos;</div><div class="line"></div><div class="line">top 10 remote address</div><div class="line"></div><div class="line">$ ngxtop --group-by remote_addr</div><div class="line"></div><div class="line">find request with 4xx or 5xx status </div><div class="line"></div><div class="line">$ ngxtop -i &apos;status &gt;= 400&apos; -l nginx.log</div></pre></td></tr></table></figure>
-</span>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -721,7 +714,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">83</span>
+              <span class="site-state-item-count">84</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
