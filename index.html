@@ -206,21 +206,25 @@
 <li><p>Conclusion</p>
 </li>
 </ul>
-<h5 id="Problem">Problem</h5><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
+<h4 id="Problem">Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
 <p>先期采用worker-tier的方式</p>
 <ul>
 <li><p>Sidekiq</p>
 </li>
 <li><p>Resque</p>
 </li>
-<li>DelayedJob</li>
-<li>Elasticbeanstalk Worker Tier</li>
-<li>RabbitMQ</li>
-<li>and so on…</li>
+<li><p>DelayedJob</p>
+</li>
+<li><p>Elasticbeanstalk Worker Tier</p>
+</li>
+<li><p>RabbitMQ</p>
+</li>
+<li><p>and so on…</p>
+</li>
 </ul>
 <p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
 <p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
-<h5 id="Solution">Solution</h5><h6 id="goroutines">goroutines</h6><p>采用的方式便是goroutines，但切忌用navie的方式</p>
+<h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
 <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Go through each payload and queue items individually to be posted to S3</div><div class="line">for _, payload := range content.Payloads &#123;</div><div class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
 <p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
@@ -236,7 +240,7 @@
 <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Start method starts the run loop for the worker, listening for a quit channel in</div><div class="line">// case we need to stop it</div><div class="line">func (w Worker) Start() &#123;</div><div class="line">	go func() &#123;</div><div class="line">		for &#123;</div><div class="line">			// register the current worker into the worker queue.</div><div class="line">			w.WorkerPool &lt;- w.JobChannel</div><div class="line"></div><div class="line">			select &#123;</div><div class="line">			case job := &lt;-w.JobChannel:</div><div class="line">				// we have received a work request.</div><div class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</div><div class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</div><div class="line">				&#125;</div><div class="line"></div><div class="line">			case &lt;-w.quit:</div><div class="line">				// we have received a signal to stop</div><div class="line">				return</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>此处为worker内部的操作</p>
 <p>带来的效果是，服务器数量从100台drop到20台。</p>
-<h5 id="Conclusion">Conclusion</h5><blockquote>
+<h4 id="Conclusion">Conclusion</h4><blockquote>
 <p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
 </blockquote>
 <p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
