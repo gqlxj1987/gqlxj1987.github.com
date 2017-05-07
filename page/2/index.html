@@ -191,6 +191,269 @@
     <header class="post-header">
       <h1 class="post-title">
         
+          <a class="post-link" href="/2017/03/29/cache-strategy/">Cache Strategy</a>
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          Mar 29, 2017
+        </span>
+      </div>
+    </header>
+
+    
+    
+
+    <div class="post-content">
+      
+        
+        
+
+        
+          <p><a href="http://wetest.qq.com/lab/view/?id=80" target="_blank" rel="external">高性能服务架构思路</a></p>
+<h2 id="Agenda:">Agenda:</h2><ul>
+<li><p>缓存策略的概念和实例</p>
+</li>
+<li><p>缓存策略的难点：不同特点的缓存数据的清理机制</p>
+</li>
+<li><p>分布策略的概念和实例</p>
+</li>
+<li><p>分布策略的难点：共享数据安全性与代码复杂度的平衡</p>
+</li>
+</ul>
+<h2 id="缓存">缓存</h2><h3 id="缓存策略">缓存策略</h3><p>性能问题表现：</p>
+<ul>
+<li><p>并发数不足，也就是同时请求的客户过多，服务器的内存耗尽</p>
+</li>
+<li><p>处理延迟过长，CPU占用满100%</p>
+</li>
+</ul>
+<p>抽象资源：</p>
+<ul>
+<li><p>时间资源：CPU和磁盘读写</p>
+</li>
+<li><p>空间资源：内存和网卡带宽</p>
+</li>
+</ul>
+<p>缓存策略，其实是用内存的空间，换取磁盘的读写空间</p>
+<p>网络游戏的服务端程序，所有的写操作都先去写内存中的结构，然后定期再由服务器主动写回到数据库中，这样可以把多次的写数据库操作变成一次写操作，也能节省很多写数据库的消耗。这种做法也是用空间换时间的策略。</p>
+<p>缓存的本质，除了让“已经处理过的数据，不需要重复处理”以外，还有“以快速的数据存储读写，代替较慢速的存储读写”的策略</p>
+<p>对缓存数据的编程处理，采用序列化的方式，也可以采用深拷贝的方式，</p>
+<p>一般来说，缓存的数据越解决使用时的内存结构，其转换速度就越快，在这点上，Protocol Buffer采用TLV编码，就比不上直接memcpy的一个C结构体，但是比编码成纯文本的XML或者JSON要来的更快。因为编解码的过程往往要进行复杂的查表映射，列表结构等操作</p>
+<h3 id="缓存难点-缓存清理">缓存难点-缓存清理</h3><ul>
+<li>使用命令清理相关内存</li>
+</ul>
+<ul>
+<li>使用字段逻辑判断，根据一些特征数据，判断是否有不一致的地方，</li>
+</ul>
+<p>静态的缓存</p>
+<p>以及运行时变化的缓存数据，</p>
+<ul>
+<li><p>按照重要级来分割</p>
+</li>
+<li><p>按照使用部分分割</p>
+</li>
+</ul>
+<h2 id="分布">分布</h2><h3 id="分布策略">分布策略</h3><p>划分多个进程的架构，一般会有两种策略：一种是按功能来划分，比如负责网络处理的一个进程，负责数据库处理的一个进程，负责计算某个业务逻辑的一个进程。另外一种策略是每个进程都是同样的功能，只是分担不同的运算任务而已</p>
+<p>在调用多进程服务的策略上，我们也会有一定的策略选择，其中最著名的策略有三个：一个是动态负载均衡策略；一个是读写分离策略；一个是一致性哈希策略。</p>
+<p>多进程技术</p>
+<p>多线程技术，内存使用不可控，对于同一数据的使用，需要考虑复杂的”锁”问题</p>
+<p>select/epoll， 非阻塞操作，</p>
+<p>多线程和异步的例子，最著名就是Web服务器领域的Apache和Nginx的模型。Apache是多进程/多线程模型的，它会在启动的时候启动一批进程，作为进程池，当用户请求到来的时候，从进程池中分配处理进程给具体的用户请求，这样可以节省多进程/线程的创建和销毁开销，但是如果同时有大量的请求过来，还是需要消耗比较高的进程/线程切换。而Nginx则是采用epoll技术，这种非阻塞的做法，可以让一个进程同时处理大量的并发请求，而无需反复切换。对于大量的用户访问场景下，apache会存在大量的进程，而nginx则可以仅用有限的进程（比如按CPU核心数来启动），这样就会比apache节省了不少“进程切换”的消耗，所以其并发性能会更好。</p>
+<h3 id="分布式编程复杂度">分布式编程复杂度</h3><p>多线程部分</p>
+<ul>
+<li><p>基于回调</p>
+</li>
+<li><p>基于协程</p>
+</li>
+</ul>
+<p>lamda表达式，闭包，promise手段</p>
+<ul>
+<li><p>动态多进程fork——同质的并行任务</p>
+</li>
+<li><p>多线程——能明确划的逻辑复杂的并行任务</p>
+</li>
+<li><p>异步并发回调——对性能要求高，但中间会被阻塞的处理较少的并行任务</p>
+</li>
+<li><p>协程——以同步的写法编写并发的任务，但是不合适发起复杂的动态并行操作。</p>
+</li>
+<li><p>函数式编程——以数据流为模型的并行处理任务</p>
+</li>
+</ul>
+<p>函数式编程的语言，比如LISP或者Erlang，其核心数据结果是链表——一种可以表示任何数据结构的结构。我们可以把所有的状态，都放到链表这个数据列车中，然后让一个个函数去处理这串数据，这样同样也可以传递程序的状态。这是一种用栈来代替堆的编程思路，在多线程并发的环境下，非常的有价值。</p>
+<h3 id="分布式数据通信">分布式数据通信</h3><p>消息队列</p>
+<h3 id="分布式缓存策略">分布式缓存策略</h3><p>利用哈希表来解决缓存的数据同步</p>
+<p>我们的“表”要有能把数据在A、B两个进程间同步的能力。因此我们一般会用三种策略：租约清理、租约转发、修改广播</p>
+<ul>
+<li>租约清理</li>
+</ul>
+<ul>
+<li>租约转发</li>
+</ul>
+<p>这样无需清理，</p>
+<ul>
+<li>修改广播</li>
+</ul>
+<p>dns的缓存策略</p>
+
+        
+      
+    </div>
+
+    
+
+    
+  </article>
+
+    
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          <a class="post-link" href="/2017/03/25/one-week/">每当变幻时</a>
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          Mar 25, 2017
+        </span>
+      </div>
+    </header>
+
+    
+    
+
+    <div class="post-content">
+      
+        
+        
+
+        
+          <p>悲苦心刻藏骨髓，韶华去四季暗中追随</p>
+<p>梦如人生试问谁能料</p>
+<p>本周完成：</p>
+<ul>
+<li><p>arpu和roi部分的计算</p>
+</li>
+<li><p>关于数据的一些检查部分</p>
+</li>
+<li><p>bidder log部分的一些解析</p>
+</li>
+</ul>
+<p>未完成：</p>
+<ul>
+<li><p>相关文档的沉淀</p>
+</li>
+<li><p>渠道监控部分的完结</p>
+</li>
+</ul>
+<p>下周计划：</p>
+<ul>
+<li><p>渠道监控部分整体的完结</p>
+</li>
+<li><p>bidder log的扩展</p>
+</li>
+<li><p>相关的一些数据bug的追查</p>
+</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li><p>golang的cli部分的使用，但跟beego的使用有冲突？</p>
+</li>
+<li><p>关于hbase的一些时间戳的新的做法</p>
+</li>
+<li><p>关于spark编写代码的一些重构</p>
+</li>
+</ul>
+<p>工作和生活部分的平衡，需要把控下，技术文章方面不要拉下</p>
+<p>数据部分，找些业界的方式，尝试对相关架构进行改进。。</p>
+<p>电影方面还行，不过书部分，还需要加强。。。</p>
+
+        
+      
+    </div>
+
+    
+
+    
+  </article>
+
+    
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          <a class="post-link" href="/2017/03/20/restful-api/">Restful API tips</a>
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          Mar 20, 2017
+        </span>
+      </div>
+    </header>
+
+    
+    
+
+    <div class="post-content">
+      
+        
+        
+
+        
+          <p>restful api 设计的相关原则</p>
+<p>设计的相关5个动作</p>
+<ul>
+<li><p>GET</p>
+</li>
+<li><p>PUT</p>
+</li>
+<li><p>DELETE</p>
+</li>
+<li><p>POST</p>
+</li>
+<li><p>PATCH</p>
+</li>
+</ul>
+<h3 id="Custom_Methods">Custom Methods</h3><p><a href="https://cloud.google.com/apis/design/custom_methods?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_79" target="_blank" rel="external">Design Custom Methods</a></p>
+<p>custom methods的http设计:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">https:<span class="comment">//service.name/v1/some/resource/name:customVerb</span></div></pre></td></tr></table></figure>
+<p>采用<code>:</code>代替<code>/</code>的理由在于，可以支持任意的路径</p>
+<p>关于custom methods部分，遵循下面几个原则</p>
+<ul>
+<li><p>应尽量使用POST方法，因为其支持灵活的语义</p>
+</li>
+<li><p>即使要使用其他动作的话，也需尽量符合其对应的语义学</p>
+</li>
+<li><p>GET方法，需要保持独立以及幂等</p>
+</li>
+<li><p>关于body的一些建议</p>
+</li>
+</ul>
+<p>代码部分的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><div class="line"><span class="comment">// This is a service level custom method.</span></div><div class="line">rpc Watch(WatchRequest) returns (WatchResponse) &#123;</div><div class="line">  <span class="comment">// Custom method maps to HTTP POST. All request parameters go into body.</span></div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v1:watch"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a collection level custom method.</span></div><div class="line">rpc ClearEvents(ClearEventsRequest) returns (ClearEventsResponse) &#123;</div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v3/events:clear"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a resource level custom method.</span></div><div class="line">rpc CancelEvent(CancelEventRequest) returns (CancelEventResponse) &#123;</div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v3/&#123;name=events/*&#125;:cancel"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a batch get custom method.</span></div><div class="line">rpc BatchGetEvents(BatchGetEventsRequest) returns (BatchGetEventsResponse) &#123;</div><div class="line">  <span class="comment">// The batch get method maps to HTTP GET verb.</span></div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">get</span>: <span class="string">"/v3/events:batchGet"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+        
+      
+    </div>
+
+    
+
+    
+  </article>
+
+    
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
           <a class="post-link" href="/2017/03/19/GraphQL/">GraphQL</a>
         
       </h1>
@@ -291,189 +554,6 @@
 </blockquote>
 <p>map的value可以改写，但是无法给出地址</p>
 
-        
-      
-    </div>
-
-    
-
-    
-  </article>
-
-    
-      
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2017/03/14/design-scale-system/">Design Scale System</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          Mar 14, 2017
-        </span>
-      </div>
-    </header>
-
-    
-    
-
-    <div class="post-content">
-      
-        
-        
-
-        
-          <p><a href="https://github.com/donnemartin/system-design-primer" target="_blank" rel="external">how to design large scale system</a></p>
-<blockquote>
-<p>Summaries of various system design topics, including pros and cons. Everything is a trade-off.</p>
-<p>Each section contains links to more in-depth resources.</p>
-</blockquote>
-<p>可用性与一致性</p>
-<p>CAP理论</p>
-<ul>
-<li><p>CP</p>
-</li>
-<li></li>
-</ul>
-<p>一致性模型：</p>
-<ul>
-<li><p>弱一致性</p>
-</li>
-<li><p>最终一致性</p>
-</li>
-<li><p>强一致性</p>
-</li>
-</ul>
-
-        
-      
-    </div>
-
-    
-
-    
-  </article>
-
-    
-      
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2017/03/05/one-week/">Committing every day</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          Mar 5, 2017
-        </span>
-      </div>
-    </header>
-
-    
-    
-
-    <div class="post-content">
-      
-        
-        
-
-        
-          <p>I really believe committing every day on an open source project is the best practice.</p>
-<p>本周完成：</p>
-<ul>
-<li>取数据部分的及时性和便捷性</li>
-</ul>
-<ul>
-<li>日志的归一化部分，由于涉及到callback部分，暂不可替server端日志</li>
-</ul>
-<ul>
-<li>加入keyword策略部分的统计，在线以及离线</li>
-</ul>
-<ul>
-<li>收入抓取和报警部分调整</li>
-</ul>
-<p>未完成：</p>
-<ul>
-<li>渠道监控后续的工作？</li>
-</ul>
-<ul>
-<li>现有的服务点的改造</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li><p>golang-101-hacks</p>
-</li>
-<li><p>python bs4部分，有关session以及https部分的抓取</p>
-</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>规范一些离线报告的范畴</li>
-</ul>
-<ul>
-<li>梳理现有的服务的改造点</li>
-</ul>
-<ul>
-<li>关于ecpm的分时报告部分</li>
-</ul>
-<p>技术文章，每周两篇，没啥问题</p>
-<p>关于project52部分，组织一下项目结构部分，慢慢写一些工作log</p>
-<p>尝试写下每周阿南的读后感，尝试向开源部分靠靠。。</p>
-<p>尝试控制自己的欲望，推迟一些不必要的想法和成就感。。</p>
-
-        
-      
-    </div>
-
-    
-
-    
-  </article>
-
-    
-      
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2017/02/28/golang-101-hacks/">Golang-101-hacks</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          Feb 28, 2017
-        </span>
-      </div>
-    </header>
-
-    
-    
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <h4 id="Use_govendor_to_implement_vendoring">Use govendor to implement vendoring</h4><p>利用govendor部分，进行相关的依赖保证</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">govendor init</div><div class="line"></div><div class="line">govendor add +external</div></pre></td></tr></table></figure>
-<p>这样我们在进行go get的时候，可以将相关的依赖同时下载下来。</p>
-<h4 id="short_variable_declaration">short variable declaration</h4><figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">i := <span class="number">10</span></div></pre></td></tr></table></figure>
-<p>一般都会产生一个新的变量，这样要防止全局变量和局部变量之间的区别</p>
-<h4 id="nil_silce_vs_nil_map">nil silce vs nil map</h4><p>Slice and map are all reference types in <code>Go</code>, and their default values are <code>nil</code></p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line"><span class="keyword">var</span> s1 []<span class="keyword">int</span></div><div class="line">s2 := []<span class="keyword">int</span>&#123;&#125;</div></pre></td></tr></table></figure>
-<p>上述两种方式，第二种的命名s2非<code>nil</code>，但同样长度为0</p>
-          <div class="read-more">
-            <a href="/2017/02/28/golang-101-hacks/" class="read-more-link">Read more..</a>
-          </div>
         
       
     </div>
