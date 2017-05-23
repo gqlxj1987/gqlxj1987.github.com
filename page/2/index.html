@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="chrome=1">
   
-  <title>第 2 页 | DevilKing&#39;s blog</title>
+  <title>Page 2 | DevilKing&#39;s blog</title>
   <meta name="author" content="gqlxj1987">
   
   
@@ -45,6 +45,50 @@
 </nav>
 <div class="clearfix"></div></header>
     <div class="content">
+  <article class="post">
+  <header>
+    
+      <div class="icon"></div>
+      <time datetime="2017-04-26T16:03:01.000Z"><a href="/2017/04/27/golang-memory/">2017-04-27</a></time>
+    
+    
+  
+    <h1 class="title"><a href="/2017/04/27/golang-memory/">Golang 内存管理初探</a></h1>
+  
+
+  </header>
+  
+  <div class="entry">
+    
+      <p><a href="https://mp.weixin.qq.com/s/LXj5rrtmxB7NyQbOg9N5wA" target="_blank" rel="external">golang内存管理(上篇)</a></p>
+<p>tcmalloc的介绍</p>
+<p>一个Goroutine部分，分为G,M,P三个部分组成</p>
+<ul>
+<li><p>G Goroutine执行的上下文环境</p>
+</li>
+<li><p>M 操作系统线程</p>
+</li>
+<li><p>P Processer. 调度器</p>
+</li>
+</ul>
+<h4 id="逃逸分析">逃逸分析</h4><figure class="highlight golang"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"><span class="keyword">import</span> ()</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> *<span class="title">int</span></span> &#123;  </div><div class="line">  <span class="keyword">var</span> x <span class="keyword">int</span></div><div class="line">  <span class="keyword">return</span> &amp;x</div><div class="line">&#125;</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">bar</span><span class="params">()</span> <span class="title">int</span></span> &#123;</div><div class="line">  x := <span class="built_in">new</span>(<span class="keyword">int</span>)</div><div class="line">  *x = <span class="number">1</span></div><div class="line">  <span class="keyword">return</span> *x</div><div class="line">&#125;</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;&#125;</div></pre></td></tr></table></figure>
+<p>关于执行的命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">$ go run -gcflags &apos;-m -l&apos; escape.go</div><div class="line">./escape.go:6: moved to heap: x</div><div class="line">./escape.go:7: &amp;x escape to heap</div><div class="line">./escape.go:11: bar new(int) does not escape</div></pre></td></tr></table></figure>
+<p>注意上面的代码，foo()的x是分配到堆上，而bar()中的x是分配到栈上</p>
+
+    
+  </div>
+  <footer class="end-sep">
+    
+      
+      
+    
+    <div class="clearfix"></div>
+  </footer>
+</article>
+
+
+
   <article class="post">
   <header>
     
@@ -331,73 +375,13 @@
 
 
 
-  <article class="post">
-  <header>
-    
-      <div class="icon"></div>
-      <time datetime="2017-03-20T02:02:01.000Z"><a href="/2017/03/20/restful-api/">2017-03-20</a></time>
-    
-    
-  
-    <h1 class="title"><a href="/2017/03/20/restful-api/">Restful API tips</a></h1>
-  
-
-  </header>
-  
-  <div class="entry">
-    
-      <p>restful api 设计的相关原则</p>
-<p>设计的相关5个动作</p>
-<ul>
-<li><p>GET</p>
-</li>
-<li><p>PUT</p>
-</li>
-<li><p>DELETE</p>
-</li>
-<li><p>POST</p>
-</li>
-<li><p>PATCH</p>
-</li>
-</ul>
-<h3 id="Custom_Methods">Custom Methods</h3><p><a href="https://cloud.google.com/apis/design/custom_methods?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_79" target="_blank" rel="external">Design Custom Methods</a></p>
-<p>custom methods的http设计:</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">https:<span class="comment">//service.name/v1/some/resource/name:customVerb</span></div></pre></td></tr></table></figure>
-<p>采用<code>:</code>代替<code>/</code>的理由在于，可以支持任意的路径</p>
-<p>关于custom methods部分，遵循下面几个原则</p>
-<ul>
-<li><p>应尽量使用POST方法，因为其支持灵活的语义</p>
-</li>
-<li><p>即使要使用其他动作的话，也需尽量符合其对应的语义学</p>
-</li>
-<li><p>GET方法，需要保持独立以及幂等</p>
-</li>
-<li><p>关于body的一些建议</p>
-</li>
-</ul>
-<p>代码部分的示例：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><div class="line"><span class="comment">// This is a service level custom method.</span></div><div class="line">rpc Watch(WatchRequest) returns (WatchResponse) &#123;</div><div class="line">  <span class="comment">// Custom method maps to HTTP POST. All request parameters go into body.</span></div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v1:watch"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a collection level custom method.</span></div><div class="line">rpc ClearEvents(ClearEventsRequest) returns (ClearEventsResponse) &#123;</div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v3/events:clear"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a resource level custom method.</span></div><div class="line">rpc CancelEvent(CancelEventRequest) returns (CancelEventResponse) &#123;</div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">post</span>: <span class="string">"/v3/&#123;name=events/*&#125;:cancel"</span></div><div class="line">    body: <span class="string">"*"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// This is a batch get custom method.</span></div><div class="line">rpc BatchGetEvents(BatchGetEventsRequest) returns (BatchGetEventsResponse) &#123;</div><div class="line">  <span class="comment">// The batch get method maps to HTTP GET verb.</span></div><div class="line">  option (google.api.http) = &#123;</div><div class="line">    <span class="attr">get</span>: <span class="string">"/v3/events:batchGet"</span></div><div class="line">  &#125;;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-
-    
-  </div>
-  <footer class="end-sep">
-    
-      
-      
-    
-    <div class="clearfix"></div>
-  </footer>
-</article>
-
-
-
 
 <nav id="pagination">
   
-    <a href="/" class="prev">上一页</a>
+    <a href="/" class="prev">Prev</a>
   
   
-    <a href="/page/3/" class="next">下一页</a>
+    <a href="/page/3/" class="next">Next</a>
   
   <div class="clearfix"></div>
 </nav></div>
