@@ -18,8 +18,6 @@
     <link rel="alternative" href="/atom.xml" title="DevilKing&#39;s blog" type="application/atom+xml">
   
   
-    <link rel="icon" href="/favicon.png">
-  
   <link rel="stylesheet" type="text/css" href="/./main.b3331d.css">
   <style type="text/css">
   
@@ -42,7 +40,7 @@
 <div class="intrude-less">
 	<header id="header" class="inner">
 		<a href="/" class="profilepic">
-			<img src="null" class="js-avatar">
+			<img src="/images/guiquanli.png" class="js-avatar">
 		</a>
 		<hgroup>
 		  <h1 class="header-author"><a href="/">gqlxj1987</a></h1>
@@ -54,9 +52,9 @@
 		<nav class="header-menu">
 			<ul>
 			
-				<li><a href="/">主页</a></li>
+				<li><a href="/archives/2017">2017</a></li>
 	        
-				<li><a href="/tags/随笔/">随笔</a></li>
+				<li><a href="/">主页</a></li>
 	        
 			</ul>
 		</nav>
@@ -67,25 +65,13 @@
     			
             
     			
-    			<a q-on="click: openSlider(e, 'friends')" href="javascript:void(0)">友链</a>
-    			
             
-    			
-    			<a q-on="click: openSlider(e, 'aboutme')" href="javascript:void(0)">关于我</a>
     			
             
 		</nav>
 		<nav class="header-nav">
 			<div class="social">
 				
-					<a class="github" target="_blank" href="#" title="github"><i class="icon-github"></i></a>
-		        
-					<a class="weibo" target="_blank" href="#" title="weibo"><i class="icon-weibo"></i></a>
-		        
-					<a class="rss" target="_blank" href="#" title="rss"><i class="icon-rss"></i></a>
-		        
-					<a class="zhihu" target="_blank" href="#" title="zhihu"><i class="icon-zhihu"></i></a>
-		        
 			</div>
 		</nav>
 	</header>		
@@ -102,7 +88,7 @@
 	<div class="intrude-less">
 		<header id="header" class="inner">
 			<div class="profilepic">
-				<img src="null" class="js-avatar">
+				<img src="/images/guiquanli.png" class="js-avatar">
 			</div>
 			<hgroup>
 			  <h1 class="header-author js-header-author">gqlxj1987</h1>
@@ -121,14 +107,6 @@
 			<nav class="header-nav">
 				<div class="social">
 					
-						<a class="github" target="_blank" href="#" title="github"><i class="icon-github"></i></a>
-			        
-						<a class="weibo" target="_blank" href="#" title="weibo"><i class="icon-weibo"></i></a>
-			        
-						<a class="rss" target="_blank" href="#" title="rss"><i class="icon-rss"></i></a>
-			        
-						<a class="zhihu" target="_blank" href="#" title="zhihu"><i class="icon-zhihu"></i></a>
-			        
 				</div>
 			</nav>
 
@@ -136,9 +114,9 @@
 				<ul style="width: 50%">
 				
 				
-					<li style="width: 50%"><a href="/">主页</a></li>
+					<li style="width: 50%"><a href="/archives/2017">2017</a></li>
 		        
-					<li style="width: 50%"><a href="/tags/随笔/">随笔</a></li>
+					<li style="width: 50%"><a href="/">主页</a></li>
 		        
 				</ul>
 			</nav>
@@ -154,6 +132,125 @@
           </div>
           <div id="js-content" class="content-ll">
             
+  
+    <article id="post-handling-1-million-requests-with-go" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/02/12/handling-1-million-requests-with-go/">使用go处理一百万请求</a>
+    </h1>
+  
+
+        
+        <a href="/2017/02/12/handling-1-million-requests-with-go/" class="archive-article-date">
+  	<time datetime="2017-02-12T09:50:12.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-02-12</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="external">原文链接</a></p>
+<p>Agenda:</p>
+<ul>
+<li><p>The Problem</p>
+</li>
+<li><p>The Solution</p>
+</li>
+<li><p>Conclusion</p>
+</li>
+</ul>
+<h4 id="Problem">Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
+<p>先期采用worker-tier的方式</p>
+<ul>
+<li><p>Sidekiq</p>
+</li>
+<li><p>Resque</p>
+</li>
+<li><p>DelayedJob</p>
+</li>
+<li><p>Elasticbeanstalk Worker Tier</p>
+</li>
+<li><p>RabbitMQ</p>
+</li>
+<li><p>and so on…</p>
+</li>
+</ul>
+<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
+<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
+<h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Go through each payload and queue items individually to be posted to S3</div><div class="line">for _, payload := range content.Payloads &#123;</div><div class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
+<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
+<blockquote>
+<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
+</blockquote>
+<p>相关的数据结构为：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">type Worker struct &#123;</div><div class="line">	WorkerPool  chan chan Job</div><div class="line">	JobChannel  chan Job</div><div class="line">	quit    	chan bool</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
+<p>关键的代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">for &#123;</div><div class="line">		select &#123;</div><div class="line">		case job := &lt;-JobQueue:</div><div class="line">			// a job request has been received</div><div class="line">			go func(job Job) &#123;</div><div class="line">				// try to obtain a worker job channel that is available.</div><div class="line">				// this will block until a worker is idle</div><div class="line">				jobChannel := &lt;-d.WorkerPool</div><div class="line"></div><div class="line">				// dispatch the job to the worker job channel</div><div class="line">				jobChannel &lt;- job</div><div class="line">			&#125;(job)</div><div class="line">		&#125;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<p>此处为dispatcher操作</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Start method starts the run loop for the worker, listening for a quit channel in</div><div class="line">// case we need to stop it</div><div class="line">func (w Worker) Start() &#123;</div><div class="line">	go func() &#123;</div><div class="line">		for &#123;</div><div class="line">			// register the current worker into the worker queue.</div><div class="line">			w.WorkerPool &lt;- w.JobChannel</div><div class="line"></div><div class="line">			select &#123;</div><div class="line">			case job := &lt;-w.JobChannel:</div><div class="line">				// we have received a work request.</div><div class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</div><div class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</div><div class="line">				&#125;</div><div class="line"></div><div class="line">			case &lt;-w.quit:</div><div class="line">				// we have received a signal to stop</div><div class="line">				return</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>此处为worker内部的操作</p>
+<p>带来的效果是，服务器数量从100台drop到20台。</p>
+<h4 id="Conclusion">Conclusion</h4><blockquote>
+<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
+</blockquote>
+<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
+<blockquote>
+<p>There is always the right tool for the job</p>
+</blockquote>
+
+      
+
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">golang</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+		<i class="icon-book icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/golang/" class="article-tag-list-link color2">golang</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/02/12/handling-1-million-requests-with-go/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
   
     <article id="post-one-week" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
@@ -221,7 +318,6 @@
 
       
 
-      
     </div>
     <div class="article-info article-info-index">
       
@@ -308,7 +404,6 @@
 
       
 
-      
     </div>
     <div class="article-info article-info-index">
       
@@ -440,7 +535,6 @@
 
       
 
-      
     </div>
     <div class="article-info article-info-index">
       
@@ -544,7 +638,6 @@
 
       
 
-      
     </div>
     <div class="article-info article-info-index">
       
@@ -590,136 +683,6 @@
 
 
   
-    <article id="post-control-yourself" class="article article-type-post  article-index" itemscope itemprop="blogPost">
-  <div class="article-inner">
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/01/31/control-yourself/">Control Yourself</a>
-    </h1>
-  
-
-        
-        <a href="/2017/01/31/control-yourself/" class="archive-article-date">
-  	<time datetime="2017-01-31T02:11:21.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-01-31</time>
-</a>
-        
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>关系部分，算是确定了。但是感觉上，还是有些摸不透，这个也算？</p>
-<p>关于X方面，自己真的是像一张白纸，慢慢学习吧，不管是什么的结果，都是自己的选择，慢慢来吧。。</p>
-<p>关于异地的问题，这个暂时也没有什么很好的办法去解决，后续会怎么样，自己也不清楚，走走看吧。。</p>
-<p>是因为自己的没经验，还是自己的没自信来确定这段关系，感觉或多或少地还是在讨好，虽然这种讨好没什么不对，但还是希望在某些地方能够坚持自我吧。</p>
-<p>关于心态方面，还是像以前一样，努力地做好自己该做的，自己想做的，其他的方面，就不是自己能够控制的了，享受过程。。。</p>
-<hr>
-<p>又一次地被吐槽，没有分享，没有更新一些动态。但其实，自己心里想的是，不想给别人带来特别粘人的感觉，保持一定的空间。。。自己有点想多了？后面慢慢开放吧，做到慢慢坦诚</p>
-<p>现阶段，不要想那么多，平添烦恼，过好每一天，也不用很忐忑地去多想，还是那句，得之我幸。既然是幸运的话，就好好地珍惜，不用患得患失地计划一些东西，这样会很累，同时也没啥营养</p>
-<p>还有，就是做好一些细节，关于异想天开的部分，可以去尝试，没有什么大不了。。</p>
-<p>草食系。。。</p>
-<hr>
-<p>哈尔滨之旅结束了。。感觉还是好失败。。传说中的本垒打，也没有成功，自己心中的那道坎。。或者也有生理上的坎。。</p>
-<p>表现实在是拙劣，别人看起来很easy的事情。。自己是如此地困难。。。或许还要靠药物？</p>
-<p>给了个期限，十一，要是十一还这样，怎么办。。。哑口无言。。</p>
-<p>带过去的东西，一个都没有用。。。自己在害怕什么。。内裤没带够。。还是其他啥的。。</p>
-<p>X，变成了心结，居然成为了首要要解决的问题。。。真是令人苦笑</p>
-<p>后面，学习着开始撸吧。。尝试去学习一些经验，努力，加油。。</p>
-<p>最不济，也就是主动地放弃了。。。虽然会有些不甘心，但自己的问题，总要自己独自去承担。。。</p>
-<p>万事先虑败，再论胜；算是一场经历和学习，至于最后的结果如何，由天定，人在做。。</p>
-<p>反正本身也是acer的命。。不要存在一些太美妙的幻想。。。</p>
-<hr>
-<p>拙劣的安慰技巧，以及拙劣的说话技巧。。。</p>
-<p>。。。或许是自己过于敏感吧，或者安全感太差，总是感觉一种做梦的感觉，这样，总是一副患得患失的样子。。。</p>
-<p>自己确实不是那么会话说，也不会那么会哄人。。。或许，也就这样吧。。</p>
-<p>既然已经有了最坏的打算，acer一样。。也就无所谓了。。还是慢慢调整身体吧。。</p>
-<p>自己本来对这块就是个傻瓜一样。。那就继续傻瓜到底吧。。。没什么大不了的。。。</p>
-<hr>
-<p>双方都有些心结，最大的问题还是X方面。。。什么时候可以破X，希望在上半年吧。。。</p>
-<p>还有就是关于学习这块，需要加入时间来学习了。。。从心理上有所突破上，总不会自学成才之类。。</p>
-<hr>
-<p>每次见面都当成最后一次吧。。</p>
-<p>不会说话，也不会说些色色的话，其实自己还是挺乏味的。。。</p>
-<p>关于X方面，尽力就行。。</p>
-<p>修好电脑，送好礼物就行。。既然有最坏的打算。。你还在乎什么。。。</p>
-<p>不用故作勇敢，坦诚真诚地去做自己</p>
-<hr>
-<p>完成既定的目标，虽然还有很多不完善的地方。。</p>
-<p>这块要做下检讨，关于行程部分，一定要两个人商量一下，并且按照时间表方面来，例如，下午的晚饭，以及要买的水果也没买。。。不要自以为是。。</p>
-<p>相处的过程中，感觉还是太拘谨了，是因为没有安全感，或者那可笑的比较心？由于自己的心态问题，总想着让对方满意，不想对方失望，感觉这块，自己有点sick，这样心理上好累，怕这怕那。。。</p>
-<p>改变一下，既然是相处，表达一些自己想要的，让相处能够有趣以及持久，让对方满意是一回事，但也要做回自己，既然工作上能够做到自己，那生活上也要做到，都有觉悟了，还怕失去什么。。。</p>
-<p>关于本垒打部分，请教一下，找下教程方面，不要给自己太大的压力，毕竟这个只是在补课，从学术的角度？从最初级开始学习，蹒跚走路的小孩，也要一步一步地走下去，不管未来有什么。。</p>
-<p>很多事情，有时候也会跟跑步一样累，但跑步不是一样坚持下来了，其他的有什么好怕的，按照自己的脚步，坚定地走下去。。</p>
-<hr>
-<p>不故作勇敢，真诚，坦诚，一定要谨记这一点，不要去触动底线，底线一旦被突破，很多事情就变形了</p>
-<p>严格遵守自己的标准，不管理由有多大，出发点有多美好，底线一定不要去触动</p>
-<p>不纠结，后面的事情真诚地去面对，看能否建立完全信任的关系，将异地恋能够维持下去</p>
-<hr>
-<p>关于X方面，自己真是够蠢了，找到响应的感觉最重要。。。学习的道路是艰难的，看自己的了。</p>
-<p>不是已经做好了最坏的打算，其实关于后面的一些幻想，也是空中楼阁一样，不要做太多的幻想了。。看能不能解决问题吧。。不能解决，一切白搭，或者acer的命运吧。。</p>
-<p>还是心理上有障碍，有时候也想哭下，别人都无师自通的事情，到自己这里万分地艰难，可能是自己真的不合适吧。。</p>
-<p>acer就该有acer的觉悟，做好自己，学习好，至于后面如何，就不是自己能控制的了。。</p>
-<hr>
-<p>对于我这种无趣的人，果然是好累，有时想强行地凑上话题啥的，果然很难</p>
-<p>虽然知道自己引起了生气，但嘴拙，真心不知道如何去哄。。</p>
-<p>莫名的冷战，跟自己奇怪的自卑，哎，真的是自己比较蠢吧。。。</p>
-<p>或许真的很难hold吧，还是自己太无趣了吧。</p>
-<p>顺其自然吧。。。</p>
-<p>acer的觉悟。。。</p>
-<hr>
-<p>一条垂死挣扎的鱼，最后还是活过来了，轻易地不要放弃，虽然有各种各样的理由和缺陷，有各种的原因，但也不要认怂。。</p>
-<hr>
-
-      
-
-      
-    </div>
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">心态</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-      
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/心态/" class="article-tag-list-link color3">心态</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-      
-        <p class="article-more-link">
-          <a class="article-more-a" href="/2017/01/31/control-yourself/">展开全文 >></a>
-        </p>
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-  </div>
-</article>
-
-
-
-
-
-  
   
     <nav id="page-nav">
       <a class="extend prev" rel="prev" href="/page/5/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/page/25/">25</a><a class="extend next" rel="next" href="/page/7/">Next &raquo;</a>
@@ -745,7 +708,7 @@
     </div>
     <script>
 	var yiliaConfig = {
-		mathjax: false,
+		mathjax: true,
 		isHome: true,
 		isPost: false,
 		isArchive: false,
@@ -764,6 +727,27 @@
 return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){var e=r(54),i=r(2),o=r(32),u=e.has,c=e.key,f=function(t,n,r){if(u(t,n,r))return!0;var e=o(n);return null!==e&&f(t,e,r)};e.exp({hasMetadata:function(t,n){return f(t,i(n),arguments.length<3?void 0:c(arguments[2]))}})},function(t,n,r){var e=r(54),i=r(2),o=e.has,u=e.key;e.exp({hasOwnMetadata:function(t,n){return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){var e=r(54),i=r(2),o=r(26),u=e.key,c=e.set;e.exp({metadata:function(t,n){return function(r,e){c(t,n,(void 0!==e?i:o)(r),u(e))}}})},function(t,n,r){var e=r(1);e(e.P+e.R,"Set",{toJSON:r(165)("Set")})},function(t,n,r){"use strict";var e=r(1),i=r(147)(!0);e(e.P,"String",{at:function(t){return i(this,t)}})},function(t,n,r){"use strict";var e=r(1),i=r(46),o=r(16),u=r(122),c=r(120),f=RegExp.prototype,a=function(t,n){this._r=t,this._s=n};r(139)(a,"RegExp String",function(){var t=this._r.exec(this._s);return{value:t,done:null===t}}),e(e.P,"String",{matchAll:function(t){if(i(this),!u(t))throw TypeError(t+" is not a regexp!");var n=String(this),r="flags"in f?String(t.flags):c.call(t),e=new RegExp(t.source,~r.indexOf("g")?r:"g"+r);return e.lastIndex=o(t.lastIndex),new a(e,n)}})},function(t,n,r){"use strict";var e=r(1),i=r(181);e(e.P,"String",{padEnd:function(t){return i(this,t,arguments.length>1?arguments[1]:void 0,!1)}})},function(t,n,r){"use strict";var e=r(1),i=r(181);e(e.P,"String",{padStart:function(t){return i(this,t,arguments.length>1?arguments[1]:void 0,!0)}})},function(t,n,r){"use strict";r(82)("trimLeft",function(t){return function(){return t(this,1)}},"trimStart")},function(t,n,r){"use strict";r(82)("trimRight",function(t){return function(){return t(this,2)}},"trimEnd")},function(t,n,r){r(153)("asyncIterator")},function(t,n,r){r(153)("observable")},function(t,n,r){var e=r(1);e(e.S,"System",{global:r(3)})},function(t,n,r){for(var e=r(155),i=r(28),o=r(3),u=r(27),c=r(80),f=r(7),a=f("iterator"),s=f("toStringTag"),l=c.Array,h=["NodeList","DOMTokenList","MediaList","StyleSheetList","CSSRuleList"],v=0;v<5;v++){var p,d=h[v],y=o[d],g=y&&y.prototype;if(g){g[a]||u(g,a,l),g[s]||u(g,s,d),c[d]=l;for(p in e)g[p]||i(g,p,e[p],!0)}}},function(t,n,r){var e=r(1),i=r(151);e(e.G+e.B,{setImmediate:i.set,clearImmediate:i.clear})},function(t,n,r){var e=r(3),i=r(1),o=r(121),u=r(206),c=e.navigator,f=!!c&&/MSIE .\./.test(c.userAgent),a=function(t){return f?function(n,r){return t(o(u,[].slice.call(arguments,2),"function"==typeof n?n:Function(n)),r)}:t};i(i.G+i.B+i.F*f,{setTimeout:a(e.setTimeout),setInterval:a(e.setInterval)})},function(t,n,r){r(329),r(268),r(270),r(269),r(272),r(274),r(279),r(273),r(271),r(281),r(280),r(276),r(277),r(275),r(267),r(278),r(282),r(283),r(235),r(237),r(236),r(285),r(284),r(255),r(265),r(266),r(256),r(257),r(258),r(259),r(260),r(261),r(262),r(263),r(264),r(238),r(239),r(240),r(241),r(242),r(243),r(244),r(245),r(246),r(247),r(248),r(249),r(250),r(251),r(252),r(253),r(254),r(316),r(321),r(328),r(319),r(311),r(312),r(317),r(322),r(324),r(307),r(308),r(309),r(310),r(313),r(314),r(315),r(318),r(320),r(323),r(325),r(326),r(327),r(230),r(232),r(231),r(234),r(233),r(219),r(217),r(223),r(220),r(226),r(228),r(216),r(222),r(213),r(227),r(211),r(225),r(224),r(218),r(221),r(210),r(212),r(215),r(214),r(229),r(155),r(301),r(306),r(184),r(302),r(303),r(304),r(305),r(286),r(183),r(185),r(186),r(341),r(330),r(331),r(336),r(339),r(340),r(334),r(337),r(335),r(338),r(332),r(333),r(287),r(288),r(289),r(290),r(291),r(294),r(292),r(293),r(295),r(296),r(297),r(298),r(300),r(299),r(342),r(368),r(371),r(370),r(372),r(373),r(369),r(374),r(375),r(353),r(356),r(352),r(350),r(351),r(354),r(355),r(345),r(367),r(376),r(344),r(346),r(348),r(347),r(349),r(358),r(359),r(361),r(360),r(363),r(362),r(364),r(365),r(366),r(343),r(357),r(379),r(378),r(377),t.exports=r(52)},function(t,n){function r(t,n){if("string"==typeof n)return t.insertAdjacentHTML("afterend",n);var r=t.nextSibling;return r?t.parentNode.insertBefore(n,r):t.parentNode.appendChild(n)}t.exports=r},,,,,,,,,function(t,n,r){(function(n,r){!function(n){"use strict";function e(t,n,r,e){var i=n&&n.prototype instanceof o?n:o,u=Object.create(i.prototype),c=new p(e||[]);return u._invoke=s(t,r,c),u}function i(t,n,r){try{return{type:"normal",arg:t.call(n,r)}}catch(t){return{type:"throw",arg:t}}}function o(){}function u(){}function c(){}function f(t){["next","throw","return"].forEach(function(n){t[n]=function(t){return this._invoke(n,t)}})}function a(t){function n(r,e,o,u){var c=i(t[r],t,e);if("throw"!==c.type){var f=c.arg,a=f.value;return a&&"object"==typeof a&&m.call(a,"__await")?Promise.resolve(a.__await).then(function(t){n("next",t,o,u)},function(t){n("throw",t,o,u)}):Promise.resolve(a).then(function(t){f.value=t,o(f)},u)}u(c.arg)}function e(t,r){function e(){return new Promise(function(e,i){n(t,r,e,i)})}return o=o?o.then(e,e):e()}"object"==typeof r&&r.domain&&(n=r.domain.bind(n));var o;this._invoke=e}function s(t,n,r){var e=P;return function(o,u){if(e===F)throw new Error("Generator is already running");if(e===M){if("throw"===o)throw u;return y()}for(r.method=o,r.arg=u;;){var c=r.delegate;if(c){var f=l(c,r);if(f){if(f===A)continue;return f}}if("next"===r.method)r.sent=r._sent=r.arg;else if("throw"===r.method){if(e===P)throw e=M,r.arg;r.dispatchException(r.arg)}else"return"===r.method&&r.abrupt("return",r.arg);e=F;var a=i(t,n,r);if("normal"===a.type){if(e=r.done?M:j,a.arg===A)continue;return{value:a.arg,done:r.done}}"throw"===a.type&&(e=M,r.method="throw",r.arg=a.arg)}}}function l(t,n){var r=t.iterator[n.method];if(r===g){if(n.delegate=null,"throw"===n.method){if(t.iterator.return&&(n.method="return",n.arg=g,l(t,n),"throw"===n.method))return A;n.method="throw",n.arg=new TypeError("The iterator does not provide a 'throw' method")}return A}var e=i(r,t.iterator,n.arg);if("throw"===e.type)return n.method="throw",n.arg=e.arg,n.delegate=null,A;var o=e.arg;return o?o.done?(n[t.resultName]=o.value,n.next=t.nextLoc,"return"!==n.method&&(n.method="next",n.arg=g),n.delegate=null,A):o:(n.method="throw",n.arg=new TypeError("iterator result is not an object"),n.delegate=null,A)}function h(t){var n={tryLoc:t[0]};1 in t&&(n.catchLoc=t[1]),2 in t&&(n.finallyLoc=t[2],n.afterLoc=t[3]),this.tryEntries.push(n)}function v(t){var n=t.completion||{};n.type="normal",delete n.arg,t.completion=n}function p(t){this.tryEntries=[{tryLoc:"root"}],t.forEach(h,this),this.reset(!0)}function d(t){if(t){var n=t[w];if(n)return n.call(t);if("function"==typeof t.next)return t;if(!isNaN(t.length)){var r=-1,e=function n(){for(;++r<t.length;)if(m.call(t,r))return n.value=t[r],n.done=!1,n;return n.value=g,n.done=!0,n};return e.next=e}}return{next:y}}function y(){return{value:g,done:!0}}var g,b=Object.prototype,m=b.hasOwnProperty,x="function"==typeof Symbol?Symbol:{},w=x.iterator||"@@iterator",S=x.asyncIterator||"@@asyncIterator",_=x.toStringTag||"@@toStringTag",O="object"==typeof t,E=n.regeneratorRuntime;if(E)return void(O&&(t.exports=E));E=n.regeneratorRuntime=O?t.exports:{},E.wrap=e;var P="suspendedStart",j="suspendedYield",F="executing",M="completed",A={},N={};N[w]=function(){return this};var T=Object.getPrototypeOf,I=T&&T(T(d([])));I&&I!==b&&m.call(I,w)&&(N=I);var k=c.prototype=o.prototype=Object.create(N);u.prototype=k.constructor=c,c.constructor=u,c[_]=u.displayName="GeneratorFunction",E.isGeneratorFunction=function(t){var n="function"==typeof t&&t.constructor;return!!n&&(n===u||"GeneratorFunction"===(n.displayName||n.name))},E.mark=function(t){return Object.setPrototypeOf?Object.setPrototypeOf(t,c):(t.__proto__=c,_ in t||(t[_]="GeneratorFunction")),t.prototype=Object.create(k),t},E.awrap=function(t){return{__await:t}},f(a.prototype),a.prototype[S]=function(){return this},E.AsyncIterator=a,E.async=function(t,n,r,i){var o=new a(e(t,n,r,i));return E.isGeneratorFunction(n)?o:o.next().then(function(t){return t.done?t.value:o.next()})},f(k),k[_]="Generator",k.toString=function(){return"[object Generator]"},E.keys=function(t){var n=[];for(var r in t)n.push(r);return n.reverse(),function r(){for(;n.length;){var e=n.pop();if(e in t)return r.value=e,r.done=!1,r}return r.done=!0,r}},E.values=d,p.prototype={constructor:p,reset:function(t){if(this.prev=0,this.next=0,this.sent=this._sent=g,this.done=!1,this.delegate=null,this.method="next",this.arg=g,this.tryEntries.forEach(v),!t)for(var n in this)"t"===n.charAt(0)&&m.call(this,n)&&!isNaN(+n.slice(1))&&(this[n]=g)},stop:function(){this.done=!0;var t=this.tryEntries[0],n=t.completion;if("throw"===n.type)throw n.arg;return this.rval},dispatchException:function(t){function n(n,e){return o.type="throw",o.arg=t,r.next=n,e&&(r.method="next",r.arg=g),!!e}if(this.done)throw t;for(var r=this,e=this.tryEntries.length-1;e>=0;--e){var i=this.tryEntries[e],o=i.completion;if("root"===i.tryLoc)return n("end");if(i.tryLoc<=this.prev){var u=m.call(i,"catchLoc"),c=m.call(i,"finallyLoc");if(u&&c){if(this.prev<i.catchLoc)return n(i.catchLoc,!0);if(this.prev<i.finallyLoc)return n(i.finallyLoc)}else if(u){if(this.prev<i.catchLoc)return n(i.catchLoc,!0)}else{if(!c)throw new Error("try statement without catch or finally");if(this.prev<i.finallyLoc)return n(i.finallyLoc)}}}},abrupt:function(t,n){for(var r=this.tryEntries.length-1;r>=0;--r){var e=this.tryEntries[r];if(e.tryLoc<=this.prev&&m.call(e,"finallyLoc")&&this.prev<e.finallyLoc){var i=e;break}}i&&("break"===t||"continue"===t)&&i.tryLoc<=n&&n<=i.finallyLoc&&(i=null);var o=i?i.completion:{};return o.type=t,o.arg=n,i?(this.method="next",this.next=i.finallyLoc,A):this.complete(o)},complete:function(t,n){if("throw"===t.type)throw t.arg;return"break"===t.type||"continue"===t.type?this.next=t.arg:"return"===t.type?(this.rval=this.arg=t.arg,this.method="return",this.next="end"):"normal"===t.type&&n&&(this.next=n),A},finish:function(t){for(var n=this.tryEntries.length-1;n>=0;--n){var r=this.tryEntries[n];if(r.finallyLoc===t)return this.complete(r.completion,r.afterLoc),v(r),A}},catch:function(t){for(var n=this.tryEntries.length-1;n>=0;--n){var r=this.tryEntries[n];if(r.tryLoc===t){var e=r.completion;if("throw"===e.type){var i=e.arg;v(r)}return i}}throw new Error("illegal catch attempt")},delegateYield:function(t,n,r){return this.delegate={iterator:d(t),resultName:n,nextLoc:r},"next"===this.method&&(this.arg=g),A}}}("object"==typeof n?n:"object"==typeof window?window:"object"==typeof self?self:this)}).call(n,function(){return this}(),r(158))}])</script><script src="/./main.b3331d.js"></script><script>!function(){!function(e){var t=document.createElement("script");document.getElementsByTagName("body")[0].appendChild(t),t.setAttribute("src",e)}("/slider.445162.js")}()</script>
 
 
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
     
 <div class="tools-col" q-class="show:isShow,hide:isShow|isFalse" q-on="click:stop(e)">
   <div class="tools-nav header-menu">
@@ -774,11 +758,7 @@ return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){v
       
     
       
-      
-      
     
-      
-      
       
     
     
@@ -787,15 +767,11 @@ return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){v
     
     
       
-      <li style="width: 33.333333333333336%" q-on="click: openSlider(e, 'innerArchive')"><a href="javascript:void(0)" q-class="active:innerArchive">所有文章</a></li>
+      <li style="width: 100%" q-on="click: openSlider(e, 'innerArchive')"><a href="javascript:void(0)" q-class="active:innerArchive">所有文章</a></li>
       
         
       
-      <li style="width: 33.333333333333336%" q-on="click: openSlider(e, 'friends')"><a href="javascript:void(0)" q-class="active:friends">友链</a></li>
-      
         
-      
-      <li style="width: 33.333333333333336%" q-on="click: openSlider(e, 'aboutme')"><a href="javascript:void(0)" q-class="active:aboutme">关于我</a></li>
       
         
     </ul>
@@ -1010,6 +986,10 @@ return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){v
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">data intensive</a>
               </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
             
             <div class="clearfix"></div>
           </ul>
@@ -1055,45 +1035,7 @@ return o(t,i(n),arguments.length<3?void 0:u(arguments[2]))}})},function(t,n,r){v
     
 
     
-    	<section class="tools-section tools-section-friends" q-show="friends">
-  		
-        <ul class="search-ul">
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接1</a>
-            </li>
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接2</a>
-            </li>
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接3</a>
-            </li>
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接4</a>
-            </li>
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接5</a>
-            </li>
-          
-            <li class="search-li">
-              <a href="http://localhost:4000/" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>友情链接6</a>
-            </li>
-          
-        </ul>
-  		
-    	</section>
-    
 
-    
-    	<section class="tools-section tools-section-me" q-show="aboutme">
-  	  	
-  	  		<div class="aboutme-wrap" id="js-aboutme">很惭愧&lt;br&gt;&lt;br&gt;只做了一点微小的工作&lt;br&gt;谢谢大家</div>
-  	  	
-    	</section>
     
   </div>
   
