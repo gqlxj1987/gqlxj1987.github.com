@@ -129,6 +129,156 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-spark-submit" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/08/09/spark-submit/">Spark Submit 参数分析</a>
+    </h1>
+  
+
+        
+        <a href="/2017/08/09/spark-submit/" class="archive-article-date">
+  	<time datetime="2017-08-08T23:54:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-08-09</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="external">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
+<ul>
+<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
+</li>
+<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
+</li>
+</ul>
+<p>Lil bit theory:</p>
+<ul>
+<li>Hadoop/Yarn/OS Deamons:</li>
+</ul>
+<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
+<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
+<ul>
+<li>Yarn ApplicationMaster (AM)</li>
+</ul>
+<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
+<ul>
+<li>HDFS Throughput</li>
+</ul>
+<ul>
+<li>MemoryOverhead</li>
+</ul>
+<blockquote>
+<p>Full memory requested to yarn per executor =<br>          spark-executor-memory + spark.yarn.executor.memoryOverhead.</p>
+<p>spark.yarn.executor.memoryOverhead =<br>            Max(384MB, 7% of spark.executor-memory)</p>
+</blockquote>
+<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
+<p>tips:</p>
+<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
+<p>相关的配置:</p>
+<blockquote>
+<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
+</blockquote>
+<ul>
+<li>First Approach: Tiny executors [One Executor per core]:</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><pre><code><span class="code"> = `total-cores-in-cluster`</span>
+<span class="header">= `num-cores-per-node * total-nodes-in-cluster` </span>
+<span class="header">= 16 x 10 = 160</span>
+</code></pre></li>
+<li><code>--executor-cores</code> = 1 (one executor per core)</li>
+<li><code>--executor-memory</code> = <code>amount of memory per executor</code><pre><code><span class="header">= `mem-per-node/num-executors-per-node`</span>
+<span class="header">= 64GB/16 = 4GB</span>
+</code></pre></li>
+</ul>
+</blockquote>
+<p>Not Good!</p>
+<ul>
+<li>Second Approach: Fat executors (One Executor per node):</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><pre><code><span class="code"> = `total-nodes-in-cluster`</span>
+<span class="header">= 10</span>
+</code></pre></li>
+<li><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code><pre><code><span class="header">= `total-cores-in-a-node`</span>
+<span class="header">= 16</span>
+</code></pre></li>
+<li><code>--executor-memory</code> = <code>amount of memory per executor</code><pre><code><span class="header">= `mem-per-node/num-executors-per-node`</span>
+<span class="header">= 64GB/1 = 64GB</span>
+</code></pre></li>
+</ul>
+</blockquote>
+<p>Not Good for HDFS throughput</p>
+<ul>
+<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
+<ul>
+<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
+<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
+<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
+<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
+<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
+<li>Number of executors per node = 30/10 = 3</li>
+<li>Memory per executor = 64GB/3 = 21GB</li>
+<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
+</ul>
+</li>
+</ul>
+<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+
+      
+
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">spark</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+		<i class="icon-book icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/spark/" class="article-tag-list-link color1">spark</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/08/09/spark-submit/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+  
     <article id="post-one-hot" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -521,98 +671,6 @@
 
 
   
-    <article id="post-go-label" class="article article-type-post  article-index" itemscope itemprop="blogPost">
-  <div class="article-inner">
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/08/01/go-label/">go 1.9 Profiler labels</a>
-    </h1>
-  
-
-        
-        <a href="/2017/08/01/go-label/" class="archive-article-date">
-  	<time datetime="2017-07-31T16:08:41.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-08-01</time>
-</a>
-        
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p><a href="https://rakyll.org/profiler-labels/" target="_blank" rel="external">Profiler labels in Go</a></p>
-<p>在Go 1.9中，加入了Profiler labels部分。</p>
-<p>&gt;<br>CPU profilers collect and output hot spots where the CPU spent most time in when executing</p>
-<blockquote>
-<p>A typical CPU profiler output is primarily reports the location of these spots as function name, source file/line, etc</p>
-</blockquote>
-<p>在以往的Go的调试过程中，性能问题的debug往往是最困难的。</p>
-<p>With 1.9, Go is introducing a new feature that allows you to record additional information to provide more context about the execution path.</p>
-<p>The <code>runtime/pprof</code> package will export several new APIs to let users add labels</p>
-<p>关于打label部分:</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">labels := pprof.Labels(<span class="string">"worker"</span>, <span class="string">"purge"</span>)</div><div class="line">pprof.Do(ctx, labels, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> &#123;</div><div class="line">    <span class="comment">// Do some work...</span></div><div class="line"></div><div class="line">    <span class="keyword">go</span> update(ctx) <span class="comment">// propagates labels in ctx.</span></div><div class="line">&#125;)</div></pre></td></tr></table></figure>
-<p>采用<code>net/http/pprof</code>来分析相关的性能，</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> _ <span class="string">"net/http/pprof"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="comment">// All the other code...</span></div><div class="line">    log.Fatal(http.ListenAndServe(<span class="string">"localhost:5555"</span>, <span class="literal">nil</span>))</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>通过</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">$ <span class="keyword">go</span> tool pprof http:<span class="comment">//localhost:5555/debug/pprof/profile</span></div></pre></td></tr></table></figure>
-<p>首先通过<code>tags</code>区分出相关的path部分</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">(pprof) tags</div><div class="line">http-path: Total <span class="number">80</span></div><div class="line">        <span class="number">70</span> (<span class="number">87.50</span>%): /messages</div><div class="line">        <span class="number">10</span> (<span class="number">12.50</span>%): /user</div><div class="line"></div><div class="line">worker: Total <span class="number">158</span></div><div class="line">       <span class="number">158</span> (  <span class="number">100</span>%): purge</div></pre></td></tr></table></figure>
-<p>通过相关的filter部分，我们可以仅关注到<code>/user</code>部分</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">(pprof) tagfocus=<span class="string">"http-path:/user"</span></div><div class="line">(pprof) top10 -cum</div><div class="line">Showing nodes accounting <span class="keyword">for</span> <span class="number">0.10s</span>, <span class="number">3.05</span>% of <span class="number">3.28s</span> total</div><div class="line">      flat  flat%   sum%        cum   cum%</div><div class="line">         <span class="number">0</span>     <span class="number">0</span>%     <span class="number">0</span>%      <span class="number">0.10s</span>  <span class="number">3.05</span>%  main.generateID.func1 /Users/jbd/src/hello/main.<span class="keyword">go</span></div><div class="line">     <span class="number">0.01s</span>   <span class="number">0.3</span>%   <span class="number">0.3</span>%      <span class="number">0.08s</span>  <span class="number">2.44</span>%  runtime.concatstring2 /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></div><div class="line">     <span class="number">0.06s</span>  <span class="number">1.83</span>%  <span class="number">2.13</span>%      <span class="number">0.07s</span>  <span class="number">2.13</span>%  runtime.concatstrings /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></div><div class="line">     <span class="number">0.01s</span>   <span class="number">0.3</span>%  <span class="number">2.44</span>%      <span class="number">0.02s</span>  <span class="number">0.61</span>%  runtime.mallocgc /Users/jbd/<span class="keyword">go</span>/src/runtime/malloc.<span class="keyword">go</span></div><div class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02s</span>  <span class="number">0.61</span>%  runtime.slicebytetostring /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></div><div class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02s</span>  <span class="number">0.61</span>%  strconv.FormatInt /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></div><div class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02s</span>  <span class="number">0.61</span>%  strconv.Itoa /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></div><div class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02s</span>  <span class="number">0.61</span>%  strconv.formatBits /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></div><div class="line">     <span class="number">0.01s</span>   <span class="number">0.3</span>%  <span class="number">2.74</span>%      <span class="number">0.01s</span>   <span class="number">0.3</span>%  runtime.memmove /Users/jbd/<span class="keyword">go</span>/src/runtime/memmove_amd64.s</div><div class="line">     <span class="number">0.01s</span>   <span class="number">0.3</span>%  <span class="number">3.05</span>%      <span class="number">0.01s</span>   <span class="number">0.3</span>%  runtime.nextFreeFast /Users/jbd/<span class="keyword">go</span>/src/runtime/malloc.<span class="keyword">go</span></div></pre></td></tr></table></figure>
-<p>当然还有其他的命令</p>
-<blockquote>
-<p>You can also use <code>tagshow</code>, <code>taghide</code>, and <code>tagignore</code> commands as other filtering options. For example, tagignore allows you to match anything but the given regex. </p>
-</blockquote>
-<p>同时，注意<code>pprofutil</code>这个包</p>
-
-      
-
-    </div>
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Go</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-      
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Go/" class="article-tag-list-link color3">Go</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-      
-        <p class="article-more-link">
-          <a class="article-more-a" href="/2017/08/01/go-label/">展开全文 >></a>
-        </p>
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-  </div>
-</article>
-
-
-
-
-
-  
   
     <nav id="page-nav">
       <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
@@ -722,11 +780,11 @@ MathJax.Hub.Queue(function() {
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">2013</a>
+                <a href="javascript:void(0)" class="js-tag color3">写作</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">写作</a>
+                <a href="javascript:void(0)" class="js-tag color5">2013</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -738,15 +796,7 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Qcon</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Jekyll</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">专注</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -754,11 +804,15 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">拖延症</a>
+                <a href="javascript:void(0)" class="js-tag color5">Qcon</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">历史</a>
+                <a href="javascript:void(0)" class="js-tag color3">专注</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">拖延症</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -766,11 +820,15 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">选择</a>
+                <a href="javascript:void(0)" class="js-tag color3">历史</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">2015</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">选择</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -798,11 +856,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">python</a>
+                <a href="javascript:void(0)" class="js-tag color2">spring boot</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">spring boot</a>
+                <a href="javascript:void(0)" class="js-tag color2">python</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -810,19 +868,19 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">架构</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">weekly</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">家</a>
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">架构</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">规划</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">weekly</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -838,11 +896,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">ngxtop</a>
+                <a href="javascript:void(0)" class="js-tag color3">拖延</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">拖延</a>
+                <a href="javascript:void(0)" class="js-tag color2">ngxtop</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -886,11 +944,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">杂记</a>
+                <a href="javascript:void(0)" class="js-tag color3">spanner</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">spanner</a>
+                <a href="javascript:void(0)" class="js-tag color3">杂记</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -906,11 +964,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">cache</a>
+                <a href="javascript:void(0)" class="js-tag color2">function program</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">function program</a>
+                <a href="javascript:void(0)" class="js-tag color1">cache</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -922,11 +980,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">auth</a>
+                <a href="javascript:void(0)" class="js-tag color3">Go</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Go</a>
+                <a href="javascript:void(0)" class="js-tag color5">auth</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -935,6 +993,10 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">one hot</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">spark</a>
               </li>
             
             <div class="clearfix"></div>
