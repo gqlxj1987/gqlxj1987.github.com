@@ -129,6 +129,84 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-golang-101-hacks" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/02/28/golang-101-hacks/">Golang-101-hacks</a>
+    </h1>
+  
+
+        
+        <a href="/2017/02/28/golang-101-hacks/" class="archive-article-date">
+  	<time datetime="2017-02-28T01:49:07.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-02-28</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h4 id="Use_govendor_to_implement_vendoring">Use govendor to implement vendoring</h4><p>利用govendor部分，进行相关的依赖保证</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">govendor init</div><div class="line"></div><div class="line">govendor add +external</div></pre></td></tr></table></figure>
+<p>这样我们在进行go get的时候，可以将相关的依赖同时下载下来。</p>
+<h4 id="short_variable_declaration">short variable declaration</h4><figure class="highlight golang"><table><tr><td class="code"><pre><div class="line">i := <span class="number">10</span></div></pre></td></tr></table></figure>
+<p>一般都会产生一个新的变量，这样要防止全局变量和局部变量之间的区别</p>
+<h4 id="nil_silce_vs_nil_map">nil silce vs nil map</h4><p>Slice and map are all reference types in <code>Go</code>, and their default values are <code>nil</code></p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><div class="line"><span class="keyword">var</span> s1 []<span class="keyword">int</span></div><div class="line">s2 := []<span class="keyword">int</span>&#123;&#125;</div></pre></td></tr></table></figure>
+<p>上述两种方式，第二种的命名s2非<code>nil</code>，但同样长度为0</p>
+        
+          <a class="article-more-a" href="/2017/02/28/golang-101-hacks/#more">more >></a>
+        
+      
+
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">golang</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+		<i class="icon-book icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/golang/" class="article-tag-list-link color2">golang</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/02/28/golang-101-hacks/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+  
     <article id="post-one-week" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -553,125 +631,6 @@
 
 
   
-    <article id="post-handling-1-million-requests-with-go" class="article article-type-post  article-index" itemscope itemprop="blogPost">
-  <div class="article-inner">
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/02/12/handling-1-million-requests-with-go/">使用go处理一百万请求</a>
-    </h1>
-  
-
-        
-        <a href="/2017/02/12/handling-1-million-requests-with-go/" class="archive-article-date">
-  	<time datetime="2017-02-12T09:50:12.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-02-12</time>
-</a>
-        
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="external">原文链接</a></p>
-<p>Agenda:</p>
-<ul>
-<li><p>The Problem</p>
-</li>
-<li><p>The Solution</p>
-</li>
-<li><p>Conclusion</p>
-</li>
-</ul>
-<h4 id="Problem">Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
-<p>先期采用worker-tier的方式</p>
-<ul>
-<li><p>Sidekiq</p>
-</li>
-<li><p>Resque</p>
-</li>
-<li><p>DelayedJob</p>
-</li>
-<li><p>Elasticbeanstalk Worker Tier</p>
-</li>
-<li><p>RabbitMQ</p>
-</li>
-<li><p>and so on…</p>
-</li>
-</ul>
-<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
-<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
-<h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Go through each payload and queue items individually to be posted to S3</div><div class="line">for _, payload := range content.Payloads &#123;</div><div class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
-<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
-<blockquote>
-<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
-</blockquote>
-<p>相关的数据结构为：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">type Worker struct &#123;</div><div class="line">	WorkerPool  chan chan Job</div><div class="line">	JobChannel  chan Job</div><div class="line">	quit    	chan bool</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
-<p>关键的代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">for &#123;</div><div class="line">		select &#123;</div><div class="line">		case job := &lt;-JobQueue:</div><div class="line">			// a job request has been received</div><div class="line">			go func(job Job) &#123;</div><div class="line">				// try to obtain a worker job channel that is available.</div><div class="line">				// this will block until a worker is idle</div><div class="line">				jobChannel := &lt;-d.WorkerPool</div><div class="line"></div><div class="line">				// dispatch the job to the worker job channel</div><div class="line">				jobChannel &lt;- job</div><div class="line">			&#125;(job)</div><div class="line">		&#125;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
-<p>此处为dispatcher操作</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Start method starts the run loop for the worker, listening for a quit channel in</div><div class="line">// case we need to stop it</div><div class="line">func (w Worker) Start() &#123;</div><div class="line">	go func() &#123;</div><div class="line">		for &#123;</div><div class="line">			// register the current worker into the worker queue.</div><div class="line">			w.WorkerPool &lt;- w.JobChannel</div><div class="line"></div><div class="line">			select &#123;</div><div class="line">			case job := &lt;-w.JobChannel:</div><div class="line">				// we have received a work request.</div><div class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</div><div class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</div><div class="line">				&#125;</div><div class="line"></div><div class="line">			case &lt;-w.quit:</div><div class="line">				// we have received a signal to stop</div><div class="line">				return</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>此处为worker内部的操作</p>
-<p>带来的效果是，服务器数量从100台drop到20台。</p>
-<h4 id="Conclusion">Conclusion</h4><blockquote>
-<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
-</blockquote>
-<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
-<blockquote>
-<p>There is always the right tool for the job</p>
-</blockquote>
-
-      
-
-    </div>
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">golang</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-      
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/golang/" class="article-tag-list-link color2">golang</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-      
-        <p class="article-more-link">
-          <a class="article-more-a" href="/2017/02/12/handling-1-million-requests-with-go/">展开全文 >></a>
-        </p>
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-  </div>
-</article>
-
-
-
-
-
-  
   
     <nav id="page-nav">
       <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
@@ -781,11 +740,11 @@ MathJax.Hub.Queue(function() {
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">写作</a>
+                <a href="javascript:void(0)" class="js-tag color5">2013</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">2013</a>
+                <a href="javascript:void(0)" class="js-tag color3">写作</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -797,14 +756,6 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Jekyll</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Rework</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Qcon</a>
               </li>
              
@@ -813,15 +764,23 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Rework</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">拖延症</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">静心</a>
+                <a href="javascript:void(0)" class="js-tag color2">Jekyll</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">历史</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">静心</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -837,7 +796,7 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">go</a>
+                <a href="javascript:void(0)" class="js-tag color3">Huffman</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -845,7 +804,7 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Huffman</a>
+                <a href="javascript:void(0)" class="js-tag color3">go</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -857,11 +816,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">spring boot</a>
+                <a href="javascript:void(0)" class="js-tag color2">python</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">python</a>
+                <a href="javascript:void(0)" class="js-tag color2">spring boot</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -981,11 +940,11 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Go</a>
+                <a href="javascript:void(0)" class="js-tag color5">auth</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">auth</a>
+                <a href="javascript:void(0)" class="js-tag color3">Go</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -993,11 +952,15 @@ MathJax.Hub.Queue(function() {
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">spark</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">one hot</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">spark</a>
+                <a href="javascript:void(0)" class="js-tag color1">kafka</a>
               </li>
             
             <div class="clearfix"></div>
