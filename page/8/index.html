@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/06/05/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/09/spark-submit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/06/05/one-week/" itemprop="url">Some like it Hot</a></h1>
+                <a class="post-title-link" href="/2017/08/09/spark-submit/" itemprop="url">Spark Submit 参数分析</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-05T08:03:20+08:00">
-                2017-06-05
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">
+                2017-08-09
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-06-05T08:19:08+08:00">
-                2017-06-05
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:37:35+08:00">
+                2017-12-12
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/06/05/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/06/05/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/08/09/spark-submit/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/09/spark-submit/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,43 +363,88 @@
       
         
           
-            <p>有的时候，中二一点，对生活热血一点，或许才是生活的本质。。。</p>
-<p>Hey!Hey!只有我才能做好自己</p>
-<hr>
-<p>本周工作：</p>
+            <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="external">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
 <ul>
-<li><p>关于spark任务的调整</p>
+<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
 </li>
-<li><p>sdk数据的支持</p>
-</li>
-<li><p>关于es存储事件相关</p>
+<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
 </li>
 </ul>
-<p>本周未完成：</p>
+<p>Lil bit theory:</p>
 <ul>
-<li><p>es bulk存储相关</p>
-</li>
-<li><p>看机器学习书籍</p>
-</li>
-<li><p>关于graphSQL部分的DSL</p>
+<li>Hadoop/Yarn/OS Deamons:</li>
+</ul>
+<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
+<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
+<ul>
+<li>Yarn ApplicationMaster (AM)</li>
+</ul>
+<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
+<ul>
+<li>HDFS Throughput</li>
+</ul>
+<ul>
+<li>MemoryOverhead</li>
+</ul>
+<blockquote>
+<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
+<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
+</blockquote>
+<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
+<p>tips:</p>
+<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
+<p>相关的配置:</p>
+<blockquote>
+<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
+</blockquote>
+<ul>
+<li>First Approach: Tiny executors [One Executor per core]:</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-cluster`</div><div class="line">= `num-cores-per-node * total-nodes-in-cluster` </div><div class="line">= 16 x 10 = 160</div></pre></td></tr></table></figure>
 </li>
 </ul>
-<p>本周所得:</p>
+</blockquote>
 <ul>
-<li><p>es的一些restful api</p>
-</li>
-<li><p>hbase的一些查询</p>
+<li><code>--executor-cores</code> = 1 (one executor per core)</li>
+<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/16 = 4GB</div></pre></td></tr></table></figure>
 </li>
 </ul>
-<p>下周计划：</p>
+<p>Not Good!</p>
 <ul>
-<li><p>事件部分的存储</p>
-</li>
-<li><p>尝试使用python Spark来跑相关的任务</p>
-</li>
-<li><p>尝试推动nginx的ip解析向其他服务扩展？</p>
+<li>Second Approach: Fat executors (One Executor per node):</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-nodes-in-cluster`</div><div class="line">= 10</div></pre></td></tr></table></figure>
 </li>
 </ul>
+</blockquote>
+<ul>
+<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
+   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-a-node`</div><div class="line">= 16</div></pre></td></tr></table></figure>
+</li>
+<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
+   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/1 = 64GB</div></pre></td></tr></table></figure>
+<p>   ​<br>Not Good for HDFS throughput</p>
+</li>
+</ul>
+<ul>
+<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
+<ul>
+<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
+<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
+<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
+<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
+<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
+<li>Number of executors per node = 30/10 = 3</li>
+<li>Memory per executor = 64GB/3 = 21GB</li>
+<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
+</ul>
+</li>
+</ul>
+<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
 
           
         
@@ -448,7 +493,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/31/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/07/one-hot/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -467,7 +512,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/05/31/one-week/" itemprop="url">就让这首歌</a></h1>
+                <a class="post-title-link" href="/2017/08/07/one-hot/" itemprop="url">One Hot编码</a></h1>
         
 
         <div class="post-meta">
@@ -479,8 +524,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-31T08:07:53+08:00">
-                2017-05-31
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">
+                2017-08-07
               </time>
             
 
@@ -495,8 +540,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-05-31T08:21:57+08:00">
-                2017-05-31
+              <time title="更新于" itemprop="dateModified" datetime="2017-08-07T07:47:26+08:00">
+                2017-08-07
               </time>
             
           </span>
@@ -514,8 +559,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/one-hot/" itemprop="url" rel="index">
+                    <span itemprop="name">one hot</span>
                   </a>
                 </span>
 
@@ -532,8 +577,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/31/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/31/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/08/07/one-hot/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/07/one-hot/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -563,40 +608,34 @@
       
         
           
-            <p>电影终要结束，结束难免痛苦</p>
-<p>心中留下伤痕</p>
-<p>就让这首歌，萦绕在耳边</p>
-<hr>
-<p>本周完成：</p>
+            <p>独热编码，又成为一位有效编码</p>
+<blockquote>
+<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
+</blockquote>
+<p>优点部分：</p>
 <ul>
-<li><p>nginx部分加入ip解析部分</p>
+<li><p>能够处理非连续型数值特征</p>
 </li>
-<li><p>相关数据维度整理完毕</p>
-</li>
-<li><p>部分数据写入hbase</p>
+<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
 </li>
 </ul>
-<p>本周未完成：</p>
+<p>采用one hot的原因：</p>
 <ul>
-<li><p>验证完全依靠nginx解析ip</p>
+<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
 </li>
-<li><p>hbase写入部分的失败的原因？</p>
+<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
 </li>
 </ul>
-<p>本周所得：</p>
 <ul>
-<li><p>nginx部分解析geo部分，关于文件句柄数部分</p>
-</li>
-<li><p>hbase的相关原理，hbase-shell的使用</p>
-</li>
+<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
 </ul>
-<p>下周计划：</p>
-<ul>
-<li><p>nginx部分试验</p>
-</li>
-<li><p>sdk事件部分的解析？</p>
-</li>
-</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div><div class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</div><div class="line"></div><div class="line">enc = OneHotEncoder()</div><div class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.n_values_ is:"</span>,enc.n_values_</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.feature_indices_ is:"</span>,enc.feature_indices_</div><div class="line"><span class="keyword">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</div></pre></td></tr></table></figure>
+<p>输出结果部分：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</div><div class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</div><div class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</div></pre></td></tr></table></figure>
+<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
+<p>eature<em>indices</em>：根据说明，明显可以看出其是对n_values的一个累加。 </p>
+<p>最后表示的为相关的one hot编码?</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="string">"""Encode categorical integer features using a one-hot aka one-of-K scheme.</span></div><div class="line"></div><div class="line">    The input to this transformer should be a matrix of integers, denoting</div><div class="line">    the values taken on by categorical (discrete) features. The output will be</div><div class="line">    a sparse matrix where each column corresponds to one possible value of one</div><div class="line">    feature. It is assumed that input features take on values in the range</div><div class="line">    [0, n_values).</div><div class="line"></div><div class="line">    This encoding is needed for feeding categorical data to many scikit-learn</div><div class="line">    estimators, notably linear models and SVMs with the standard kernels.</div><div class="line"></div><div class="line">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</div><div class="line"></div><div class="line">Attributes</div><div class="line">    ----------</div><div class="line">    active_features_ : array</div><div class="line">        Indices for active features, meaning values that actually occur</div><div class="line">        in the training set. Only available when n_values is ``'auto'``.</div><div class="line"></div><div class="line">    feature_indices_ : array of shape (n_features,)</div><div class="line">        Indices to feature ranges.</div><div class="line">        Feature ``i`` in the original data is mapped to features</div><div class="line">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</div><div class="line">        (and then potentially masked by `active_features_` afterwards)</div><div class="line"></div><div class="line">    n_values_ : array of shape (n_features,)</div><div class="line">        Maximum number of values per feature.</div></pre></td></tr></table></figure>
 
           
         
@@ -645,7 +684,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/23/webAssembly/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/06/go-goroutine/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -664,7 +703,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/05/23/webAssembly/" itemprop="url">webAssembly</a></h1>
+                <a class="post-title-link" href="/2017/08/06/go-goroutine/" itemprop="url">Go Goroutines</a></h1>
         
 
         <div class="post-meta">
@@ -676,8 +715,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-23T10:21:41+08:00">
-                2017-05-23
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">
+                2017-08-06
               </time>
             
 
@@ -692,149 +731,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-05-23T10:21:41+08:00">
-                2017-05-23
-              </time>
-            
-          </span>
-
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/05/23/webAssembly/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/23/webAssembly/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/23/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/05/23/one-week/" itemprop="url">月光宝盒</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-23T08:04:41+08:00">
-                2017-05-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-05-23T23:09:30+08:00">
-                2017-05-23
+              <time title="更新于" itemprop="dateModified" datetime="2017-08-06T16:34:40+08:00">
+                2017-08-06
               </time>
             
           </span>
@@ -852,8 +750,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -870,8 +768,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/23/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/23/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/08/06/go-goroutine/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/go-goroutine/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -901,45 +799,11 @@
       
         
           
-            <p>当时有一份真诚的爱情摆在我面前，我没有珍惜，等到失去的时候，我才追悔莫及，人生中最痛苦的事莫过于此。。。</p>
-<hr>
-<p>本周完成：</p>
-<ul>
-<li><p>在线数据整合部分整体完成</p>
-</li>
-<li><p>bidder部分，完成相关数据修复</p>
-</li>
-<li><p>bidder部分，完成依赖剥离</p>
-</li>
-</ul>
-<p>本周未完成：</p>
-<ul>
-<li><p>数据抽象的一些心得体会部分</p>
-</li>
-<li><p>gatling部分的一些调整</p>
-</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li><p>数据抽象部分，渐入佳境</p>
-</li>
-<li><p>govendor部分，依赖部分调整</p>
-</li>
-<li><p>mock service部分的一些了解</p>
-</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li><p>bidder日志部分进行调整以及监控</p>
-</li>
-<li><p>调整相关的数据监控部分</p>
-</li>
-</ul>
-<p>数据部分，看大数据部分如何进行存储以及处理，后续的情况</p>
-<p>还是先保证，在余下的时间内，保证自己的学习，调整自己的状态。。</p>
-<p>整理一下方向，后续这块如何进行，如何进行突破部分，看如何进行。。</p>
-<p>看书部分，写代码部分要捡起来。。。</p>
-<p>还有写blog部分。。。</p>
+            <p>关于go goroutines部分</p>
+<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
+<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
+<p>通过sync.Mutex进行lock以及unlock操作</p>
+<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
 
           
         
@@ -988,7 +852,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/14/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/learn-react-by-five-step/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -1007,7 +871,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/05/14/one-week/" itemprop="url">大圣娶亲</a></h1>
+                <a class="post-title-link" href="/2017/08/01/learn-react-by-five-step/" itemprop="url">Learn React by five step</a></h1>
         
 
         <div class="post-meta">
@@ -1019,8 +883,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-14T16:01:01+08:00">
-                2017-05-14
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T07:43:52+08:00">
+                2017-08-01
               </time>
             
 
@@ -1035,8 +899,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-05-18T08:14:05+08:00">
-                2017-05-18
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:42:32+08:00">
+                2017-12-12
               </time>
             
           </span>
@@ -1054,8 +918,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/react/" itemprop="url" rel="index">
+                    <span itemprop="name">react</span>
                   </a>
                 </span>
 
@@ -1072,8 +936,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/14/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/14/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/08/01/learn-react-by-five-step/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/learn-react-by-five-step/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1103,43 +967,245 @@
       
         
           
-            <p>重看一遍大圣娶亲，其实，只是不想做渣男，结果，却发现自己错过了最美丽的风景，人生，有时就是这么无奈。。。</p>
-<p>把握好现在，既然在最美丽的时候，就绽放出它应有的光芒，其他的时候，并不是我们能决定的。。</p>
-<hr>
-<p>本周完成：</p>
+            <p><a href="https://www.lullabot.com/articles/how-to-learn-react" target="_blank" rel="external">How to Learn React: A Five-Step Plan</a></p>
+<h3 id="Step_One_-_React_Documentation_+_Code_Sandbox">Step One - React Documentation + Code Sandbox</h3><p><a href="https://codesandbox.io/s/new" target="_blank" rel="external">Code Sandbox</a></p>
+<p>Key Takeaways</p>
 <ul>
-<li><p>在线数据部分代码进行重构，相关数据的维度方面进行整合</p>
-</li>
-<li><p>监控文档方面的整理，还是稍显有些不足</p>
-</li>
-<li><p>bidder部分数据一些追查</p>
-</li>
+<li>Introducing JSX</li>
+<li>Rendering Elements</li>
+<li>Components and Props</li>
+<li>State and Lifecycle (super important!)</li>
+<li>Handling Events</li>
+<li>Composition vs Inheritance</li>
+<li>Thinking In React</li>
 </ul>
-<p>本周未完成：</p>
+<h3 id="Step_Two_-_React_Fundamentals_Course">Step Two - React Fundamentals Course</h3><p><a href="https://reacttraining.com/online/react-fundamentals" target="_blank" rel="external">Fundamentals Course</a></p>
+<p><a href="https://egghead.io/courses/react-fundamentals" target="_blank" rel="external">other resource</a>, <a href="https://www.youtube.com/playlist?list=PLoYCgNOIyGABj2GQSlDRjgvXtqfDxKm5b" target="_blank" rel="external">other2</a></p>
+<p>Key Takeaways</p>
 <ul>
-<li><p>关于数据维度的一些整合，相关的数据抽象部分</p>
-</li>
-<li><p>详细文档部分</p>
-</li>
+<li>Re-enforcement of principles from React docs</li>
+<li>Intro to the build tools for React projects, particularly webpack</li>
+<li>Stateless functional components</li>
+<li>Routing (how you navigate from one “page” to the next)</li>
+<li>Fetching async data</li>
 </ul>
-<p>本周所得：</p>
+<h3 id="Step_Three_-_Read_ReactBits">Step Three - Read ReactBits</h3><p><a href="https://vasanthk.gitbooks.io/react-bits/" target="_blank" rel="external">ReactBits</a></p>
+<p>Key Takeaways</p>
 <ul>
-<li><p>mock_path部分，针对大型项目的一些目录分布</p>
+<li><p>Design Patterns and Techniques (most important tip is probably <a href="https://vasanthk.gitbooks.io/react-bits/patterns/27.passing-function-to-setState.html" target="_blank" rel="external">this</a>)</p>
 </li>
-<li><p>关于数据抽象的一部分内容</p>
+<li><p>Anti-Patterns</p>
 </li>
+<li>Perf Tips</li>
 </ul>
-<p>下周计划：</p>
+<p>Facebook came up with an answer to these questions—the <a href="https://facebook.github.io/flux/" target="_blank" rel="external">Flux architecture</a>. Some time later, Dan Abramov created an implementation of Flux he called <a href="http://redux.js.org/" target="_blank" rel="external">Redux</a>.</p>
+<p><a href="https://mobx.js.org/" target="_blank" rel="external">MobX</a> is recommend</p>
+<h3 id="Step_Four_-_Redux_Documentation_+_Redux_Video_Series">Step Four - Redux Documentation + Redux Video Series</h3><p><a href="https://egghead.io/courses/getting-started-with-redux" target="_blank" rel="external">Getting Started with Redux</a></p>
+<p>Key Takeaways</p>
 <ul>
-<li><p>关于bidder数据的一些整理</p>
+<li><p>Three principles of Redux</p>
 </li>
-<li><p>维度部分数据的收尾以及相关总结</p>
+<li><p>Actions</p>
 </li>
+<li>Reducers</li>
+<li>Data flow</li>
+<li>Usage with React</li>
+<li>Async actions</li>
+<li>Async Flow</li>
+<li>Middleware</li>
 </ul>
-<p>看书，写代码，学会在余下的时间内，调整自己学习。。</p>
-<p>心态放平和，很多事情不要用力过猛。。。</p>
-<p>诚然，很多时候，并不想失去，但尽力做好自己就行，在工作和生活之间进行调整好自己。。</p>
-<p>走~</p>
+<h3 id="Step_Five_-_The_Complete_Redux_Book_+_Redux_Video_Series_Part_2">Step Five - The Complete Redux Book + Redux Video Series Part 2</h3><p><a href="https://leanpub.com/redux-book" target="_blank" rel="external">Redux Book</a></p>
+<p>Key Takeaways</p>
+<ul>
+<li><p>Re-enforcement of principles from Redux docs and/or first video series</p>
+</li>
+<li><p>Understanding of basic functional programming principles</p>
+</li>
+<li>Understanding of creating and writing Redux middleware</li>
+<li>Understanding of how to architect a React + Redux application</li>
+</ul>
+<h3 id="Other_things">Other things</h3><p><a href="https://github.com/redux-saga/redux-saga" target="_blank" rel="external">Redux Saga</a> middlemare for Redux</p>
+<p><a href="https://github.com/reactjs/reselect" target="_blank" rel="external">Reselect</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/Authentication-and-Authorization-in-microService/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="url">Authentication and Authorization in MicroService</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T00:29:18+08:00">
+                2017-08-01
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:46:31+08:00">
+                2017-12-12
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/auth/" itemprop="url" rel="index">
+                    <span itemprop="name">auth</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/08/01/Authentication-and-Authorization-in-microService/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/technology-learning/how-we-solved-authentication-and-authorization-in-our-microservice-architecture-994539d1b6e6" target="_blank" rel="external">How We Solved Authentication and Authorization in Our Microservice Architecture</a></p>
+<h3 id="Architecutre">Architecutre</h3><p>Building Blocks of our authentication/authorization layer</p>
+<p>Token Based Authentication</p>
+<blockquote>
+<p>When a user logs in successfully, a jwt is returned. On subsequent requests, the user must attach this token to each request. This is needed so that the api gateway can establish the identity of the user and extract the user’s claims from the token.</p>
+</blockquote>
+<p>Single SignON(SSO) </p>
+<blockquote>
+<p>The way SSO is implemented in our system is simple. When a user logs in for the first time from any frontend app, a cookie called jwt-token gets created on the api-gateway. The cookie’s domain is .andela.com and hence accessible to all andela.com subdomain</p>
+</blockquote>
+<p>针对mobile apps部分</p>
+<blockquote>
+<p>the api-gateway supports passing the jwt via Authorization header as Bearer Tokens</p>
+</blockquote>
+<h3 id="Authentication">Authentication</h3><p>The api gateway</p>
+<h3 id="Authorization">Authorization</h3><p>permissions in authorization service has many to many relationship with roles in user service</p>
+<p>权限模型部分</p>
 
           
         
@@ -1179,7 +1245,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/32/">32</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1229,7 +1295,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">159</span>
+                  <span class="site-state-item-count">169</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1240,7 +1306,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">69</span>
+                  <span class="site-state-item-count">72</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1251,7 +1317,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">74</span>
+                  <span class="site-state-item-count">78</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
