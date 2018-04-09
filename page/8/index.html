@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/09/spark-submit/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/30/Netflix-flux/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/09/spark-submit/" itemprop="url">Spark Submit 参数分析</a></h1>
+                <a class="post-title-link" href="/2018/01/30/Netflix-flux/" itemprop="url">Flux-A New Approach to System Intuition</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">
-                2017-08-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T14:47:03+08:00">
+                2018-01-30
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:37:35+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-08T15:43:48+08:00">
+                2018-03-08
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/spark/" itemprop="url" rel="index">
-                    <span itemprop="name">spark</span>
+                  <a href="/categories/flux/" itemprop="url" rel="index">
+                    <span itemprop="name">flux</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/09/spark-submit/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/09/spark-submit/" itemprop="commentCount"></span>
+                <a href="/2018/01/30/Netflix-flux/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/Netflix-flux/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,88 +363,23 @@
       
         
           
-            <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="external">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
+            <p><a href="https://medium.com/netflix-techblog/flux-a-new-approach-to-system-intuition-cf428b7316ec" target="_blank" rel="external">Flux:A New Approach to System Intuition</a></p>
+<p>Target:</p>
+<p>understand in real time what effect a variable is having on a subset of request traffic during a Chaos Experiment</p>
+<p>We require a tool that can give us this holistic understanding of traffic as it flows through our complex, distributed system</p>
+<p>requirements:</p>
 <ul>
-<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
-</li>
-<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
-</li>
+<li>Realtime data</li>
+<li>Data on the volume, latency, and health of requests</li>
+<li>Insight into traffic at network edge</li>
+<li>The ability to drill into IPC traffic</li>
+<li>Dependency information about the microservices as requests travel through the system</li>
 </ul>
-<p>Lil bit theory:</p>
-<ul>
-<li>Hadoop/Yarn/OS Deamons:</li>
-</ul>
-<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
-<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
-<ul>
-<li>Yarn ApplicationMaster (AM)</li>
-</ul>
-<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
-<ul>
-<li>HDFS Throughput</li>
-</ul>
-<ul>
-<li>MemoryOverhead</li>
-</ul>
-<blockquote>
-<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
-<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
-</blockquote>
-<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
-<p>tips:</p>
-<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
-<p>相关的配置:</p>
-<blockquote>
-<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
-</blockquote>
-<ul>
-<li>First Approach: Tiny executors [One Executor per core]:</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-cluster`</div><div class="line">= `num-cores-per-node * total-nodes-in-cluster` </div><div class="line">= 16 x 10 = 160</div></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><code>--executor-cores</code> = 1 (one executor per core)</li>
-<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/16 = 4GB</div></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>Not Good!</p>
-<ul>
-<li>Second Approach: Fat executors (One Executor per node):</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-nodes-in-cluster`</div><div class="line">= 10</div></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-a-node`</div><div class="line">= 16</div></pre></td></tr></table></figure>
-</li>
-<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/1 = 64GB</div></pre></td></tr></table></figure>
-<p>   ​<br>Not Good for HDFS throughput</p>
-</li>
-</ul>
-<ul>
-<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
-<ul>
-<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
-<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
-<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
-<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
-<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
-<li>Number of executors per node = 30/10 = 3</li>
-<li>Memory per executor = 64GB/3 = 21GB</li>
-<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
-</ul>
-</li>
-</ul>
-<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+<p>Pain Suit: As a microservice experiences failure, the corresponding electrodes cause a painful sensation.</p>
+<p>主要是针对流量监控部分？</p>
+<p>traffic failover?</p>
+<p>控制流量流向，</p>
+<p>The inter-region traffic from victim to savior increases while the savior region scales up. At that point, we switch DNS to point to the savior region. For about 10 seconds you see traffic to the victim region die down as DNS propagates. At this point, about 56 seconds in, nearly all of the victim region’s traffic is now pointing to the savior region</p>
 
           
         
@@ -493,7 +428,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/07/one-hot/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/cnn/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -512,7 +447,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/07/one-hot/" itemprop="url">One Hot编码</a></h1>
+                <a class="post-title-link" href="/2018/01/26/cnn/" itemprop="url">CNN架构</a></h1>
         
 
         <div class="post-meta">
@@ -524,8 +459,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">
-                2017-08-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T16:26:27+08:00">
+                2018-01-26
               </time>
             
 
@@ -540,8 +475,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-07T07:47:26+08:00">
-                2017-08-07
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T17:09:05+08:00">
+                2018-01-26
               </time>
             
           </span>
@@ -559,8 +494,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/one-hot/" itemprop="url" rel="index">
-                    <span itemprop="name">one hot</span>
+                  <a href="/categories/CNN/" itemprop="url" rel="index">
+                    <span itemprop="name">CNN</span>
                   </a>
                 </span>
 
@@ -577,8 +512,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/07/one-hot/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/07/one-hot/" itemprop="commentCount"></span>
+                <a href="/2018/01/26/cnn/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/cnn/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -608,34 +543,55 @@
       
         
           
-            <p>独热编码，又成为一位有效编码</p>
-<blockquote>
-<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
-</blockquote>
-<p>优点部分：</p>
+            <p><a href="https://yq.aliyun.com/articles/363898?spm=5176.100239.bloghomeflow.64.243cef011nwfHp" target="_blank" rel="external">一文读懂最近流行的CNN架构</a></p>
 <ul>
-<li><p>能够处理非连续型数值特征</p>
+<li><p><strong>为什么CNN模型战胜了传统的计算机视觉方法?</strong></p>
+<p>图像分类的传统流程涉及两个模块：</p>
+<ul>
+<li><p>特征提取    </p>
+<p>从原始像素中提取更高级的特征，常用的传统特征报告GIST,HOG,SIFT,LBP等</p>
+<p>​</p>
 </li>
-<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
+<li><p>分类</p>
+<p>常用的分类模型有SVM,LR,随机森林及决策树</p>
 </li>
 </ul>
-<p>采用one hot的原因：</p>
-<ul>
-<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
 </li>
-<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
+</ul>
+<p>​    流程的一大问题是：特征提取不能根据图像和其他标签进行调整。传统的流程比较好的方法是，使用多种特征提取器，然后组合他们得到一种更好的特征</p>
+<p>​    深度学习背后的哲学，没有建立硬编码的特征提取器。它将特征提取和分类两个模块集成一个系统，通过识别图像的特征来进行提取并基于有标签数据进行分类。这样的集成系统就是多层感知机，即有多层神经元密集连接而成的神经网络</p>
+<p>​    CNN模型中的两个特点：<strong>神经元间的权重共享和卷积层之间的稀疏连接</strong></p>
+<ul>
+<li><p><strong>为了理解CNN背后的设计哲学，你可能会问：其目标是什么？</strong></p>
+<p>准确度和计算量</p>
 </li>
 </ul>
 <ul>
-<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
+<li><p><strong>AlexNet</strong></p>
+<p>AlexNet采用ReLU激活函数，而不像传统神经网络早期所采用的Tanh或Sigmoid激活函数，<code>f(x)=max(0, x)</code></p>
+<p>优势是，训练速度更快，不会出现梯度消失的问题</p>
+<p>另一个特点是，其通过在每个全连接层后面加上Dropout层减少了模型的过拟合问题。Dropout层以一定的概率随机的关闭当前层中神经元激活值</p>
+</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div><div class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</div><div class="line"></div><div class="line">enc = OneHotEncoder()</div><div class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.n_values_ is:"</span>,enc.n_values_</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.feature_indices_ is:"</span>,enc.feature_indices_</div><div class="line"><span class="keyword">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</div></pre></td></tr></table></figure>
-<p>输出结果部分：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</div><div class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</div><div class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</div></pre></td></tr></table></figure>
-<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
-<p>eature<em>indices</em>：根据说明，明显可以看出其是对n_values的一个累加。 </p>
-<p>最后表示的为相关的one hot编码?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="string">"""Encode categorical integer features using a one-hot aka one-of-K scheme.</span></div><div class="line"></div><div class="line">    The input to this transformer should be a matrix of integers, denoting</div><div class="line">    the values taken on by categorical (discrete) features. The output will be</div><div class="line">    a sparse matrix where each column corresponds to one possible value of one</div><div class="line">    feature. It is assumed that input features take on values in the range</div><div class="line">    [0, n_values).</div><div class="line"></div><div class="line">    This encoding is needed for feeding categorical data to many scikit-learn</div><div class="line">    estimators, notably linear models and SVMs with the standard kernels.</div><div class="line"></div><div class="line">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</div><div class="line"></div><div class="line">Attributes</div><div class="line">    ----------</div><div class="line">    active_features_ : array</div><div class="line">        Indices for active features, meaning values that actually occur</div><div class="line">        in the training set. Only available when n_values is ``'auto'``.</div><div class="line"></div><div class="line">    feature_indices_ : array of shape (n_features,)</div><div class="line">        Indices to feature ranges.</div><div class="line">        Feature ``i`` in the original data is mapped to features</div><div class="line">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</div><div class="line">        (and then potentially masked by `active_features_` afterwards)</div><div class="line"></div><div class="line">    n_values_ : array of shape (n_features,)</div><div class="line">        Maximum number of values per feature.</div></pre></td></tr></table></figure>
+<ul>
+<li><p><strong>VGG16</strong></p>
+<p>VGG16相比AlexNet的一个改进是采用连续的几个3x3的卷积代替AlexNet中的较大卷积核(11x11, 5x5)</p>
+</li>
+</ul>
+<p>​    对于给定的感受野（与输出有关的输入图片的局部大小），采用堆积的小卷积核是优于采用大的卷积核，因为多层非线性层可以增加网络深度来保证学习更复杂的模式，而且代价还比较小（参数更少）。</p>
+<p>​    VGG-D，使用了一种块结构: 多次重复使用同一大小的卷积核来提取更复杂和更具有表达性的特征</p>
+<ul>
+<li><strong>GoogLeNet/Inception</strong></li>
+</ul>
+<p>​    基于这样的理念：在深度网络中大部分的激活值是不必要的（为0），或者由于相关性是冗余。因为，最高效的深度网络架构应该是激活值之间是稀疏连接，这意味着512个输出特征图是没有必要与所有的512输入特征图相连</p>
+<p>​    设计了一种称为inception的模块，使用密集结构来近似一个稀疏的CNN。另一个特点是，使用了一中瓶颈层（实际上就是1x1卷积）来降低计算量</p>
+<p>​    另一个特殊设计是最后的卷积层后使用全局均值池化层替换全连接层。所谓全局池化就是在整个2D特征图上取均值</p>
+<ul>
+<li><strong>ResNet</strong></li>
+</ul>
+<p>​    从前面可以看到，随着网络深度增加，网络的准确度应该同步增加，当然要注意过拟合问题。但是网络深度增加的一个问题在于这些增加的层是参数更新的信号，因为梯度是从后向前传播的，增加网络深度后，比较靠前的层梯度会很小。</p>
+<p>​    这意味着这些层基本上学习停滞了，这就是梯度消失问题。深度网络的第二个问题在于训练，当网络更深时意味着参数空间更大，优化问题变得更难，因此简单地去增加网络深度反而出现更高的训练误差。</p>
+<p>​    引入所谓的学习残差的概念，</p>
 
           
         
@@ -684,7 +640,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/06/go-goroutine/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/select-limit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -703,7 +659,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/06/go-goroutine/" itemprop="url">Go Goroutines</a></h1>
+                <a class="post-title-link" href="/2018/01/26/select-limit/" itemprop="url">毫秒级实时排序</a></h1>
         
 
         <div class="post-meta">
@@ -715,8 +671,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">
-                2017-08-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T15:53:26+08:00">
+                2018-01-26
               </time>
             
 
@@ -731,8 +687,174 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-06T16:34:40+08:00">
-                2017-08-06
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T15:58:54+08:00">
+                2018-01-26
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sort/" itemprop="url" rel="index">
+                    <span itemprop="name">sort</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/26/select-limit/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/select-limit/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://yq.aliyun.com/articles/378962?spm=a2c4e.11153940.bloghomeflow.105.FrxURS" target="_blank" rel="external">实践：几十亿条数据分布在几十个节点上的毫秒级实时排序方法</a></p>
+<p><code>select a from tb order by a limit 100, 10;</code></p>
+<p><code>对分布在几十个节点上的上亿条数据要求1秒内排序。</code></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/10/golang-tips/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/10/golang-tips/" itemprop="url">Golang Tips</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-10T15:15:16+08:00">
+                2018-01-10
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-11T17:36:14+08:00">
+                2018-01-11
               </time>
             
           </span>
@@ -768,8 +890,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/06/go-goroutine/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/go-goroutine/" itemprop="commentCount"></span>
+                <a href="/2018/01/10/golang-tips/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/10/golang-tips/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -799,11 +921,91 @@
       
         
           
-            <p>关于go goroutines部分</p>
-<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
-<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
-<p>通过sync.Mutex进行lock以及unlock操作</p>
-<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
+            <h3 id="Go_Datastructures_slices">Go Datastructures slices</h3><p><a href="https://speakerdeck.com/rarchana2001asu/go-datastructure-slices?utm_campaign=CodeTengu&amp;utm_content=buffer2deee&amp;utm_medium=email&amp;utm_source=CodeTengu_111" target="_blank" rel="external">go datastructures</a></p>
+<p>diff between c arrays and go array</p>
+<ul>
+<li>array name in c is an alias, in go is reference/pointer</li>
+<li>c arrays can passed to function as a pointer, but go is pass values</li>
+<li>in c, array can not be copied like ar1 = ar2 unless ar1 and ar2 are pointer, but it is possible in go</li>
+<li>c array should be freed, go supports garbage collection</li>
+</ul>
+<p>diff between go array and slice</p>
+<ul>
+<li>go slice is a 3 word data structure <pointer, length,="" capacity=""></pointer,></li>
+</ul>
+<p>slice is a collection of data in contiguous blocks of memory</p>
+<p>Nil slice: <code>var slice[] int</code>, empty slice <code>slice:=make([]int, 0)</code> or <code>slice:=[]int{}</code></p>
+<p>growing slice -&gt; like java list, factor to grow? no..</p>
+<p>growing in slice</p>
+<ul>
+<li>the append function takes in a source slice and append values and returns a new slice</li>
+<li>append always increases the length of the new slice but capacity may or may not increase</li>
+</ul>
+<p>slice append - third index</p>
+<ul>
+<li>the third index of the slice restricts the capacity</li>
+<li>slice:=source[2:3:4]</li>
+<li>by setting the capacity == length, the new slice is forced to detach from source backing array and creates its own backing array</li>
+<li>the above technique is used in scenarios where we just want to modify the new slice backing array without changing the source backing array</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	k:=<span class="built_in">make</span>([]<span class="keyword">int</span>,<span class="number">0</span>)</div><div class="line">	</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">1</span>)</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">2</span>)</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">3</span>)</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">4</span>)</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">5</span>)</div><div class="line">	k = <span class="built_in">append</span>(k, <span class="number">6</span>)</div><div class="line">	</div><div class="line">	t:=k[<span class="number">2</span>:<span class="number">3</span>:<span class="number">3</span>]</div><div class="line">	</div><div class="line">	fmt.Println(k)</div><div class="line">	fmt.Println(t)</div><div class="line">	</div><div class="line">	t = <span class="built_in">append</span>(t, <span class="number">7</span>)</div><div class="line">	</div><div class="line">	fmt.Println(k)</div><div class="line">	fmt.Println(t)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>the reuslt:</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line">[<span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span>]</div><div class="line">[<span class="number">3</span>]</div><div class="line">[<span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span>]</div><div class="line">[<span class="number">3</span> <span class="number">7</span>]</div></pre></td></tr></table></figure>
+<p>notice the detach operation</p>
+<p>but  what the meaning of the capacity?</p>
+<p>passing slices to functions</p>
+<p>since only the pointer to the backing array is passed, this is very efficient. whether the size of the backing array is 10 or one million only 24 bytes are passed to function</p>
+<h3 id="RFC:_Apache_Beam_Go_SDK_design">RFC: Apache Beam Go SDK design</h3><p><a href="https://docs.google.com/document/d/1yj0_hxq2J1iestjFUUrm_BVQLsFxQiiqtcFhgodzIgM/mobilebasic?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_111" target="_blank" rel="external">RFC: Apache Beam Go SDK design</a></p>
+<p><a href="https://beam.apache.org/" target="_blank" rel="external">Apache Beam</a></p>
+<p>is an advanced unified programming model, implement batch and streaming data processing jobs that run on any execution engine</p>
+<p>weak point:</p>
+<ul>
+<li>no generics</li>
+<li>no function or method overloading</li>
+<li>no inheritance</li>
+<li>limited reflection and serialization support</li>
+<li>no annotation support</li>
+</ul>
+<p>strong point:</p>
+<ul>
+<li>first-class functions</li>
+<li>full type reflection</li>
+<li>multiple return values</li>
+<li>and more</li>
+</ul>
+<h4 id="key_design_points">key design points</h4><ul>
+<li><p>natively-typed dofns and other user functions</p>
+<p>​</p>
+</li>
+<li><p>weakly-typed ptransforms that capture arity natively</p>
+</li>
+</ul>
+<ul>
+<li>static type checking at pipeline construction time<ul>
+<li>kv is implicit. we use multiple arguments and return tuples to represent unfolded KV for DoFns</li>
+<li>slide input forms. </li>
+<li>simulated generic types. we achieve some of the effect of generics by introducing special ‘universal’ types T,U,… X,Y,Z over interface{}</li>
+</ul>
+</li>
+<li>error handling</li>
+</ul>
+<h4 id="examples">examples</h4><h5 id="model_representation">model representation</h5><ul>
+<li>Pipeline</li>
+<li>Runner</li>
+<li>PCollection</li>
+<li>Coder</li>
+<li>DoFn and other user functions</li>
+</ul>
+<h5 id="Transforms">Transforms</h5><ul>
+<li>Impulse</li>
+<li>Create</li>
+<li>ParDo family</li>
+<li>GroupByKey</li>
+<li>Flatten</li>
+<li>Combine</li>
+<li>Partition</li>
+<li>​</li>
+</ul>
 
           
         
@@ -852,7 +1054,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/learn-react-by-five-step/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/10/git-flow/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -871,7 +1073,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/01/learn-react-by-five-step/" itemprop="url">Learn React by five step</a></h1>
+                <a class="post-title-link" href="/2018/01/10/git-flow/" itemprop="url">Git Flow</a></h1>
         
 
         <div class="post-meta">
@@ -883,8 +1085,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T07:43:52+08:00">
-                2017-08-01
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-10T11:39:52+08:00">
+                2018-01-10
               </time>
             
 
@@ -899,8 +1101,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:42:32+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-11T18:05:43+08:00">
+                2018-01-11
               </time>
             
           </span>
@@ -918,8 +1120,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/react/" itemprop="url" rel="index">
-                    <span itemprop="name">react</span>
+                  <a href="/categories/git/" itemprop="url" rel="index">
+                    <span itemprop="name">git</span>
                   </a>
                 </span>
 
@@ -936,8 +1138,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/01/learn-react-by-five-step/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/learn-react-by-five-step/" itemprop="commentCount"></span>
+                <a href="/2018/01/10/git-flow/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/10/git-flow/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -967,245 +1169,27 @@
       
         
           
-            <p><a href="https://www.lullabot.com/articles/how-to-learn-react" target="_blank" rel="external">How to Learn React: A Five-Step Plan</a></p>
-<h3 id="Step_One_-_React_Documentation_+_Code_Sandbox">Step One - React Documentation + Code Sandbox</h3><p><a href="https://codesandbox.io/s/new" target="_blank" rel="external">Code Sandbox</a></p>
-<p>Key Takeaways</p>
+            <p><a href="http://nelson.logdown.com/posts/2017/12/29/why-git-flow-may-be-not-for-you?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_111" target="_blank" rel="external">Git flow可能不适合你</a></p>
+<p><a href="http://nvie.com/posts/a-successful-git-branching-model/" target="_blank" rel="external">git flow model</a></p>
+<p><img src="/images/git-model@2x.png" alt="Git flow"></p>
+<p>调整后的git-flow流部分：</p>
 <ul>
-<li>Introducing JSX</li>
-<li>Rendering Elements</li>
-<li>Components and Props</li>
-<li>State and Lifecycle (super important!)</li>
-<li>Handling Events</li>
-<li>Composition vs Inheritance</li>
-<li>Thinking In React</li>
+<li>master分支， 正式发行的tag部分，作为版本库方式</li>
+<li>develop分支，最新的</li>
+<li>task分支，feature or issue fix,  from develop, 通过后，rebase到最新的develop，再<code>--no-ff</code>的merge回develop，随后这个task就可以砍掉了</li>
+<li>release分支，from develop部分，如果有修改的话，会merge回develop部分，</li>
 </ul>
-<h3 id="Step_Two_-_React_Fundamentals_Course">Step Two - React Fundamentals Course</h3><p><a href="https://reacttraining.com/online/react-fundamentals" target="_blank" rel="external">Fundamentals Course</a></p>
-<p><a href="https://egghead.io/courses/react-fundamentals" target="_blank" rel="external">other resource</a>, <a href="https://www.youtube.com/playlist?list=PLoYCgNOIyGABj2GQSlDRjgvXtqfDxKm5b" target="_blank" rel="external">other2</a></p>
-<p>Key Takeaways</p>
+<p>随后的一些操作：</p>
 <ul>
-<li>Re-enforcement of principles from React docs</li>
-<li>Intro to the build tools for React projects, particularly webpack</li>
-<li>Stateless functional components</li>
-<li>Routing (how you navigate from one “page” to the next)</li>
-<li>Fetching async data</li>
+<li>针对master部分，进行打tag部分，也就是从release部分，直接复制过去，而不是merge的方式，随后，删除掉release分支</li>
 </ul>
-<h3 id="Step_Three_-_Read_ReactBits">Step Three - Read ReactBits</h3><p><a href="https://vasanthk.gitbooks.io/react-bits/" target="_blank" rel="external">ReactBits</a></p>
-<p>Key Takeaways</p>
+<p>针对现有的android部分的开发流程的问题：</p>
 <ul>
-<li><p>Design Patterns and Techniques (most important tip is probably <a href="https://vasanthk.gitbooks.io/react-bits/patterns/27.passing-function-to-setState.html" target="_blank" rel="external">this</a>)</p>
-</li>
-<li><p>Anti-Patterns</p>
-</li>
-<li>Perf Tips</li>
+<li>现在master分支实际上是类似于develop分支</li>
+<li>task分支无，采用pr的方式来进行</li>
+<li>release分支，实际上类似于现在weekly-xx分支</li>
+<li>但是master分支，没有，没有相关的tag部分，无法进行版本的查询</li>
 </ul>
-<p>Facebook came up with an answer to these questions—the <a href="https://facebook.github.io/flux/" target="_blank" rel="external">Flux architecture</a>. Some time later, Dan Abramov created an implementation of Flux he called <a href="http://redux.js.org/" target="_blank" rel="external">Redux</a>.</p>
-<p><a href="https://mobx.js.org/" target="_blank" rel="external">MobX</a> is recommend</p>
-<h3 id="Step_Four_-_Redux_Documentation_+_Redux_Video_Series">Step Four - Redux Documentation + Redux Video Series</h3><p><a href="https://egghead.io/courses/getting-started-with-redux" target="_blank" rel="external">Getting Started with Redux</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Three principles of Redux</p>
-</li>
-<li><p>Actions</p>
-</li>
-<li>Reducers</li>
-<li>Data flow</li>
-<li>Usage with React</li>
-<li>Async actions</li>
-<li>Async Flow</li>
-<li>Middleware</li>
-</ul>
-<h3 id="Step_Five_-_The_Complete_Redux_Book_+_Redux_Video_Series_Part_2">Step Five - The Complete Redux Book + Redux Video Series Part 2</h3><p><a href="https://leanpub.com/redux-book" target="_blank" rel="external">Redux Book</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Re-enforcement of principles from Redux docs and/or first video series</p>
-</li>
-<li><p>Understanding of basic functional programming principles</p>
-</li>
-<li>Understanding of creating and writing Redux middleware</li>
-<li>Understanding of how to architect a React + Redux application</li>
-</ul>
-<h3 id="Other_things">Other things</h3><p><a href="https://github.com/redux-saga/redux-saga" target="_blank" rel="external">Redux Saga</a> middlemare for Redux</p>
-<p><a href="https://github.com/reactjs/reselect" target="_blank" rel="external">Reselect</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/Authentication-and-Authorization-in-microService/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="url">Authentication and Authorization in MicroService</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T00:29:18+08:00">
-                2017-08-01
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:46:31+08:00">
-                2017-12-12
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/auth/" itemprop="url" rel="index">
-                    <span itemprop="name">auth</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/08/01/Authentication-and-Authorization-in-microService/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/technology-learning/how-we-solved-authentication-and-authorization-in-our-microservice-architecture-994539d1b6e6" target="_blank" rel="external">How We Solved Authentication and Authorization in Our Microservice Architecture</a></p>
-<h3 id="Architecutre">Architecutre</h3><p>Building Blocks of our authentication/authorization layer</p>
-<p>Token Based Authentication</p>
-<blockquote>
-<p>When a user logs in successfully, a jwt is returned. On subsequent requests, the user must attach this token to each request. This is needed so that the api gateway can establish the identity of the user and extract the user’s claims from the token.</p>
-</blockquote>
-<p>Single SignON(SSO) </p>
-<blockquote>
-<p>The way SSO is implemented in our system is simple. When a user logs in for the first time from any frontend app, a cookie called jwt-token gets created on the api-gateway. The cookie’s domain is .andela.com and hence accessible to all andela.com subdomain</p>
-</blockquote>
-<p>针对mobile apps部分</p>
-<blockquote>
-<p>the api-gateway supports passing the jwt via Authorization header as Bearer Tokens</p>
-</blockquote>
-<h3 id="Authentication">Authentication</h3><p>The api gateway</p>
-<h3 id="Authorization">Authorization</h3><p>permissions in authorization service has many to many relationship with roles in user service</p>
-<p>权限模型部分</p>
 
           
         
@@ -1245,7 +1229,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1295,7 +1279,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">169</span>
+                  <span class="site-state-item-count">185</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1306,7 +1290,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">72</span>
+                  <span class="site-state-item-count">81</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1317,7 +1301,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-count">86</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
