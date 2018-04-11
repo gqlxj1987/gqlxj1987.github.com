@@ -248,6 +248,192 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/09/improve-spell-correct/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/09/improve-spell-correct/" itemprop="url">Improve Spell Correct</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-09T18:06:31+08:00">
+                2018-04-09
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-10T18:20:07+08:00">
+                2018-04-10
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/09/improve-spell-correct/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/09/improve-spell-correct/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/iamharshit/Seq2Seq-SpellCorrector/" target="_blank" rel="external">原repo</a></p>
+<p>原先的代码几个点说明:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">remove_conflicting_examples</span><span class="params">(data)</span>:</span></div><div class="line">	correct_words, incorrect_words = np.array(data)[:,<span class="number">0</span>], np.array(data)[:,<span class="number">1</span>]</div><div class="line">	correct_vocab, incorrect_vocab = list(set(correct_words)), list(set(incorrect_words))</div><div class="line">   </div><div class="line">	<span class="keyword">try</span>:</div><div class="line">		i=<span class="number">0</span></div><div class="line">		<span class="keyword">while</span>(i&lt;len(data)):</div><div class="line">			</div><div class="line">			<span class="keyword">if</span> data[i][<span class="number">0</span>] <span class="keyword">in</span> incorrect_vocab <span class="keyword">or</span> data[i][<span class="number">1</span>] <span class="keyword">in</span> correct_vocab:</div><div class="line">				<span class="keyword">del</span> data[i]</div><div class="line">				i-=<span class="number">1</span></div><div class="line">			i+=<span class="number">1</span></div><div class="line">	<span class="keyword">except</span>:</div><div class="line">		<span class="keyword">pass</span></div><div class="line">	<span class="keyword">return</span> data</div></pre></td></tr></table></figure>
+<p>去掉一些相互冲突的example，梳理相关的数据</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">left_pad</span><span class="params">(list_)</span>:</span></div><div class="line">    max_seq_len = <span class="number">20</span></div><div class="line">    ans = np.zeros((max_seq_len), dtype=int)</div><div class="line">    ans[:len(list_)] = np.array(list_[:max_seq_len] )</div><div class="line">    <span class="keyword">return</span> ans</div></pre></td></tr></table></figure>
+<p>取最大的长度20，其他的进行padding补全</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">string2indexes</span><span class="params">(word)</span>:</span></div><div class="line">    <span class="keyword">return</span> left_pad([ord(char) - <span class="number">96</span> <span class="keyword">for</span> char <span class="keyword">in</span> list(word)])</div></pre></td></tr></table></figure>
+<p>根据ascii码序表来进行转换，这里的96是因为a的ascii值为97</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">xseq_len = train[<span class="number">0</span>].shape[<span class="number">-1</span>]</div><div class="line">yseq_len = train[<span class="number">0</span>].shape[<span class="number">-1</span>]</div><div class="line">xvocab_size = <span class="number">26</span>+<span class="number">1</span></div><div class="line">yvocab_size = xvocab_size</div><div class="line">embed_size = <span class="number">300</span></div><div class="line"></div><div class="line">lstm_cell_size = embed_size</div><div class="line">lstm_layers = <span class="number">3</span></div><div class="line">embed_size = embed_size </div><div class="line"></div><div class="line">epoch_n = <span class="number">5</span></div><div class="line">lr = <span class="number">0.01</span>  </div><div class="line"></div><div class="line">global_iteration=<span class="number">0</span></div></pre></td></tr></table></figure>
+<p>这里的一些参数，很明显了，xseq_len和yseq_len基本都是max_seq_len, xvocab_size就是26个字母+1这样子</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">'decoder'</span>, reuse=tf.AUTO_REUSE) <span class="keyword">as</span> scope:</div><div class="line"><span class="comment">#     scope.reuse_variables()</span></div><div class="line">    decode_outputs, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip,dec_ip,                                                           										lstm,xvocab_size,yvocab_size,</div><div class="line">                                                           embedding_size=embed_size,feed_previous=<span class="keyword">False</span>)</div><div class="line">    scope.reuse_variables() <span class="comment">#sharing parameter b/w train and test decoders</span></div><div class="line">    decode_outputs_test, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip, dec_ip,</div><div class="line">                                                                              lstm, xvocab_size,</div><div class="line">                                                                              yvocab_size,embed_size,</div><div class="line">                                                                              feed_previous =<span class="keyword">True</span>)</div></pre></td></tr></table></figure>
+<p>这里，要注意的是关于variable_scope部分中，lstm的resuse使用标志</p>
+<p>原始代码里predict出来的，</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">&gt; X:  [16 19 25  3 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0  0]</div><div class="line">&gt; Prediction:  [16 16 16 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18]</div><div class="line">&gt; Y:  [16 19 25  3  8 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0]</div><div class="line">&gt;</div></pre></td></tr></table></figure>
+</blockquote>
+<p>prediction出来的内容，基本很大程度上对不上。。。</p>
+<h3 id="改进一">改进一</h3><ul>
+<li>embedding_rnn_seq2seq改成embedding_attention_seq2seq </li>
+<li>采用random的方式，对train的数据集进行训练</li>
+<li>从int32变成float32?</li>
+<li>关于prediction的展示部分，如何显示出来？</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/09/Who-will-steal-Android-from-Google/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -905,211 +1091,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/04/spelling-translate/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/04/spelling-translate/" itemprop="url">Spelling Translate</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-04T14:50:11+08:00">
-                2018-04-04
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T16:32:28+08:00">
-                2018-04-08
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/04/spelling-translate/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/04/spelling-translate/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://www.pinchofintelligence.com/old-spelling-to-new-spelling-with-tensorflow/" target="_blank" rel="external">原文链接</a></p>
-<h3 id="prepartion">prepartion</h3><p>选用RNN的网络，主要是针对词来算</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">Xdata = []</div><div class="line">Ydata = []</div><div class="line">MAX_LENGTH_WORD = <span class="number">10</span></div><div class="line"></div><div class="line"></div><div class="line">feature_dict= dict()</div><div class="line">feature_list = list()</div><div class="line"></div><div class="line">PADDING_CHARACTER = <span class="string">'~'</span></div><div class="line">feature_dict[PADDING_CHARACTER]=<span class="number">0</span></div><div class="line">feature_list.append(PADDING_CHARACTER)</div><div class="line">max_features = <span class="number">1</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_vector_from_string</span><span class="params">(input_s)</span>:</span></div><div class="line">    <span class="keyword">global</span> max_features</div><div class="line">    vector_x = []</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> input_s:</div><div class="line">        <span class="keyword">if</span> i <span class="keyword">not</span> <span class="keyword">in</span> feature_dict:</div><div class="line">            feature_dict[i]=max_features</div><div class="line">            feature_list.append(i)</div><div class="line">            max_features += <span class="number">1</span></div><div class="line">        vector_x.append(feature_dict[i])</div><div class="line">    <span class="keyword">return</span> vector_x</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_to_data</span><span class="params">(input_s,output_s)</span>:</span></div><div class="line">    <span class="keyword">if</span> len(input_s) &lt; MAX_LENGTH_WORD <span class="keyword">and</span> len(output_s) &lt; MAX_LENGTH_WORD:</div><div class="line">        vector_x = get_vector_from_string(input_s)</div><div class="line">        vector_y = get_vector_from_string(output_s)</div><div class="line">        Xdata.append(vector_x)</div><div class="line">        Ydata.append(vector_y)</div><div class="line"></div><div class="line">        </div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_vector</span><span class="params">(vector,end_token=<span class="string">'\n'</span>)</span>:</span></div><div class="line">    print(<span class="string">''</span>.join([feature_list[i] <span class="keyword">for</span> i <span class="keyword">in</span> vector]),end=end_token)</div><div class="line">    </div><div class="line"><span class="keyword">with</span> open(<span class="string">"dictionary_old_new_dutch.csv"</span>) <span class="keyword">as</span> in_file:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> in_file:</div><div class="line">            in_s,out_s = line.strip().split(<span class="string">","</span>)</div><div class="line">            add_to_data(in_s,out_s)</div><div class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</div><div class="line">    print_vector(Xdata[i],end_token=<span class="string">''</span>)</div><div class="line">    print(<span class="string">' -&gt; '</span>, end=<span class="string">''</span>)</div><div class="line">    print_vector(Ydata[i])</div></pre></td></tr></table></figure>
-<p>上面部分是将词转化成为vector，注意几点：</p>
-<ul>
-<li>限制max_length_word部分</li>
-<li>这里面没有像之前lstm那样，通过记录词频的方式，来进行one_hot编码</li>
-<li>feature_list记录所有的词，同时，feature_dict记录词进入feature_list的位置</li>
-</ul>
-<h3 id="data_preprocessing">data preprocessing</h3><p>As mentioned above I would like to use a sequence to sequence approach. Important for this approach is having a certain length of words. Words that are longer than that length have been discarded in de data-reading step above. Now we will add paddings to the words that are not long enough. — 对于不够的词增加相应的padding</p>
-<p>Another important step is creating a train and a test set. We only show the network examples from the train set. At the end I will manually evaluate some of the examples in the testset and discuss what the network learned. During training we train in batches with a small amount of data. With a random data splitter we get a different trainset every run. — 挑选合适的训练集和测试集</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">before_padding = Xdata[<span class="number">0</span>]</div><div class="line">Xdata = sequence.pad_sequences(Xdata, maxlen=MAX_LENGTH_WORD)</div><div class="line">Ydata = sequence.pad_sequences(Ydata, maxlen=MAX_LENGTH_WORD)</div><div class="line">after_padding  = Xdata[<span class="number">0</span>]</div><div class="line"></div><div class="line">print_vector(before_padding,end_token=<span class="string">''</span>)</div><div class="line">print(<span class="string">" -&gt; after padding: "</span>, end=<span class="string">''</span>)</div><div class="line">print_vector(after_padding)</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataSplitter</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,percentage)</span>:</span></div><div class="line">        self.percentage = percentage</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">split_data</span><span class="params">(self,data)</span>:</span></div><div class="line">        splitpoint = int(len(data)*self.percentage)</div><div class="line">        <span class="keyword">return</span> data[:splitpoint], data[splitpoint:]</div><div class="line">splitter = DataSplitter(<span class="number">0.8</span>)</div><div class="line">Xdata,Xtest = splitter.split_data(Xdata)</div><div class="line">Ydata,Ytest = splitter.split_data(Ydata)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_random_reversed_dataset</span><span class="params">(Xdata,Ydata,batch_size)</span>:</span></div><div class="line">    newX = []</div><div class="line">    newY = []</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(batch_size):</div><div class="line">        index_taken = random.randint(<span class="number">0</span>,len(Xdata)<span class="number">-1</span>)</div><div class="line">        newX.append(Xdata[index_taken])</div><div class="line">        newY.append(Ydata[index_taken][::<span class="number">-1</span>])</div><div class="line">    <span class="keyword">return</span> newX,newY</div></pre></td></tr></table></figure>
-<p>这里的几点：</p>
-<ul>
-<li>使用sequence.pad_sequences警醒padding补充</li>
-</ul>
-<h3 id="The_network">The network</h3><ul>
-<li>embeds our characters</li>
-<li>has an encoder which returns a sequence of outputs</li>
-<li>has an attention model which uses this sequence to generate output characters</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">batch_size = <span class="number">64</span></div><div class="line">memory_dim = <span class="number">256</span></div><div class="line">embedding_dim = <span class="number">32</span></div><div class="line"></div><div class="line">enc_input = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> i <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line">dec_output = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line"></div><div class="line">weights = [tf.ones_like(labels_t, dtype=tf.float32) <span class="keyword">for</span> labels_t <span class="keyword">in</span> enc_input]</div><div class="line"></div><div class="line">dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32)]+[dec_output[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD<span class="number">-1</span>)])</div><div class="line">empty_dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32,name=<span class="string">"empty_dec_input"</span>) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)])</div><div class="line"></div><div class="line">cell = tf.nn.rnn_cell.GRUCell(memory_dim)</div><div class="line"></div><div class="line"><span class="comment"># Create a train version of encoder-decoder, and a test version which does not feed the previous input</span></div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>) <span class="keyword">as</span> scope:</div><div class="line">    outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,dec_inp,</div><div class="line">                                                           cell,max_features,max_features,</div><div class="line">                                                           embedding_dim, feed_previous=<span class="keyword">False</span>)</div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>,reuse=<span class="keyword">True</span>) <span class="keyword">as</span> scope:</div><div class="line">    runtime_outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,empty_dec_inp,</div><div class="line">                                                                    cell,max_features,max_features,</div><div class="line">                                                                   embedding_dim,feed_previous=<span class="keyword">True</span>)</div><div class="line"></div><div class="line">loss = tf.nn.seq2seq.sequence_loss(outputs, dec_output, weights, max_features)</div><div class="line"></div><div class="line">optimizer = tf.train.AdamOptimizer()</div><div class="line">train_op = optimizer.minimize(loss)</div><div class="line"></div><div class="line"><span class="comment"># Init everything</span></div><div class="line">sess = tf.InteractiveSession()</div><div class="line">sess.run(tf.initialize_all_variables())</div></pre></td></tr></table></figure>
-<p>代码解析：</p>
-<pre><code><span class="number">1.</span> enc_input和dec_output分别是<span class="number">10</span>dim的数组
-<span class="number">2.</span> init weights部分
-<span class="number">3.</span> memory_dim的意义？
-<span class="number">4.</span> 采用的是GRUCell的小处理阀门
-<span class="number">5.</span> feed_previous的意义？
-</code></pre><h3 id="Training">Training</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span> index_now <span class="keyword">in</span> range(<span class="number">1002</span>):</div><div class="line">    Xin,Yin = get_random_reversed_dataset(Xdata,Ydata,batch_size)</div><div class="line">    Xin = np.array(Xin).T</div><div class="line">    Yin = np.array(Yin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    feed_dict.update(&#123;dec_output[t]: Yin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;)</div><div class="line">    _, l = sess.run([train_op,loss], feed_dict)</div><div class="line">    <span class="keyword">if</span> index_now%<span class="number">100</span>==<span class="number">1</span>:</div><div class="line">        print(l)</div></pre></td></tr></table></figure>
-<p>每次选取不同的random的数据集来进行相关的训练，增加随机性部分？</p>
-<h3 id="Train_analysis">Train analysis</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_reversed_max_string_logits</span><span class="params">(logits)</span>:</span></div><div class="line">    string_logits = logits[::<span class="number">-1</span>]</div><div class="line">    concatenated_string = <span class="string">""</span></div><div class="line">    <span class="keyword">for</span> logit <span class="keyword">in</span> string_logits:</div><div class="line">        val_here = np.argmax(logit)</div><div class="line">        concatenated_string += feature_list[val_here]</div><div class="line">    <span class="keyword">return</span> concatenated_string</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_out</span><span class="params">(out)</span>:</span></div><div class="line">    out = list(zip(*out))</div><div class="line">    out = out[:<span class="number">10</span>] <span class="comment"># only show the first 10 samples</span></div><div class="line">    </div><div class="line">    <span class="keyword">for</span> index,string_logits <span class="keyword">in</span> enumerate(out):</div><div class="line">        print(<span class="string">"input: "</span>,end=<span class="string">''</span>)</div><div class="line">        print_vector(Xin[index])</div><div class="line">        print(<span class="string">"expected: "</span>,end=<span class="string">''</span>)</div><div class="line">        expected= Yin[index][::<span class="number">-1</span>]</div><div class="line">        print_vector(expected)</div><div class="line">        </div><div class="line">        output = get_reversed_max_string_logits(string_logits)</div><div class="line">        print(<span class="string">"output: "</span> + output)</div><div class="line">        </div><div class="line">         </div><div class="line">        print(<span class="string">"=============="</span>)</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment"># Now run a small test to see what our network does with words</span></div><div class="line">RANDOM_TESTSIZE = <span class="number">5</span></div><div class="line">Xin,Yin = get_random_reversed_dataset(Xtest,Ytest,RANDOM_TESTSIZE)</div><div class="line">Xin_transposed = np.array(Xin).T</div><div class="line">Yin_transposed = np.array(Yin).T</div><div class="line">feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">out = sess.run(runtime_outputs, feed_dict)</div><div class="line">print_out(out)</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">translate_single_word</span><span class="params">(word)</span>:</span></div><div class="line">    Xin = [get_vector_from_string(word)]</div><div class="line">    Xin = sequence.pad_sequences(Xin, maxlen=MAX_LENGTH_WORD)</div><div class="line">    Xin_transposed = np.array(Xin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    out = sess.run(runtime_outputs, feed_dict)</div><div class="line">    <span class="keyword">return</span> get_reversed_max_string_logits(out)</div><div class="line"></div><div class="line">interesting_words = [<span class="string">"aerde"</span>,<span class="string">"duyster"</span>, <span class="string">"salfde"</span>, <span class="string">"ontstondt"</span>, <span class="string">"tusschen"</span>,<span class="string">"wacker"</span>,<span class="string">"voorraet"</span>,<span class="string">"gevreeset"</span>,<span class="string">"cleopatra"</span>]</div><div class="line"><span class="keyword">for</span> word <span class="keyword">in</span> interesting_words:</div><div class="line">    print(word + <span class="string">" becomes: "</span> + translate_single_word(word).replace(<span class="string">"~"</span>,<span class="string">""</span>))</div></pre></td></tr></table></figure>
-<p>代码解析：</p>
-<ul>
-<li>首先选取相应的test_case，训练处最终的结果，按照loss最小的参数</li>
-<li>然后是通过run，得到single_word的translate的结果</li>
-<li>相关输出的一些反转，通过vector还原成为相应的单词</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/38/">38</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1159,7 +1145,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">186</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

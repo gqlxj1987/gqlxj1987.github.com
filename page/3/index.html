@@ -248,6 +248,181 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/02/hot-reloading-go-programs/" itemprop="url">Hot Reloading Go Programs</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">
+                2018-04-02
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T16:52:23+08:00">
+                2018-04-02
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hot-reload/" itemprop="url" rel="index">
+                    <span itemprop="name">hot reload</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/02/hot-reloading-go-programs/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/hot-reloading-go-programs/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72" target="_blank" rel="external">原文链接</a></p>
+<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
+<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
+<p>原理上：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line">watcher, err := fsnotify.NewWatcher()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		<span class="keyword">for</span> &#123;</div><div class="line">			<span class="keyword">select</span> &#123;</div><div class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</div><div class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</div><div class="line">					watcherLog(<span class="string">"sending event %s"</span>, ev)</div><div class="line">					startChannel &lt;- ev.String()</div><div class="line">				&#125;</div><div class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</div><div class="line">				watcherLog(<span class="string">"error: %s"</span>, err)</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div></pre></td></tr></table></figure>
+<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
+<p>核心部分的build代码</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, <span class="keyword">bool</span>)</span></span> &#123;</div><div class="line">	buildLog(<span class="string">"Building..."</span>)</div><div class="line"></div><div class="line">	cmd := exec.Command(<span class="string">"go"</span>, <span class="string">"build"</span>, <span class="string">"-o"</span>, buildPath(), root())</div><div class="line"></div><div class="line">	stderr, err := cmd.StderrPipe()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	stdout, err := cmd.StdoutPipe()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	err = cmd.Start()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	io.Copy(os.Stdout, stdout)</div><div class="line">	errBuf, _ := ioutil.ReadAll(stderr)</div><div class="line"></div><div class="line">	err = cmd.Wait()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">string</span>(errBuf), <span class="literal">false</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="string">""</span>, <span class="literal">true</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<hr>
+<p>另一种live reload的方式</p>
+<p><a href="https://github.com/oxequa/realize" target="_blank" rel="external">git repo</a></p>
+<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/devops-one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -957,204 +1132,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/27/chaos-engineering/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/27/chaos-engineering/" itemprop="url">Chaos Engineering</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-27T16:13:10+08:00">
-                2018-03-27
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-27T16:26:25+08:00">
-                2018-03-27
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/chaos/" itemprop="url" rel="index">
-                    <span itemprop="name">chaos</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/27/chaos-engineering/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/27/chaos-engineering/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://principlesofchaos.org/" target="_blank" rel="external">原文链接</a></p>
-<p>最重要的问题：</p>
-<blockquote>
-<p>How much confidence we can have in the complex systems that we put into production?</p>
-</blockquote>
-<p>Even when all of the individual services in a distributed system are functioning properly, the interactions between those services can cause unpredictable outcomes.  Unpredictable outcomes, compounded by rare but disruptive real-world events that affect production environments, make these distributed systems inherently chaotic</p>
-<p>不要有放松的心理</p>
-<ul>
-<li>Chaos Engineering 的定义：是一种对分布式系统做线上的测试的实践，手段是在一个隔离的生产环境中人为制造一些极端环境。</li>
-<li>意义：即便每个组件都是好的，他们通讯出问题了，系统还是一样照挂；或者服务降级是配置有问题，超时不合适导致过多重试，服务要承受太多流量，单点故障导致雪崩。分布式系统会出现的情况实在太多了。预期等着出现，不如主动出击。主动制造问题，如果制造出的问题怎么搞系统都不会崩，那系统看起来还蛮可靠的。</li>
-</ul>
-<ul>
-<li>Chaos 四个步骤：<ul>
-<li>定义系统正常时的一些指标，收集监控数据。</li>
-<li>假设在 control group 和 experiment group 两个都处于正常状态。</li>
-<li>制造事故，模拟出 server crash，硬盘故障，网络连接故障等等。</li>
-<li>尝试找出 control group 和 experiment group 的状态的不同。如果有不同，那就找到了可以改进的地方。</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li>一些实践：<ul>
-<li>与其搜集系统的内部属性指标，不如搜集系统的输出。吞吐，错误率，latency 百分位这些都是蛮好的指标。这些通用指标能证明系统正在工作。</li>
-<li>Chaos variables 是一些跟现实中会可能是系统出现故障的那些情况，不一定会是硬件出问题，甚至网络流量出现 spike 都可能可以算。</li>
-<li>生产环境的数据很宝贵，可以做采样，然后对实验环境进行测试。</li>
-<li>对这些实验写代码，做自动化。</li>
-<li>最小化对客户的影响，限制在阈值内</li>
-</ul>
-</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/38/">38</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1204,7 +1186,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">186</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
