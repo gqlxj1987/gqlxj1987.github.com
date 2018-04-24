@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/27/chaos-engineering/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/08/seq2seq-model-test/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/27/chaos-engineering/" itemprop="url">Chaos Engineering</a></h1>
+                <a class="post-title-link" href="/2018/04/08/seq2seq-model-test/" itemprop="url">seq2seq model解析</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-27T16:13:10+08:00">
-                2018-03-27
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-08T17:31:50+08:00">
+                2018-04-08
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-27T16:26:25+08:00">
-                2018-03-27
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T18:34:17+08:00">
+                2018-04-08
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/chaos/" itemprop="url" rel="index">
-                    <span itemprop="name">chaos</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/27/chaos-engineering/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/27/chaos-engineering/" itemprop="commentCount"></span>
+                <a href="/2018/04/08/seq2seq-model-test/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/08/seq2seq-model-test/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,35 +363,364 @@
       
         
           
-            <p><a href="http://principlesofchaos.org/" target="_blank" rel="external">原文链接</a></p>
-<p>最重要的问题：</p>
-<blockquote>
-<p>How much confidence we can have in the complex systems that we put into production?</p>
-</blockquote>
-<p>Even when all of the individual services in a distributed system are functioning properly, the interactions between those services can cause unpredictable outcomes.  Unpredictable outcomes, compounded by rare but disruptive real-world events that affect production environments, make these distributed systems inherently chaotic</p>
-<p>不要有放松的心理</p>
+            <p><a href="http://cyruschiu.github.io/2017/02/24/learning-Tensoflow-Seq2Seq-for-translate/" target="_blank" rel="external">原文链接</a></p>
+<h3 id="train">train</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:</div><div class="line">   <span class="comment"># 區塊1，模型初始化</span></div><div class="line">   <span class="comment"># Create model.</span></div><div class="line">   print(<span class="string">"Creating %d layers of %d units."</span> % (FLAGS.num_layers, FLAGS.size))</div><div class="line">   <span class="comment"># 透過 create_model() 方法創建一個 seq2seq_model</span></div><div class="line">   model = create_model(sess, <span class="keyword">False</span>)</div><div class="line">   </div><div class="line">   <span class="comment"># 區塊2，讀入資料</span></div><div class="line">   <span class="comment"># Read data into buckets and compute their sizes.</span></div><div class="line">   <span class="keyword">print</span> (<span class="string">"Reading development and training data (limit: %d)."</span></div><div class="line">          % FLAGS.max_train_data_size)</div><div class="line">   <span class="comment"># read_data 函數讀取 train, dev 的路徑，</span></div><div class="line">   dev_set = read_data(from_dev, to_dev)</div><div class="line">   train_set = read_data(from_train, to_train, FLAGS.max_train_data_size)</div><div class="line">   train_bucket_sizes = [len(train_set[b]) <span class="keyword">for</span> b <span class="keyword">in</span> xrange(len(_buckets))]</div><div class="line">   train_total_size = float(sum(train_bucket_sizes))</div><div class="line">   train_buckets_scale = [sum(train_bucket_sizes[:i + <span class="number">1</span>]) / train_total_size</div><div class="line">                          <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_bucket_sizes))]</div><div class="line">   <span class="keyword">while</span> <span class="keyword">True</span>:</div><div class="line">     <span class="comment"># 區塊3，建立 batch</span></div><div class="line">     <span class="comment"># Choose a bucket according to data distribution. We pick a random number</span></div><div class="line">     <span class="comment"># in [0, 1] and use the corresponding interval in train_buckets_scale.</span></div><div class="line">     random_number_01 = np.random.random_sample()</div><div class="line">     bucket_id = min([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_buckets_scale))</div><div class="line">                      <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</div><div class="line">     <span class="comment"># Get a batch and make a step.</span></div><div class="line">     start_time = time.time()</div><div class="line">     encoder_inputs, decoder_inputs, target_weights = model.get_batch(</div><div class="line">         train_set, bucket_id)</div><div class="line">     <span class="comment"># 區塊4，訓練</span></div><div class="line">     _, step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,</div><div class="line">                                  target_weights, bucket_id, <span class="keyword">False</span>)</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
+<h4 id="create_model">create_model</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,</span></span></div><div class="line">             source_vocab_size, # 英文單詞表的數量</div><div class="line">             target_vocab_size, # 法文單詞表的數量</div><div class="line">             buckets, # buckets 於下面詳述</div><div class="line">             size, # 模型每個 layer 的 neuron size</div><div class="line">             num_layers, </div><div class="line">             max_gradient_norm,  # 訓練 RNN 時 clip 梯度的值</div><div class="line">             batch_size, </div><div class="line">             learning_rate,</div><div class="line">             learning_rate_decay_factor,</div><div class="line">             use_lstm=False,</div><div class="line">             num_samples=<span class="number">512</span>, # sampled softmax size</div><div class="line">             forward_only=False, # train時為False, decode時為true</div><div class="line">             dtype=tf.float32):</div></pre></td></tr></table></figure>
+<p>初始化一个seq2seqModel class</p>
+<h4 id="bucket说明">bucket说明</h4><p>Bucket 是工程上使用的一種方式。理論上 RNN 可以輸出任意長度的句子，但這樣勢必會因為每句話的長度不同，而產生許多無用的 graph。使用 Bucket 可以減少產生大量，並可能會有不少重複的 graph。若有一長度為 ( 6, 16 ) 的 (英文, 法文) 句子，那麼則會被分配到 (20, 25) 這個 bucket。並且英文會被 padding 至長度 20，法文會被 padding 至長度 25</p>
+<h4 id="读入资料">读入资料</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_data</span><span class="params">(source_path, target_path, max_size=None)</span>:</span></div><div class="line">  data_set = [[] <span class="keyword">for</span> _ <span class="keyword">in</span> _buckets]</div><div class="line">  <span class="comment"># 讀入英文檔案</span></div><div class="line">  <span class="keyword">with</span> tf.gfile.GFile(source_path, mode=<span class="string">"r"</span>) <span class="keyword">as</span> source_file:</div><div class="line">    <span class="comment"># 讀入法文檔案</span></div><div class="line">    <span class="keyword">with</span> tf.gfile.GFile(target_path, mode=<span class="string">"r"</span>) <span class="keyword">as</span> target_file:</div><div class="line">      <span class="comment"># 每次讀入一行例如 ( '1 2 3 4 5\n', '99 98 97 96 95\n') 的(英,法)句對</span></div><div class="line">      source, target = source_file.readline(), target_file.readline()</div><div class="line">      counter = <span class="number">0</span></div><div class="line">      <span class="comment"># 逐行處理，去除 \n，並且 tokenize 化</span></div><div class="line">      <span class="keyword">while</span> source <span class="keyword">and</span> target <span class="keyword">and</span> (<span class="keyword">not</span> max_size <span class="keyword">or</span> counter &lt; max_size):</div><div class="line">        counter += <span class="number">1</span></div><div class="line">        <span class="keyword">if</span> counter % <span class="number">100000</span> == <span class="number">0</span>:</div><div class="line">          print(<span class="string">"  reading data line %d"</span> % counter)</div><div class="line">          sys.stdout.flush()</div><div class="line">        source_ids = [int(x) <span class="keyword">for</span> x <span class="keyword">in</span> source.split()]</div><div class="line">        target_ids = [int(x) <span class="keyword">for</span> x <span class="keyword">in</span> target.split()]</div><div class="line">        target_ids.append(data_utils.EOS_ID)</div><div class="line">        <span class="comment"># 這邊計算每句話的長度，並且分配到適合該長度的 bucket 之中</span></div><div class="line">        <span class="keyword">for</span> bucket_id, (source_size, target_size) <span class="keyword">in</span> enumerate(_buckets):</div><div class="line">          <span class="keyword">if</span> len(source_ids) &lt; source_size <span class="keyword">and</span> len(target_ids) &lt; target_size:</div><div class="line">            data_set[bucket_id].append([source_ids, target_ids])</div><div class="line">            <span class="keyword">break</span></div><div class="line">        source, target = source_file.readline(), target_file.readline()</div><div class="line">  <span class="keyword">return</span> data_set</div></pre></td></tr></table></figure>
+<h4 id="建立batch">建立batch</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line">random_number_01 = np.random.random_sample()</div><div class="line">bucket_id = min([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_buckets_scale))</div><div class="line">                       <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</div><div class="line">encoder_inputs, decoder_inputs, target_weights = model.get_batch(</div><div class="line">          train_set, bucket_id)</div></pre></td></tr></table></figure>
+<p>还需要class本身的property:<code>batch_size</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_batch</span><span class="params">(self, data, bucket_id)</span>:</span></div><div class="line">  <span class="comment"># 根據傳進來的 bucket_id 決定這次的 encoder, deocder size，例如 5, 10</span></div><div class="line">  encoder_size, decoder_size = self.buckets[bucket_id]</div><div class="line">  encoder_inputs, decoder_inputs = [], []</div><div class="line">  <span class="comment"># Get a random batch of encoder and decoder inputs from data,</span></div><div class="line">  <span class="comment"># pad them if needed, reverse encoder inputs and add GO to decoder.</span></div><div class="line">  <span class="keyword">for</span> _ <span class="keyword">in</span> xrange(self.batch_size):</div><div class="line">    <span class="comment"># 前面提過 data 是一個長度為4的list，data[i] 存放長度符合 bucket[i] 的資料</span></div><div class="line">    encoder_input, decoder_input = random.choice(data[bucket_id])</div><div class="line">    <span class="comment"># Encoder inputs are padded and then reversed.</span></div><div class="line">    encoder_pad = [data_utils.PAD_ID] * (encoder_size - len(encoder_input))</div><div class="line">    encoder_inputs.append(list(reversed(encoder_input + encoder_pad)))</div><div class="line">    <span class="comment"># Decoder inputs get an extra "GO" symbol, and are padded then.</span></div><div class="line">    decoder_pad_size = decoder_size - len(decoder_input) - <span class="number">1</span></div><div class="line">    decoder_inputs.append([data_utils.GO_ID] + decoder_input +</div><div class="line">                          [data_utils.PAD_ID] * decoder_pad_size)</div><div class="line">  <span class="comment"># Now we create batch-major vectors from the data selected above.</span></div><div class="line">  batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []</div><div class="line">  <span class="comment"># Batch encoder inputs are just re-indexed encoder_inputs.</span></div><div class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(encoder_size):</div><div class="line">    batch_encoder_inputs.append(</div><div class="line">        np.array([encoder_inputs[batch_idx][length_idx]</div><div class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</div><div class="line">  <span class="comment"># Batch decoder inputs are re-indexed decoder_inputs, we create weights.</span></div><div class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(decoder_size):</div><div class="line">    batch_decoder_inputs.append(</div><div class="line">        np.array([decoder_inputs[batch_idx][length_idx]</div><div class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</div><div class="line">    <span class="comment"># Create target_weights to be 0 for targets that are padding.</span></div><div class="line">    <span class="comment"># 這個 weights 是給模型訓練用的，有目標值的地方為1，其他為0</span></div><div class="line">    <span class="comment"># 有目標值的地方，指的是 decoder_input 平移1格的結果</span></div><div class="line">    batch_weight = np.ones(self.batch_size, dtype=np.float32)</div><div class="line">    <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size):</div><div class="line">      <span class="comment"># We set weight to 0 if the corresponding target is a PAD symbol.</span></div><div class="line">      <span class="comment"># The corresponding target is decoder_input shifted by 1 forward.</span></div><div class="line">       <span class="keyword">if</span> length_idx &lt; decoder_size - <span class="number">1</span>:</div><div class="line">           target = decoder_inputs[batch_idx][length_idx + <span class="number">1</span>]</div><div class="line">       <span class="keyword">if</span> length_idx == decoder_size - <span class="number">1</span> <span class="keyword">or</span> target == data_utils.PAD_ID:</div><div class="line">           batch_weight[batch_idx] = <span class="number">0.0</span></div><div class="line">    batch_weights.append(batch_weight)</div><div class="line">  <span class="keyword">return</span> batch_encoder_inputs, batch_decoder_inputs, batch_weights</div></pre></td></tr></table></figure>
+<h4 id="训练">训练</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line">self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(</div><div class="line">    self.encoder_inputs, self.decoder_inputs, targets,</div><div class="line">    self.target_weights, buckets,</div><div class="line">    seq2seq=<span class="keyword">lambda</span> x, y: seq2seq_f(x, y, <span class="keyword">False</span>),</div><div class="line">    softmax_loss_function=softmax_loss_function)</div></pre></td></tr></table></figure>
+<p>上面這段程式碼中的 seq2seq 參數 <code>seq2seq_f(x, y, False)</code> 也是定義在 <code>seq2seq_model.py</code> 裡面的。指的是將 x: encoder_input 與 y: decoder_input 輸入，回傳的就是這個 seq2seq model 的 output 與 state。False 這個參數則是 <code>seq2seq_f()</code> 裡面自行定義作為 do_decode or not 的 Boolean。我們把相關的程式碼列出來如下，可以看到多為 tensorflow 之中對於 RNN 的設定。其中比較特別的是 <code>sampled_softmax_loss</code> 以及 <code>seq2seq_f</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">output_projection = <span class="keyword">None</span></div><div class="line">softmax_loss_function = <span class="keyword">None</span></div><div class="line"><span class="comment"># Sampled softmax only makes sense if we sample less than vocabulary size.</span></div><div class="line"><span class="keyword">if</span> num_samples &gt; <span class="number">0</span> <span class="keyword">and</span> num_samples &lt; self.target_vocab_size:</div><div class="line">  w_t = tf.get_variable(<span class="string">"proj_w"</span>, [self.target_vocab_size, size], dtype=dtype)</div><div class="line">  w = tf.transpose(w_t)</div><div class="line">  b = tf.get_variable(<span class="string">"proj_b"</span>, [self.target_vocab_size], dtype=dtype)</div><div class="line">  output_projection = (w, b)</div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">sampled_loss</span><span class="params">(labels, inputs)</span>:</span></div><div class="line">    labels = tf.reshape(labels, [<span class="number">-1</span>, <span class="number">1</span>])</div><div class="line">    <span class="comment"># We need to compute the sampled_softmax_loss using 32bit floats to</span></div><div class="line">    <span class="comment"># avoid numerical instabilities.</span></div><div class="line">    local_w_t = tf.cast(w_t, tf.float32)</div><div class="line">    local_b = tf.cast(b, tf.float32)</div><div class="line">    local_inputs = tf.cast(inputs, tf.float32)</div><div class="line">    <span class="keyword">return</span> tf.cast(</div><div class="line">        tf.nn.sampled_softmax_loss(</div><div class="line">            weights=local_w_t,</div><div class="line">            biases=local_b,</div><div class="line">            labels=labels,</div><div class="line">            inputs=local_inputs,</div><div class="line">            num_sampled=num_samples,</div><div class="line">            num_classes=self.target_vocab_size),</div><div class="line">        dtype)</div><div class="line">  softmax_loss_function = sampled_loss</div><div class="line">    </div><div class="line"><span class="comment"># Create the internal multi-layer cell for our RNN.</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">single_cell</span><span class="params">()</span>:</span></div><div class="line">  <span class="keyword">return</span> tf.contrib.rnn.GRUCell(size)</div><div class="line"><span class="keyword">if</span> use_lstm:</div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">single_cell</span><span class="params">()</span>:</span></div><div class="line">    <span class="keyword">return</span> tf.contrib.rnn.BasicLSTMCell(size)</div><div class="line">cell = single_cell()</div><div class="line"><span class="keyword">if</span> num_layers &gt; <span class="number">1</span>:</div><div class="line">  cell = tf.contrib.rnn.MultiRNNCell([single_cell() <span class="keyword">for</span> _ <span class="keyword">in</span> range(num_layers)])</div><div class="line"><span class="comment"># The seq2seq function: we use embedding for the input and attention.</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">seq2seq_f</span><span class="params">(encoder_inputs, decoder_inputs, do_decode)</span>:</span></div><div class="line">  <span class="keyword">return</span> tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(</div><div class="line">      encoder_inputs,</div><div class="line">      decoder_inputs,</div><div class="line">      cell,</div><div class="line">      num_encoder_symbols=source_vocab_size,</div><div class="line">      num_decoder_symbols=target_vocab_size,</div><div class="line">      embedding_size=size,</div><div class="line">      output_projection=output_projection,</div><div class="line">      feed_previous=do_decode,</div><div class="line">      dtype=dtype)</div></pre></td></tr></table></figure>
+<p><code>sampled_softmax_loss</code> 是用在當有大量的輸出類別必須被 predict 的時候，舉例來說，像是英翻法這樣的翻譯工作，法文的詞典(target_vocab_size) size 有 40000 之多，這時候我們採用 sampled_softmax_loss 可以快速有效地建立一個 softmax classifier。其中的參數<code>num_sampled</code>指的是 sampling 的數目，在這邊是512。<code>num_classes</code>指的就是實際的 class 數目，在這邊就是以法文詞典的數目來代表。要注意的是 <code>num_sampled</code>不可以大於 <code>num_classes</code> 就是了</p>
+<p><code>seq2seq_f()</code> 直接呼叫了 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code>。這個 embedding_attention_seq2seq 是一個帶有 embedding + sequence to sequence 並帶有 attention 機制的模型。encoder_input 首先進入一個 embedding layer，轉為 word vector，之後進入一個 encoder RNN。這個 encoder RNN 的每一個 time step 會被記錄下來，作為 attention 機制的參考。接下來，decoder_input 會進入另一個新建立的 embedding layer，在同樣轉為 word vector 之後，進入一個 attention deocder RNN。這個 deocder 是由 encoder 的最後一個 time step 的 state 進行初始化，其後每一個輸入就是 decoder_input 經過 embedding 之後的 word vector，並且具有對 encoder output 專注的 attention 機制</p>
+<p>在 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code> 之中的參數 <code>feed_previous</code>，當他為 False 的時候 decoder 會使用前面給的 decoer_input 作為輸入，也就是一般在訓練階段的作法。當值為 True 的時候，前面給的 decoder_input 只有第一個值（通常是 GO symbol，代表一個句子的開始） 會作為 decoder 的輸入，而 decoder 的下一個 input，則是 decoder 的前一個 output，也就是只給 deocder 第一個 input，後面讓他自由發揮的意思。這也是一般在 decode/predict 時候的作法。</p>
+<h4 id="perplexity">perplexity</h4><p>$$<br>perplexity=e^{-l}, l=\frac{1}{M}\sum_{i=1}^{m}\log\left(p(s_i) \right )<br>$$</p>
+<p>如同precision recall等指标一样，用来评估一个模型的好坏</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/08/chatbot/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/08/chatbot/" itemprop="url">chatbot</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-08T16:41:02+08:00">
+                2018-04-08
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T16:41:02+08:00">
+                2018-04-08
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/08/chatbot/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/08/chatbot/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/04/spelling-translate/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/04/spelling-translate/" itemprop="url">Spelling Translate</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-04T14:50:11+08:00">
+                2018-04-04
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T16:32:28+08:00">
+                2018-04-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/04/spelling-translate/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/04/spelling-translate/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://www.pinchofintelligence.com/old-spelling-to-new-spelling-with-tensorflow/" target="_blank" rel="external">原文链接</a></p>
+<h3 id="prepartion">prepartion</h3><p>选用RNN的网络，主要是针对词来算</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">Xdata = []</div><div class="line">Ydata = []</div><div class="line">MAX_LENGTH_WORD = <span class="number">10</span></div><div class="line"></div><div class="line"></div><div class="line">feature_dict= dict()</div><div class="line">feature_list = list()</div><div class="line"></div><div class="line">PADDING_CHARACTER = <span class="string">'~'</span></div><div class="line">feature_dict[PADDING_CHARACTER]=<span class="number">0</span></div><div class="line">feature_list.append(PADDING_CHARACTER)</div><div class="line">max_features = <span class="number">1</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_vector_from_string</span><span class="params">(input_s)</span>:</span></div><div class="line">    <span class="keyword">global</span> max_features</div><div class="line">    vector_x = []</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> input_s:</div><div class="line">        <span class="keyword">if</span> i <span class="keyword">not</span> <span class="keyword">in</span> feature_dict:</div><div class="line">            feature_dict[i]=max_features</div><div class="line">            feature_list.append(i)</div><div class="line">            max_features += <span class="number">1</span></div><div class="line">        vector_x.append(feature_dict[i])</div><div class="line">    <span class="keyword">return</span> vector_x</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_to_data</span><span class="params">(input_s,output_s)</span>:</span></div><div class="line">    <span class="keyword">if</span> len(input_s) &lt; MAX_LENGTH_WORD <span class="keyword">and</span> len(output_s) &lt; MAX_LENGTH_WORD:</div><div class="line">        vector_x = get_vector_from_string(input_s)</div><div class="line">        vector_y = get_vector_from_string(output_s)</div><div class="line">        Xdata.append(vector_x)</div><div class="line">        Ydata.append(vector_y)</div><div class="line"></div><div class="line">        </div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_vector</span><span class="params">(vector,end_token=<span class="string">'\n'</span>)</span>:</span></div><div class="line">    print(<span class="string">''</span>.join([feature_list[i] <span class="keyword">for</span> i <span class="keyword">in</span> vector]),end=end_token)</div><div class="line">    </div><div class="line"><span class="keyword">with</span> open(<span class="string">"dictionary_old_new_dutch.csv"</span>) <span class="keyword">as</span> in_file:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> in_file:</div><div class="line">            in_s,out_s = line.strip().split(<span class="string">","</span>)</div><div class="line">            add_to_data(in_s,out_s)</div><div class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</div><div class="line">    print_vector(Xdata[i],end_token=<span class="string">''</span>)</div><div class="line">    print(<span class="string">' -&gt; '</span>, end=<span class="string">''</span>)</div><div class="line">    print_vector(Ydata[i])</div></pre></td></tr></table></figure>
+<p>上面部分是将词转化成为vector，注意几点：</p>
 <ul>
-<li>Chaos Engineering 的定义：是一种对分布式系统做线上的测试的实践，手段是在一个隔离的生产环境中人为制造一些极端环境。</li>
-<li>意义：即便每个组件都是好的，他们通讯出问题了，系统还是一样照挂；或者服务降级是配置有问题，超时不合适导致过多重试，服务要承受太多流量，单点故障导致雪崩。分布式系统会出现的情况实在太多了。预期等着出现，不如主动出击。主动制造问题，如果制造出的问题怎么搞系统都不会崩，那系统看起来还蛮可靠的。</li>
+<li>限制max_length_word部分</li>
+<li>这里面没有像之前lstm那样，通过记录词频的方式，来进行one_hot编码</li>
+<li>feature_list记录所有的词，同时，feature_dict记录词进入feature_list的位置</li>
 </ul>
+<h3 id="data_preprocessing">data preprocessing</h3><p>As mentioned above I would like to use a sequence to sequence approach. Important for this approach is having a certain length of words. Words that are longer than that length have been discarded in de data-reading step above. Now we will add paddings to the words that are not long enough. — 对于不够的词增加相应的padding</p>
+<p>Another important step is creating a train and a test set. We only show the network examples from the train set. At the end I will manually evaluate some of the examples in the testset and discuss what the network learned. During training we train in batches with a small amount of data. With a random data splitter we get a different trainset every run. — 挑选合适的训练集和测试集</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">before_padding = Xdata[<span class="number">0</span>]</div><div class="line">Xdata = sequence.pad_sequences(Xdata, maxlen=MAX_LENGTH_WORD)</div><div class="line">Ydata = sequence.pad_sequences(Ydata, maxlen=MAX_LENGTH_WORD)</div><div class="line">after_padding  = Xdata[<span class="number">0</span>]</div><div class="line"></div><div class="line">print_vector(before_padding,end_token=<span class="string">''</span>)</div><div class="line">print(<span class="string">" -&gt; after padding: "</span>, end=<span class="string">''</span>)</div><div class="line">print_vector(after_padding)</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataSplitter</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,percentage)</span>:</span></div><div class="line">        self.percentage = percentage</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">split_data</span><span class="params">(self,data)</span>:</span></div><div class="line">        splitpoint = int(len(data)*self.percentage)</div><div class="line">        <span class="keyword">return</span> data[:splitpoint], data[splitpoint:]</div><div class="line">splitter = DataSplitter(<span class="number">0.8</span>)</div><div class="line">Xdata,Xtest = splitter.split_data(Xdata)</div><div class="line">Ydata,Ytest = splitter.split_data(Ydata)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_random_reversed_dataset</span><span class="params">(Xdata,Ydata,batch_size)</span>:</span></div><div class="line">    newX = []</div><div class="line">    newY = []</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(batch_size):</div><div class="line">        index_taken = random.randint(<span class="number">0</span>,len(Xdata)<span class="number">-1</span>)</div><div class="line">        newX.append(Xdata[index_taken])</div><div class="line">        newY.append(Ydata[index_taken][::<span class="number">-1</span>])</div><div class="line">    <span class="keyword">return</span> newX,newY</div></pre></td></tr></table></figure>
+<p>这里的几点：</p>
 <ul>
-<li>Chaos 四个步骤：<ul>
-<li>定义系统正常时的一些指标，收集监控数据。</li>
-<li>假设在 control group 和 experiment group 两个都处于正常状态。</li>
-<li>制造事故，模拟出 server crash，硬盘故障，网络连接故障等等。</li>
-<li>尝试找出 control group 和 experiment group 的状态的不同。如果有不同，那就找到了可以改进的地方。</li>
+<li>使用sequence.pad_sequences警醒padding补充</li>
 </ul>
-</li>
+<h3 id="The_network">The network</h3><ul>
+<li>embeds our characters</li>
+<li>has an encoder which returns a sequence of outputs</li>
+<li>has an attention model which uses this sequence to generate output characters</li>
 </ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">batch_size = <span class="number">64</span></div><div class="line">memory_dim = <span class="number">256</span></div><div class="line">embedding_dim = <span class="number">32</span></div><div class="line"></div><div class="line">enc_input = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> i <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line">dec_output = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line"></div><div class="line">weights = [tf.ones_like(labels_t, dtype=tf.float32) <span class="keyword">for</span> labels_t <span class="keyword">in</span> enc_input]</div><div class="line"></div><div class="line">dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32)]+[dec_output[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD<span class="number">-1</span>)])</div><div class="line">empty_dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32,name=<span class="string">"empty_dec_input"</span>) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)])</div><div class="line"></div><div class="line">cell = tf.nn.rnn_cell.GRUCell(memory_dim)</div><div class="line"></div><div class="line"><span class="comment"># Create a train version of encoder-decoder, and a test version which does not feed the previous input</span></div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>) <span class="keyword">as</span> scope:</div><div class="line">    outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,dec_inp,</div><div class="line">                                                           cell,max_features,max_features,</div><div class="line">                                                           embedding_dim, feed_previous=<span class="keyword">False</span>)</div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>,reuse=<span class="keyword">True</span>) <span class="keyword">as</span> scope:</div><div class="line">    runtime_outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,empty_dec_inp,</div><div class="line">                                                                    cell,max_features,max_features,</div><div class="line">                                                                   embedding_dim,feed_previous=<span class="keyword">True</span>)</div><div class="line"></div><div class="line">loss = tf.nn.seq2seq.sequence_loss(outputs, dec_output, weights, max_features)</div><div class="line"></div><div class="line">optimizer = tf.train.AdamOptimizer()</div><div class="line">train_op = optimizer.minimize(loss)</div><div class="line"></div><div class="line"><span class="comment"># Init everything</span></div><div class="line">sess = tf.InteractiveSession()</div><div class="line">sess.run(tf.initialize_all_variables())</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
+<pre><code><span class="number">1.</span> enc_input和dec_output分别是<span class="number">10</span>dim的数组
+<span class="number">2.</span> init weights部分
+<span class="number">3.</span> memory_dim的意义？
+<span class="number">4.</span> 采用的是GRUCell的小处理阀门
+<span class="number">5.</span> feed_previous的意义？
+</code></pre><h3 id="Training">Training</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span> index_now <span class="keyword">in</span> range(<span class="number">1002</span>):</div><div class="line">    Xin,Yin = get_random_reversed_dataset(Xdata,Ydata,batch_size)</div><div class="line">    Xin = np.array(Xin).T</div><div class="line">    Yin = np.array(Yin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    feed_dict.update(&#123;dec_output[t]: Yin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;)</div><div class="line">    _, l = sess.run([train_op,loss], feed_dict)</div><div class="line">    <span class="keyword">if</span> index_now%<span class="number">100</span>==<span class="number">1</span>:</div><div class="line">        print(l)</div></pre></td></tr></table></figure>
+<p>每次选取不同的random的数据集来进行相关的训练，增加随机性部分？</p>
+<h3 id="Train_analysis">Train analysis</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_reversed_max_string_logits</span><span class="params">(logits)</span>:</span></div><div class="line">    string_logits = logits[::<span class="number">-1</span>]</div><div class="line">    concatenated_string = <span class="string">""</span></div><div class="line">    <span class="keyword">for</span> logit <span class="keyword">in</span> string_logits:</div><div class="line">        val_here = np.argmax(logit)</div><div class="line">        concatenated_string += feature_list[val_here]</div><div class="line">    <span class="keyword">return</span> concatenated_string</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_out</span><span class="params">(out)</span>:</span></div><div class="line">    out = list(zip(*out))</div><div class="line">    out = out[:<span class="number">10</span>] <span class="comment"># only show the first 10 samples</span></div><div class="line">    </div><div class="line">    <span class="keyword">for</span> index,string_logits <span class="keyword">in</span> enumerate(out):</div><div class="line">        print(<span class="string">"input: "</span>,end=<span class="string">''</span>)</div><div class="line">        print_vector(Xin[index])</div><div class="line">        print(<span class="string">"expected: "</span>,end=<span class="string">''</span>)</div><div class="line">        expected= Yin[index][::<span class="number">-1</span>]</div><div class="line">        print_vector(expected)</div><div class="line">        </div><div class="line">        output = get_reversed_max_string_logits(string_logits)</div><div class="line">        print(<span class="string">"output: "</span> + output)</div><div class="line">        </div><div class="line">         </div><div class="line">        print(<span class="string">"=============="</span>)</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment"># Now run a small test to see what our network does with words</span></div><div class="line">RANDOM_TESTSIZE = <span class="number">5</span></div><div class="line">Xin,Yin = get_random_reversed_dataset(Xtest,Ytest,RANDOM_TESTSIZE)</div><div class="line">Xin_transposed = np.array(Xin).T</div><div class="line">Yin_transposed = np.array(Yin).T</div><div class="line">feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">out = sess.run(runtime_outputs, feed_dict)</div><div class="line">print_out(out)</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">translate_single_word</span><span class="params">(word)</span>:</span></div><div class="line">    Xin = [get_vector_from_string(word)]</div><div class="line">    Xin = sequence.pad_sequences(Xin, maxlen=MAX_LENGTH_WORD)</div><div class="line">    Xin_transposed = np.array(Xin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    out = sess.run(runtime_outputs, feed_dict)</div><div class="line">    <span class="keyword">return</span> get_reversed_max_string_logits(out)</div><div class="line"></div><div class="line">interesting_words = [<span class="string">"aerde"</span>,<span class="string">"duyster"</span>, <span class="string">"salfde"</span>, <span class="string">"ontstondt"</span>, <span class="string">"tusschen"</span>,<span class="string">"wacker"</span>,<span class="string">"voorraet"</span>,<span class="string">"gevreeset"</span>,<span class="string">"cleopatra"</span>]</div><div class="line"><span class="keyword">for</span> word <span class="keyword">in</span> interesting_words:</div><div class="line">    print(word + <span class="string">" becomes: "</span> + translate_single_word(word).replace(<span class="string">"~"</span>,<span class="string">""</span>))</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
 <ul>
-<li>一些实践：<ul>
-<li>与其搜集系统的内部属性指标，不如搜集系统的输出。吞吐，错误率，latency 百分位这些都是蛮好的指标。这些通用指标能证明系统正在工作。</li>
-<li>Chaos variables 是一些跟现实中会可能是系统出现故障的那些情况，不一定会是硬件出问题，甚至网络流量出现 spike 都可能可以算。</li>
-<li>生产环境的数据很宝贵，可以做采样，然后对实验环境进行测试。</li>
-<li>对这些实验写代码，做自动化。</li>
-<li>最小化对客户的影响，限制在阈值内</li>
-</ul>
-</li>
+<li>首先选取相应的test_case，训练处最终的结果，按照loss最小的参数</li>
+<li>然后是通过run，得到single_word的translate的结果</li>
+<li>相关输出的一些反转，通过vector还原成为相应的单词</li>
 </ul>
 
           
@@ -441,7 +770,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/22/data-system/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/lstm-exmaple/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -460,7 +789,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/22/data-system/" itemprop="url">数据系统初探</a></h1>
+                <a class="post-title-link" href="/2018/04/03/lstm-exmaple/" itemprop="url">LSTM Example</a></h1>
         
 
         <div class="post-meta">
@@ -472,8 +801,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-22T11:09:11+08:00">
-                2018-03-22
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T17:51:48+08:00">
+                2018-04-03
               </time>
             
 
@@ -488,8 +817,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-28T18:27:10+08:00">
-                2018-03-28
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:52:35+08:00">
+                2018-04-04
               </time>
             
           </span>
@@ -507,8 +836,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-system/" itemprop="url" rel="index">
-                    <span itemprop="name">data system</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -525,8 +854,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/22/data-system/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/22/data-system/" itemprop="commentCount"></span>
+                <a href="/2018/04/03/lstm-exmaple/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/lstm-exmaple/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -556,309 +885,25 @@
       
         
           
-            <p><a href="https://vonng.gitbooks.io/ddia-cn/content/ch1.html" target="_blank" rel="external">原文链接</a></p>
-<p>[TOC]</p>
-<h3 id="基础目标：">基础目标：</h3><p>可靠、可扩展、可维护的数据系统</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-1.png" alt="数据系统架构"></p>
-<p>负载：</p>
-<p>负载可以用一些称为<strong>负载参数（load parameters）</strong>的数字来描述。参数的最佳选择取决于系统架构，它可能是每秒向Web服务器发出的请求、数据库中的读写比率、聊天室中同时活跃的用户数量、缓存命中率或其他东西。除此之外，也许平均情况对你很重要，也许你的瓶颈是少数极端场景。</p>
-<p>举例，发文的时间线，有两种实现方式</p>
-<ul>
-<li><p>查数据库的方式</p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><div class="line"><span class="keyword">SELECT</span> tweets.*, users.* </div><div class="line">  <span class="keyword">FROM</span> tweets </div><div class="line">  <span class="keyword">JOIN</span> <span class="keyword">users</span>   <span class="keyword">ON</span> tweets.sender_id = users.id </div><div class="line">  <span class="keyword">JOIN</span> <span class="keyword">follows</span> <span class="keyword">ON</span> follows.followee_id = users.id </div><div class="line">  <span class="keyword">WHERE</span> follows.follower_id = <span class="keyword">current_user</span></div></pre></td></tr></table></figure>
-</li>
-</ul>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-2.png" alt="推文查询"></p>
-<p>​    </p>
-<ul>
-<li><p>通过查询缓存的方式，为每个用户的主页时间线维护一个缓存，就像每个用户的推文收件箱（<a href="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-3.png" target="_blank" rel="external">图1-3</a>）。 当一个用户发布推文时，查找所有关注该用户的人，并将新的推文插入到每个主页时间线缓存中。 因此读取主页时间线的请求开销很小，因为结果已经提前计算好了</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-3.png" alt="缓存推文"></p>
-<p>缺点在于，发推现在需要大量的额外工作。平均来说，一条推文会发往约75个关注者，所以每秒4.6k的发推写入，变成了对主页时间线缓存每秒345k的写入。但这个平均值隐藏了用户粉丝数差异巨大这一现实，一些用户有超过3000万的粉丝，这意味着一条推文就可能会导致主页时间线缓存的3000万次写入！及时完成这种操作是一个巨大的挑战——推特尝试在5秒内向粉丝发送推文</p>
-</li>
-</ul>
-<p>最后的折中：两种方法的混合。大多数用户发推时仍然是扇出写入粉丝的主页时间线缓存中。但是少数拥有海量粉丝的用户（即名流）被排除在外。当用户读取主页时间线时，来自所关注名流的推文都会单独拉取，并与用户的主页时间线缓存合并，如方法1所示。这种混合方法能始终如一地提供良好性能</p>
-<p>性能考量：</p>
-<p>关于在线系统的响应时间</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-4.png" alt="**一个服务100次请求响应时间的均值与百分位数**"></p>
-<p>响应时间的高百分位点（也称为<strong>尾部延迟（tail percentil）</strong>）非常重要，因为它们直接影响用户的服务体验。</p>
-<p>应对负载的方法：水平扩展，垂直扩展，弹性等等</p>
-<p>ActiveRecord框架</p>
-<p>网络模型 vs 关系模型</p>
-<h3 id="存储与检索">存储与检索</h3><p>最简单的数据库</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><div class="line"><span class="meta">#!/bin/bash</span></div><div class="line"><span class="function"><span class="title">db_set</span></span> () &#123;</div><div class="line">    <span class="built_in">echo</span> <span class="string">"<span class="variable">$1</span>,<span class="variable">$2</span>"</span> &gt;&gt; database</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="title">db_get</span></span> () &#123;</div><div class="line">    grep <span class="string">"^<span class="variable">$1</span>,"</span> database | sed <span class="_">-e</span> <span class="string">"s/^<span class="variable">$1</span>,//"</span> | tail -n 1</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>注意后面的<code>tail -n 1</code>取最新的一个</p>
-<p>我们只是追加写一个文件 - 所以我们如何避免最终用完磁盘空间？一个好的解决方案是通过在达到一定大小时关闭一个段文件，然后将其写入一个新的段文件来将日志分割成特定大小的段。然后我们可以对这些段进行压缩</p>
-<p>压缩意味着在日志中丢弃重复的键，只保留每个键的最新更新</p>
-<p>压缩以及合并</p>
-<h4 id="索引类型">索引类型</h4><p>哈希索引</p>
-<p>SSTable (Sorted String Table)</p>
-<ul>
-<li>好处：合并简单而高效，两个有序队列的合并排序；可以范围查询，因为有序；</li>
-</ul>
-<p>在磁盘上维护有序结构是可能的（参阅“B-Tree”），但在内存保存则要容易得多。有许多可以使用的众所周知的树形数据结构，例如红黑树或AVL树【2】。使用这些数据结构，您可以按任何顺序插入键，并按排序顺序读取它们。</p>
-<p>现在我们可以使我们的存储引擎工作如下：</p>
-<ul>
-<li>写入时，将其添加到内存中的平衡树数据结构（例如，红黑树）。这个内存树有时被称为memtable。</li>
-<li>当memtable大于某个阈值（通常为几兆字节）时，将其作为SSTable文件写入磁盘。这可以高效地完成，因为树已经维护了按键排序的键值对。新的SSTable文件成为数据库的最新部分。当SSTable被写入磁盘时，写入可以继续到一个新的memtable实例。</li>
-<li>为了提供读取请求，首先尝试在memtable中找到关键字，然后在最近的磁盘段中，然后在下一个较旧的段中找到该关键字。</li>
-<li>有时会在后台运行合并和压缩过程以组合段文件并丢弃覆盖或删除的值。</li>
-</ul>
-<p>用SSTable制作LSM树</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig3-6.png" alt="B树"></p>
-<p>为了使数据库对崩溃具有韧性，B树实现通常会带有一个额外的磁盘数据结构：预写式日志（WAL，也称为重做日志）。这是一个只能追加的文件，每个B树修改都可以应用到树本身的页面上。当数据库在崩溃后恢复时，这个日志被用来恢复B树回到一致的状态</p>
-<p>比较B树和LSM树</p>
-<p>根据经验，LSM树通常写速度更快，而B树被认为读取速度更快【23】</p>
-<p>B树的写入逻辑:必须至少两次写入每一段数据：一次写入预先写入日志，一次写入树页面本身（也许再次分页）。即使在该页面中只有几个字节发生了变化，也需要一次编写整个页面的开销</p>
-<p>LSM的缺点：</p>
-<p>日志结构存储的缺点是压缩过程有时会干扰正在进行的读写操作。尽管存储引擎尝试逐步执行压缩而不影响并发访问，但是磁盘资源有限，所以很容易发生请求需要等待而磁盘完成昂贵的压缩操作。对吞吐量和平均响应时间的影响通常很小，但是在更高百分比的情况下，对日志结构化存储引擎的查询响应时间有时会相当长，而B树的行为则相对更具可预测性</p>
-<p>在<strong>聚集索引（clustered index）</strong>（在索引中存储所有行数据）和<strong>非聚集索引（nonclustered index）</strong>（仅在索引中存储对数据的引用）之间的折衷被称为<strong>包含列的索引（index with included columns）</strong>或<strong>覆盖索引（covering index）</strong>，其存储表的一部分在索引内【33】。这允许通过单独使用索引来回答一些查询（这种情况叫做：索引<strong>覆盖了（cover）</strong>查询</p>
-<p><strong>反直觉的是，内存数据库的性能优势并不是因为它们不需要从磁盘读取的事实。即使是基于磁盘的存储引擎也可能永远不需要从磁盘读取，因为操作系统缓存最近在内存中使用了磁盘块。相反，它们更快的原因在于省去了将内存数据结构编码为磁盘数据结构的开销</strong></p>
-<table>
-<thead>
-<tr>
-<th>属性</th>
-<th>事务处理 OLTP</th>
-<th>分析系统 OLAP</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>主要读取模式</td>
-<td>查询少量记录，按键读取</td>
-<td>在大批量记录上聚合</td>
-</tr>
-<tr>
-<td>主要写入模式</td>
-<td>随机访问，写入要求低延时</td>
-<td>批量导入（ETL），事件流</td>
-</tr>
-<tr>
-<td>主要用户</td>
-<td>终端用户，通过Web应用</td>
-<td>内部数据分析师，决策支持</td>
-</tr>
-<tr>
-<td>处理的数据</td>
-<td>数据的最新状态（当前时间点）</td>
-<td>随时间推移的历史事件</td>
-</tr>
-<tr>
-<td>数据集尺寸</td>
-<td>GB ~ TB</td>
-<td>TB ~ PB</td>
-</tr>
-</tbody>
-</table>
-<h3 id="编码与演化">编码与演化</h3><p>系统想要继续顺利运行，就需要保持兼容性，向后兼容与向前兼容。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/delay-queue/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/20/delay-queue/" itemprop="url">延迟队列</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T11:25:49+08:00">
-                2018-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T11:33:25+08:00">
-                2018-03-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/delay-queue/" itemprop="url" rel="index">
-                    <span itemprop="name">delay queue</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/20/delay-queue/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/delay-queue/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://tech.youzan.com/queuing_delay/" target="_blank" rel="external">原文链接</a></p>
-<p>业务场景：</p>
-<ul>
-<li>当订单一直处于未支付状态时，如何及时的关闭订单，并退还库存？</li>
-<li>如何定期检查处于退款状态的订单是否已经退款成功？</li>
-<li>新创建店铺，N天内没有上传商品，系统如何知道该信息，并发送激活短信？等等</li>
-</ul>
-<p>设计目标：</p>
-<ul>
-<li>消息传输可靠性：消息进入到延迟队列后，保证至少被消费一次。</li>
-<li>Client支持丰富：由于业务上的需求，至少支持PHP和Python。</li>
-<li>高可用性：至少得支持多实例部署。挂掉一个实例后，还有后备实例继续提供服务。</li>
-<li>实时性：允许存在一定的时间误差。</li>
-<li>支持消息删除：业务使用方，可以随时删除指定消息。</li>
-</ul>
-<p><img src="https://tech.youzan.com/content/images/2016/03/all-1.png" alt="设计结构"></p>
-<p>msg结构：</p>
-<ul>
-<li>Topic：Job类型。可以理解成具体的业务名称。</li>
-<li>Id：Job的唯一标识。用来检索和删除指定的Job信息。</li>
-<li>Delay：Job需要延迟的时间。单位：秒。（服务端会将其转换为绝对时间）</li>
-<li>TTR（time-to-run)：Job执行超时时间。单位：秒。</li>
-<li>Body：Job的内容，供消费者做具体的业务处理，以json格式存储。</li>
-</ul>
-<p>一个msg的生命周期：</p>
-<ul>
-<li>用户对某个商品下单，系统创建订单成功，同时往延迟队列里put一个job。job结构为：{‘topic’:’order<em>close’, ‘id’:’order</em>close<em>order</em>NoXXX’, ‘delay’:1800 ,’TTR’:60 , ‘body’:’XXXXXXX’}</li>
-<li>延迟队列收到该job后，先往job pool中存入job信息，然后根据delay计算出绝对执行时间，并以轮询(round-robbin)的方式将job id放入某个bucket。</li>
-<li>timer每时每刻都在轮询各个bucket，当1800秒（30分钟）过后，检查到上面的job的执行时间到了，取得job id从job pool中获取元信息。如果这时该job处于deleted状态，则pass，继续做轮询；如果job处于非deleted状态，首先再次确认元信息中delay是否大于等于当前时间，如果满足则根据topic将job id放入对应的ready queue，然后从bucket中移除；如果不满足则重新计算delay时间，再次放入bucket，并将之前的job id从bucket中移除。</li>
-<li>消费端轮询对应的topic的ready queue（这里仍然要判断该job的合理性），获取job后做自己的业务逻辑。与此同时，服务端将已经被消费端获取的job按照其设定的TTR，重新计算执行时间，并将其放入bucket。</li>
-<li>消费端处理完业务后向服务端响应finish，服务端根据job id删除对应的元信息。</li>
-</ul>
+            <p><a href="https://towardsdatascience.com/lstm-by-example-using-tensorflow-feb0c1968537" target="_blank" rel="external">原文链接</a></p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*epcf2SBjRHBynBNFf-CpQA.png" alt="predict"></p>
+<p>​                        Figure 1. LSTM cell with three inputs and 1 output.</p>
+<p>A way to convert symbol to number is to assign a unique integer to each symbol based on frequency of occurrence</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">build_dataset</span><span class="params">(words)</span>:</span></div><div class="line">    count = collections.Counter(words).most_common()</div><div class="line">    dictionary = dict()</div><div class="line">    <span class="keyword">for</span> word, _ <span class="keyword">in</span> count:</div><div class="line">        dictionary[word] = len(dictionary)</div><div class="line">    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))</div><div class="line">    <span class="keyword">return</span> dictionary, reverse_dictionary</div></pre></td></tr></table></figure>
+<p>上面就是采用通过词频的方式，来进行转化编码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">RNN</span><span class="params">(x, weights, biases)</span>:</span></div><div class="line"></div><div class="line">    <span class="comment"># reshape to [1, n_input]</span></div><div class="line">    x = tf.reshape(x, [<span class="number">-1</span>, n_input])</div><div class="line"></div><div class="line">    <span class="comment"># Generate a n_input-element sequence of inputs</span></div><div class="line">    <span class="comment"># (eg. [had] [a] [general] -&gt; [20] [6] [33])</span></div><div class="line">    x = tf.split(x,n_input,<span class="number">1</span>)</div><div class="line"></div><div class="line">    <span class="comment"># 1-layer LSTM with n_hidden units.</span></div><div class="line">    rnn_cell = rnn.BasicLSTMCell(n_hidden)</div><div class="line"></div><div class="line">    <span class="comment"># generate prediction</span></div><div class="line">    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)</div><div class="line"></div><div class="line">    <span class="comment"># there are n_input outputs but</span></div><div class="line">    <span class="comment"># we only want the last output</span></div><div class="line">    <span class="keyword">return</span> tf.matmul(outputs[<span class="number">-1</span>], weights[<span class="string">'out'</span>]) + biases[<span class="string">'out'</span>]</div></pre></td></tr></table></figure>
+<p>Final notes:</p>
+<ol>
+<li>Using int to encode symbols is easy but the “meaning” of the word is lost. Symbol to int is used to simplify the discussion on building a LSTM application using Tensorflow. Word2Vec is a more optimal way of encoding symbols to vector.</li>
+<li>One-hot vector representation of output is inefficient especially if we have a realistic vocabulary size. Oxford dictionary has over 170,000 words. The example above has 112. Again, this is only for simplifying the discussion.</li>
+<li>The number of inputs in this example is 3, see what happens when you use other numbers (eg 4, 5 or more).</li>
+</ol>
 <hr>
+<p>想法：</p>
 <ul>
-<li>timer是通过独立线程的无限循环来实现，在没有ready job的时候会对CPU造成一定的浪费。 </li>
-<li>消费端在reserve job的时候，采用的是http短轮询的方式，且每次只能取的一个job。如果ready job较多的时候会加大网络I/O的消耗。</li>
-<li>数据存储使用的redis，消息在持久化上受限于redis的特性。</li>
-</ul>
-<hr>
-<ul>
-<li>基于wait／notify方式的Timer实现</li>
-<li>提供TCP长连的API，实现push或者long-polling的消息reserve方法</li>
-<li>拥有自己的存储方案（内嵌数据库、自定义数据结构写文件），确保消息的持久化</li>
-</ul>
-<ul>
-<li>考虑提供周期性任务的直接支持</li>
+<li>one hot的进化？词语太多的话，数组170000？左右</li>
+<li>关于word的meaning部分，采用word2vec的方式，</li>
+<li>关于input的参数的使用？如何使用？</li>
 </ul>
 
           
@@ -908,7 +953,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/mson-better-than-json/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/GAN-example/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -927,7 +972,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/20/mson-better-than-json/" itemprop="url">mson 让json序列化更快</a></h1>
+                <a class="post-title-link" href="/2018/04/03/GAN-example/" itemprop="url">GAN Example on Keras</a></h1>
         
 
         <div class="post-meta">
@@ -939,8 +984,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T10:19:07+08:00">
-                2018-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T10:57:11+08:00">
+                2018-04-03
               </time>
             
 
@@ -955,8 +1000,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:45:22+08:00">
-                2018-03-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:52:45+08:00">
+                2018-04-04
               </time>
             
           </span>
@@ -974,8 +1019,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mson/" itemprop="url" rel="index">
-                    <span itemprop="name">mson</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -992,8 +1037,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/20/mson-better-than-json/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/mson-better-than-json/" itemprop="commentCount"></span>
+                <a href="/2018/04/03/GAN-example/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/GAN-example/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1023,181 +1068,26 @@
       
         
           
-            <p><a href="https://tech.meituan.com/MSON.html?utm_source=tuicool&amp;utm_medium=referral" target="_blank" rel="external">原文链接</a></p>
-<p>可以发现Gson序列化占用了大部分的执行时间，从图2可以更直观地看到Gson.fromJson占用了61%的执行时间。分析Gson的源码可以发现，它在序列化时大量使用了反射，每一个field，每一个get、set都需要用反射，由此带来了性能问题。</p>
-<h4 id="减少反射">减少反射</h4><p>采用JSONObject的方式来做序列化，</p>
-<h4 id="简单且性能好的">简单且性能好的</h4><p>采用AnnotationProcessor(注解处理器)的方式，找到有JsonType注解的bean来处理，</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(fullClassName);</div><div class="line">ClassModel classModel = <span class="keyword">new</span> ClassModel().setModifier(<span class="string">"public final"</span>).setClassName(simpleClassName);</div><div class="line">......</div><div class="line">JavaFile javaFile = <span class="keyword">new</span> JavaFile();</div><div class="line">javaFile.setPackageModel(<span class="keyword">new</span> PackageModel().setPackageName(packageName))</div><div class="line">        .setImportModel(<span class="keyword">new</span> ImportModel()</div><div class="line">                .addImport(elementClassName)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonObject"</span>)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonArray"</span>)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.exceptions.JsonParseException"</span>)</div><div class="line">                .addImports(extension.getImportList())</div><div class="line">        ).setClassModel(classModel);</div><div class="line"></div><div class="line">List&lt;? extends Element&gt; enclosedElements = element.getEnclosedElements();</div><div class="line"><span class="keyword">for</span> (Element e : enclosedElements) &#123;</div><div class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123;</div><div class="line">        processFieldElement(e, extension, toJsonMethodBlock, fromJsonMethodBlock);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">try</span> (Writer writer = sourceFile.openWriter()) &#123;</div><div class="line">    writer.write(javaFile.toSourceString());</div><div class="line">    writer.flush();</div><div class="line">    writer.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="继续优化">继续优化</h4><p>当JSON数据量比较大时用JSONObject处理会比较慢，究其原因是JSONObject会一次性将字符串读进来解析成一个map，这样会有比较大的内存浪费和频繁内存创建。经过调研Gson内部的实现细节，发现Gson底层有流式的解析器而且可以按需解析，可以做到匹配上的字段才去解析。根据这个发现我们将我们IJSONObject和IJsonArray换成了Gson底层的流解析来进一步优化我们的速度</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">Friend object = <span class="keyword">new</span> Friend();</div><div class="line">reader.beginObject();</div><div class="line"><span class="keyword">while</span> (reader.hasNext()) &#123;</div><div class="line">    String field = reader.nextName();</div><div class="line">    <span class="keyword">if</span> (<span class="string">"id"</span>.equals(field)) &#123;</div><div class="line">        object.id = reader.nextInt();</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="string">"name"</span>.equals(field)) &#123;</div><div class="line">        <span class="keyword">if</span> (reader.peek() == JsonToken.NULL) &#123;</div><div class="line">            reader.nextNull();</div><div class="line">            object.name = <span class="keyword">null</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            object.name = reader.nextString();</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        reader.skipValue();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">reader.endObject();</div></pre></td></tr></table></figure>
-<h4 id="兼容性">兼容性</h4><p>兼容性主要体现在能支持的数据类型上，目前MSON支持了基础数据类型，包装类型、枚举、数组、List、Set、Map、SparseArray以及各种嵌套类型（比如：<code>Map&lt;String, Map&lt;String, List&lt;String[]&gt;&gt;&gt;</code>）</p>
-<h4 id="结论上">结论上</h4><p>兼容性上，mson最好</p>
-<p>性能上，mson也较少耗时，Gson和fastjson的耗时相当</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/math-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/20/math-tips/" itemprop="url">数学小tips</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T09:59:42+08:00">
-                2018-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:18:17+08:00">
-                2018-03-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/20/math-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/math-tips/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://zh.wikipedia.org/wiki/链式法则" target="_blank" rel="external">链式法则</a></p>
-<p>设<em>f</em>和<em>g</em>为两个关于<em>x</em>可导函数，则有下面的公式:<br>$$<br>(f\circ g)’(x)=f’(g(x))g’(x)<br>$$<br>考虑函数<em>z</em> = <em>f</em>(<em>x</em>, <em>y</em>)，其中<em>x</em> = <em>g</em>(<em>t</em>)，<em>y</em> = <em>h</em>(<em>t</em>)，<em>g</em>(<em>t</em>)和<em>h</em>(<em>t</em>)是可微函数<br>$$<br>\frac{dz}{dx} = \frac{\partial z}{\partial x} \frac{\partial x}{\partial t} + \frac{\partial z}{\partial y} \frac{\partial y}{\partial t}<br>$$<br>这个公式是作为梯度下降算法的基本参照</p>
+            <p><a href="https://towardsdatascience.com/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0" target="_blank" rel="external">原文链接</a></p>
+<p>GAN is almost always explained like the case of a counterfeiter (Generative) and the police (Discriminator). Initially, the counterfeiter will show the police a fake money. The police says it is fake. The police gives feedback to the counterfeiter why the money is fake. The counterfeiter attempts to make a new fake money based on the feedback it received. The police says the money is still fake and offers a new set of feedback. The counterfeiter attempts to make a new fake money based on the latest feedback. The cycle continues indefinitely until the police is fooled by the fake money because it looks real</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*QHMGABbwL04x5VGYc_UWSA.png" alt="discriminator"></p>
+<p>Figure 1. Discriminator of DCGAN tells how real an input image of a digit is. MNIST Dataset is used as ground truth for real images. Strided convolution instead of max-pooling down samples the image.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">self.D = Sequential()</div><div class="line">depth = <span class="number">64</span></div><div class="line">dropout = <span class="number">0.4</span></div><div class="line"><span class="comment"># In: 28 x 28 x 1, depth = 1</span></div><div class="line"><span class="comment"># Out: 14 x 14 x 1, depth=64</span></div><div class="line">input_shape = (self.img_rows, self.img_cols, self.channel)</div><div class="line">self.D.add(Conv2D(depth*<span class="number">1</span>, <span class="number">5</span>, strides=<span class="number">2</span>, input_shape=input_shape, padding=<span class="string">'same'</span>))</div><div class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</div><div class="line">self.D.add(Dropout(dropout))</div><div class="line"></div><div class="line">self.D.add(Conv2D(depth*<span class="number">2</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</div><div class="line">self.D.add(Dropout(dropout))</div><div class="line"></div><div class="line">self.D.add(Conv2D(depth*<span class="number">4</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</div><div class="line">self.D.add(Dropout(dropout))</div><div class="line"></div><div class="line">self.D.add(Conv2D(depth*<span class="number">8</span>, <span class="number">5</span>, strides=<span class="number">1</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</div><div class="line">self.D.add(Dropout(dropout))</div><div class="line"></div><div class="line"><span class="comment"># Out: 1-dim probability</span></div><div class="line">self.D.add(Flatten())</div><div class="line">self.D.add(Dense(<span class="number">1</span>))</div><div class="line">self.D.add(Activation(<span class="string">'sigmoid'</span>))</div><div class="line">self.D.summary()</div></pre></td></tr></table></figure>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*gvBT3h4JD7eUN0GexHwx2w.png" alt="generator"></p>
+<p>Figure 2. Generator model synthesizes fake MNIST images from noise. Upsampling is used instead of fractionally-strided transposed convolution.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">self.G = Sequential()</div><div class="line">dropout = <span class="number">0.4</span></div><div class="line">depth = <span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span></div><div class="line">dim = <span class="number">7</span></div><div class="line"><span class="comment"># In: 100</span></div><div class="line"><span class="comment"># Out: dim x dim x depth</span></div><div class="line">self.G.add(Dense(dim*dim*depth, input_dim=<span class="number">100</span>))</div><div class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</div><div class="line">self.G.add(Activation(<span class="string">'relu'</span>))</div><div class="line">self.G.add(Reshape((dim, dim, depth)))</div><div class="line">self.G.add(Dropout(dropout))</div><div class="line"></div><div class="line"><span class="comment"># In: dim x dim x depth</span></div><div class="line"><span class="comment"># Out: 2*dim x 2*dim x depth/2</span></div><div class="line">self.G.add(UpSampling2D())</div><div class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">2</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</div><div class="line">self.G.add(Activation(<span class="string">'relu'</span>))</div><div class="line"></div><div class="line">self.G.add(UpSampling2D())</div><div class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">4</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</div><div class="line">self.G.add(Activation(<span class="string">'relu'</span>))</div><div class="line"></div><div class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">8</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</div><div class="line">self.G.add(Activation(<span class="string">'relu'</span>))</div><div class="line"></div><div class="line"><span class="comment"># Out: 28 x 28 x 1 grayscale image [0.0,1.0] per pix</span></div><div class="line">self.G.add(Conv2DTranspose(<span class="number">1</span>, <span class="number">5</span>, padding=<span class="string">'same'</span>))</div><div class="line">self.G.add(Activation(<span class="string">'sigmoid'</span>))</div><div class="line">self.G.summary()</div></pre></td></tr></table></figure>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*PIpd1jHbPc2QrTOPhvxoaw.png" alt="model"></p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*N3nT9AXVnsFBta2R1eEMjg.png" alt="train model"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">images_train = self.x_train[np.random.randint(<span class="number">0</span>,</div><div class="line">     self.x_train.shape[<span class="number">0</span>], size=batch_size), :, :, :]</div><div class="line"> noise = np.random.uniform(<span class="number">-1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</div><div class="line"> images_fake = self.generator.predict(noise)</div><div class="line"> x = np.concatenate((images_train, images_fake))</div><div class="line"> y = np.ones([<span class="number">2</span>*batch_size, <span class="number">1</span>])</div><div class="line"> y[batch_size:, :] = <span class="number">0</span></div><div class="line"> d_loss = self.discriminator.train_on_batch(x, y)</div><div class="line"></div><div class="line"> y = np.ones([batch_size, <span class="number">1</span>])</div><div class="line"> noise = np.random.uniform(<span class="number">-1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</div><div class="line"> a_loss = self.adversarial.train_on_batch(noise, y)</div></pre></td></tr></table></figure>
+<h3 id="Some_tips">Some tips</h3><p>Training GAN models requires a lot of patience due to its depth. Here are some pointers:</p>
+<ol>
+<li>Problem: generated images look like noise. Solution: use dropout on both Discriminator and Generator. Low dropout values (0.3 to 0.6) generate more realistic images.</li>
+<li>Problem: Discriminator loss converges rapidly to zero thus preventing the Generator from learning. Solution: Do not pre-train the Discriminator. Instead make its learning rate bigger than the Adversarial model learning rate. Use a different training noise sample for the Generator.</li>
+<li>Problem: generator images still look like noise. Solution: check if the activation, batch normalization and dropout are applied in the correct sequence.</li>
+<li>Problem: figuring out the correct training/model parameters. Solution: start with some known working values from published papers and codes and adjust one parameter at a time. Before training for 2000 or more steps, observe the effect of parameter value adjustment at about 500 or 1000 steps.</li>
+</ol>
+<p>尝试使用kaggle来做下试验？</p>
+<h2 id="tips:">tips:</h2><p>在进行深度学习的时候，先尝试将相关图能画出来，讲流程图能画出来</p>
 
           
         
@@ -1237,7 +1127,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/38/">38</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1287,7 +1177,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">186</span>
+                  <span class="site-state-item-count">198</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1298,7 +1188,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">81</span>
+                  <span class="site-state-item-count">86</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1309,7 +1199,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">86</span>
+                  <span class="site-state-item-count">91</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
