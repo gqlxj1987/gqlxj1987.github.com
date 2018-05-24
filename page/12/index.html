@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/25/page-rank/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/07/go-lock/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/25/page-rank/" itemprop="url">Page Rank</a></h1>
+                <a class="post-title-link" href="/2018/02/07/go-lock/" itemprop="url">Go Lock</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-25T11:50:23+08:00">
-                2017-12-25
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-07T10:56:38+08:00">
+                2018-02-07
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-25T14:22:40+08:00">
-                2017-12-25
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-08T11:48:13+08:00">
+                2018-02-08
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rank/" itemprop="url" rel="index">
-                    <span itemprop="name">rank</span>
+                  <a href="/categories/lock/" itemprop="url" rel="index">
+                    <span itemprop="name">lock</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/12/25/page-rank/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/25/page-rank/" itemprop="commentCount"></span>
+                <a href="/2018/02/07/go-lock/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/07/go-lock/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,29 +363,608 @@
       
         
           
-            <p>PageRank的相关说明</p>
+            <p><a href="https://zhuanlan.zhihu.com/p/33462152" target="_blank" rel="external">原文链接</a></p>
+<p>golang部分的锁，主要在sync包里</p>
+<h3 id="runtime/sema(信号量)">runtime/sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</div><div class="line">    lock  mutex</div><div class="line">    head  *sudog</div><div class="line">    tail  *sudog</div><div class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></div><div class="line">&#125;</div><div class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></div><div class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></div><div class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></div><div class="line"><span class="comment">// 内部使用的一个私有版本）</span></div></pre></td></tr></table></figure>
+<p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
+<h3 id="sync/atomic">sync/atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// 互斥量加锁操作</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></div><div class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</div><div class="line">		<span class="keyword">if</span> race.Enabled &#123;</div><div class="line">			race.Acquire(unsafe.Pointer(m))</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line">......</div></pre></td></tr></table></figure>
+<h3 id="sync/mutex（互斥锁）">sync/mutex（互斥锁）</h3><p>sync/mutex.go</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// A Mutex must not be copied after first use.</span></div><div class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</div><div class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></div><div class="line">    sema  <span class="keyword">uint32</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></div><div class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></div><div class="line"><span class="keyword">const</span> (</div><div class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></div><div class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></div><div class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></div><div class="line">)</div></pre></td></tr></table></figure>
+<p>lock流程</p>
+<blockquote>
+<p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
+</blockquote>
+<h3 id="sync/RWMutex（读写锁）">sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</div><div class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></div><div class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></div><div class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></div><div class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></div><div class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>写锁定</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// First, resolve competition with other writers.</span></div><div class="line">	rw.w.Lock()</div><div class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></div><div class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</div><div class="line">	<span class="comment">// Wait for active readers.</span></div><div class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</div><div class="line">		runtime_Semacquire(&amp;rw.writerSem)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="url">Building distributed log from scratch With Storage Mechanics</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T16:55:09+08:00">
+                2018-02-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T19:34:03+08:00">
+                2018-02-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index">
+                    <span itemprop="name">storage</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/" target="_blank" rel="external">原文链接</a></p>
+<p>日志是完全顺序，只接受append操作的数据结构。</p>
+<p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/02/05/mongodb-query-performance/" itemprop="url">Mongodb query performance over ranges</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">
+                2018-02-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T16:12:14+08:00">
+                2018-02-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mongodb/" itemprop="url" rel="index">
+                    <span itemprop="name">mongodb</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/05/mongodb-query-performance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/mongodb-query-performance/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="external">原文链接</a></p>
+<p>针对<code>$in</code>操作：</p>
 <ul>
-<li>整个互联网，看做一张有向图<ul>
-<li>网页是图上的点</li>
-<li>链接是图上的又向边</li>
+<li><p>index early</p>
+</li>
+<li><p>index often</p>
+</li>
+<li><p>index fully</p>
+<p>queries make use of indexes from left to right.</p>
+</li>
+<li><p>index sorts</p>
+<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
+</li>
+<li><p>commands</p>
+<p>​</p>
+</li>
+</ul>
+<p><strong>The order of fields in an index should be:</strong></p>
+<ol>
+<li><strong>First, fields on which you will query for exact values.</strong></li>
+<li><strong>Second, fields on which you will sort.</strong></li>
+<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
+</ol>
+<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/spark-2-x-trouble-guide/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/02/05/spark-2-x-trouble-guide/" itemprop="url">Spark 2.x Trouble guide</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T10:27:04+08:00">
+                2018-02-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T12:01:15+08:00">
+                2018-02-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/05/spark-2-x-trouble-guide/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/spark-2-x-trouble-guide/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://www.slideshare.net/jcmia1/a-beginners-guide-on-troubleshooting-spark-applications?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="external">原文链接</a></p>
+<h3 id="Building_Spark">Building Spark</h3><p>JRE path</p>
+<p>Maven installed</p>
+<ul>
+<li>always explicitly set the following in ‘.bashrc’ for ‘root’</li>
+<li>specify support you want explicitly</li>
+<li>Rebuild only modified source code</li>
+</ul>
+<h3 id="Running_Spark">Running Spark</h3><ul>
+<li>always use ‘—verbose’ option on ‘spark-submit’ command to run your workland</li>
+<li>print<ul>
+<li>all default properties</li>
+<li>command line options</li>
+<li>settings from spark’ conf file</li>
+<li>setting from cli</li>
 </ul>
 </li>
-<li>每个网页有一个权威评分，称作pagerank，可以把它当做一种投票权</li>
-<li>将每个超链接作为一次投票<ul>
-<li>每个网页的pagerank等于所有指向该网页超链接的网页的pagerank的加权和</li>
-<li>这些权值等于这些网页各自向外链接数目的倒数</li>
+<li>order of lookup, ‘—package’<ul>
+<li>the local maven repo</li>
+<li>maven central - web</li>
+<li>additional remote repositories </li>
+</ul>
+</li>
+<li>OOM<ul>
+<li>increase ‘—driver-memory’</li>
+<li>saprk sql and spark streaming need large driver heap size</li>
+</ul>
+</li>
+<li>GC overhead limit exceeded<ul>
+<li>too much time spent in garbage collection</li>
+<li>increase executor heapsize</li>
+<li>modify gc policy<ul>
+<li>-XX:UseG1GC &amp;&amp; -XX:UseParallelGC</li>
+<li>spark default: -XX:UseParallelGC</li>
+<li>Try overwrite with -XX:G1GC</li>
 </ul>
 </li>
 </ul>
-<p>里面主要的点：</p>
-<ul>
-<li>足够优美，表达简单</li>
-<li>关于加权和部分，计算方式聪明</li>
+</li>
+<li>has a single SparkContext with multiple sessions supporting<ul>
+<li>concurrency</li>
+<li>re-useable connections</li>
+<li>shared cache</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Vertex</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></div><div class="line">        self.in_degree = <span class="number">0</span></div><div class="line">        self.out_degree = <span class="number">0</span></div><div class="line">        self.pagerank = <span class="number">0.0</span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Edge</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, start, end)</span>:</span></div><div class="line">        self.start_id = start</div><div class="line">        self.end_id = end</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">addVertex</span><span class="params">(vertex_name, vtx_map)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    return the id of vertex_name</div><div class="line">    if exists in vtx_map, return directly</div><div class="line">    if not exists, add it, and then return</div><div class="line"></div><div class="line">    vertex_name: string, the url of a web page</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    '''</div><div class="line">    res_id = <span class="number">0</span></div><div class="line">    <span class="keyword">if</span> vertex_name <span class="keyword">in</span> vtx_map:</div><div class="line">        <span class="keyword">return</span> vtx_map[vertex_name]</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        res_id = len(vtx_map)</div><div class="line">        vtx_map[vertex_name] = res_id</div><div class="line">    <span class="keyword">return</span> res_id</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">readTable</span><span class="params">(fname, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    read fname line by line, update the vtx_map and edge_list</div><div class="line"></div><div class="line">    fname: string, the file name of the table</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    <span class="keyword">with</span> open(fname, <span class="string">'r'</span>) <span class="keyword">as</span> fin:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> fin.readlines():</div><div class="line">            tmp = line.strip().split(<span class="string">'\t'</span>)</div><div class="line">            <span class="keyword">assert</span>(len(tmp) == <span class="number">2</span>)</div><div class="line">            start = addVertex(tmp[<span class="number">0</span>], vtx_map)</div><div class="line">            end = addVertex(tmp[<span class="number">1</span>], vtx_map)</div><div class="line">            edge_list.append(Edge(start, end))</div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">initialize</span><span class="params">(vtx_map, edge_list, vtx_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    initialize the data structures</div><div class="line"></div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    vtx_list: list, the list of all vertices</div><div class="line">    '''</div><div class="line">    vtx_num = len(vtx_map)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    vtx_list = [Vertex() <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">        vtx_list[i].pagerank = <span class="number">1.0</span> / vtx_num</div><div class="line">    <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">        vtx_list[edge.start_id].out_degree += <span class="number">1</span></div><div class="line">        vtx_list[edge.end_id].in_degree += <span class="number">1</span></div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">calcPagerank</span><span class="params">(alpha, num_iter, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    calc PageRank for all vertices</div><div class="line">    return: vtx_list, list, the list of all vertices</div><div class="line"></div><div class="line">    alpha: float, damping factor</div><div class="line">    num_iter: int, the upper limitation of calculation</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    vtx_list, pr_list = list(), list()</div><div class="line">    initialize(vtx_map, edge_list, vtx_list)</div><div class="line">    vtx_num = len(vtx_list)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    alpha = float(alpha)</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(num_iter):</div><div class="line">        pr_list = [alpha / vtx_num <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">        <span class="comment"># calc</span></div><div class="line">        <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">            pr_list += (<span class="number">1</span> - alpha) * vtx_list[edge.start_id].pagerank / \</div><div class="line">                        vtx_list[edge.start_id].out_degree</div><div class="line">        <span class="comment"># revise</span></div><div class="line">        revise = sum(map(<span class="keyword">lambda</span> vtx: (<span class="number">1</span> - alpha) * vtx.pagerank / vtx_num, \</div><div class="line">                        filter(<span class="keyword">lambda</span> vtx:(vtx.out_degree == <span class="number">0</span>), vtx_list)))</div><div class="line">        <span class="comment"># update</span></div><div class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">            vtx_list[i].pagerank = pr_list[i] + revise</div><div class="line">    <span class="keyword">return</span> vtx_list</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">doCalcPageRank</span><span class="params">(fname = <span class="string">'wt2g_inlinks.source'</span>, alpha = <span class="number">0.15</span>, num_iter = <span class="number">30</span>)</span>:</span></div><div class="line">    vtx_map = dict()</div><div class="line">    edge_list = list()</div><div class="line">    readTable(fname, vtx_map, edge_list)</div><div class="line">    <span class="keyword">return</span> calcPagerank(alpha, num_iter, vtx_map, edge_list)</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    <span class="keyword">print</span> doCalcPageRank()</div></pre></td></tr></table></figure>
-<p>相关程序说明：</p>
-<ul>
-<li>​</li>
+</li>
+<li>Not all CPUs are busy<ul>
+<li>sart with evenly divided memory and cores. <code>-executor-memroy 2500m --num-executors 200</code></li>
+<li>when heap size non-negotiable. <code>--executor-memory 6g --num-executors 80</code>  transfer to <code>--executor-memory 6g --num-executors 80 -executor-cores 2</code> (Forcing 80% utilization, boosting 33% performance!)</li>
+</ul>
+</li>
+<li>‘scratch’ space<ul>
+<li>‘/tmp’ is full</li>
+<li>fix <code>spark.local.dir</code></li>
+</ul>
+</li>
+<li>max result size exceeded<ul>
+<li><code>saprk.driver.maxResultSize</code></li>
+</ul>
+</li>
+<li>out of space on a few data nodes<ul>
+<li><code>hdfs balancer</code> to start balancing</li>
+<li><code>dfs.datanode.balance.bandwidthPerSec</code> increase to 6GB/s</li>
+<li><code>dfs.datanode.balance.max.concurrent.moves</code>  set to 5000 concurrent threads</li>
+</ul>
+</li>
+</ul>
+<h3 id="Profiling_Spark">Profiling Spark</h3><ul>
+<li>Yarn containers across multiple nodes</li>
+<li>get a full thread dump or get a full heap dump. <code>jstack -l</code>  <code>jmap -dump:live,format=b,file=xxx</code> </li>
+<li>step1: find the hostname in the error log; step 2: find the local directory where ‘stderr’ resides, step 3: open the ‘stderr’, </li>
 </ul>
 
           
@@ -435,7 +1014,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/24/tanpengyou/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/31/failure-microservice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -454,7 +1033,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/24/tanpengyou/" itemprop="url">莫道不肝肠</a></h1>
+                <a class="post-title-link" href="/2018/01/31/failure-microservice/" itemprop="url">Designing a Microservices Architecture for Failure</a></h1>
         
 
         <div class="post-meta">
@@ -466,8 +1045,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-24T11:27:26+08:00">
-                2017-12-24
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">
+                2018-01-31
               </time>
             
 
@@ -482,8 +1061,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-24T11:42:48+08:00">
-                2017-12-24
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-31T16:05:17+08:00">
+                2018-01-31
               </time>
             
           </span>
@@ -501,8 +1080,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/emotion/" itemprop="url" rel="index">
-                    <span itemprop="name">emotion</span>
+                  <a href="/categories/microservice/" itemprop="url" rel="index">
+                    <span itemprop="name">microservice</span>
                   </a>
                 </span>
 
@@ -519,8 +1098,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/12/24/tanpengyou/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/24/tanpengyou/" itemprop="commentCount"></span>
+                <a href="/2018/01/31/failure-microservice/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/31/failure-microservice/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -550,575 +1129,30 @@
       
         
           
-            <p>莫道不肝肠</p>
-<p>没有人会给你这么多耐心，来容忍你这样的拖拉，你这样中二的感觉。。</p>
-<p>真当是说出口的那一句，还是。。</p>
-<p>承诺不了，就不要去说大话了，只会让自己都看轻自己。。</p>
-<p>其实还是胆小，自己不擅长的事情，不敢去做，不敢去承担，只想着逃避，who care you</p>
-<p>之前已经打算好了，何故做小女儿态。。</p>
-<p>做不了别人眼中的自己，做好自己眼中的自己，算是一个卑微的acer的一点梦想吧。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/20/ml-books/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/20/ml-books/" itemprop="url">机器学习资料</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-20T14:54:41+08:00">
-                2017-12-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-20T15:35:33+08:00">
-                2017-12-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/machine-learning/" itemprop="url" rel="index">
-                    <span itemprop="name">machine learning</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/20/ml-books/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/20/ml-books/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>借鉴于<a href="http://d0evi1.com/tecbook/" target="_blank" rel="external">d0evi1的博客</a></p>
-<h3 id="基础篇">基础篇</h3><p>数学基础</p>
-<ul>
-<li><a href="http://open.163.com/special/opencourse/daishu.html" target="_blank" rel="external">线性代数</a></li>
-<li><a href="https://book.douban.com/subject/1230154/" target="_blank" rel="external">统计学</a>， <a href="https://open.163.com/movie/2011/5/M/O/M807PLQMF_M80HQQGMO.html" target="_blank" rel="external">统计学导论</a></li>
-<li><a href="https://www.coursera.org/learn/calculus1" target="_blank" rel="external">微积分基础</a></li>
-<li><a href="https://open.163.com/movie/2017/5/K/0/MCIM9UCLC_MCIO21CK0.html" target="_blank" rel="external">微积分-积分学</a></li>
+            <p><a href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/" target="_blank" rel="external">原文链接</a></p>
+<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
+<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
+<p>服务降解</p>
+<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
+<h4 id="健康检查和负载平衡">健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
+<h4 id="Self-healing">Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
+<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
+<h4 id="failover_caching">failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
+<h4 id="retry_logic">retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
+<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
+<h4 id="Rate_Limiters_and_Load_Shedders">Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
+<h4 id="Fail_Fast_and_Independently">Fail Fast and Independently</h4><p>bulkhead pattern</p>
+<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success / fail statistics of operations.</p>
+<h4 id="Bulkheads">Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
+<h4 id="Circuit_Breaks">Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
+<h4 id="Testing_for_Failures">Testing for Failures</h4><p>ChaosMonkey for test</p>
+<h3 id="Key_Takeways">Key Takeways</h3><ul>
+<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
+<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
+<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
+<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
+<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
 </ul>
-<p>机器学习</p>
-<ul>
-<li><a href="https://www.coursera.org/learn/machine-learning" target="_blank" rel="external">吴恩达: machine learning－coursera</a></li>
-<li><a href="http://open.163.com/special/opencourse/machinelearning.html" target="_blank" rel="external">吴恩达: 机器学习－斯坦福</a></li>
-<li><a href="http://book.douban.com/subject/10590856/" target="_blank" rel="external">统计学习方法</a></li>
-</ul>
-<p>coursera的课程</p>
-<ul>
-<li><a href="https://class.coursera.org/ntumlone-003/lecture" target="_blank" rel="external">机器学习基础</a></li>
-<li><a href="https://class.coursera.org/ntumltwo-002/lecture" target="_blank" rel="external">机器学习技法</a></li>
-</ul>
-<p>交大课程</p>
-<ul>
-<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=397" target="_blank" rel="external">机器学习导论</a></li>
-<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=398" target="_blank" rel="external">统计机器学习</a></li>
-</ul>
-<h3 id="神经网络">神经网络</h3><p><a href="http://blog.sina.com.cn/s/blog_71329a960102v1eo.html" target="_blank" rel="external">神经网络简史</a></p>
-<p><a href="https://classroom.udacity.com/courses/ud730/lessons/6370362152/concepts/63798118150923" target="_blank" rel="external">深度学习 from google</a></p>
-<p>李宏毅<a href="http://space.bilibili.com/23852932/#!/channel/detail?cid=11583" target="_blank" rel="external">bilili</a></p>
-<p>coursera课程</p>
-<p><a href="https://class.coursera.org/neuralnets-2012-001/lecture" target="_blank" rel="external">机器学习中使用的神经网络</a></p>
-<p>tensorflow:</p>
-<p><a href="https://www.youtube.com/watch?v=g-EvyKpZjmQ&amp;list=PLSPPwKHXGS2110rEaNH7amFGmaD5hsObs&amp;spfreload=10" target="_blank" rel="external">standford tensorflow: CS20SI</a></p>
-<p><a href="http://web.stanford.edu/class/cs20si/syllabus.html" target="_blank" rel="external">配套课件ppt</a></p>
-<h3 id="NLP">NLP</h3><p>语法分析_陆俭明</p>
-<p><a href="https://www.youtube.com/watch?v=DJHvaGU9SW8" target="_blank" rel="external">CS224D 深度学习与自然语言处理</a> <a href="http://cs224d.stanford.edu/lectures/" target="_blank" rel="external">ppt</a></p>
-<h3 id="推荐系统">推荐系统</h3><p><a href="http://www.slideshare.net/xamat/recommender-systems-machine-learning-summer-school-2014-cmu" target="_blank" rel="external">Recommender Systems</a></p>
-<p><a href="http://www.slideshare.net/xamat/recsys-2016-tutorial-lessons-learned-from-building-reallife-recommender-systems" target="_blank" rel="external">Recsys 2016 tutorial: Lessons learned from building real-life recommender systems</a></p>
-<h3 id="others">others</h3><p><a href="http://study.163.com/course/introduction.htm?courseId=1003223001#/courseDetail" target="_blank" rel="external">深度学习与计算机视觉</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/markdown-math/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/19/markdown-math/" itemprop="url">Markdown中写数学公式</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T11:50:55+08:00">
-                2017-12-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T12:11:41+08:00">
-                2017-12-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/19/markdown-math/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/markdown-math/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>作为Latex的入门教程</p>
-<h3 id="插入数学公式">插入数学公式</h3><p><code>$数学公式$</code> 或者<code>$$数学公式$$</code></p>
-<p>行内公式以及行间公式</p>
-<p>$E = mc^2$</p>
-<p>$$<br>E=mc^2<br>$$</p>
-<h3 id="普通公式">普通公式</h3><p>$$<br>x = 100 * y + z - 10 / 33 + 10 % 3<br>$$</p>
-<h3 id="上下标">上下标</h3><p>$$<br>x=a<em>{1}^n \text +a</em>{2}^n<br>$$</p>
-<h3 id="括号">括号</h3><p><code>()</code>，<code>[]</code>和<code>|</code>都表示它们自己，但是<code>{}</code>因为有特殊作用因此当需要显示大括号时一般使用<code>\lbrace \rbrace</code>来表示。<br>$$<br>f(x, y) = 100 <em> \lbrace[(x + y) </em> 3] - 5\rbrace<br>$$</p>
-<h3 id="数学运算">数学运算</h3><p>分数 $\frac{1}{3}</p>
-<p>开方 $\sqrt[3]{x}$</p>
-<p>$\sqrt{5-x}$  </p>
-<h3 id="希腊字母">希腊字母</h3>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/19/one-week/" itemprop="url">Maria</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T00:05:18+08:00">
-                2017-12-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T00:17:26+08:00">
-                2017-12-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/19/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Maria</p>
-<p>You’ve gotta see her</p>
-<p>Go insane and out of your mind</p>
-<p>有过甜蜜，也有苦涩，其实，也是找到自我的过程，放弃一些错误的自以为是，不要眼高手低，承认自己。。</p>
-<p>本周工作：</p>
-<ul>
-<li>代码部分的一些整合</li>
-<li>关于recognize inputs部分的一些知识的学习</li>
-<li>sdk存活数据部分？</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>温习机器学习</li>
-<li>latex部分的一些排版规则</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>用户的协同过滤，尝试出一版用户的相关数据</li>
-<li>机器学习入门，关于那本书继续学习</li>
-<li>blockchain部分</li>
-</ul>
-<p>慢慢恢复更新的频率，相关技术书籍的阅读以及blog的编写。。</p>
-<p>事情不要拖拉，房子以及电话上，不要总觉得理所当然。。</p>
-<p>恢复那种战战兢兢的状态，一件事一件事地弄好。。</p>
-<p>答应的事情，尽量坐到，做到心安就行，承认自己不行，并不是一件坏事，还是acer标称咯。。</p>
 
           
         
@@ -1158,7 +1192,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1208,7 +1242,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">198</span>
+                  <span class="site-state-item-count">211</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1219,7 +1253,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">86</span>
+                  <span class="site-state-item-count">91</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1230,7 +1264,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">91</span>
+                  <span class="site-state-item-count">97</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
