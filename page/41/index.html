@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2013/10/03/halfplan/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/03/3read/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2013/10/03/halfplan/" itemprop="url">下半年愿景</a></h1>
+                <a class="post-title-link" href="/2015/08/03/3read/" itemprop="url">今日阅读列表</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-10-03T00:00:00+08:00">
-                2013-10-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-03T13:22:51+08:00">
+                2015-08-03
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T09:53:06+08:00">
-                2015-07-29
+              <time title="更新于" itemprop="dateModified" datetime="2015-08-03T18:06:21+08:00">
+                2015-08-03
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/计划/" itemprop="url" rel="index">
-                    <span itemprop="name">计划</span>
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2013/10/03/halfplan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2013/10/03/halfplan/" itemprop="commentCount"></span>
+                <a href="/2015/08/03/3read/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/03/3read/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,16 +363,51 @@
       
         
           
-            <p>日子不知不觉就到了下半年了，看了一下自己定的2013的计划，果然被自己乐到了，终老一生，哎，理想总是很脆弱。不管怎么说，自己的计划也有一定的完成，晋升，前端方面的东西，自己也成为了业务把控人，会考虑方案了。不过也有不足，设计模式还是一知半解，框架上的东西自己还是不够熟练。给自己定一下下半年的计划吧</p>
+            <h3 id="数据库相关">数据库相关</h3><p>索引的处理：</p>
 <ul>
-<li>设计模式，要搞起来，最不济要把那本研磨设计模式搞懂</li>
-<li>关于前端方面，总结一下backbone的东西，然后了解一下前端所谓的集成开发方案之类的东西</li>
-<li>关于框架方面，希望自己能够整理一部分的代码出来，作为spring mvc搭建新系统的一些通用设置，能够将这部分代码提炼出来，虽然这个比框架低级很多，但起码它能够减少新系统成型的时间</li>
-<li>关于缓存方面，搭建redis,熟悉redis等，将bbs的缓存换成redis，一系列的工作都可以做</li>
-<li>多写文档总结，多将自己能够掌握的东西总结出来。</li>
+<li>内存映射文件</li>
 </ul>
-<p>理想很丰满，现实很骨感。但你不去做，永远都触及不到理想，只剩下绝望。对自己有信心，才会有希望。</p>
-<p>最后，我的小丐帮，能够凑齐那套套装，尤其是裤子，哈哈。</p>
+<p>MongoDB, Cassandra, Riak等</p>
+<ul>
+<li>较小的索引集合，采用元索引或者bloom Filter进行一些优化</li>
+</ul>
+<p>一旦内存数据足够多，比如达到MB，我们就对它们进行排序，而后将它们作为单个小的索引写入硬盘中。最后得到的是一个小的、由不变索引文件组成的年表。</p>
+<ul>
+<li>简单匹配算法（brute force）又叫做面向列（Column Oriented）</li>
+</ul>
+<p>日志结构合并树，在HBase,Cassandra等不同地方应用。</p>
+<p>将索引存储在内存中，或者利用诸如日志结构合并树(Log Structured Merge Tree)这样的写优化索引结构，绕开“随机写惩罚”(random-write penalty)。这是第三种方案为纯粹的简单匹配算法(Pure brute force)。</p>
+<p>面向列是一种简单的理念，和行存储数据不同，通过列分割每一行，将数据追加到单个文件末尾。接着在每个单独的文件中存储每一列，一旦需要只需读取需要的列。<br>这样可以确保文件的含有相同的序列，即每个列文件的第N行含有相同的地址或者偏移量。这个很重要，在某一时刻读取多列，来服务一个单一的查询。意味着“连接(joining)”列速度飞快，倘若所有的列含有相同的序列，我们就能在一个紧凑的循环中这么做，此循环有很好缓存和CPU利用率。许多实现大量使用向量( vectorisation)进一步优化简单连接和过滤操作吞吐量。</p>
+<p>诸如卡夫卡(Kafka)采用一个简单的、基于硬件的高效消息规范。消息可以简单地追加到文件的末尾，或者从预定的偏移量处读取。可以从某个偏移量读取消息，来来回回，你可以从上次结束的偏移量处读取。看得出是很不错的有序输入输出(IO)。</p>
+<p>这和多数面向消息的中间件不同，JMS(Java消息服务)和AMQP(高级消息队列协议)说明文档需要额外的索引，来管理选择器和会话消息。这意味着它们结束某个行为的方式更像数据库，而非某个文件。著名的论述是1995年Jim Gray发表的队列就是数据库(Queue’s are Databases).</p>
+<p>分布式数据库下的CAP（Consistency, Availability, Partition-Tolerance）</p>
+<h3 id="前端读服务">前端读服务</h3><p>是不是借鉴机器人？</p>
+<p>一些设计原则</p>
+<ul>
+<li>无状态</li>
+<li>数据闭环<br>Hash Tag</li>
+<li>缓存银弹</li>
+<li>并发化</li>
+<li>降级开关</li>
+</ul>
+<blockquote>
+<ol>
+<li>开关集中化管理：通过推送机制把开关推送到各个应用；</li>
+<li>可降级的多级读服务：比如只读本地缓存、只读分布式缓存、或者只读一个默认的降级数据；</li>
+<li>开关前置化：如架构是nginx—&gt;tomcat，可以将开关前置到nginx接入层，在nginx层做开关，请求不打到后端应用。</li>
+</ol>
+</blockquote>
+<ul>
+<li>限流</li>
+<li>切流量</li>
+<li>其他</li>
+</ul>
+<blockquote>
+<p>1、首先接入层读取本地proxy cache / local cache；</p>
+<p>2、如果不命中，会读取分布式redis集群；</p>
+<p>3、如果还不命中，会回源到tomcat，然后读取堆内cache；如果没有，则直接调用依赖业务获取数据；然后异步化写到redis集群；</p>
+</blockquote>
+<h3 id="nginx_+_lua">nginx + lua</h3><p><a href="http://jinnianshilongnian.iteye.com/blog/2190344" target="_blank" rel="external">跟我学Nginx+Lua开发</a> </p>
 
           
         
@@ -421,7 +456,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2013/10/02/rework/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/02/oneWeekOld/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -440,7 +475,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2013/10/02/rework/" itemprop="url">当断则断</a></h1>
+                <a class="post-title-link" href="/2015/08/02/oneWeekOld/" itemprop="url">oneWeekOld</a></h1>
         
 
         <div class="post-meta">
@@ -452,8 +487,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-10-02T00:00:00+08:00">
-                2013-10-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-02T19:49:49+08:00">
+                2015-08-02
               </time>
             
 
@@ -468,8 +503,149 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T09:53:06+08:00">
-                2015-07-29
+              <time title="更新于" itemprop="dateModified" datetime="2015-08-02T19:49:49+08:00">
+                2015-08-02
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/08/02/oneWeekOld/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/02/oneWeekOld/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/01/scala1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/08/01/scala1/" itemprop="url">scala学习第三天</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-01T13:27:09+08:00">
+                2015-08-01
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2015-09-05T23:33:53+08:00">
+                2015-09-05
               </time>
             
           </span>
@@ -487,8 +663,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Rework/" itemprop="url" rel="index">
-                    <span itemprop="name">Rework</span>
+                  <a href="/categories/scala/" itemprop="url" rel="index">
+                    <span itemprop="name">scala</span>
                   </a>
                 </span>
 
@@ -505,8 +681,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2013/10/02/rework/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2013/10/02/rework/" itemprop="commentCount"></span>
+                <a href="/2015/08/01/scala1/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/01/scala1/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -536,10 +712,73 @@
       
         
           
-            <p>当断不断，反受其乱。</p>
-<p>终于扛住了拖延和犹豫的心理，独自一人搬出来住。偌大的一间房，一个人，不知道这种体验是好是坏。不过，就当是一个人的旅行，这感觉也还不错。各种羡慕其他人的到处旅行，其实，换种环境，未尝不是另一种旅行。人生，在于体验各种坑爹的东西。独自一个人找房子，一个人签合同，一个人做决定，此时，在一个人的屋子里，尤为地怀念之前的日子，不过这不就是人生？自己想要体验的另一种风景，努力地做到自己想要的，不要后悔自己的决定，沉下去，宅起来。</p>
-<p>同事不断地看到同学逃离北京，不断地在想自己以后是否会在北京。我也在问自己，自己的未来在哪，自己为未来已经打算了什么，这一年会对我的未来造成什么样的影响，年初的计划是否还在进行。许多问题，漂浮在偌大的一个人屋子里，显得格外的大，格外地沉重，但这何尝不是静下心来，慢慢地缩小这些问题，慢慢地简单这些问题。</p>
-<p>ReWork.</p>
+            <a id="more"></a>
+<h3 id="控制抽象">控制抽象</h3><p>函数值用做参数</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">filesMatching</span></span>(query: <span class="type">String</span>,</div><div class="line">	matcher: (<span class="type">String</span>, <span class="type">String</span>) =&gt; <span class="type">Boolean</span>) = &#123;</div><div class="line"><span class="keyword">for</span> (file &lt;- filesHere; <span class="keyword">if</span> matcher(file.getName, query))</div><div class="line">	<span class="keyword">yield</span> file</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>闭包，自由变量？</p>
+<p>List的高阶函数exists 配合占位符</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">containsOdd</span></span>(nums: <span class="type">List</span>[<span class="type">Int</span>]) = nums.exists(_ % <span class="number">2</span> == <span class="number">1</span>)</div></pre></td></tr></table></figure>
+<p>Curry化</p>
+<p>curry化函数被应用于多个参数列表，</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">first</span></span>(x: <span class="type">Int</span>) = (y: <span class="type">Int</span>) =&gt; x+y</div></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">withPrintWriter</span></span>(file: <span class="type">File</span>, op: <span class="type">PrintWriter</span> =&gt; <span class="type">Unit</span>) &#123;</div><div class="line">	<span class="keyword">val</span> writer = <span class="keyword">new</span> <span class="type">PrintWriter</span>(file)</div><div class="line">	<span class="keyword">try</span>&#123;</div><div class="line">		op(writer)</div><div class="line">	&#125; <span class="keyword">finally</span> &#123;</div><div class="line">		writer.close()</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">withPrintWriter(</div><div class="line">	<span class="keyword">new</span> <span class="type">File</span>(<span class="symbol">'date</span>.txt'),</div><div class="line">	writer =&gt; writer.println(<span class="keyword">new</span> java.util.<span class="type">Date</span>)</div><div class="line">)</div></pre></td></tr></table></figure>
+<p>使用大括号代替小括号包围参数列表，实现内建控制结构</p>
+<p>叫名函数</p>
+<h3 id="组合和继承">组合和继承</h3><p>elem(s:String): Element</p>
+<p>抽象类，无法被实例化，</p>
+<p>无参数方法，且仅通过读含有对象的方式访问可变状态</p>
+<p>字段值在类初始化的时候被预计算，而方法调用在每次调用的时候都要计算。</p>
+<p>scala定义不带参数也没有副作用的方法为无参数方法，省略空的括号，是鼓励的风格，另一方面，永远不要定义没有括号的带副作用的方法。</p>
+<p>子类和超类</p>
+<p>scala仅微定义准备了两个命令空间，值（字段，方法，包还有单例对象），类型（类和特质名）</p>
+<p>多态和动态绑定</p>
+<p>使用组合与继承</p>
+<p>for循环中的until<br><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span>(i &lt;- <span class="number">0</span> until <span class="keyword">this</span>.contents.length)</div></pre></td></tr></table></figure></p>
+<h3 id="scala的层级">scala的层级</h3><p>42为Int的实例，不能使用new Int</p>
+<p>java中基本类型和引用类型的区别，</p>
+<p>Any &lt;- AnyVal, AnyRef, ScalaObject &lt;- …</p>
+<p>AnyRef定义了eq方法，它不能被重写，并且实现为引用相等。 通过eq 引用的相等比较它们的实例部分？那就是==代表为实例的相等？</p>
+<p>scala.Null: 每个引用类型的子类，不兼容值类型</p>
+<p>Scala.Nothing： 任何其他类型的子类，</p>
+<h3 id="特质_trait">特质 trait</h3><p>混入”特质”，而不是继承它们</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">trait</span> <span class="title">a</span> </span>&#123;</div><div class="line">	<span class="function"><span class="keyword">def</span> <span class="title">b</span> </span>= &#123;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>with 超类中混入特质，</p>
+<p>类似带有方法的java接口？</p>
+<p>特质不能有”类”参数，构造函数不允许有参数，</p>
+<p>class extends trait 构造的时候，需要指明？</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">R</span>(<span class="params">val topLeft: <span class="type">Point</span>, val rightLeft: <span class="type">Ponit</span></span>) <span class="keyword">extends</span></span></div></pre></td></tr></table></figure>
+<p>Ordered 用来compare 类似于comparator？</p>
+<p>可堆叠改变特质？</p>
+<p>更类似与切面，但切面也可继承超类以及相关？</p>
+<p>with的次序很重要，一般，越靠近右侧，越先起作用，</p>
+<p>多重继承？trait extends超类，使用super部分，线性化解释super的方式？</p>
+<h3 id="包和引用">包和引用</h3><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">import</span> x.x</div><div class="line"><span class="keyword">import</span> x._</div></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">showFruit</span></span>(fruit: <span class="type">Fruit</span>) &#123;</div><div class="line">	<span class="keyword">import</span> fruit._</div><div class="line">	println(name + <span class="string">"a "</span> + color)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">import</span> <span class="type">Fruits</span>.&#123;<span class="type">Apple</span> =&gt; a, <span class="type">Orange</span>&#125;</div></pre></td></tr></table></figure>
+<p>java允许外部类访问其内部类的私有成员</p>
+<p>伴生对象？</p>
+<h3 id="样式类和模式匹配">样式类和模式匹配</h3><p>case class 和 pattern matching</p>
+<p>选择器 match {备选项}</p>
+<p>match同switch的比较:</p>
+<ul>
+<li>match始终以值为结果</li>
+<li>备选表达式永远不会掉到下一个case</li>
+<li>如果没有模式匹配，会抛出matchError</li>
+</ul>
+<p><code>case _ =&gt;</code> 通配  </p>
+<p>模式的种类:</p>
+<ul>
+<li>通配模式</li>
+<li>常量模式</li>
+<li>变量模式</li>
+<li>构造器模式</li>
+<li>元组模式</li>
+<li>类型模式</li>
+<li>变量绑定</li>
+</ul>
+<p>模式防卫</p>
+<p>模式重叠</p>
+<p>模式部分，用来进行消息的处理？</p>
 
           
         
@@ -588,7 +827,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2013/10/02/wait-delay/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/31/scala31/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -607,7 +846,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2013/10/02/wait-delay/" itemprop="url">拖延症</a></h1>
+                <a class="post-title-link" href="/2015/07/31/scala31/" itemprop="url">scala学习第二天</a></h1>
         
 
         <div class="post-meta">
@@ -619,8 +858,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-10-02T00:00:00+08:00">
-                2013-10-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-07-31T15:07:00+08:00">
+                2015-07-31
               </time>
             
 
@@ -635,8 +874,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T09:53:06+08:00">
-                2015-07-29
+              <time title="更新于" itemprop="dateModified" datetime="2015-08-01T13:23:54+08:00">
+                2015-08-01
               </time>
             
           </span>
@@ -654,8 +893,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/拖延/" itemprop="url" rel="index">
-                    <span itemprop="name">拖延</span>
+                  <a href="/categories/scala/" itemprop="url" rel="index">
+                    <span itemprop="name">scala</span>
                   </a>
                 </span>
 
@@ -672,8 +911,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2013/10/02/wait-delay/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2013/10/02/wait-delay/" itemprop="commentCount"></span>
+                <a href="/2015/07/31/scala31/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/07/31/scala31/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -703,10 +942,34 @@
       
         
           
-            <p>快一个月了，拖着写了这篇日志，看来自己的拖延症真是。。以后慢慢改进吧。好了，不瞎扯，总结下自己这一个月以来地感想。</p>
-<p>工作上，不知道是不是上面觉得icafe已经差不多了，剩下些就是维护的工作，重心转移到新的项目管理软件。虽然大项目管理软件已初见雏形，但感觉离整体可用的状态还差地很远，而且感觉对于这个软件地理解上，大家还有很多没有达到共识。不过个人感觉，这个东西可以很好地填补目前进度管理混乱的局面：任务的层次感，任务的抽象化，以及相关的任务跟踪。中心的思路还是要做抽象，太细节太琐碎的东西已经有别的系统了，我们要做的更多的整体上的把控。这个跟icafe的改造的思路是一样的，尽量去做抽象性的内容，不要去管特别细节的内容。还有一点，针对这个软件，分配到个人之后，尽量不要出现个人视图，不然就会出现各种散点地东西，然后就成为了task，而且这样就变成了任务管理，尽量地去共享项目视图，共享项目进度。之前看到了一篇文章說，现在互联网流行产品做减法，但并不是产品很少地功能，而是仅抓住产品地产品逻辑，其他地做减法。希望尽快找到这个项目地产品逻辑。不过，针对现有地icafe，还是希望能够继续走重构地路，将开放地框架继续地走下去。不仅仅是接入其他的审计系统，还希望接入各种模块操作，这个才是重构地重点。希望自己能够坚持地走下去。</p>
-<p>生活上，双休日不可避免地宅，还好，不过自己强制每天弄个小锻炼还不错，坚持让自己的肚子减下去。吃了快一个月地面了，不行，下周一定要吃饭，炒菜，不然会吃吐。(￣◇￣;)。</p>
-<p>To the End.</p>
+            <h3 id="基本类型">基本类型</h3><p>Byte Short Int Long Char String Float Double Boolean</p>
+<p>管道符号放在字符串前，并且调用stripMargin方法。</p>
+<p>符号文本 Symbol 可以是任何字母或数字的标识符 ‘&lt;标识符&gt;</p>
+<p>Int类带有+方法，所以为(1).+(2)</p>
+<p>操作符和方法，操作符部分，采用后缀操作符标注方式</p>
+<p>对象的相等性 == != </p>
+<p>富包装器 max min abs round</p>
+<h3 id="函数式对象">函数式对象</h3><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Rational</span>(<span class="params">n: <span class="type">Int</span>, d: <span class="type">Int</span></span>) </span>&#123;</div><div class="line">	require(d !=<span class="number">0</span>)</div><div class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">toString</span> </span>= n +<span class="string">"/"</span> + d</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>自指向: this</p>
+<p>从构造器，</p>
+<p>字母数字标识符， 操作符标识符</p>
+<p>隐式转换<br><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToRational</span></span>(x: <span class="type">Int</span>) = <span class="keyword">new</span> <span class="type">Rational</span>(x)</div></pre></td></tr></table></figure></p>
+<h3 id="内建控制结构">内建控制结构</h3><p>几乎所有的 Scala 的控制结构都会产生某个值</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">var</span> filename = </div><div class="line">	<span class="keyword">if</span>(!args.isEmpty) args(<span class="number">0</span>)</div><div class="line">	<span class="keyword">else</span> <span class="string">"default.txt"</span></div></pre></td></tr></table></figure>
+<p>for + 过滤</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">val</span> filesHere = (<span class="keyword">new</span> java.io.<span class="type">File</span>(<span class="string">"."</span>)).listFiles</div><div class="line"><span class="keyword">for</span> (file &lt;- filesHere <span class="keyword">if</span> file.getName.endsWith(<span class="string">".scala"</span>))</div><div class="line">println(file)</div></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span> (</div><div class="line">file &lt;- filesHere</div><div class="line"><span class="keyword">if</span> file.isFile;</div><div class="line"><span class="keyword">if</span> file.getName.endsWith(<span class="string">".scala"</span>)</div><div class="line">) println(file)</div></pre></td></tr></table></figure>
+<p>for{子语句} yield {循环体}</p>
+<p>match表达式替代switch case </p>
+<p>没有break和continue </p>
+<p>变量范围，注意重名</p>
+<h3 id="函数与闭包">函数与闭包</h3><p>first-class function, 不仅可以定义函数和调用它们，还可以将他们变成值传递。</p>
+<p>占位符语法 _ </p>
+<p>偏应用函数</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="keyword">val</span> b = sum (<span class="number">1</span>, _: <span class="type">Int</span>, <span class="number">3</span>)</div></pre></td></tr></table></figure>
+<p>函数文本在运行时创建的函数值(对象)被称为闭包，closure。源自于通过“捕获”<br>自由变量的绑定对函数文本执行的“关闭”行动。</p>
+<p>重复参数<br><figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">echo</span></span>(args: <span class="type">String</span>*) = </div><div class="line">	<span class="keyword">for</span>(arg&lt;-args) println(arg)</div></pre></td></tr></table></figure></p>
+<p>尾递归部分</p>
 
           
         
@@ -755,7 +1018,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2013/10/02/hello-jekyll/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/30/scala30/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -774,7 +1037,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2013/10/02/hello-jekyll/" itemprop="url">Hello Jekyll</a></h1>
+                <a class="post-title-link" href="/2015/07/30/scala30/" itemprop="url">scala学习第一天</a></h1>
         
 
         <div class="post-meta">
@@ -786,8 +1049,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-10-02T00:00:00+08:00">
-                2013-10-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-07-30T16:05:52+08:00">
+                2015-07-30
               </time>
             
 
@@ -802,154 +1065,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T09:53:06+08:00">
-                2015-07-29
-              </time>
-            
-          </span>
-
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2013/10/02/hello-jekyll/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2013/10/02/hello-jekyll/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>这是在<strong><a href="https://github.com/mojombo/jekyll" title="jekyll">jekyll</a></strong>上的第一篇文章，记录一下自己工作之后写博客的开始，希望自己能够坚持下去。加油！<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2013/10/02/hello-jekyll/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2013/10/02/one-thing/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2013/10/02/one-thing/" itemprop="url">专心做好一件事</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-10-02T00:00:00+08:00">
-                2013-10-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T09:53:06+08:00">
-                2015-07-29
+              <time title="更新于" itemprop="dateModified" datetime="2015-07-31T15:02:05+08:00">
+                2015-07-31
               </time>
             
           </span>
@@ -967,8 +1084,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/专注/" itemprop="url" rel="index">
-                    <span itemprop="name">专注</span>
+                  <a href="/categories/scala/" itemprop="url" rel="index">
+                    <span itemprop="name">scala</span>
                   </a>
                 </span>
 
@@ -985,8 +1102,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2013/10/02/one-thing/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2013/10/02/one-thing/" itemprop="commentCount"></span>
+                <a href="/2015/07/30/scala30/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/07/30/scala30/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1016,12 +1133,27 @@
       
         
           
-            <p>近期交付的质量很有问题，导致pm,qa对自己都不怎么信任，然后自己也很急躁，没有很好地去做自测，然后是各种功能的推脱，各种无法实现，这种状态要不得。</p>
-<p>别人所得好，当你越来越不靠谱地时候，你基本就已经over掉这个游戏了。而从这段状态来看，短期内努力地做好一件事才是王道。不要贪多，不要想着今天做会这个，再做会那个，不要想着这个东西等会再完全弄一遍，不要存在侥幸心理。一件事，做好才放手，不然，不要轻易地进行另外地事情。</p>
-<p>需要学习太泽那种很深地态度，一个单词，一种发音，都要打破沙锅问到底。就像工作一样，一件事要做好做到底才算结束。</p>
-<p>网上流传着qq的一句话，没有什么事情是不可能，尤其是软件实现方面。自己要好好地强化这种思想，不要推脱功能，不要嫌麻烦。如果你不做，后面就没人找你做了。</p>
-<p>上周没怎么花时间学习，这点要警惕，不要放纵自己。。。此时地放纵一时爽，后果也只有自己咽下</p>
-<p>计划慢慢来，计划要坚持地做，加油！</p>
+            <p>Scala把面向对象和函数式编程融合成一套，函数值就是对象，函数类型是能够被子类继承的类。</p>
+<p>函数式编程有两种理念作为指导，第一种就是函数是第一类值，同整数或字符串，在同一地位。第二种主要的理念是，程序的操作符应该把输入值映射到输出值而不是就地修改数据，也就是更多的不可变的数据类型。也就是说方法不应有任何副作用: side effect。</p>
+<p>好处： 兼容性，简洁性，高层级，静态类型的</p>
+<p>类型推断：<code>type inference</code></p>
+<p>var val的区别：</p>
+<ul>
+<li>val: 当你用val定义一个变量，那么这个变量就不能重新赋值，但它指向的对象却可以暗自改变</li>
+<li>var: 表明为指令式的风格编程，</li>
+</ul>
+<p>指令式 <code>imperative</code>风格编程，转化为 函数式 <code>functional</code>风格编程</p>
+<p>伴生对象: <code>companion object</code>, apply</p>
+<p>scala部分，操作符为右操作符，例如<code>::</code>,<code>:::</code>，list的add操作，没有append操作</p>
+<p>scala部分，public是缺省的访问级别。</p>
+<p>scala编译器可以将任何类型转换为Unit</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ChecksumAccumulator</span> </span>&#123;</div><div class="line">	<span class="keyword">private</span> <span class="keyword">var</span> sum = <span class="number">0</span></div><div class="line">	<span class="function"><span class="keyword">def</span> <span class="title">add</span></span>(b: <span class="type">Byte</span>): <span class="type">Unit</span> = sum+=b</div><div class="line">	<span class="function"><span class="keyword">def</span> <span class="title">checksum</span></span>(): <span class="type">Int</span> = ~(sum &amp; <span class="number">0xFF</span>) +<span class="number">1</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>分号的推断</p>
+<p>scala比java更加面向对象，scala没有静态成员。替代品部分，采用单例对象，singleto object。每个单例对象，都被作为由一个静态变量指向的虚构类，</p>
+<p>单例对象与某个类共享同一个名称，伴生对象，companion object. 孤立对象，standalone object.</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><div class="line"><span class="class"><span class="keyword">object</span> <span class="title">Summer</span> </span>&#123;</div><div class="line">	<span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]) &#123;</div><div class="line">		<span class="keyword">for</span> (arg &lt;- args)</div><div class="line">			println(arg + <span class="string">":"</span> + calculate(arg))</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>fsc(快速Scala编译器)的Scala编译器后台服务，创建本地的端口运行服务后台。</p>
+<p>Application 特质，extends Application， 因为Application声明了带有合适签名的main方法，并由你的单例对象继承，使它可以像个scala程序使用。相关括号之间的代码呗收集进了单例对象的主构造器: primary constructor。 缺点：无法获取args，同时，jvm的线程模型局限</p>
 
           
         
@@ -1061,7 +1193,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/40/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><span class="page-number current">41</span><a class="page-number" href="/page/42/">42</a><a class="page-number" href="/page/43/">43</a><a class="extend next" rel="next" href="/page/42/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/40/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><span class="page-number current">41</span><a class="page-number" href="/page/42/">42</a><span class="space">&hellip;</span><a class="page-number" href="/page/47/">47</a><a class="extend next" rel="next" href="/page/42/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1111,7 +1243,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">211</span>
+                  <span class="site-state-item-count">231</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1122,7 +1254,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">91</span>
+                  <span class="site-state-item-count">99</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1133,7 +1265,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">97</span>
+                  <span class="site-state-item-count">105</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

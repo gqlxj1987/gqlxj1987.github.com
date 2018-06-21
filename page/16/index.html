@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/23/month-plan/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/07/go-lock/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/23/month-plan/" itemprop="url">触不到的梦想</a></h1>
+                <a class="post-title-link" href="/2018/02/07/go-lock/" itemprop="url">Go Lock</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-23T07:45:21+08:00">
-                2017-08-23
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-07T10:56:38+08:00">
+                2018-02-07
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:38:52+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-08T11:48:13+08:00">
+                2018-02-08
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
+                  <a href="/categories/lock/" itemprop="url" rel="index">
+                    <span itemprop="name">lock</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/23/month-plan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/23/month-plan/" itemprop="commentCount"></span>
+                <a href="/2018/02/07/go-lock/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/07/go-lock/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,26 +363,375 @@
       
         
           
-            <p>最近的生活和工作，感觉一团乱麻，拖延症+事情堆积，整个人，感觉都要爆炸了。。。</p>
-<p>很多事情堆在那里，然后却不想干，有点颓废地耗费时间。。最后，事情还是逃不过，很多想做的事情，因为没有时间，只能押后。。。</p>
-<p>看不到的未来和希望。。。</p>
-<p>家里老姐的那样婚姻生活，最后能把老姐带向何处，双方都没长大，最后的生活，可能也是在拖着。。。</p>
-<p>个人上，或许是因为自己有病吧，就算自己能挣钱又能怎么样，只不过九牛一毛罢了，骨子里的自卑感觉跑不了。不管怎么选，最后一关过不去，自己或许有病吧。。顺带着各种自卑吧，今年结束异地恋的想法，也是那么不切实际，拿什么去结束，看不到。。。</p>
-<p>其实，也跟自己最近没有成长有关，技术上的提升，各种拖着，给自己不断地找理由去逃避，结果，事情还是那些事情，只是徒增悔恨罢了。。。</p>
-<p>突如其来的房子问题，犹犹豫豫的本质，还是自己有病吧，仅有的最后一根稻草，不愿松手，存在幻想。。呵呵。。。却弄得对方家里都在四处奔波，</p>
-<p>接下来的事情做好：</p>
+            <p><a href="https://zhuanlan.zhihu.com/p/33462152" target="_blank" rel="external">原文链接</a></p>
+<p>golang部分的锁，主要在sync包里</p>
+<h3 id="runtime/sema(信号量)">runtime/sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</div><div class="line">    lock  mutex</div><div class="line">    head  *sudog</div><div class="line">    tail  *sudog</div><div class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></div><div class="line">&#125;</div><div class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></div><div class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></div><div class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></div><div class="line"><span class="comment">// 内部使用的一个私有版本）</span></div></pre></td></tr></table></figure>
+<p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
+<h3 id="sync/atomic">sync/atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// 互斥量加锁操作</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></div><div class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</div><div class="line">		<span class="keyword">if</span> race.Enabled &#123;</div><div class="line">			race.Acquire(unsafe.Pointer(m))</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line">......</div></pre></td></tr></table></figure>
+<h3 id="sync/mutex（互斥锁）">sync/mutex（互斥锁）</h3><p>sync/mutex.go</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// A Mutex must not be copied after first use.</span></div><div class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</div><div class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></div><div class="line">    sema  <span class="keyword">uint32</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></div><div class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></div><div class="line"><span class="keyword">const</span> (</div><div class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></div><div class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></div><div class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></div><div class="line">)</div></pre></td></tr></table></figure>
+<p>lock流程</p>
+<blockquote>
+<p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
+</blockquote>
+<h3 id="sync/RWMutex（读写锁）">sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</div><div class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></div><div class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></div><div class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></div><div class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></div><div class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>写锁定</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// First, resolve competition with other writers.</span></div><div class="line">	rw.w.Lock()</div><div class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></div><div class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</div><div class="line">	<span class="comment">// Wait for active readers.</span></div><div class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</div><div class="line">		runtime_Semacquire(&amp;rw.writerSem)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="url">Building distributed log from scratch With Storage Mechanics</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T16:55:09+08:00">
+                2018-02-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T19:34:03+08:00">
+                2018-02-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index">
+                    <span itemprop="name">storage</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/" target="_blank" rel="external">原文链接</a></p>
+<p>日志是完全顺序，只接受append操作的数据结构。</p>
+<p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/02/05/mongodb-query-performance/" itemprop="url">Mongodb query performance over ranges</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">
+                2018-02-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T16:12:14+08:00">
+                2018-02-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mongodb/" itemprop="url" rel="index">
+                    <span itemprop="name">mongodb</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/05/mongodb-query-performance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/mongodb-query-performance/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="external">原文链接</a></p>
+<p>针对<code>$in</code>操作：</p>
 <ul>
-<li><p>日本签证，提交材料</p>
+<li><p>index early</p>
 </li>
-<li><p>关于聊天的词云，做出第一版来，done</p>
+<li><p>index often</p>
 </li>
-<li><p>屋子里收拾一下，然后拍几张照片，准备招租</p>
+<li><p>index fully</p>
+<p>queries make use of indexes from left to right.</p>
 </li>
-<li><p>关于七夕的小程序部分，看能不能做出一个小demo出来</p>
+<li><p>index sorts</p>
+<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
+</li>
+<li><p>commands</p>
+<p>​</p>
 </li>
 </ul>
-<p>关于深度学习以及jupter notebook部分，开始慢慢学习</p>
-<p>尽量充实晚上的生活，改掉自己的拖延症。。。</p>
+<p><strong>The order of fields in an index should be:</strong></p>
+<ol>
+<li><strong>First, fields on which you will query for exact values.</strong></li>
+<li><strong>Second, fields on which you will sort.</strong></li>
+<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
+</ol>
+<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
 
           
         
@@ -431,7 +780,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/15/kafka-message/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/spark-2-x-trouble-guide/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -450,7 +799,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/15/kafka-message/" itemprop="url">Kafka消息格式演进</a></h1>
+                <a class="post-title-link" href="/2018/02/05/spark-2-x-trouble-guide/" itemprop="url">Spark 2.x Trouble guide</a></h1>
         
 
         <div class="post-meta">
@@ -462,8 +811,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-15T07:46:19+08:00">
-                2017-08-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T10:27:04+08:00">
+                2018-02-05
               </time>
             
 
@@ -478,266 +827,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:45:23+08:00">
-                2017-12-12
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/08/15/kafka-message/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/15/kafka-message/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://mp.weixin.qq.com/s?__biz=MzA5MTc0NTMwNQ==&amp;mid=2650714506&amp;idx=1&amp;sn=6499c694e0ab80a8cf0186544507dfd0&amp;chksm=887dacfcbf0a25ea2106ccddbaa8c39bae2f4dd0754a4528bc198d0b8d164115b2ea103db6ff&amp;scene=0&amp;key=c2513fa3664680e1afbe7fd3a425498928f2fd786ff1e2aec7a6432c0b76a93266c56004455bf451e46a889d1b4c2f8fa92d1b13a11bb24441ce32fc6d9f5cd40b54a09cdbb14016f4d3e96cdf57b387&amp;ascene=0&amp;uin=MjkwMTQwODQ2Mg%3D%3D&amp;devicetype=iMac+MacBookPro13%2C3+OSX+OSX+10.12.6+build(16G29" target="_blank" rel="external">Kafka消息格式演进</a>&amp;version=12020810&amp;nettype=WIFI&amp;fontScale=100&amp;pass_ticket=%2FztiEOYTeSZniz8t2qIvpohw2kQwMwIFEXYh6ivBqK5th02GsDrWNoAS8zKbW4eV)</p>
-<h3 id="kafka_0-7-x">kafka 0.7.x</h3><p>Message Format</p>
-<table>
-<thead>
-<tr>
-<th>magic</th>
-<th>Attribute</th>
-<th>Crc</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>Message Set</p>
-<table>
-<thead>
-<tr>
-<th>offset</th>
-<th>size</th>
-<th>Message</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>magic: 1个字节,标识kafka版本，1个字节</p>
-<p>attribute: 存储消息压缩所使用的编码， 1个字节</p>
-<p>crc: 校验消息的内容， 4个字节</p>
-<p>value: N-6个字节，N为Message总字节数，</p>
-<p>message set中</p>
-<p>offset: 8个字节，存储到磁盘之后的物理偏移量</p>
-<p>size: 4个字节，消息的大小</p>
-<p>发送以message set为单位进行发送，压缩的话，也是以message set的方式进行压缩，也就是value部分，以message set的方式，多条message</p>
-<h3 id="kafka_0-8-x">kafka 0.8.x</h3><p>增加了key相关的信息，以及内容的长度，不再通过特定的N-6这种方式来标明</p>
-<table>
-<thead>
-<tr>
-<th>crc</th>
-<th>magic</th>
-<th>Attribute</th>
-<th>key length</th>
-<th>key</th>
-<th>value length</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>如果进行多条消息的压缩的话，这样，会缺少key部分的存储，而且这时候value为压缩之后的消息内容</p>
-<h3 id="kafka_0-10-x">kafka 0.10.x</h3><p>引入了kakfka stream部分</p>
-<table>
-<thead>
-<tr>
-<th>crc</th>
-<th>magic</th>
-<th>Attribute</th>
-<th>Timestamp</th>
-<th>key length</th>
-<th>key</th>
-<th>value length</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h3 id="kafka_0-11-x">kafka 0.11.x</h3><p>较之以前有重大的改变，消息的格式完全变了。。？</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/09/spark-submit/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/09/spark-submit/" itemprop="url">Spark Submit 参数分析</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">
-                2017-08-09
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:37:35+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T12:01:15+08:00">
+                2018-02-05
               </time>
             
           </span>
@@ -773,8 +864,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/09/spark-submit/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/09/spark-submit/" itemprop="commentCount"></span>
+                <a href="/2018/02/05/spark-2-x-trouble-guide/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/spark-2-x-trouble-guide/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -804,88 +895,77 @@
       
         
           
-            <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="external">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
+            <p><a href="https://www.slideshare.net/jcmia1/a-beginners-guide-on-troubleshooting-spark-applications?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="external">原文链接</a></p>
+<h3 id="Building_Spark">Building Spark</h3><p>JRE path</p>
+<p>Maven installed</p>
 <ul>
-<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
+<li>always explicitly set the following in ‘.bashrc’ for ‘root’</li>
+<li>specify support you want explicitly</li>
+<li>Rebuild only modified source code</li>
+</ul>
+<h3 id="Running_Spark">Running Spark</h3><ul>
+<li>always use ‘—verbose’ option on ‘spark-submit’ command to run your workland</li>
+<li>print<ul>
+<li>all default properties</li>
+<li>command line options</li>
+<li>settings from spark’ conf file</li>
+<li>setting from cli</li>
+</ul>
 </li>
-<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
+<li>order of lookup, ‘—package’<ul>
+<li>the local maven repo</li>
+<li>maven central - web</li>
+<li>additional remote repositories </li>
+</ul>
 </li>
+<li>OOM<ul>
+<li>increase ‘—driver-memory’</li>
+<li>saprk sql and spark streaming need large driver heap size</li>
 </ul>
-<p>Lil bit theory:</p>
-<ul>
-<li>Hadoop/Yarn/OS Deamons:</li>
-</ul>
-<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
-<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
-<ul>
-<li>Yarn ApplicationMaster (AM)</li>
-</ul>
-<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
-<ul>
-<li>HDFS Throughput</li>
-</ul>
-<ul>
-<li>MemoryOverhead</li>
-</ul>
-<blockquote>
-<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
-<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
-</blockquote>
-<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
-<p>tips:</p>
-<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
-<p>相关的配置:</p>
-<blockquote>
-<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
-</blockquote>
-<ul>
-<li>First Approach: Tiny executors [One Executor per core]:</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-cluster`</div><div class="line">= `num-cores-per-node * total-nodes-in-cluster` </div><div class="line">= 16 x 10 = 160</div></pre></td></tr></table></figure>
 </li>
-</ul>
-</blockquote>
-<ul>
-<li><code>--executor-cores</code> = 1 (one executor per core)</li>
-<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/16 = 4GB</div></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>Not Good!</p>
-<ul>
-<li>Second Approach: Fat executors (One Executor per node):</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-nodes-in-cluster`</div><div class="line">= 10</div></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-a-node`</div><div class="line">= 16</div></pre></td></tr></table></figure>
-</li>
-<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/1 = 64GB</div></pre></td></tr></table></figure>
-<p>   ​<br>Not Good for HDFS throughput</p>
-</li>
-</ul>
-<ul>
-<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
-<ul>
-<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
-<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
-<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
-<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
-<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
-<li>Number of executors per node = 30/10 = 3</li>
-<li>Memory per executor = 64GB/3 = 21GB</li>
-<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
+<li>GC overhead limit exceeded<ul>
+<li>too much time spent in garbage collection</li>
+<li>increase executor heapsize</li>
+<li>modify gc policy<ul>
+<li>-XX:UseG1GC &amp;&amp; -XX:UseParallelGC</li>
+<li>spark default: -XX:UseParallelGC</li>
+<li>Try overwrite with -XX:G1GC</li>
 </ul>
 </li>
 </ul>
-<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+</li>
+<li>has a single SparkContext with multiple sessions supporting<ul>
+<li>concurrency</li>
+<li>re-useable connections</li>
+<li>shared cache</li>
+</ul>
+</li>
+<li>Not all CPUs are busy<ul>
+<li>sart with evenly divided memory and cores. <code>-executor-memroy 2500m --num-executors 200</code></li>
+<li>when heap size non-negotiable. <code>--executor-memory 6g --num-executors 80</code>  transfer to <code>--executor-memory 6g --num-executors 80 -executor-cores 2</code> (Forcing 80% utilization, boosting 33% performance!)</li>
+</ul>
+</li>
+<li>‘scratch’ space<ul>
+<li>‘/tmp’ is full</li>
+<li>fix <code>spark.local.dir</code></li>
+</ul>
+</li>
+<li>max result size exceeded<ul>
+<li><code>saprk.driver.maxResultSize</code></li>
+</ul>
+</li>
+<li>out of space on a few data nodes<ul>
+<li><code>hdfs balancer</code> to start balancing</li>
+<li><code>dfs.datanode.balance.bandwidthPerSec</code> increase to 6GB/s</li>
+<li><code>dfs.datanode.balance.max.concurrent.moves</code>  set to 5000 concurrent threads</li>
+</ul>
+</li>
+</ul>
+<h3 id="Profiling_Spark">Profiling Spark</h3><ul>
+<li>Yarn containers across multiple nodes</li>
+<li>get a full thread dump or get a full heap dump. <code>jstack -l</code>  <code>jmap -dump:live,format=b,file=xxx</code> </li>
+<li>step1: find the hostname in the error log; step 2: find the local directory where ‘stderr’ resides, step 3: open the ‘stderr’, </li>
+</ul>
 
           
         
@@ -934,7 +1014,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/07/one-hot/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/31/failure-microservice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -953,7 +1033,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/07/one-hot/" itemprop="url">One Hot编码</a></h1>
+                <a class="post-title-link" href="/2018/01/31/failure-microservice/" itemprop="url">Designing a Microservices Architecture for Failure</a></h1>
         
 
         <div class="post-meta">
@@ -965,8 +1045,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">
-                2017-08-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">
+                2018-01-31
               </time>
             
 
@@ -981,8 +1061,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-07T07:47:26+08:00">
-                2017-08-07
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-31T16:05:17+08:00">
+                2018-01-31
               </time>
             
           </span>
@@ -1000,8 +1080,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/one-hot/" itemprop="url" rel="index">
-                    <span itemprop="name">one hot</span>
+                  <a href="/categories/microservice/" itemprop="url" rel="index">
+                    <span itemprop="name">microservice</span>
                   </a>
                 </span>
 
@@ -1018,8 +1098,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/07/one-hot/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/07/one-hot/" itemprop="commentCount"></span>
+                <a href="/2018/01/31/failure-microservice/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/31/failure-microservice/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1049,202 +1129,30 @@
       
         
           
-            <p>独热编码，又成为一位有效编码</p>
-<blockquote>
-<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
-</blockquote>
-<p>优点部分：</p>
-<ul>
-<li><p>能够处理非连续型数值特征</p>
-</li>
-<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
-</li>
+            <p><a href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/" target="_blank" rel="external">原文链接</a></p>
+<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
+<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
+<p>服务降解</p>
+<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
+<h4 id="健康检查和负载平衡">健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
+<h4 id="Self-healing">Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
+<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
+<h4 id="failover_caching">failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
+<h4 id="retry_logic">retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
+<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
+<h4 id="Rate_Limiters_and_Load_Shedders">Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
+<h4 id="Fail_Fast_and_Independently">Fail Fast and Independently</h4><p>bulkhead pattern</p>
+<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success / fail statistics of operations.</p>
+<h4 id="Bulkheads">Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
+<h4 id="Circuit_Breaks">Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
+<h4 id="Testing_for_Failures">Testing for Failures</h4><p>ChaosMonkey for test</p>
+<h3 id="Key_Takeways">Key Takeways</h3><ul>
+<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
+<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
+<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
+<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
+<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
 </ul>
-<p>采用one hot的原因：</p>
-<ul>
-<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
-</li>
-<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
-</li>
-</ul>
-<ul>
-<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div><div class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</div><div class="line"></div><div class="line">enc = OneHotEncoder()</div><div class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.n_values_ is:"</span>,enc.n_values_</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.feature_indices_ is:"</span>,enc.feature_indices_</div><div class="line"><span class="keyword">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</div></pre></td></tr></table></figure>
-<p>输出结果部分：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</div><div class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</div><div class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</div></pre></td></tr></table></figure>
-<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
-<p>eature<em>indices</em>：根据说明，明显可以看出其是对n_values的一个累加。 </p>
-<p>最后表示的为相关的one hot编码?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="string">"""Encode categorical integer features using a one-hot aka one-of-K scheme.</span></div><div class="line"></div><div class="line">    The input to this transformer should be a matrix of integers, denoting</div><div class="line">    the values taken on by categorical (discrete) features. The output will be</div><div class="line">    a sparse matrix where each column corresponds to one possible value of one</div><div class="line">    feature. It is assumed that input features take on values in the range</div><div class="line">    [0, n_values).</div><div class="line"></div><div class="line">    This encoding is needed for feeding categorical data to many scikit-learn</div><div class="line">    estimators, notably linear models and SVMs with the standard kernels.</div><div class="line"></div><div class="line">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</div><div class="line"></div><div class="line">Attributes</div><div class="line">    ----------</div><div class="line">    active_features_ : array</div><div class="line">        Indices for active features, meaning values that actually occur</div><div class="line">        in the training set. Only available when n_values is ``'auto'``.</div><div class="line"></div><div class="line">    feature_indices_ : array of shape (n_features,)</div><div class="line">        Indices to feature ranges.</div><div class="line">        Feature ``i`` in the original data is mapped to features</div><div class="line">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</div><div class="line">        (and then potentially masked by `active_features_` afterwards)</div><div class="line"></div><div class="line">    n_values_ : array of shape (n_features,)</div><div class="line">        Maximum number of values per feature.</div></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/06/go-goroutine/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/06/go-goroutine/" itemprop="url">Go Goroutines</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">
-                2017-08-06
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-06T16:34:40+08:00">
-                2017-08-06
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/08/06/go-goroutine/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/go-goroutine/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>关于go goroutines部分</p>
-<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
-<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
-<p>通过sync.Mutex进行lock以及unlock操作</p>
-<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
 
           
         
@@ -1284,7 +1192,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/15/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><span class="page-number current">16</span><a class="page-number" href="/page/17/">17</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><a class="extend next" rel="next" href="/page/17/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/15/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><span class="page-number current">16</span><a class="page-number" href="/page/17/">17</a><span class="space">&hellip;</span><a class="page-number" href="/page/47/">47</a><a class="extend next" rel="next" href="/page/17/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1334,7 +1242,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">211</span>
+                  <span class="site-state-item-count">231</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1345,7 +1253,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">91</span>
+                  <span class="site-state-item-count">99</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1356,7 +1264,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">97</span>
+                  <span class="site-state-item-count">105</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

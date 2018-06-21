@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/slack-pipe/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/21/go-memory-management/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/05/22/slack-pipe/" itemprop="url">Slack队列</a></h1>
+                <a class="post-title-link" href="/2018/06/21/go-memory-management/" itemprop="url">Go Memory Management</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T19:54:38+08:00">
-                2018-05-22
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-21T10:12:34+08:00">
+                2018-06-21
               </time>
             
 
@@ -295,375 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-23T11:17:36+08:00">
-                2018-05-23
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/queue/" itemprop="url" rel="index">
-                    <span itemprop="name">queue</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/slack-pipe/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/slack-pipe/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://slack.engineering/scaling-slacks-job-queue-687222e9d100" target="_blank" rel="external">原文链接</a></p>
-<h3 id="initial_job_queue_system_architecture">initial job queue system architecture</h3><p><a href="https://redis.io/commands/rpoplpush#pattern-reliable-queue" target="_blank" rel="external">Redis task queue</a>:</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*xg9vacHZdbqyqbCPB9nOLQ.png" alt="redis queue"></p>
-<p>job with an identical ID</p>
-<p>Pools of worker machines poll the Redis clusters, looking for new work. When a worker finds a job in one of the queues it monitors, it moves the job from the pending queue to a list of in-flight jobs, and spawns an asynchronous task to handle it.</p>
-<h3 id="Architectural_Problems">Architectural Problems</h3><ul>
-<li>Redis had little operational headroom, particularly with respect to memory. If we enqueued faster than we dequeued for a sustained period, we would run out of memory and be unable to dequeue jobs (because dequeuing also requires having enough memory to move the job into a processing list).</li>
-<li>Redis connections formed a complete bipartite graph — every job queue client must connect to (and therefore have correct and current information on) every Redis instance.</li>
-<li>Job workers couldn’t scale independently of Redis — adding a worker resulted in extra polling and load on Redis. This property caused a complex feedback situation where attempting to increase our execution capacity could overwhelm an already overloaded Redis instance, slowing or halting progress.</li>
-<li>Previous decisions on which Redis data structures to use meant that dequeuing a job requires work proportional to the length of the queue. As queues become longer, they became more difficult to empty — another unfortunate feedback loop.</li>
-<li>The semantics and quality-of-service guarantees provided to application and platform engineers were unclear and hard to define; asynchronous processing on the job queue is fundamental to our system architecture, but in practice engineers were reluctant to use it. Changes to existing features such as our limited deduplication were also extremely high-risk, as many jobs rely on them to function correctly.</li>
-</ul>
-<p>We thought about replacing Redis with Kafka altogether, but quickly realized that this route would require significant changes to the application logic around scheduling, executing, and de-duping jobs. In the spirit of pursuing a minimum viable change, we decided to add <strong>Kafka in front of Redis</strong> rather than replacing Redis with Kafka outright. This would alleviate a critical bottleneck in our system, while leaving the existing application enqueue and dequeue interfaces in place.</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*gLthmgFNR5NhxFdUO3g9gQ.png" alt="new Queue Architecture"></p>
-<p>Kafka gate:</p>
-<ul>
-<li>A bias towards availability over consitency</li>
-<li>Simple client semantics</li>
-<li>Minimum latency</li>
-</ul>
-<h3 id="replay_jobs_from_kafka_to_redis">replay jobs from kafka to redis</h3><p>use JQRelay to decode the JSON encoded job</p>
-<p><strong>Self-configuration:</strong> When a JQRelay instance starts up, it attempts to acquire a <a href="https://www.consul.io/" target="_blank" rel="external">Consul</a> lock on an key/value entry corresponding to the Kafka topic. If it gets the lock, it starts relaying jobs from all partitions of this topic. If it loses its lock, it releases all resources and restarts so that a different instance can pick up this topic. </p>
-<h3 id="load_test">load test</h3><p><strong>Failure testing</strong>: It was important to understand how different Kafka cluster failure scenarios would manifest in the application, e.g. connect failures, job enqueue failures, missing jobs, and duplicate jobs. For this, we tested our cluster against following failure scenarios:</p>
-<ol>
-<li>Hard kill and gracefully kill a broker</li>
-<li>Hard kill and gracefully kill two brokers in a single AZ</li>
-<li>Hard kill all three brokers to force Kafka to pick an unclean leader</li>
-<li>Restart the cluster</li>
-</ol>
-<h3 id="Production_Rollout">Production Rollout</h3><p>Rolling out the new system included the following steps:</p>
-<ol>
-<li><strong>Double writes:</strong> We started by double writing jobs to both the current and new system (each job was enqueued to <em>both</em> Redis and Kakfa). JQRelay, however, operated in a “shadow” mode where it dropped all jobs after reading it from Kafka. This setup let us safely test the new enqueue path from web app to JQRelay with real production traffic.</li>
-<li><strong>Guaranteeing system correctness:</strong> To ensure the correctness of the new system, we tracked and compared the number of jobs passing through each part of the system: from the web app to Kafkagate, Kafkagate to Kafka, and finally Kafka to Redis.</li>
-<li><strong>Heartbeat canaries:</strong> To ensure that the new system worked end-to-end for 50 Redis clusters and 1600 Kafka partitions (50 topics × 32 partitions), we enqueued heartbeat canaries for every Kafka partition every minute. We then monitored and alerted on the end-to-end flow and timing for these heartbeat canaries.</li>
-<li><strong>Final roll-out</strong>: Once we were sure of our system correctness, we enabled it internally for Slack for a few weeks. After that showed no problems, we rolled it out one by one for various job types for our customers.</li>
-</ol>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/jvm-statics/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/jvm-statics/" itemprop="url">jvm 线程分析</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T19:51:08+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T19:54:26+08:00">
-                2018-05-22
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index">
-                    <span itemprop="name">jvm</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/jvm-statics/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/jvm-statics/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://mp.weixin.qq.com/s?__biz=MzIwMzg1ODcwMw==&amp;mid=2247487826&amp;idx=1&amp;sn=f1ab8a7a26fb31445a76d4f712ddaa29&amp;chksm=96c9a732a1be2e24b405d3c3098a0501cb324759fe6e89014e6c3f3500628e550d0d0cf385dc#rd" target="_blank" rel="external">原文链接</a></p>
-<ul>
-<li>主要是 top -Hp [pid]这个命令，查看进程内所有线程的CPU消耗情况</li>
-<li>jstack pid查看各个线程栈，十进制换成16位进制的nid</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/go-not-good/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/go-not-good/" itemprop="url">Go the good, the bad and the ugly</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T17:04:31+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-24T10:46:18+08:00">
-                2018-05-24
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-21T14:13:15+08:00">
+                2018-06-21
               </time>
             
           </span>
@@ -699,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/05/22/go-not-good/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/go-not-good/" itemprop="commentCount"></span>
+                <a href="/2018/06/21/go-memory-management/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/21/go-memory-management/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -730,34 +363,12 @@
       
         
           
-            <p><a href="https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_127" target="_blank" rel="external">原文链接</a></p>
-<h3 id="Good">Good</h3><p>new Types</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> UserId <span class="keyword">string</span> <span class="comment">// &lt;-- new type</span></div><div class="line"><span class="keyword">type</span> ProductId <span class="keyword">string</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddProduct</span><span class="params">(userId UserId, productId ProductId)</span></span> &#123;&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    userId := UserId(<span class="string">"some-user-id"</span>)</div><div class="line">    productId := ProductId(<span class="string">"some-product-id"</span>)</div><div class="line"></div><div class="line">    <span class="comment">// Right order: all fine</span></div><div class="line">    AddProduct(userId, productId)</div><div class="line"></div><div class="line">    <span class="comment">// Wrong order: would compile with raw strings</span></div><div class="line">    AddProduct(productId, userId)</div><div class="line">    <span class="comment">// Compilation errors:</span></div><div class="line">    <span class="comment">// cannot use productId (type ProductId) as type UserId in argument to AddProduct</span></div><div class="line">    <span class="comment">// cannot use userId (type UserId) as type ProductId in argument to AddProduct</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="Bad">Bad</h3><h4 id="Go_ignored_advances_in_modern_language_design">Go ignored advances in modern language design</h4><p><strong>functional programing</strong></p>
-<p><strong>No LLVM</strong></p>
-<p><strong>GC</strong></p>
-<h4 id="Interfaces_are_structural_types">Interfaces are structural types</h4><p>Go interfaces are like Java interfaces or Scala &amp; Rust traits: they define behaviour that is later implemented by a type (I won’t call it “class” here).</p>
-<h3 id="No_enumerations">No enumerations</h3><p><code>iota</code></p>
-<h3 id="The:=/var_dilemma">The<code>:=</code>/<code>var</code> dilemma</h3><p>Go provides two ways to declare a variable and assign it a value: <code>var x = &quot;foo&quot;</code> and <code>x := &quot;foo&quot;</code>. </p>
-<p>The main differences are that <code>var</code> allows declaration without initialization (and you then have to declare the type), like in <code>var x string</code>, whereas <code>:=</code> requires assignment and allows a mix of existing and new variables. My guess is that <code>:=</code> was invented to make error handling <em>a bit</em> less painful:</p>
-<h4 id="Zero_values_that_panic">Zero values that panic</h4><p>go have no constructor</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">var</span> m1 = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;&#125; <span class="comment">// empty map</span></div><div class="line"><span class="keyword">var</span> m0 <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>     <span class="comment">// zero map (nil)</span></div><div class="line"></div><div class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m1))   <span class="comment">// outputs '0'</span></div><div class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m0))   <span class="comment">// outputs '0'</span></div><div class="line"><span class="built_in">println</span>(m1[<span class="string">"foo"</span>]) <span class="comment">// outputs ''</span></div><div class="line"><span class="built_in">println</span>(m0[<span class="string">"foo"</span>]) <span class="comment">// outputs ''</span></div><div class="line">m1[<span class="string">"foo"</span>] = <span class="string">"bar"</span>  <span class="comment">// ok</span></div><div class="line">m0[<span class="string">"foo"</span>] = <span class="string">"bar"</span>  <span class="comment">// panics!</span></div></pre></td></tr></table></figure>
-<p>上面所示，m1初始化了，但m0没有初始化。。</p>
-<h4 id="Go_doesn’t_have_exceptions-">Go doesn’t have exceptions.</h4><p>just  “<a href="https://blog.golang.org/defer-panic-and-recover" target="_blank" rel="external">Defer, panic and recover</a>“</p>
-<h3 id="Ugly">Ugly</h3><h4 id="The_dependency_management_nightmare">The dependency management nightmare</h4><p>Things are getting better though: <code>dep</code>, the <a href="https://golang.github.io/dep/" target="_blank" rel="external">official dependency management tool</a> was recently introduced to support vendoring.</p>
-<p>But <code>dep</code> may not live long though as <a href="https://github.com/golang/vgo" target="_blank" rel="external"><code>vgo</code></a>, also from Google, wants to bring versioning in the language itself and has been making some waves lately.</p>
-<h4 id="mutability_is_hardcoded_in_the_language">mutability is hardcoded in the language</h4><p>Go makes it easy however to copy an entire struct with a simple assignment, so we may think that passing arguments by value is all that is needed to have immutability at the cost of copying.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</div><div class="line">    A <span class="keyword">string</span></div><div class="line">    B []<span class="keyword">string</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    x := S&#123;<span class="string">"x-A"</span>, []<span class="keyword">string</span>&#123;<span class="string">"x-B"</span>&#125;&#125;</div><div class="line">    y := x <span class="comment">// copy the struct</span></div><div class="line">    y.A = <span class="string">"y-A"</span></div><div class="line">    y.B[<span class="number">0</span>] = <span class="string">"y-B"</span></div><div class="line"></div><div class="line">    fmt.Println(x, y)</div><div class="line">    <span class="comment">// Outputs "&#123;x-A [y-B]&#125; &#123;y-A [y-B]&#125;" -- x was modified!</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p> And the since built-in collections (map, slice and array) are references and are mutable, copying a struct that contains one of these just copies the pointer to the same underlying memory.</p>
-<h4 id="Slice_gotchas">Slice gotchas</h4><p>Slices come with many gotchas: as explained in “<a href="https://blog.golang.org/go-slices-usage-and-internals" target="_blank" rel="external">Go slices: usage and internals</a>“, re-slicing a slice doesn’t copy the underlying array for performance reasons. </p>
-<p>This is a laudable goal but means that sub-slices of a slice are just views that follow the mutations of the original slice. So don’t forget to <code>copy()</code> a slice if you want to separate it from its origin.</p>
-<p>Forgetting to <code>copy()</code> becomes more dangerous with the <code>append</code> function: appending values to a slice resizes the underlying array <em>if it doesn’t have enough capacity</em> to hold the new values. This means that the result of <code>append</code> may or may not point to the original array depending on its initial capacity. This can cause hard to find non deterministic bugs. (在append的时候，如果没有足够的空间，会重新resize slice，这样pointer会乱指)</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">doStuff</span><span class="params">(value []<span class="keyword">string</span>)</span></span> &#123;</div><div class="line">    fmt.Printf(<span class="string">"value=%v\n"</span>, value)</div><div class="line"></div><div class="line">    value2 := value[:]</div><div class="line">    value2 = <span class="built_in">append</span>(value2, <span class="string">"b"</span>)</div><div class="line">    fmt.Printf(<span class="string">"value=%v, value2=%v\n"</span>, value, value2)</div><div class="line"></div><div class="line">    value2[<span class="number">0</span>] = <span class="string">"z"</span></div><div class="line">    fmt.Printf(<span class="string">"value=%v, value2=%v\n"</span>, value, value2)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    slice1 := []<span class="keyword">string</span>&#123;<span class="string">"a"</span>&#125; <span class="comment">// length 1, capacity 1</span></div><div class="line"></div><div class="line">    doStuff(slice1)</div><div class="line">    <span class="comment">// Output:</span></div><div class="line">    <span class="comment">// value=[a] -- ok</span></div><div class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></div><div class="line">    <span class="comment">// value=[a], value2=[z b] -- ok: value unchanged, value2 updated</span></div><div class="line"></div><div class="line">    slice10 := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1</span>, <span class="number">10</span>) <span class="comment">// length 1, capacity 10</span></div><div class="line">    slice10[<span class="number">0</span>] = <span class="string">"a"</span></div><div class="line"></div><div class="line">    doStuff(slice10)</div><div class="line">    <span class="comment">// Output:</span></div><div class="line">    <span class="comment">// value=[a] -- ok</span></div><div class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></div><div class="line">    <span class="comment">// value=[z], value2=[z b] -- WTF?!? value changed???</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="mutability_and_channels:_race_conditions_made_easy">mutability and channels: race conditions made easy</h4><p>As we saw above there is no way in Go to have immutable data structures. This means that once we send a pointer on a channel, it’s game over: we share mutable data between concurrent processes. Of course a channel of structures (and not pointers) copies the values sent on the channel, but as we saw above, this doesn’t deep-copy references, including slices and maps, which are intrinsically mutable. Same goes with struct fields of an interface type: they are pointers, and any mutation method defined by the interface is an open door to race conditions.</p>
-<h4 id="noisy_error_management">noisy error management</h4><p>In “<a href="https://blog.golang.org/errors-are-values" target="_blank" rel="external">Error has values</a>“ Rob Pike suggests some strategies to reduce error handling verbosity</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">type errWriter struct &#123;</div><div class="line">    w   io.Writer</div><div class="line">    err error</div><div class="line">&#125;</div><div class="line"></div><div class="line">func (ew *errWriter) write(buf []byte) &#123;</div><div class="line">    if ew.err != nil &#123;</div><div class="line">        return // Write nothing if we already errored-out</div><div class="line">    &#125;</div><div class="line">    _, ew.err = ew.w.Write(buf)</div><div class="line">&#125;</div><div class="line"></div><div class="line">func doIt(fd io.Writer) &#123;</div><div class="line">    ew := &amp;errWriter&#123;w: fd&#125;</div><div class="line">    ew.write(p0[a:b])</div><div class="line">    ew.write(p1[c:d])</div><div class="line">    ew.write(p2[e:f])</div><div class="line">    // and so on</div><div class="line">    if ew.err != nil &#123;</div><div class="line">        return ew.err</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="nil_interface_values">nil interface values</h4><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> Explodes <span class="keyword">interface</span> &#123;</div><div class="line">    Bang()</div><div class="line">    Boom()</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Type Bomb implements Explodes</span></div><div class="line"><span class="keyword">type</span> Bomb <span class="keyword">struct</span> &#123;&#125;</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*Bomb)</span> <span class="title">Bang</span><span class="params">()</span></span> &#123;&#125;</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Bomb)</span> <span class="title">Boom</span><span class="params">()</span></span> &#123;&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> bomb *Bomb = <span class="literal">nil</span></div><div class="line">    <span class="keyword">var</span> explodes Explodes = bomb</div><div class="line">    <span class="built_in">println</span>(bomb, explodes) <span class="comment">// '0x0 (0x10a7060,0x0)'</span></div><div class="line">    <span class="keyword">if</span> explodes != <span class="literal">nil</span> &#123;</div><div class="line">        <span class="built_in">println</span>(<span class="string">"Not nil!"</span>) <span class="comment">// 'Not nil!' What are we doing here?!?!</span></div><div class="line">        explodes.Bang()     <span class="comment">// works fine</span></div><div class="line">        explodes.Boom()     <span class="comment">// panic: value method main.Bomb.Boom called using nil *Bomb pointer</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="built_in">println</span>(<span class="string">"nil!"</span>)     <span class="comment">// why don't we end up here?</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="struct_field_tags:_runtime_DSL_in_a_string">struct field tags: runtime DSL in a string</h4><h4 id="Go_has_few_data_structures_beyond_slice_and_map">Go has few data structures beyond slice and map</h4>
+            <p><a href="https://povilasv.me/go-memory-management/" target="_blank" rel="external">原文链接</a></p>
+<p><strong>Virtual Memory Size(VSZ)</strong> is all memory that the process can access, including memory that is swapped out, memory that is allocated, but not used, and memory that is from shared libraries. (<em>Edited</em>, good explanation in <a href="https://stackoverflow.com/a/21049737/112129" target="_blank" rel="external">stackoverflow</a>.)</p>
+<p><strong>Resident Set Size(RSS)</strong> is number of memory pages the process has in real memory multiplied by pagesize. This excludes swapped out memory pages.</p>
+<p><a href="https://www.soasme.com/techshack.weekly/verses/c06f28bc-698b-4586-a170-67f0e9d9ccfc.html" target="_blank" rel="external">一则</a></p>
+<p>Go 通过 汇编或者 cgo 来调用这些系统调用，而不是 libc，所以它不提供 malloc, 而是直接向 OS 通过 mmap 要内存。Go 使用类似 TCMalloc: Thread-Caching Malloc 的方法管理内存。它比 libc malloc 更快效率更高，做法是使用 thread-local cache 存储预分配的内存对象。具体来说，给对象做大小分级，每个级别的管理都不太一样</p>
+
           
         
       
@@ -805,7 +416,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/Deep-Reinforcement-Learning/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/21/An-Analysis-of-Vgo/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -824,7 +435,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/05/22/Deep-Reinforcement-Learning/" itemprop="url">Deep Reinforcement Learning</a></h1>
+                <a class="post-title-link" href="/2018/06/21/An-Analysis-of-Vgo/" itemprop="url">An Analysis of Vgo</a></h1>
         
 
         <div class="post-meta">
@@ -836,8 +447,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T16:43:13+08:00">
-                2018-05-22
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-21T09:45:23+08:00">
+                2018-06-21
               </time>
             
 
@@ -852,8 +463,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T16:47:08+08:00">
-                2018-05-22
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-21T09:45:48+08:00">
+                2018-06-21
               </time>
             
           </span>
@@ -871,8 +482,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -889,8 +500,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/05/22/Deep-Reinforcement-Learning/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/Deep-Reinforcement-Learning/" itemprop="commentCount"></span>
+                <a href="/2018/06/21/An-Analysis-of-Vgo/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/21/An-Analysis-of-Vgo/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -920,9 +531,8 @@
       
         
           
-            <p><a href="https://medium.com/applied-data-science/how-to-build-your-own-world-model-using-python-and-keras-64fb388ba459" target="_blank" rel="external">原文链接</a></p>
-<p>[<strong><a href="https://arxiv.org/abs/1803.10122" target="_blank" rel="external">https://arxiv.org/abs/1803.10122</a></strong></p>
-<h3 id="step_1_The_Problem">step 1 The Problem</h3>
+            <p><a href="https://sdboyer.io/vgo/intro/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_130" target="_blank" rel="external">原文链接</a></p>
+
           
         
       
@@ -970,7 +580,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/G-unit-stack/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/21/miaosha/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -989,7 +599,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/05/22/G-unit-stack/" itemprop="url">G-unit Stack</a></h1>
+                <a class="post-title-link" href="/2018/06/21/miaosha/" itemprop="url">解决秒杀一则</a></h1>
         
 
         <div class="post-meta">
@@ -1001,8 +611,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T16:01:49+08:00">
-                2018-05-22
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-21T09:07:24+08:00">
+                2018-06-21
               </time>
             
 
@@ -1017,8 +627,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T16:09:30+08:00">
-                2018-05-22
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-21T09:32:08+08:00">
+                2018-06-21
               </time>
             
           </span>
@@ -1036,8 +646,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/G-unit/" itemprop="url" rel="index">
-                    <span itemprop="name">G-unit</span>
+                  <a href="/categories/秒杀/" itemprop="url" rel="index">
+                    <span itemprop="name">秒杀</span>
                   </a>
                 </span>
 
@@ -1054,8 +664,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/05/22/G-unit-stack/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/G-unit-stack/" itemprop="commentCount"></span>
+                <a href="/2018/06/21/miaosha/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/21/miaosha/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1085,12 +695,393 @@
       
         
           
-            <p><a href="https://iheanyi.com/journal/2018/05/12/the-g-unit-stack-go-graphql-and-grpc/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_128" target="_blank" rel="external">原文链接</a></p>
-<p>这里的G-unit是指Go, GraphQL, gRPC</p>
-<p>GraphQL fits really nicely into a service-oriented architecture (SoAs).</p>
-<p>API Gateways</p>
-<p><a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/gateway-routing" target="_blank" rel="external">Gateway Routing pattern</a></p>
-<h3 id="GraphQL_as_the_API_Gateway">GraphQL as the API Gateway</h3><p><a href="https://github.com/apollographql/apollo-server" target="_blank" rel="external">nodejs GraphQL</a></p>
+            <p><a href="https://mp.weixin.qq.com/s/hj0U5V5np4fDsdc7jlzmUg" target="_blank" rel="external">原文链接</a></p>
+<p><a href="https://github.com/chanjarster/artemis-disruptor-miaosha" target="_blank" rel="external">repo</a></p>
+<ul>
+<li>300线程，循环1000次，共30w请求</li>
+</ul>
+<p>秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的，放在内存中？</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/eZzl4LXykQwtoJTdVPGMW3QgdBOlR2zP5MgkmSklealPbrL56pZUrdIAhickZcNH0L9AcHXkZRKxg7afOq30daQ/640?wx_fmt=png&amp;wxfrom=5&amp;wx_lazy=1" alt="下单流程"></p>
+<p>通过JMS的消息，作为中间件来</p>
+<p>Disruptor是LMAX公司开源的高性能内存队列。Disruptor能够让开发人员只需写单线程代码，就能够获得非常强悍的性能表现，同时避免了写并发编程的难度和坑。 其本质思想在于多线程未必比单线程跑的快。</p>
+<p>backend利用它把从ActiveMQ Artemis获得请求串行化，判断商品库存是否充足，更新剩余库存，最后异步写入数据库。</p>
+<p>库存充足判断、更新剩余库存的动作都是在内存中进行的，配合Disruptor绕过了并发编程的内存可见性、同步、锁等问题，性能非常强。</p>
+<p>在本项目中商品在内存中相关类是Item.java，在利用jol-cli(点此下载)查看其memory-layout后发现，其大小为24byte：</p>
+<blockquote>
+<p><a href="http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar" target="_blank" rel="external">http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar</a></p>
+<p>me.chanjar.jms.server.memdb.Item object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 int Item.amount N/A 16 4 Long Item.id N/A 20 4 (loss due to the next object alignment) Instance size: 24 bytes Space losses: 0 bytes internal + 4 bytes external = 4 bytes total</p>
+</blockquote>
+<p>而Long占用的内存也为24b：</p>
+<blockquote>
+<p>java.lang.Long object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 (alignment/padding gap) N/A 16 8 long Long.value N/A Instance size: 24 bytes Space losses: 4 bytes internal + 0 bytes external = 4 bytes total</p>
+</blockquote>
+<p>假设你有100W商品需要秒杀，那么其占用内存 = 1,000,000 * (24b + 4b + 24b) = 52,000,000b = 49m。仅仅只占49m。</p>
+<p>架构上的优化点</p>
+<ol>
+<li>下单请求异步处理，请求返回的本次请求的ID，客户端拿这个ID到另行发起请求查询结果</li>
+<li>在秒杀期间，商品库存信息在内存中，库存判断及库存扣减都在内存中进行，之后异步到数据库</li>
+<li>利用Disruptor将并发请求串行化，同时避免了多线程编程复杂度</li>
+<li>抛弃数据库事务，采用最终一致性</li>
+</ol>
+<p>和JMS相关的优化点</p>
+<ol>
+<li>重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象(Spring的JmsTemplate就是这么干的)</li>
+<li>将JMS Session设定为transacted=false, AUTO_ACKNOWLEDGE</li>
+<li>发送JMS消息时DeliveryMode=NON_PERSISTENT</li>
+<li>关闭Artemis的重发、消息持久机制</li>
+</ol>
+<p>下单请求的异步处理，将下单流程同单子的查询分为两个不同流程，这样进行异步操作</p>
+<p>同时引入Disruptor，进行相关的串行化的工作</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/20/Weber-Fechner-law/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/20/Weber-Fechner-law/" itemprop="url">Weber-Fechner law</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-20T09:41:07+08:00">
+                2018-06-20
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-20T09:48:11+08:00">
+                2018-06-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Weber/" itemprop="url" rel="index">
+                    <span itemprop="name">Weber</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/06/20/Weber-Fechner-law/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/20/Weber-Fechner-law/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://zh.wikipedia.org/wiki/%E9%9F%8B%E4%BC%AF-%E8%B2%BB%E5%B8%8C%E7%B4%8D%E5%AE%9A%E7%90%86" target="_blank" rel="external">原文链接</a></p>
+<p>性，用公式来表示，就是<code>△Φ/Φ=C</code>，其中<code>Φ</code>为原刺激量，<code>△Φ</code>为此时的差别阈限，<code>C</code>为常数，又称为韦柏率</p>
+<p>我们的感觉很敏感，但也有惰性：它会蒙骗我们的眼睛，也会加重我们的感受而迷失理性。所以我们应带着谦卑的心对待万物众生，韦伯定律中的生活智慧是：给予方要多做雪中送炭的事，少做锦上添花的事，尽量不做画蛇添足的事；而受予方要懂得珍惜自己的点滴所得，善待身边的人</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/19/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/19/one-week/" itemprop="url">风动，帆动，然心动也</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-19T09:55:05+08:00">
+                2018-06-19
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-20T23:36:33+08:00">
+                2018-06-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/06/19/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/19/one-week/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>佛学的禅宗，跟所谓的心学部分？</p>
+<p>心是菩提树，身为明镜台。明镜本清净，何处染尘埃。</p>
+<p>身是菩提树，心如明镜台。时时勤拂拭，莫使有尘埃。</p>
+<hr>
+<p>本周：</p>
+<ul>
+<li>开始刷leetcode部分的题目</li>
+<li>开始总结相关基础部分的知识</li>
+<li>运营广告平台相关内容</li>
+</ul>
+<p>下周：</p>
+<ul>
+<li>整理以及修改简历，配合猎头，进行相关的投递</li>
+<li>继续刷题，巩固基础</li>
+<li>sdk部分的一些策略梳理和整理</li>
+</ul>
+<p>大考部分，算是见了面，不过心理还是挺抗拒的。。。不管是有没有做好准备，还是本身依然在自我怀疑状态。。。被赶鸭子上架了，只能是慢慢去拖一拖，磨一磨了。。</p>
+<p>徐建的事情，算是有一个初步的结果，虽然整体结果不如意，但起码人还在，还有希望在。。。不过，后面尽快让资金链恢复吧，不然自己也很难受，抽空聊一下近况吧。。</p>
+<p>感觉最近心不静，不管是之前制定的leetcode刷题计划，还是健身计划，还是面试的一些总结计划什么的，都没有好好地坚持下去。。。</p>
+<p>尽量心静吧，保持学习的心态。。。</p>
+<p>佛在彼岸，也在心中。。。修行。。。</p>
 
           
         
@@ -1130,7 +1121,7 @@
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/47/">47</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1180,7 +1171,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">211</span>
+                  <span class="site-state-item-count">231</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1191,7 +1182,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">91</span>
+                  <span class="site-state-item-count">99</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1202,7 +1193,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">97</span>
+                  <span class="site-state-item-count">105</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

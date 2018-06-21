@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/27/chaos-engineering/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/running-keras-model-in-golang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/27/chaos-engineering/" itemprop="url">Chaos Engineering</a></h1>
+                <a class="post-title-link" href="/2018/04/17/running-keras-model-in-golang/" itemprop="url">Running keras model in golang</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-27T16:13:10+08:00">
-                2018-03-27
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-17T09:48:44+08:00">
+                2018-04-17
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-27T16:26:25+08:00">
-                2018-03-27
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-17T10:08:32+08:00">
+                2018-04-17
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/chaos/" itemprop="url" rel="index">
-                    <span itemprop="name">chaos</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/27/chaos-engineering/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/27/chaos-engineering/" itemprop="commentCount"></span>
+                <a href="/2018/04/17/running-keras-model-in-golang/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/17/running-keras-model-in-golang/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,35 +363,219 @@
       
         
           
-            <p><a href="http://principlesofchaos.org/" target="_blank" rel="external">原文链接</a></p>
-<p>最重要的问题：</p>
+            <p><a href="http://www.tonytruong.net/running-a-keras-tensorflow-model-in-golang/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_123" target="_blank" rel="external">原文链接</a></p>
+<p>为什么要running在golang上</p>
+<ul>
+<li>Current infrastructure is already running Kubernetes / Docker containers and Golang makes the binaries extremely small and efficient 运行比较小</li>
+<li>Web frameworks for Go are much faster than the Python ones golang的web性能高</li>
+<li>The team aren’t necessarily data scientists working in Python and work in Go 没必要切换语言？</li>
+<li>Pushing data internally using GRPC for faster communication between micro services </li>
+</ul>
+<h3 id="Binary_Classification_in_Keras">Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></div><div class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">"myModel"</span>)  </div><div class="line"><span class="comment"># Tag the model, required for Go</span></div><div class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">"myTag"</span>])  </div><div class="line">builder.save()  </div><div class="line">sess.close()</div></pre></td></tr></table></figure>
+<p>采用saveModel的方式</p>
+<h3 id="loading_and_running_the_model_in_Go">loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> (  </div><div class="line">    <span class="string">"fmt"</span></div><div class="line"></div><div class="line">    tf <span class="string">"github.com/tensorflow/tensorflow/tensorflow/go"</span></div><div class="line">)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </div><div class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></div><div class="line">    model, err := tf.LoadSavedModel(<span class="string">"myModel"</span>, []<span class="keyword">string</span>&#123;<span class="string">"myTag"</span>&#125;, <span class="literal">nil</span>)</div><div class="line"></div><div class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">        fmt.Printf(<span class="string">"Error loading saved model: %s\n"</span>, err.Error())</div><div class="line">        <span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">defer</span> model.Session.Close()</div><div class="line"></div><div class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="keyword">float32</span>&#123;&#125;)</div><div class="line"></div><div class="line">    result, err := model.Session.Run(</div><div class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</div><div class="line">            model.Graph.Operation(<span class="string">"inputLayer_input"</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></div><div class="line">        &#125;,</div><div class="line">        []tf.Output&#123;</div><div class="line">            model.Graph.Operation(<span class="string">"inferenceLayer/Sigmoid"</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></div><div class="line">        &#125;,</div><div class="line">        <span class="literal">nil</span>,</div><div class="line">    )</div><div class="line"></div><div class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">        fmt.Printf(<span class="string">"Error running the session with input, err: %s\n"</span>, err.Error())</div><div class="line">        <span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    fmt.Printf(<span class="string">"Result value: %v \n"</span>, result[<span class="number">0</span>].Value())</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>The tensor we input is in the shape <code>[batch size][width][height][channels]</code>. </p>
+<p>相同版本的python代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">%%time</div><div class="line"><span class="keyword">from</span> keras.preprocessing <span class="keyword">import</span> image  </div><div class="line"><span class="keyword">from</span> keras.models <span class="keyword">import</span> load_model  </div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </div><div class="line">model = load_model(<span class="string">"model.h5"</span>)  </div><div class="line">img = np.zeros((<span class="number">1</span>,<span class="number">250</span>,<span class="number">250</span>,<span class="number">3</span>))  </div><div class="line">x = np.vstack([img]) <span class="comment"># just append to this if we have more than one image.  </span></div><div class="line">classes = model.predict_classes(x)  </div><div class="line">print(classes)</div></pre></td></tr></table></figure>
+<p>可以尝试比较一下相关的时间问题？</p>
+<h3 id="Performance">Performance</h3><p>Recall the model was:</p>
+<p>3x3x32 Convolutional Layer<br>3x3x32 Convolutional Layer<br>2x2 Max Pool Layer<br>64 Node Fully Connected Layer with Dropout<br>1 Sigmoid output Layer</p>
+<p><strong>For Python</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~2.72s to warm up and run one inference and ~0.049s for each inference after</li>
+<li><strong>GPU</strong>: - ~3.52s to warm up and run one inference and ~0.009s for each inference after</li>
+<li><strong>Saved Model Size (HDF5)</strong> 242MB</li>
+</ul>
+<p><strong>For Go</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~0.255s to warm up and run one inference and ~0.045s for each inference after</li>
+<li><strong>GPU</strong>: - N/A</li>
+<li><strong>Saved Model Size(Protobuf binaries)</strong> 236MB</li>
+</ul>
+<p>use Go to serve up your models in prod</p>
+<p>感觉在k8s上运行更好一些？</p>
+<p>在于model训练之后，基本稳定后的predict的操作</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/Line-of-sight-in-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/17/Line-of-sight-in-code/" itemprop="url">Line of sight in code</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-17T09:39:54+08:00">
+                2018-04-17
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-17T09:48:24+08:00">
+                2018-04-17
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/17/Line-of-sight-in-code/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/17/Line-of-sight-in-code/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/@matryer/line-of-sight-in-code-186dd7cdea88" target="_blank" rel="external">原文链接</a></p>
+<p>通过在阅读代码的sight来关注code的优化问题，有意思的视角</p>
 <blockquote>
-<p>How much confidence we can have in the complex systems that we put into production?</p>
+<p>Line of sight is “a straight line along which an observer has unobstructed vision”</p>
 </blockquote>
-<p>Even when all of the individual services in a distributed system are functioning properly, the interactions between those services can cause unpredictable outcomes.  Unpredictable outcomes, compounded by rare but disruptive real-world events that affect production environments, make these distributed systems inherently chaotic</p>
-<p>不要有放松的心理</p>
+<p>good code,  The idea is that another programmer (including your future self) can glance down a single column and understand the expected flow of the code.</p>
+<blockquote>
+<p>Most people focus on the cost of writing code (ever heard “how long will this take to finish?”) But the far greater cost is in maintaining code — especially in successful projects. Making functions obvious, clear, simple and easy to understand is vital to this cause.</p>
+</blockquote>
+<p>Tips for a good line of sight:</p>
 <ul>
-<li>Chaos Engineering 的定义：是一种对分布式系统做线上的测试的实践，手段是在一个隔离的生产环境中人为制造一些极端环境。</li>
-<li>意义：即便每个组件都是好的，他们通讯出问题了，系统还是一样照挂；或者服务降级是配置有问题，超时不合适导致过多重试，服务要承受太多流量，单点故障导致雪崩。分布式系统会出现的情况实在太多了。预期等着出现，不如主动出击。主动制造问题，如果制造出的问题怎么搞系统都不会崩，那系统看起来还蛮可靠的。</li>
-</ul>
-<ul>
-<li>Chaos 四个步骤：<ul>
-<li>定义系统正常时的一些指标，收集监控数据。</li>
-<li>假设在 control group 和 experiment group 两个都处于正常状态。</li>
-<li>制造事故，模拟出 server crash，硬盘故障，网络连接故障等等。</li>
-<li>尝试找出 control group 和 experiment group 的状态的不同。如果有不同，那就找到了可以改进的地方。</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li>一些实践：<ul>
-<li>与其搜集系统的内部属性指标，不如搜集系统的输出。吞吐，错误率，latency 百分位这些都是蛮好的指标。这些通用指标能证明系统正在工作。</li>
-<li>Chaos variables 是一些跟现实中会可能是系统出现故障的那些情况，不一定会是硬件出问题，甚至网络流量出现 spike 都可能可以算。</li>
-<li>生产环境的数据很宝贵，可以做采样，然后对实验环境进行测试。</li>
-<li>对这些实验写代码，做自动化。</li>
-<li>最小化对客户的影响，限制在阈值内</li>
-</ul>
-</li>
+<li>Align the happy path to the left; you should quickly be able to scan down one column to see the expected execution flow</li>
+<li>Don’t hide happy path logic inside a nest of indented braces 成功路径显而易见</li>
+<li>Exit early from your function 尽早退出你的功能</li>
+<li>Avoid else returns; consider flipping the if statement 避免无谓的else</li>
+<li>Put the happy return statement as the very last line</li>
+<li>Extract functions and methods to keep bodies small and readable extract的必要性</li>
+<li>If you need big indented bodies, consider giving them their own function 分拆own function</li>
 </ul>
 
           
@@ -441,7 +625,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/22/data-system/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/15/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -460,7 +644,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/22/data-system/" itemprop="url">数据系统初探</a></h1>
+                <a class="post-title-link" href="/2018/04/15/one-week/" itemprop="url">天元突破</a></h1>
         
 
         <div class="post-meta">
@@ -472,8 +656,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-22T11:09:11+08:00">
-                2018-03-22
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-15T17:07:38+08:00">
+                2018-04-15
               </time>
             
 
@@ -488,8 +672,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-28T18:27:10+08:00">
-                2018-03-28
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-15T23:02:50+08:00">
+                2018-04-15
               </time>
             
           </span>
@@ -507,8 +691,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-system/" itemprop="url" rel="index">
-                    <span itemprop="name">data system</span>
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
                   </a>
                 </span>
 
@@ -525,8 +709,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/22/data-system/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/22/data-system/" itemprop="commentCount"></span>
+                <a href="/2018/04/15/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/15/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -556,309 +740,224 @@
       
         
           
-            <p><a href="https://vonng.gitbooks.io/ddia-cn/content/ch1.html" target="_blank" rel="external">原文链接</a></p>
-<p>[TOC]</p>
-<h3 id="基础目标：">基础目标：</h3><p>可靠、可扩展、可维护的数据系统</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-1.png" alt="数据系统架构"></p>
-<p>负载：</p>
-<p>负载可以用一些称为<strong>负载参数（load parameters）</strong>的数字来描述。参数的最佳选择取决于系统架构，它可能是每秒向Web服务器发出的请求、数据库中的读写比率、聊天室中同时活跃的用户数量、缓存命中率或其他东西。除此之外，也许平均情况对你很重要，也许你的瓶颈是少数极端场景。</p>
-<p>举例，发文的时间线，有两种实现方式</p>
-<ul>
-<li><p>查数据库的方式</p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><div class="line"><span class="keyword">SELECT</span> tweets.*, users.* </div><div class="line">  <span class="keyword">FROM</span> tweets </div><div class="line">  <span class="keyword">JOIN</span> <span class="keyword">users</span>   <span class="keyword">ON</span> tweets.sender_id = users.id </div><div class="line">  <span class="keyword">JOIN</span> <span class="keyword">follows</span> <span class="keyword">ON</span> follows.followee_id = users.id </div><div class="line">  <span class="keyword">WHERE</span> follows.follower_id = <span class="keyword">current_user</span></div></pre></td></tr></table></figure>
-</li>
-</ul>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-2.png" alt="推文查询"></p>
-<p>​    </p>
-<ul>
-<li><p>通过查询缓存的方式，为每个用户的主页时间线维护一个缓存，就像每个用户的推文收件箱（<a href="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-3.png" target="_blank" rel="external">图1-3</a>）。 当一个用户发布推文时，查找所有关注该用户的人，并将新的推文插入到每个主页时间线缓存中。 因此读取主页时间线的请求开销很小，因为结果已经提前计算好了</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-3.png" alt="缓存推文"></p>
-<p>缺点在于，发推现在需要大量的额外工作。平均来说，一条推文会发往约75个关注者，所以每秒4.6k的发推写入，变成了对主页时间线缓存每秒345k的写入。但这个平均值隐藏了用户粉丝数差异巨大这一现实，一些用户有超过3000万的粉丝，这意味着一条推文就可能会导致主页时间线缓存的3000万次写入！及时完成这种操作是一个巨大的挑战——推特尝试在5秒内向粉丝发送推文</p>
-</li>
-</ul>
-<p>最后的折中：两种方法的混合。大多数用户发推时仍然是扇出写入粉丝的主页时间线缓存中。但是少数拥有海量粉丝的用户（即名流）被排除在外。当用户读取主页时间线时，来自所关注名流的推文都会单独拉取，并与用户的主页时间线缓存合并，如方法1所示。这种混合方法能始终如一地提供良好性能</p>
-<p>性能考量：</p>
-<p>关于在线系统的响应时间</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig1-4.png" alt="**一个服务100次请求响应时间的均值与百分位数**"></p>
-<p>响应时间的高百分位点（也称为<strong>尾部延迟（tail percentil）</strong>）非常重要，因为它们直接影响用户的服务体验。</p>
-<p>应对负载的方法：水平扩展，垂直扩展，弹性等等</p>
-<p>ActiveRecord框架</p>
-<p>网络模型 vs 关系模型</p>
-<h3 id="存储与检索">存储与检索</h3><p>最简单的数据库</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><div class="line"><span class="meta">#!/bin/bash</span></div><div class="line"><span class="function"><span class="title">db_set</span></span> () &#123;</div><div class="line">    <span class="built_in">echo</span> <span class="string">"<span class="variable">$1</span>,<span class="variable">$2</span>"</span> &gt;&gt; database</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="title">db_get</span></span> () &#123;</div><div class="line">    grep <span class="string">"^<span class="variable">$1</span>,"</span> database | sed <span class="_">-e</span> <span class="string">"s/^<span class="variable">$1</span>,//"</span> | tail -n 1</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>注意后面的<code>tail -n 1</code>取最新的一个</p>
-<p>我们只是追加写一个文件 - 所以我们如何避免最终用完磁盘空间？一个好的解决方案是通过在达到一定大小时关闭一个段文件，然后将其写入一个新的段文件来将日志分割成特定大小的段。然后我们可以对这些段进行压缩</p>
-<p>压缩意味着在日志中丢弃重复的键，只保留每个键的最新更新</p>
-<p>压缩以及合并</p>
-<h4 id="索引类型">索引类型</h4><p>哈希索引</p>
-<p>SSTable (Sorted String Table)</p>
-<ul>
-<li>好处：合并简单而高效，两个有序队列的合并排序；可以范围查询，因为有序；</li>
-</ul>
-<p>在磁盘上维护有序结构是可能的（参阅“B-Tree”），但在内存保存则要容易得多。有许多可以使用的众所周知的树形数据结构，例如红黑树或AVL树【2】。使用这些数据结构，您可以按任何顺序插入键，并按排序顺序读取它们。</p>
-<p>现在我们可以使我们的存储引擎工作如下：</p>
-<ul>
-<li>写入时，将其添加到内存中的平衡树数据结构（例如，红黑树）。这个内存树有时被称为memtable。</li>
-<li>当memtable大于某个阈值（通常为几兆字节）时，将其作为SSTable文件写入磁盘。这可以高效地完成，因为树已经维护了按键排序的键值对。新的SSTable文件成为数据库的最新部分。当SSTable被写入磁盘时，写入可以继续到一个新的memtable实例。</li>
-<li>为了提供读取请求，首先尝试在memtable中找到关键字，然后在最近的磁盘段中，然后在下一个较旧的段中找到该关键字。</li>
-<li>有时会在后台运行合并和压缩过程以组合段文件并丢弃覆盖或删除的值。</li>
-</ul>
-<p>用SSTable制作LSM树</p>
-<p><img src="https://vonng.gitbooks.io/ddia-cn/content/img/fig3-6.png" alt="B树"></p>
-<p>为了使数据库对崩溃具有韧性，B树实现通常会带有一个额外的磁盘数据结构：预写式日志（WAL，也称为重做日志）。这是一个只能追加的文件，每个B树修改都可以应用到树本身的页面上。当数据库在崩溃后恢复时，这个日志被用来恢复B树回到一致的状态</p>
-<p>比较B树和LSM树</p>
-<p>根据经验，LSM树通常写速度更快，而B树被认为读取速度更快【23】</p>
-<p>B树的写入逻辑:必须至少两次写入每一段数据：一次写入预先写入日志，一次写入树页面本身（也许再次分页）。即使在该页面中只有几个字节发生了变化，也需要一次编写整个页面的开销</p>
-<p>LSM的缺点：</p>
-<p>日志结构存储的缺点是压缩过程有时会干扰正在进行的读写操作。尽管存储引擎尝试逐步执行压缩而不影响并发访问，但是磁盘资源有限，所以很容易发生请求需要等待而磁盘完成昂贵的压缩操作。对吞吐量和平均响应时间的影响通常很小，但是在更高百分比的情况下，对日志结构化存储引擎的查询响应时间有时会相当长，而B树的行为则相对更具可预测性</p>
-<p>在<strong>聚集索引（clustered index）</strong>（在索引中存储所有行数据）和<strong>非聚集索引（nonclustered index）</strong>（仅在索引中存储对数据的引用）之间的折衷被称为<strong>包含列的索引（index with included columns）</strong>或<strong>覆盖索引（covering index）</strong>，其存储表的一部分在索引内【33】。这允许通过单独使用索引来回答一些查询（这种情况叫做：索引<strong>覆盖了（cover）</strong>查询</p>
-<p><strong>反直觉的是，内存数据库的性能优势并不是因为它们不需要从磁盘读取的事实。即使是基于磁盘的存储引擎也可能永远不需要从磁盘读取，因为操作系统缓存最近在内存中使用了磁盘块。相反，它们更快的原因在于省去了将内存数据结构编码为磁盘数据结构的开销</strong></p>
-<table>
-<thead>
-<tr>
-<th>属性</th>
-<th>事务处理 OLTP</th>
-<th>分析系统 OLAP</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>主要读取模式</td>
-<td>查询少量记录，按键读取</td>
-<td>在大批量记录上聚合</td>
-</tr>
-<tr>
-<td>主要写入模式</td>
-<td>随机访问，写入要求低延时</td>
-<td>批量导入（ETL），事件流</td>
-</tr>
-<tr>
-<td>主要用户</td>
-<td>终端用户，通过Web应用</td>
-<td>内部数据分析师，决策支持</td>
-</tr>
-<tr>
-<td>处理的数据</td>
-<td>数据的最新状态（当前时间点）</td>
-<td>随时间推移的历史事件</td>
-</tr>
-<tr>
-<td>数据集尺寸</td>
-<td>GB ~ TB</td>
-<td>TB ~ PB</td>
-</tr>
-</tbody>
-</table>
-<h3 id="编码与演化">编码与演化</h3><p>系统想要继续顺利运行，就需要保持兼容性，向后兼容与向前兼容。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/delay-queue/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/20/delay-queue/" itemprop="url">延迟队列</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T11:25:49+08:00">
-                2018-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T11:33:25+08:00">
-                2018-03-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/delay-queue/" itemprop="url" rel="index">
-                    <span itemprop="name">delay queue</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/20/delay-queue/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/delay-queue/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://tech.youzan.com/queuing_delay/" target="_blank" rel="external">原文链接</a></p>
-<p>业务场景：</p>
-<ul>
-<li>当订单一直处于未支付状态时，如何及时的关闭订单，并退还库存？</li>
-<li>如何定期检查处于退款状态的订单是否已经退款成功？</li>
-<li>新创建店铺，N天内没有上传商品，系统如何知道该信息，并发送激活短信？等等</li>
-</ul>
-<p>设计目标：</p>
-<ul>
-<li>消息传输可靠性：消息进入到延迟队列后，保证至少被消费一次。</li>
-<li>Client支持丰富：由于业务上的需求，至少支持PHP和Python。</li>
-<li>高可用性：至少得支持多实例部署。挂掉一个实例后，还有后备实例继续提供服务。</li>
-<li>实时性：允许存在一定的时间误差。</li>
-<li>支持消息删除：业务使用方，可以随时删除指定消息。</li>
-</ul>
-<p><img src="https://tech.youzan.com/content/images/2016/03/all-1.png" alt="设计结构"></p>
-<p>msg结构：</p>
-<ul>
-<li>Topic：Job类型。可以理解成具体的业务名称。</li>
-<li>Id：Job的唯一标识。用来检索和删除指定的Job信息。</li>
-<li>Delay：Job需要延迟的时间。单位：秒。（服务端会将其转换为绝对时间）</li>
-<li>TTR（time-to-run)：Job执行超时时间。单位：秒。</li>
-<li>Body：Job的内容，供消费者做具体的业务处理，以json格式存储。</li>
-</ul>
-<p>一个msg的生命周期：</p>
-<ul>
-<li>用户对某个商品下单，系统创建订单成功，同时往延迟队列里put一个job。job结构为：{‘topic’:’order<em>close’, ‘id’:’order</em>close<em>order</em>NoXXX’, ‘delay’:1800 ,’TTR’:60 , ‘body’:’XXXXXXX’}</li>
-<li>延迟队列收到该job后，先往job pool中存入job信息，然后根据delay计算出绝对执行时间，并以轮询(round-robbin)的方式将job id放入某个bucket。</li>
-<li>timer每时每刻都在轮询各个bucket，当1800秒（30分钟）过后，检查到上面的job的执行时间到了，取得job id从job pool中获取元信息。如果这时该job处于deleted状态，则pass，继续做轮询；如果job处于非deleted状态，首先再次确认元信息中delay是否大于等于当前时间，如果满足则根据topic将job id放入对应的ready queue，然后从bucket中移除；如果不满足则重新计算delay时间，再次放入bucket，并将之前的job id从bucket中移除。</li>
-<li>消费端轮询对应的topic的ready queue（这里仍然要判断该job的合理性），获取job后做自己的业务逻辑。与此同时，服务端将已经被消费端获取的job按照其设定的TTR，重新计算执行时间，并将其放入bucket。</li>
-<li>消费端处理完业务后向服务端响应finish，服务端根据job id删除对应的元信息。</li>
-</ul>
+            <p>你认为我是谁。。</p>
+<p>我可是要钻向天际的男人。。</p>
+<p>不要管那么多，就是燃就够了。。</p>
 <hr>
+<p>本周工作：</p>
 <ul>
-<li>timer是通过独立线程的无限循环来实现，在没有ready job的时候会对CPU造成一定的浪费。 </li>
-<li>消费端在reserve job的时候，采用的是http短轮询的方式，且每次只能取的一个job。如果ready job较多的时候会加大网络I/O的消耗。</li>
-<li>数据存储使用的redis，消息在持久化上受限于redis的特性。</li>
+<li>尝试性完成了dutch新老语种的转换</li>
+<li>关于android端的banner部分</li>
 </ul>
-<hr>
+<p>本周所学：</p>
 <ul>
-<li>基于wait／notify方式的Timer实现</li>
-<li>提供TCP长连的API，实现push或者long-polling的消息reserve方法</li>
-<li>拥有自己的存储方案（内嵌数据库、自定义数据结构写文件），确保消息的持久化</li>
+<li>关于kaggle部分的使用</li>
+<li>对于词典的编码上，bucket部分，转换部分，算是对lstm有一个入门的想法</li>
 </ul>
+<p>下周工作：</p>
 <ul>
-<li>考虑提供周期性任务的直接支持</li>
+<li>考试题目</li>
+<li>react native框架尝试搭起来，包括蓝牙通信</li>
+</ul>
+<p>锻炼部分，坚持下去，包括健身房，跑步上，已经提升到15km，要稳定下去，饮食方面，晚餐尽量少吃，晚上的keep也要坚持10-20分钟的运动</p>
+<p>相处上，还是按部就班，尽量保持独立吧，自己要控制lol。。简直像是精虫上脑一样，尽量少lol。。未来还是有很多的不确定性，不要停留原地，不管它，做好自己。。。</p>
+<p>技术上，deep learning上加快速度，有点慢。。。其他技术上，整理一下东西出来。。</p>
+<p>简历可以开始更新一下了。。考虑之后想做什么方向。。</p>
+<p>时间把控上，还是做的不够，关于英语听说部分，安排时间。。</p>
+<p>不要有太多的想法，就是学习就够了。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/13/bolt-go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/13/bolt-go/" itemprop="url">bolt-内嵌kv存储</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-13T16:21:55+08:00">
+                2018-04-13
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-15T17:07:27+08:00">
+                2018-04-15
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/go/" itemprop="url" rel="index">
+                    <span itemprop="name">go</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/13/bolt-go/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/13/bolt-go/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/boltdb/bolt" target="_blank" rel="external">repo</a></p>
+<blockquote>
+<p>However, this limited scope also means that the project is complete.</p>
+</blockquote>
+<p>more featureful version <a href="https://github.com/coreos/bbolt" target="_blank" rel="external">repo</a></p>
+<p>关于transactions的手动实现</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// Start a writable transaction.</span></div><div class="line">tx, err := db.Begin(<span class="literal">true</span>)</div><div class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">    <span class="keyword">return</span> err</div><div class="line">&#125;</div><div class="line"><span class="keyword">defer</span> tx.Rollback()</div><div class="line"></div><div class="line"><span class="comment">// Use the transaction...</span></div><div class="line">_, err := tx.CreateBucket([]<span class="keyword">byte</span>(<span class="string">"MyBucket"</span>))</div><div class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">    <span class="keyword">return</span> err</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Commit the transaction and check for error.</span></div><div class="line"><span class="keyword">if</span> err := tx.Commit(); err != <span class="literal">nil</span> &#123;</div><div class="line">    <span class="keyword">return</span> err</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>使用bucket部分</p>
+<p>这里面比较有意思的是：通过seek()部分操作</p>
+<ul>
+<li>prefix scans</li>
+<li>range scans</li>
+<li>foreach</li>
+</ul>
+<p>天然支持database backups</p>
+<h2 id="comparison_with_other_databases">comparison with other databases</h2><h3 id="Postgres,_MySQL,_&amp;_other_relational_databases">Postgres, MySQL, &amp; other relational databases</h3><p>sql</p>
+<p>Bolt accesses all data by a byte slice key. This makes Bolt fast to read and write data by key but provides no built-in support for joining values together. Bolt runs as a library included in your application so all data access has to go through your application’s process. This brings data closer to your application but limits multi-process access to the data.</p>
+<h3 id="LevelDB,_RocksDB">LevelDB, RocksDB</h3><p>their underlying structure is a log-structured merge-tree (LSM tree). An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables</p>
+<p>Bolt uses a B+tree internally and only a single file. </p>
+<p>If you require a high random write throughput (&gt;10,000 w/sec) or you need to use spinning disks then LevelDB could be a good choice. If your application is read-heavy or does a lot of range scans then Bolt could be a good choice.</p>
+<p>One other important consideration is that LevelDB does not have transactions. It supports batch writing of key/values pairs and it supports read snapshots but it will not give you the ability to do a compare-and-swap operation safely. Bolt supports fully serializable ACID transactions.(事务上的支持)</p>
+<h3 id="LMDB">LMDB</h3><p>Bolt was originally a port of LMDB so it is architecturally similar. Both use a B+tree, have ACID semantics with fully serializable transactions, and support lock-free MVCC using a single writer and multiple readers.</p>
+<p>on safe actions</p>
+<p>on api, LMDB requires a maximum mmap size when opening an <code>mdb_env</code> whereas Bolt will handle incremental mmap resizing automatically</p>
+<h2 id="conclusion">conclusion</h2><ul>
+<li>Bolt is good for read intensive workloads.</li>
+<li>Bolt uses a B+tree internally so there can be a lot of random page access</li>
+<li>Bulk loading a lot of random writes into a new bucket can be slow as the page will not split until the transaction is committed. 在一个事务里尽量是连续性的操作</li>
+<li>The data structures in the Bolt database are memory mapped so the data file will be endian specific</li>
+<li>Because of the way pages are laid out on disk, Bolt cannot truncate data files and return free pages back to the disk. Instead, Bolt maintains a free list of unused pages within its data file. These free pages can be reused by later transactions. 关于bolt的reuse特性</li>
 </ul>
 
           
@@ -908,7 +1007,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/mson-better-than-json/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/12/Neural-Machine-Translation/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -927,7 +1026,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/20/mson-better-than-json/" itemprop="url">mson 让json序列化更快</a></h1>
+                <a class="post-title-link" href="/2018/04/12/Neural-Machine-Translation/" itemprop="url">Neural Machine Translation</a></h1>
         
 
         <div class="post-meta">
@@ -939,8 +1038,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T10:19:07+08:00">
-                2018-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-12T15:08:35+08:00">
+                2018-04-12
               </time>
             
 
@@ -955,8 +1054,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:45:22+08:00">
-                2018-03-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-13T16:18:08+08:00">
+                2018-04-13
               </time>
             
           </span>
@@ -974,8 +1073,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mson/" itemprop="url" rel="index">
-                    <span itemprop="name">mson</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -992,8 +1091,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/20/mson-better-than-json/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/mson-better-than-json/" itemprop="commentCount"></span>
+                <a href="/2018/04/12/Neural-Machine-Translation/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/12/Neural-Machine-Translation/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1023,181 +1122,30 @@
       
         
           
-            <p><a href="https://tech.meituan.com/MSON.html?utm_source=tuicool&amp;utm_medium=referral" target="_blank" rel="external">原文链接</a></p>
-<p>可以发现Gson序列化占用了大部分的执行时间，从图2可以更直观地看到Gson.fromJson占用了61%的执行时间。分析Gson的源码可以发现，它在序列化时大量使用了反射，每一个field，每一个get、set都需要用反射，由此带来了性能问题。</p>
-<h4 id="减少反射">减少反射</h4><p>采用JSONObject的方式来做序列化，</p>
-<h4 id="简单且性能好的">简单且性能好的</h4><p>采用AnnotationProcessor(注解处理器)的方式，找到有JsonType注解的bean来处理，</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(fullClassName);</div><div class="line">ClassModel classModel = <span class="keyword">new</span> ClassModel().setModifier(<span class="string">"public final"</span>).setClassName(simpleClassName);</div><div class="line">......</div><div class="line">JavaFile javaFile = <span class="keyword">new</span> JavaFile();</div><div class="line">javaFile.setPackageModel(<span class="keyword">new</span> PackageModel().setPackageName(packageName))</div><div class="line">        .setImportModel(<span class="keyword">new</span> ImportModel()</div><div class="line">                .addImport(elementClassName)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonObject"</span>)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonArray"</span>)</div><div class="line">                .addImport(<span class="string">"com.meituan.android.MSON.exceptions.JsonParseException"</span>)</div><div class="line">                .addImports(extension.getImportList())</div><div class="line">        ).setClassModel(classModel);</div><div class="line"></div><div class="line">List&lt;? extends Element&gt; enclosedElements = element.getEnclosedElements();</div><div class="line"><span class="keyword">for</span> (Element e : enclosedElements) &#123;</div><div class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123;</div><div class="line">        processFieldElement(e, extension, toJsonMethodBlock, fromJsonMethodBlock);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">try</span> (Writer writer = sourceFile.openWriter()) &#123;</div><div class="line">    writer.write(javaFile.toSourceString());</div><div class="line">    writer.flush();</div><div class="line">    writer.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="继续优化">继续优化</h4><p>当JSON数据量比较大时用JSONObject处理会比较慢，究其原因是JSONObject会一次性将字符串读进来解析成一个map，这样会有比较大的内存浪费和频繁内存创建。经过调研Gson内部的实现细节，发现Gson底层有流式的解析器而且可以按需解析，可以做到匹配上的字段才去解析。根据这个发现我们将我们IJSONObject和IJsonArray换成了Gson底层的流解析来进一步优化我们的速度</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><div class="line">Friend object = <span class="keyword">new</span> Friend();</div><div class="line">reader.beginObject();</div><div class="line"><span class="keyword">while</span> (reader.hasNext()) &#123;</div><div class="line">    String field = reader.nextName();</div><div class="line">    <span class="keyword">if</span> (<span class="string">"id"</span>.equals(field)) &#123;</div><div class="line">        object.id = reader.nextInt();</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="string">"name"</span>.equals(field)) &#123;</div><div class="line">        <span class="keyword">if</span> (reader.peek() == JsonToken.NULL) &#123;</div><div class="line">            reader.nextNull();</div><div class="line">            object.name = <span class="keyword">null</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            object.name = reader.nextString();</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        reader.skipValue();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">reader.endObject();</div></pre></td></tr></table></figure>
-<h4 id="兼容性">兼容性</h4><p>兼容性主要体现在能支持的数据类型上，目前MSON支持了基础数据类型，包装类型、枚举、数组、List、Set、Map、SparseArray以及各种嵌套类型（比如：<code>Map&lt;String, Map&lt;String, List&lt;String[]&gt;&gt;&gt;</code>）</p>
-<h4 id="结论上">结论上</h4><p>兼容性上，mson最好</p>
-<p>性能上，mson也较少耗时，Gson和fastjson的耗时相当</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/math-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/20/math-tips/" itemprop="url">数学小tips</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T09:59:42+08:00">
-                2018-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:18:17+08:00">
-                2018-03-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/20/math-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/math-tips/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://zh.wikipedia.org/wiki/链式法则" target="_blank" rel="external">链式法则</a></p>
-<p>设<em>f</em>和<em>g</em>为两个关于<em>x</em>可导函数，则有下面的公式:<br>$$<br>(f\circ g)’(x)=f’(g(x))g’(x)<br>$$<br>考虑函数<em>z</em> = <em>f</em>(<em>x</em>, <em>y</em>)，其中<em>x</em> = <em>g</em>(<em>t</em>)，<em>y</em> = <em>h</em>(<em>t</em>)，<em>g</em>(<em>t</em>)和<em>h</em>(<em>t</em>)是可微函数<br>$$<br>\frac{dz}{dx} = \frac{\partial z}{\partial x} \frac{\partial x}{\partial t} + \frac{\partial z}{\partial y} \frac{\partial y}{\partial t}<br>$$<br>这个公式是作为梯度下降算法的基本参照</p>
+            <p><a href="https://github.com/tensorflow/nmt#background-on-neural-machine-translation" target="_blank" rel="external">repo</a></p>
+<h2 id="数据预处理">数据预处理</h2><p><a href="https://xiaozhuanlan.com/topic/5841967302" target="_blank" rel="external">原文链接</a></p>
+<p>使用了新的Dataset API部分</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">src_dataset=tf.data.TextLineDataset(<span class="string">'src_data.txt'</span>)  </div><div class="line">tgt_dataset=tf.data.TextLineDataset(<span class="string">'tgt_data.txt'</span>)</div></pre></td></tr></table></figure>
+<p>查找表的构造方法：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_vocab_tables</span><span class="params">(src_vocab_file, tgt_vocab_file, share_vocab)</span>:</span></div><div class="line">  <span class="string">"""Creates vocab tables for src_vocab_file and tgt_vocab_file."""</span></div><div class="line">  src_vocab_table = lookup_ops.index_table_from_file(</div><div class="line">      src_vocab_file, default_value=UNK_ID)</div><div class="line">  <span class="keyword">if</span> share_vocab:</div><div class="line">    tgt_vocab_table = src_vocab_table</div><div class="line">  <span class="keyword">else</span>:</div><div class="line">    tgt_vocab_table = lookup_ops.index_table_from_file(</div><div class="line">        tgt_vocab_file, default_value=UNK_ID)</div><div class="line">  <span class="keyword">return</span> src_vocab_table, tgt_vocab_table</div></pre></td></tr></table></figure>
+<p>使用了tensorflow库中定义的lookup_ops，简化了产生字典的操作</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> output_buffer_size:</div><div class="line">    output_buffer_size = batch_size * <span class="number">1000</span></div><div class="line">  src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant(eos)), tf.int32)</div><div class="line">  tgt_sos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(sos)), tf.int32)</div><div class="line">  tgt_eos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(eos)), tf.int32)</div><div class="line"></div><div class="line"><span class="comment"># 通过zip操作将源数据集和目标数据集合并在一起</span></div><div class="line"><span class="comment"># 此时的张量变化 [src_dataset] + [tgt_dataset] ---&gt; [src_dataset, tgt_dataset]</span></div><div class="line">  src_tgt_dataset = tf.data.Dataset.zip((src_dataset, tgt_dataset))</div><div class="line"><span class="comment"># 数据集分片，分布式训练的时候可以分片来提高训练速度</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.shard(num_shards, shard_index)</div><div class="line">  <span class="keyword">if</span> skip_count <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</div><div class="line">    src_tgt_dataset = src_tgt_dataset.skip(skip_count)</div><div class="line"><span class="comment"># 随机打乱数据，切断相邻数据之间的联系</span></div><div class="line"><span class="comment"># 根据文档，该步骤要尽早完成，完成该步骤之后在进行其他的数据集操作</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.shuffle(</div><div class="line">      output_buffer_size, random_seed, reshuffle_each_iteration)</div><div class="line">    </div><div class="line">  <span class="comment"># 将每一行数据，根据“空格”切分开来</span></div><div class="line">  <span class="comment"># 这个步骤可以并发处理，用num_parallel_calls指定并发量</span></div><div class="line">  <span class="comment"># 通过prefetch来预获取一定数据到缓冲区，提升数据吞吐能力</span></div><div class="line">  <span class="comment"># 张量变化举例 ['上海　浦东', '上海　浦东'] ---&gt; [['上海', '浦东'], ['上海', '浦东']]</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">      <span class="keyword">lambda</span> src, tgt: (</div><div class="line">          tf.string_split([src]).values, tf.string_split([tgt]).values),</div><div class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div><div class="line"></div><div class="line">  <span class="comment"># Filter zero length input sequences.</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.filter(</div><div class="line">      <span class="keyword">lambda</span> src, tgt: tf.logical_and(tf.size(src) &gt; <span class="number">0</span>, tf.size(tgt) &gt; <span class="number">0</span>))</div><div class="line"><span class="comment"># 限制源数据最大长度</span></div><div class="line">  <span class="keyword">if</span> src_max_len:</div><div class="line">    src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">        <span class="keyword">lambda</span> src, tgt: (src[:src_max_len], tgt),</div><div class="line">        num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div><div class="line">  <span class="comment"># 限制目标数据的最大长度</span></div><div class="line">  <span class="keyword">if</span> tgt_max_len:</div><div class="line">    src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">        <span class="keyword">lambda</span> src, tgt: (src, tgt[:tgt_max_len]),</div><div class="line">        num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div><div class="line">  <span class="comment"># Convert the word strings to ids.  Word strings that are not in the</span></div><div class="line">  <span class="comment"># vocab get the lookup table's default_value integer.</span></div><div class="line">  <span class="comment"># 通过map操作将字符串转换为数字</span></div><div class="line">  <span class="comment"># 张量变化举例 [['上海', '浦东'], ['上海', '浦东']] ---&gt; [[1, 2], [1, 2]]</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">      <span class="keyword">lambda</span> src, tgt: (tf.cast(src_vocab_table.lookup(src), tf.int32),</div><div class="line">                        tf.cast(tgt_vocab_table.lookup(tgt), tf.int32)),</div><div class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div><div class="line">  <span class="comment"># Create a tgt_input prefixed with &lt;sos&gt; and a tgt_output suffixed with &lt;eos&gt;.</span></div><div class="line">  </div><div class="line">  <span class="comment"># 给目标数据加上 sos, eos　标记</span></div><div class="line">  <span class="comment"># 张量变化举例 [[1, 2], [1, 2]] ---&gt; [[1, 2], [sos_id, 1, 2], [1, 2, eos_id]]</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">      <span class="keyword">lambda</span> src, tgt: (src,</div><div class="line">                        tf.concat(([tgt_sos_id], tgt), <span class="number">0</span>),</div><div class="line">                        tf.concat((tgt, [tgt_eos_id]), <span class="number">0</span>)),</div><div class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div><div class="line">  <span class="comment"># Add in sequence lengths.</span></div><div class="line">  <span class="comment"># 增加长度信息</span></div><div class="line">  <span class="comment"># 张量变化举例 [[1, 2], [sos_id, 1, 2], [1, 2, eos_id]] ---&gt; [[1, 2], [sos_id, 1, 2], [1, 2, eos_id], [src_size], [tgt_size]]</span></div><div class="line">  src_tgt_dataset = src_tgt_dataset.map(</div><div class="line">      <span class="keyword">lambda</span> src, tgt_in, tgt_out: (</div><div class="line">          src, tgt_in, tgt_out, tf.size(src), tf.size(tgt_in)),</div><div class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</div></pre></td></tr></table></figure>
+<p>处理过程分析：</p>
+<ol>
+<li><p>开始标记和结束标记，转换成为int32</p>
+</li>
+<li><p>关于增加sos以及eos标记，为啥src和target添加的标记不同？</p>
+</li>
+<li><p>关于增加长度信息的意义？</p>
+<p>​</p>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="comment"># 数据对齐</span></div><div class="line"><span class="comment"># 参数x实际上就是我们的 dataset 对象</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">batching_func</span><span class="params">(x)</span>:</span></div><div class="line">    <span class="comment"># 调用dataset的padded_batch方法，对齐的同时，也对数据集进行分批</span></div><div class="line">    <span class="keyword">return</span> x.padded_batch(</div><div class="line">        batch_size,</div><div class="line">        <span class="comment"># 对齐数据的形状</span></div><div class="line">        padded_shapes=(</div><div class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></div><div class="line">            tf.TensorShape([<span class="keyword">None</span>]),  <span class="comment"># src</span></div><div class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></div><div class="line">            tf.TensorShape([<span class="keyword">None</span>]),  <span class="comment"># tgt_input</span></div><div class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></div><div class="line">            tf.TensorShape([<span class="keyword">None</span>]),  <span class="comment"># tgt_output</span></div><div class="line">            <span class="comment"># 数据长度张量，实际上不需要对齐</span></div><div class="line">            tf.TensorShape([]),  <span class="comment"># src_len</span></div><div class="line">            tf.TensorShape([])),  <span class="comment"># tgt_len</span></div><div class="line">        <span class="comment"># 对齐数据的值</span></div><div class="line">        padding_values=(</div><div class="line">            <span class="comment"># 用src_eos_id填充到 src 的末尾</span></div><div class="line">            src_eos_id,  <span class="comment"># src</span></div><div class="line">            <span class="comment"># 用tgt_eos_id填充到 tgt_input 的末尾</span></div><div class="line">            tgt_eos_id,  <span class="comment"># tgt_input</span></div><div class="line">            <span class="comment"># 用tgt_eos_id填充到 tgt_output 的末尾</span></div><div class="line">            tgt_eos_id,  <span class="comment"># tgt_output</span></div><div class="line">            <span class="number">0</span>,  <span class="comment"># src_len -- unused</span></div><div class="line">            <span class="number">0</span>))  <span class="comment"># tgt_len -- unused</span></div></pre></td></tr></table></figure>
+<p>这个数据对齐，没看懂。。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">if</span> num_buckets &gt; <span class="number">1</span>:</div><div class="line"></div><div class="line">   <span class="function"><span class="keyword">def</span> <span class="title">key_func</span><span class="params">(unused_1, unused_2, unused_3, src_len, tgt_len)</span>:</span></div><div class="line">     <span class="comment"># Calculate bucket_width by maximum source sequence length.</span></div><div class="line">     <span class="comment"># Pairs with length [0, bucket_width) go to bucket 0, length</span></div><div class="line">     <span class="comment"># [bucket_width, 2 * bucket_width) go to bucket 1, etc.  Pairs with length</span></div><div class="line">     <span class="comment"># over ((num_bucket-1) * bucket_width) words all go into the last bucket.</span></div><div class="line">     <span class="keyword">if</span> src_max_len:</div><div class="line">       bucket_width = (src_max_len + num_buckets - <span class="number">1</span>) // num_buckets</div><div class="line">     <span class="keyword">else</span>:</div><div class="line">       bucket_width = <span class="number">10</span></div><div class="line"></div><div class="line">     <span class="comment"># Bucket sentence pairs by the length of their source sentence and target</span></div><div class="line">     <span class="comment"># sentence.</span></div><div class="line">     bucket_id = tf.maximum(src_len // bucket_width, tgt_len // bucket_width)</div><div class="line">     <span class="keyword">return</span> tf.to_int64(tf.minimum(num_buckets, bucket_id))</div><div class="line"></div><div class="line">   <span class="function"><span class="keyword">def</span> <span class="title">reduce_func</span><span class="params">(unused_key, windowed_data)</span>:</span></div><div class="line">     <span class="keyword">return</span> batching_func(windowed_data)</div><div class="line"></div><div class="line">   batched_dataset = src_tgt_dataset.apply(</div><div class="line">       tf.contrib.data.group_by_window(</div><div class="line">           key_func=key_func, reduce_func=reduce_func, window_size=batch_size))</div><div class="line"> <span class="keyword">else</span>:</div><div class="line">   batched_dataset = batching_func(src_tgt_dataset)</div></pre></td></tr></table></figure>
+<p>关于分桶操作，得到的结果，就是相似长度的数据放在一起，能够提升计算效率！！</p>
+<p>使用迭代器获取处理之后的数据</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">batched_iter = batched_dataset.make_initializable_iterator()</div><div class="line"> (src_ids, tgt_input_ids, tgt_output_ids, src_seq_len,</div><div class="line">  tgt_seq_len) = (batched_iter.get_next())</div></pre></td></tr></table></figure>
 
           
         
@@ -1237,7 +1185,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/8/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><a class="extend next" rel="next" href="/page/10/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/8/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><span class="space">&hellip;</span><a class="page-number" href="/page/47/">47</a><a class="extend next" rel="next" href="/page/10/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1287,7 +1235,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">211</span>
+                  <span class="site-state-item-count">231</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1298,7 +1246,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">91</span>
+                  <span class="site-state-item-count">99</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1309,7 +1257,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">97</span>
+                  <span class="site-state-item-count">105</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
