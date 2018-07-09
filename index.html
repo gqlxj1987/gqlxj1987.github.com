@@ -248,6 +248,192 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/09/golang-memory-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/09/golang-memory-model/" itemprop="url">golang内存模型</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-09T16:37:42+08:00">
+                2018-07-09
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-09T16:47:02+08:00">
+                2018-07-09
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/09/golang-memory-model/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/09/golang-memory-model/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://hugozhu.myalert.info/2013/04/20/31-golang-memory-model.html?utm_source=tuicool" target="_blank" rel="external">原文链接</a></p>
+<p>内存模型的目的是为了定义清楚变量的读写在不同执行体里的可见性</p>
+<p>Go的并发模型是基于CSP（<a href="http://en.wikipedia.org/wiki/Communicating_sequential_processes" target="_blank" rel="external">Communicating Sequential Process</a>）的，不同的Goroutine通过一种叫Channel的数据结构来通信；Java的并发模型则基于多线程和共享内存，有较多的概念（violatie, lock, final, construct, thread, atomic等）和场景，当然java.util.concurrent并发工具包大大简化了Java并发编程。</p>
+<h4 id="happen_before">happen before</h4><p>Happens-before用来指明Go程序里的内存操作的局部顺序。如果一个内存操作事件e1 happens-before e2，则e2 happens-after e1也成立；如果e1不是happens-before e2,也不是happens-after e2，则e1和e2是并发的。</p>
+<p>在这个定义之下，如果以下情况满足，则对变量（v）的内存写操作（w）对一个内存读操作（r）来说<strong>允许</strong>可见的：</p>
+<ol>
+<li>r不在w开始之前发生（可以是之后或并发）；</li>
+<li>w和r之间没有另一个写操作(w’)发生；</li>
+</ol>
+<p>为了保证对变量（v）的一个特定写操作（w）对一个读操作（r）可见，就需要确保w是r<strong>唯一</strong>允许<strong>的写操作，于是如果以下情况满足，则对变量（v）的内存写操作（w）对一个内存读操作（r）来说</strong>保证可见的：</p>
+<ol>
+<li>w在r开始之前发生；</li>
+<li>所有其它对v的写操作只在w之前或r之后发生；</li>
+</ol>
+<p>可以看出后一种约定情况比前一种更严格，这种情况要求没有w或r没有其他的并发写操作</p>
+<p>从本质上来讲，happens-before规则确定了CPU缓冲和主存的同步时间点（通过<a href="http://hugozhu.myalert.info/2013/03/28/22-memory-barriers-or-fences.html" target="_blank" rel="external">内存屏障</a>等指令），从而使得对变量的读写顺序可被确定–也就是我们通常说的“同步”。</p>
+<p>在Go编程中，Channel是被推荐的执行体间通信的方法，Go的编译器和运行态都会尽力对其优化。</p>
+<ol>
+<li><strong>对一个Channel的发送操作(send) happens-before 相应Channel的接收操作完成</strong></li>
+<li><strong>关闭一个Channel happens-before 从该Channel接收到最后的返回值0</strong></li>
+<li><strong>不带缓冲的Channel的接收操作（receive） happens-before 相应Channel的发送操作完成</strong></li>
+</ol>
+<p><code>sync.Once</code>仅一次的调用</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/08/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -267,7 +453,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/07/08/one-week/" itemprop="url">one week</a></h1>
+                <a class="post-title-link" href="/2018/07/08/one-week/" itemprop="url">菩萨畏因，众生畏果</a></h1>
         
 
         <div class="post-meta">
@@ -295,12 +481,34 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-07-08T18:39:13+08:00">
-                2018-07-08
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-10T00:00:46+08:00">
+                2018-07-10
               </time>
             
           </span>
 
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
           
 
           
@@ -341,7 +549,33 @@
       
         
           
-            
+            <p>菩萨畏因，众生畏果。</p>
+<p>有点迷信转运什么的，其实有些东西都是注定和计划好的。尝试去进行正念修行。。。</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>3.14的接入修复以及运营策略</li>
+<li>预装部分的支持</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>几场面试得到的一些总结，尤其是关于lazy data的问题</li>
+<li>尝试养成每天1-2道leetcode题目的习惯</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>整理一些相关文档，调整相关的环境以及报警部分</li>
+<li>是否可以针对每一家的点击部分，做些展示方面，方便进行对比</li>
+</ul>
+<p>所期待的freewheel算是挂掉了，算是自己最有把握的也挂掉了。。哎。。。就这样吧，也算是见识到外企的风格，总体上不算那么差，毕竟偶尔说下英文也不错的感觉。。。</p>
+<p>那么剩下来，可能就是第四范式了。。。给合适的offer，就去吧。。。</p>
+<p>徐建相关的事情，也就这样，把该说的也说了，后面就是去要钱了，也无所谓顾及感受什么的。。。就这样吧，情况已经如斯坏了，也管不了那么多了，能要回一点是一点吧。。。</p>
+<p>本职工作上，最近有点心不在焉，需要警惕了。。现在也没有面试了，把精力收一收，把相关的工作做好。。</p>
+<p>生活上，按部就班地进行，算是在慢慢体验所谓的同居生活什么的，慢慢来吧。。</p>
+<p>把自己想象成为万物的一种，去沉浸在自己做的事情中，这样就不会去焦虑和急躁。。。</p>
+<p>锻炼上慢慢开始恢复。。</p>
+<p>相关的一些时间管理上，慢慢恢复起来。。。不要偷懒。。。</p>
+
           
         
       
@@ -895,179 +1129,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/03/raft-golang/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/07/03/raft-golang/" itemprop="url">raft协议简介</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-03T16:32:29+08:00">
-                2018-07-03
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-07-04T10:12:51+08:00">
-                2018-07-04
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/raft/" itemprop="url" rel="index">
-                    <span itemprop="name">raft</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/07/03/raft-golang/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/03/raft-golang/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://thesecretlivesofdata.com/raft/" target="_blank" rel="external">原文链接</a></p>
-<p>node存在三种状态， follower, candidate or leader，如果没有收到相关的entries的话，会从follower变迁到candidate，从而进行leader的一个选举策略</p>
-<p>两个时间超时的机制</p>
-<ul>
-<li>选举超时，如果超时，就会变成candidate，开始进行vote，并发向其他的node</li>
-<li>hearbeat 超时，在vote发送之后，有没有在超时之前收到相关的vote的答复</li>
-</ul>
-<p>每次leader发送log时，都会去重置其他follower节点的选举超时时间</p>
-<p>这时候，会遇到多个nodes同时发送选举的信息，继续等待，直到有一个拿到master的选举信息，</p>
-<p>然后是关于网络隔断的问题，在移除之后，有所谓的值最大的成为最后的master</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1122,7 +1183,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">248</span>
+                  <span class="site-state-item-count">249</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
