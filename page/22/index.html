@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/04/go-performance/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/31/failure-microservice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/01/04/go-performance/" itemprop="url">Go performance</a></h1>
+                <a class="post-title-link" href="/2018/01/31/failure-microservice/" itemprop="url">Designing a Microservices Architecture for Failure</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-04T17:12:37+08:00">
-                2018-01-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">
+                2018-01-31
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-01-07T15:22:11+08:00">
-                2018-01-07
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-31T16:05:17+08:00">
+                2018-01-31
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Go/" itemprop="url" rel="index">
-                    <span itemprop="name">Go</span>
+                  <a href="/categories/microservice/" itemprop="url" rel="index">
+                    <span itemprop="name">microservice</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/01/04/go-performance/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/04/go-performance/" itemprop="commentCount"></span>
+                <a href="/2018/01/31/failure-microservice/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/31/failure-microservice/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,269 +363,29 @@
       
         
           
-            <p>go performance optimization workflow:</p>
-<ul>
-<li>determine your performance goals</li>
-<li>profile to identify the areas to improve. This can be CPU, heap allocations, or goroutine blocking<ul>
-<li>CPU</li>
-<li>heap allocation</li>
-<li>goroutine blocking</li>
-</ul>
-</li>
-<li>benchmark to determine the speed up your solution will provide using the built-in benchmarking framework (<a href="http://golang.org/pkg/testing/" target="_blank" rel="external">http://golang.org/pkg/testing/</a>) </li>
-<li>profile again afterwards to verify the issue is gone</li>
-<li>use <a href="https://godoc.org/golang.org/x/perf/benchstat" target="_blank" rel="external">https://godoc.org/golang.org/x/perf/benchstat</a> or <a href="https://github.com/codahale/tinystat" target="_blank" rel="external">https://github.com/codahale/tinystat</a> to verify that a set of timings are ‘sufficiently’ different for an optimization to be worth the added code complexity</li>
-</ul>
-<p>The basic rules of the game are:</p>
-<ol>
-<li>minimize CPU usage<ul>
-<li>do less work</li>
-<li>this generally means “a faster algorithm”</li>
-<li>but CPU caches and the hidden constants in O() can play tricks on you</li>
-</ul>
-</li>
-<li>minimize allocations (which leads to less CPU stolen by the GC)</li>
-<li>make your data quick to access</li>
-</ol>
-<h4 id="Basic">Basic</h4><ul>
-<li>be aware of <a href="http://accidentallyquadratic.tumblr.com/" target="_blank" rel="external">http://accidentallyquadratic.tumblr.com/</a></li>
-</ul>
-<h4 id="Introductory_Pofiling">Introductory Pofiling</h4><ul>
-<li><a href="https://github.com/google/pprof" target="_blank" rel="external">pprof</a></li>
-<li>Writing and running (micro)benchmarks<ul>
-<li>-cpuprofile</li>
-<li>-memprofile</li>
-<li>-benchmem</li>
-</ul>
-</li>
-<li>how to read it pprof output</li>
-<li>macro-benchmarks, net/http/pprof</li>
-</ul>
-<h4 id="Tracer">Tracer</h4><ul>
-<li>Techniques specific to the architecture running the code</li>
-<li>introduction to CPU caches<ul>
-<li>building intuition around cache-lines: sizes, padding, alignment</li>
-<li>false-sharing</li>
-<li>OS tools to view cache-misses</li>
-</ul>
-</li>
-<li>branch prediction</li>
-</ul>
-<h4 id="Heap_Allocations">Heap Allocations</h4><ul>
-<li>Understanding escape analysis</li>
-</ul>
-<h4 id="Runtime">Runtime</h4><ul>
-<li>cost of calls via interfaces (indirect calls on the CPU level)</li>
-<li>runtime.convT2E / runtime.convT2I</li>
-<li>type assertions vs. type switches</li>
-<li>defer</li>
-<li>special-case map implementations for ints, strings</li>
-</ul>
-<h4 id="Common_gotchas_with_the_standard_library">Common gotchas with the standard library</h4><ul>
-<li>time.After() leaks until it fires</li>
-<li>Reusing HTTP connections…</li>
-<li>….</li>
-</ul>
-<h3 id="Alternate_implementions">Alternate implementions</h3><ul>
-<li>Popular replacements for standard library packages:<ul>
-<li>encoding/json -&gt; ffjson</li>
-<li>net/http -&gt; fasthttp</li>
-<li>regexp -&gt; ragel (or other regular expression package)</li>
-<li>serialization<ul>
-<li>encoding/gob</li>
-<li>protobuf</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p>perf(perf2pprof)</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/25/page-rank/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/25/page-rank/" itemprop="url">Page Rank</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-25T11:50:23+08:00">
-                2017-12-25
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-25T14:22:40+08:00">
-                2017-12-25
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rank/" itemprop="url" rel="index">
-                    <span itemprop="name">rank</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/25/page-rank/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/25/page-rank/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>PageRank的相关说明</p>
-<ul>
-<li>整个互联网，看做一张有向图<ul>
-<li>网页是图上的点</li>
-<li>链接是图上的又向边</li>
-</ul>
-</li>
-<li>每个网页有一个权威评分，称作pagerank，可以把它当做一种投票权</li>
-<li>将每个超链接作为一次投票<ul>
-<li>每个网页的pagerank等于所有指向该网页超链接的网页的pagerank的加权和</li>
-<li>这些权值等于这些网页各自向外链接数目的倒数</li>
-</ul>
-</li>
-</ul>
-<p>里面主要的点：</p>
-<ul>
-<li>足够优美，表达简单</li>
-<li>关于加权和部分，计算方式聪明</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Vertex</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></div><div class="line">        self.in_degree = <span class="number">0</span></div><div class="line">        self.out_degree = <span class="number">0</span></div><div class="line">        self.pagerank = <span class="number">0.0</span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Edge</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, start, end)</span>:</span></div><div class="line">        self.start_id = start</div><div class="line">        self.end_id = end</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">addVertex</span><span class="params">(vertex_name, vtx_map)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    return the id of vertex_name</div><div class="line">    if exists in vtx_map, return directly</div><div class="line">    if not exists, add it, and then return</div><div class="line"></div><div class="line">    vertex_name: string, the url of a web page</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    '''</div><div class="line">    res_id = <span class="number">0</span></div><div class="line">    <span class="keyword">if</span> vertex_name <span class="keyword">in</span> vtx_map:</div><div class="line">        <span class="keyword">return</span> vtx_map[vertex_name]</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        res_id = len(vtx_map)</div><div class="line">        vtx_map[vertex_name] = res_id</div><div class="line">    <span class="keyword">return</span> res_id</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">readTable</span><span class="params">(fname, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    read fname line by line, update the vtx_map and edge_list</div><div class="line"></div><div class="line">    fname: string, the file name of the table</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    <span class="keyword">with</span> open(fname, <span class="string">'r'</span>) <span class="keyword">as</span> fin:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> fin.readlines():</div><div class="line">            tmp = line.strip().split(<span class="string">'\t'</span>)</div><div class="line">            <span class="keyword">assert</span>(len(tmp) == <span class="number">2</span>)</div><div class="line">            start = addVertex(tmp[<span class="number">0</span>], vtx_map)</div><div class="line">            end = addVertex(tmp[<span class="number">1</span>], vtx_map)</div><div class="line">            edge_list.append(Edge(start, end))</div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">initialize</span><span class="params">(vtx_map, edge_list, vtx_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    initialize the data structures</div><div class="line"></div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    vtx_list: list, the list of all vertices</div><div class="line">    '''</div><div class="line">    vtx_num = len(vtx_map)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    vtx_list = [Vertex() <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">        vtx_list[i].pagerank = <span class="number">1.0</span> / vtx_num</div><div class="line">    <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">        vtx_list[edge.start_id].out_degree += <span class="number">1</span></div><div class="line">        vtx_list[edge.end_id].in_degree += <span class="number">1</span></div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">calcPagerank</span><span class="params">(alpha, num_iter, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    calc PageRank for all vertices</div><div class="line">    return: vtx_list, list, the list of all vertices</div><div class="line"></div><div class="line">    alpha: float, damping factor</div><div class="line">    num_iter: int, the upper limitation of calculation</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    vtx_list, pr_list = list(), list()</div><div class="line">    initialize(vtx_map, edge_list, vtx_list)</div><div class="line">    vtx_num = len(vtx_list)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    alpha = float(alpha)</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(num_iter):</div><div class="line">        pr_list = [alpha / vtx_num <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">        <span class="comment"># calc</span></div><div class="line">        <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">            pr_list += (<span class="number">1</span> - alpha) * vtx_list[edge.start_id].pagerank / \</div><div class="line">                        vtx_list[edge.start_id].out_degree</div><div class="line">        <span class="comment"># revise</span></div><div class="line">        revise = sum(map(<span class="keyword">lambda</span> vtx: (<span class="number">1</span> - alpha) * vtx.pagerank / vtx_num, \</div><div class="line">                        filter(<span class="keyword">lambda</span> vtx:(vtx.out_degree == <span class="number">0</span>), vtx_list)))</div><div class="line">        <span class="comment"># update</span></div><div class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">            vtx_list[i].pagerank = pr_list[i] + revise</div><div class="line">    <span class="keyword">return</span> vtx_list</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">doCalcPageRank</span><span class="params">(fname = <span class="string">'wt2g_inlinks.source'</span>, alpha = <span class="number">0.15</span>, num_iter = <span class="number">30</span>)</span>:</span></div><div class="line">    vtx_map = dict()</div><div class="line">    edge_list = list()</div><div class="line">    readTable(fname, vtx_map, edge_list)</div><div class="line">    <span class="keyword">return</span> calcPagerank(alpha, num_iter, vtx_map, edge_list)</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    <span class="keyword">print</span> doCalcPageRank()</div></pre></td></tr></table></figure>
-<p>相关程序说明：</p>
-<ul>
-<li>​</li>
+            <p><a href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/" target="_blank" rel="external">原文链接</a></p>
+<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
+<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
+<p>服务降解</p>
+<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
+<h4 id="健康检查和负载平衡">健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
+<h4 id="Self-healing">Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
+<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
+<h4 id="failover_caching">failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
+<h4 id="retry_logic">retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
+<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
+<h4 id="Rate_Limiters_and_Load_Shedders">Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
+<h4 id="Fail_Fast_and_Independently">Fail Fast and Independently</h4><p>bulkhead pattern</p>
+<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success / fail statistics of operations.</p>
+<h4 id="Bulkheads">Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
+<h4 id="Circuit_Breaks">Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
+<h4 id="Testing_for_Failures">Testing for Failures</h4><p>ChaosMonkey for test</p>
+<h3 id="Key_Takeways">Key Takeways</h3><ul>
+<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
+<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
+<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
+<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
+<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
 </ul>
 
           
@@ -675,7 +435,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/24/tanpengyou/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/30/pytorch-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -694,7 +454,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/24/tanpengyou/" itemprop="url">莫道不肝肠</a></h1>
+                <a class="post-title-link" href="/2018/01/30/pytorch-intro/" itemprop="url">Pytorch Introduction</a></h1>
         
 
         <div class="post-meta">
@@ -706,8 +466,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-24T11:27:26+08:00">
-                2017-12-24
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T16:06:51+08:00">
+                2018-01-30
               </time>
             
 
@@ -722,8 +482,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-24T11:42:48+08:00">
-                2017-12-24
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-30T16:11:03+08:00">
+                2018-01-30
               </time>
             
           </span>
@@ -741,8 +501,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/emotion/" itemprop="url" rel="index">
-                    <span itemprop="name">emotion</span>
+                  <a href="/categories/pytorch/" itemprop="url" rel="index">
+                    <span itemprop="name">pytorch</span>
                   </a>
                 </span>
 
@@ -759,8 +519,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/12/24/tanpengyou/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/24/tanpengyou/" itemprop="commentCount"></span>
+                <a href="/2018/01/30/pytorch-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/pytorch-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -790,13 +550,9 @@
       
         
           
-            <p>莫道不肝肠</p>
-<p>没有人会给你这么多耐心，来容忍你这样的拖拉，你这样中二的感觉。。</p>
-<p>真当是说出口的那一句，还是。。</p>
-<p>承诺不了，就不要去说大话了，只会让自己都看轻自己。。</p>
-<p>其实还是胆小，自己不擅长的事情，不敢去做，不敢去承担，只想着逃避，who care you</p>
-<p>之前已经打算好了，何故做小女儿态。。</p>
-<p>做不了别人眼中的自己，做好自己眼中的自己，算是一个卑微的acer的一点梦想吧。。</p>
+            <p><a href="http://pytorch.org/2018/01/19/a-year-in.html" target="_blank" rel="external">英文链接</a></p>
+<p><a href="https://medium.com/@drumrick/2017-%E5%9B%9E%E9%A1%A7%E6%96%87%E6%91%98%E8%A6%81%E7%B3%BB%E5%88%97%E4%BA%8C-pytorch-dff8dcb12bc" target="_blank" rel="external">中文链接</a></p>
+<p>我自己是覺得目前 PyTorch 的 ecosystem 還是不如 TensorFlow / Keras 完整，但是在 NLP 相關研究上的使用相對於其他研究或是其他框架是有比較多的趨勢。</p>
 
           
         
@@ -845,7 +601,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/20/ml-books/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/30/Netflix-flux/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -864,7 +620,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/20/ml-books/" itemprop="url">机器学习资料</a></h1>
+                <a class="post-title-link" href="/2018/01/30/Netflix-flux/" itemprop="url">Flux-A New Approach to System Intuition</a></h1>
         
 
         <div class="post-meta">
@@ -876,8 +632,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-20T14:54:41+08:00">
-                2017-12-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T14:47:03+08:00">
+                2018-01-30
               </time>
             
 
@@ -892,8 +648,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-20T15:35:33+08:00">
-                2017-12-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-08T15:43:48+08:00">
+                2018-03-08
               </time>
             
           </span>
@@ -911,8 +667,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/machine-learning/" itemprop="url" rel="index">
-                    <span itemprop="name">machine learning</span>
+                  <a href="/categories/flux/" itemprop="url" rel="index">
+                    <span itemprop="name">flux</span>
                   </a>
                 </span>
 
@@ -929,8 +685,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/12/20/ml-books/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/20/ml-books/" itemprop="commentCount"></span>
+                <a href="/2018/01/30/Netflix-flux/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/Netflix-flux/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -960,43 +716,23 @@
       
         
           
-            <p>借鉴于<a href="http://d0evi1.com/tecbook/" target="_blank" rel="external">d0evi1的博客</a></p>
-<h3 id="基础篇">基础篇</h3><p>数学基础</p>
+            <p><a href="https://medium.com/netflix-techblog/flux-a-new-approach-to-system-intuition-cf428b7316ec" target="_blank" rel="external">Flux:A New Approach to System Intuition</a></p>
+<p>Target:</p>
+<p>understand in real time what effect a variable is having on a subset of request traffic during a Chaos Experiment</p>
+<p>We require a tool that can give us this holistic understanding of traffic as it flows through our complex, distributed system</p>
+<p>requirements:</p>
 <ul>
-<li><a href="http://open.163.com/special/opencourse/daishu.html" target="_blank" rel="external">线性代数</a></li>
-<li><a href="https://book.douban.com/subject/1230154/" target="_blank" rel="external">统计学</a>， <a href="https://open.163.com/movie/2011/5/M/O/M807PLQMF_M80HQQGMO.html" target="_blank" rel="external">统计学导论</a></li>
-<li><a href="https://www.coursera.org/learn/calculus1" target="_blank" rel="external">微积分基础</a></li>
-<li><a href="https://open.163.com/movie/2017/5/K/0/MCIM9UCLC_MCIO21CK0.html" target="_blank" rel="external">微积分-积分学</a></li>
+<li>Realtime data</li>
+<li>Data on the volume, latency, and health of requests</li>
+<li>Insight into traffic at network edge</li>
+<li>The ability to drill into IPC traffic</li>
+<li>Dependency information about the microservices as requests travel through the system</li>
 </ul>
-<p>机器学习</p>
-<ul>
-<li><a href="https://www.coursera.org/learn/machine-learning" target="_blank" rel="external">吴恩达: machine learning－coursera</a></li>
-<li><a href="http://open.163.com/special/opencourse/machinelearning.html" target="_blank" rel="external">吴恩达: 机器学习－斯坦福</a></li>
-<li><a href="http://book.douban.com/subject/10590856/" target="_blank" rel="external">统计学习方法</a></li>
-</ul>
-<p>coursera的课程</p>
-<ul>
-<li><a href="https://class.coursera.org/ntumlone-003/lecture" target="_blank" rel="external">机器学习基础</a></li>
-<li><a href="https://class.coursera.org/ntumltwo-002/lecture" target="_blank" rel="external">机器学习技法</a></li>
-</ul>
-<p>交大课程</p>
-<ul>
-<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=397" target="_blank" rel="external">机器学习导论</a></li>
-<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=398" target="_blank" rel="external">统计机器学习</a></li>
-</ul>
-<h3 id="神经网络">神经网络</h3><p><a href="http://blog.sina.com.cn/s/blog_71329a960102v1eo.html" target="_blank" rel="external">神经网络简史</a></p>
-<p><a href="https://classroom.udacity.com/courses/ud730/lessons/6370362152/concepts/63798118150923" target="_blank" rel="external">深度学习 from google</a></p>
-<p>李宏毅<a href="http://space.bilibili.com/23852932/#!/channel/detail?cid=11583" target="_blank" rel="external">bilili</a></p>
-<p>coursera课程</p>
-<p><a href="https://class.coursera.org/neuralnets-2012-001/lecture" target="_blank" rel="external">机器学习中使用的神经网络</a></p>
-<p>tensorflow:</p>
-<p><a href="https://www.youtube.com/watch?v=g-EvyKpZjmQ&amp;list=PLSPPwKHXGS2110rEaNH7amFGmaD5hsObs&amp;spfreload=10" target="_blank" rel="external">standford tensorflow: CS20SI</a></p>
-<p><a href="http://web.stanford.edu/class/cs20si/syllabus.html" target="_blank" rel="external">配套课件ppt</a></p>
-<h3 id="NLP">NLP</h3><p>语法分析_陆俭明</p>
-<p><a href="https://www.youtube.com/watch?v=DJHvaGU9SW8" target="_blank" rel="external">CS224D 深度学习与自然语言处理</a> <a href="http://cs224d.stanford.edu/lectures/" target="_blank" rel="external">ppt</a></p>
-<h3 id="推荐系统">推荐系统</h3><p><a href="http://www.slideshare.net/xamat/recommender-systems-machine-learning-summer-school-2014-cmu" target="_blank" rel="external">Recommender Systems</a></p>
-<p><a href="http://www.slideshare.net/xamat/recsys-2016-tutorial-lessons-learned-from-building-reallife-recommender-systems" target="_blank" rel="external">Recsys 2016 tutorial: Lessons learned from building real-life recommender systems</a></p>
-<h3 id="others">others</h3><p><a href="http://study.163.com/course/introduction.htm?courseId=1003223001#/courseDetail" target="_blank" rel="external">深度学习与计算机视觉</a></p>
+<p>Pain Suit: As a microservice experiences failure, the corresponding electrodes cause a painful sensation.</p>
+<p>主要是针对流量监控部分？</p>
+<p>traffic failover?</p>
+<p>控制流量流向，</p>
+<p>The inter-region traffic from victim to savior increases while the savior region scales up. At that point, we switch DNS to point to the savior region. For about 10 seconds you see traffic to the victim region die down as DNS propagates. At this point, about 56 seconds in, nearly all of the victim region’s traffic is now pointing to the savior region</p>
 
           
         
@@ -1045,7 +781,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/markdown-math/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/cnn/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -1064,7 +800,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/19/markdown-math/" itemprop="url">Markdown中写数学公式</a></h1>
+                <a class="post-title-link" href="/2018/01/26/cnn/" itemprop="url">CNN架构</a></h1>
         
 
         <div class="post-meta">
@@ -1076,8 +812,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T11:50:55+08:00">
-                2017-12-19
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T16:26:27+08:00">
+                2018-01-26
               </time>
             
 
@@ -1092,8 +828,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T12:11:41+08:00">
-                2017-12-19
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T17:09:05+08:00">
+                2018-01-26
               </time>
             
           </span>
@@ -1111,8 +847,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
+                  <a href="/categories/CNN/" itemprop="url" rel="index">
+                    <span itemprop="name">CNN</span>
                   </a>
                 </span>
 
@@ -1129,8 +865,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/12/19/markdown-math/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/markdown-math/" itemprop="commentCount"></span>
+                <a href="/2018/01/26/cnn/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/cnn/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1160,18 +896,222 @@
       
         
           
-            <p>作为Latex的入门教程</p>
-<h3 id="插入数学公式">插入数学公式</h3><p><code>$数学公式$</code> 或者<code>$$数学公式$$</code></p>
-<p>行内公式以及行间公式</p>
-<p>$E = mc^2$</p>
-<p>$$<br>E=mc^2<br>$$</p>
-<h3 id="普通公式">普通公式</h3><p>$$<br>x = 100 * y + z - 10 / 33 + 10 % 3<br>$$</p>
-<h3 id="上下标">上下标</h3><p>$$<br>x=a<em>{1}^n \text +a</em>{2}^n<br>$$</p>
-<h3 id="括号">括号</h3><p><code>()</code>，<code>[]</code>和<code>|</code>都表示它们自己，但是<code>{}</code>因为有特殊作用因此当需要显示大括号时一般使用<code>\lbrace \rbrace</code>来表示。<br>$$<br>f(x, y) = 100 <em> \lbrace[(x + y) </em> 3] - 5\rbrace<br>$$</p>
-<h3 id="数学运算">数学运算</h3><p>分数 $\frac{1}{3}</p>
-<p>开方 $\sqrt[3]{x}$</p>
-<p>$\sqrt{5-x}$  </p>
-<h3 id="希腊字母">希腊字母</h3>
+            <p><a href="https://yq.aliyun.com/articles/363898?spm=5176.100239.bloghomeflow.64.243cef011nwfHp" target="_blank" rel="external">一文读懂最近流行的CNN架构</a></p>
+<ul>
+<li><p><strong>为什么CNN模型战胜了传统的计算机视觉方法?</strong></p>
+<p>图像分类的传统流程涉及两个模块：</p>
+<ul>
+<li><p>特征提取    </p>
+<p>从原始像素中提取更高级的特征，常用的传统特征报告GIST,HOG,SIFT,LBP等</p>
+<p>​</p>
+</li>
+<li><p>分类</p>
+<p>常用的分类模型有SVM,LR,随机森林及决策树</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>​    流程的一大问题是：特征提取不能根据图像和其他标签进行调整。传统的流程比较好的方法是，使用多种特征提取器，然后组合他们得到一种更好的特征</p>
+<p>​    深度学习背后的哲学，没有建立硬编码的特征提取器。它将特征提取和分类两个模块集成一个系统，通过识别图像的特征来进行提取并基于有标签数据进行分类。这样的集成系统就是多层感知机，即有多层神经元密集连接而成的神经网络</p>
+<p>​    CNN模型中的两个特点：<strong>神经元间的权重共享和卷积层之间的稀疏连接</strong></p>
+<ul>
+<li><p><strong>为了理解CNN背后的设计哲学，你可能会问：其目标是什么？</strong></p>
+<p>准确度和计算量</p>
+</li>
+</ul>
+<ul>
+<li><p><strong>AlexNet</strong></p>
+<p>AlexNet采用ReLU激活函数，而不像传统神经网络早期所采用的Tanh或Sigmoid激活函数，<code>f(x)=max(0, x)</code></p>
+<p>优势是，训练速度更快，不会出现梯度消失的问题</p>
+<p>另一个特点是，其通过在每个全连接层后面加上Dropout层减少了模型的过拟合问题。Dropout层以一定的概率随机的关闭当前层中神经元激活值</p>
+</li>
+</ul>
+<ul>
+<li><p><strong>VGG16</strong></p>
+<p>VGG16相比AlexNet的一个改进是采用连续的几个3x3的卷积代替AlexNet中的较大卷积核(11x11, 5x5)</p>
+</li>
+</ul>
+<p>​    对于给定的感受野（与输出有关的输入图片的局部大小），采用堆积的小卷积核是优于采用大的卷积核，因为多层非线性层可以增加网络深度来保证学习更复杂的模式，而且代价还比较小（参数更少）。</p>
+<p>​    VGG-D，使用了一种块结构: 多次重复使用同一大小的卷积核来提取更复杂和更具有表达性的特征</p>
+<ul>
+<li><strong>GoogLeNet/Inception</strong></li>
+</ul>
+<p>​    基于这样的理念：在深度网络中大部分的激活值是不必要的（为0），或者由于相关性是冗余。因为，最高效的深度网络架构应该是激活值之间是稀疏连接，这意味着512个输出特征图是没有必要与所有的512输入特征图相连</p>
+<p>​    设计了一种称为inception的模块，使用密集结构来近似一个稀疏的CNN。另一个特点是，使用了一中瓶颈层（实际上就是1x1卷积）来降低计算量</p>
+<p>​    另一个特殊设计是最后的卷积层后使用全局均值池化层替换全连接层。所谓全局池化就是在整个2D特征图上取均值</p>
+<ul>
+<li><strong>ResNet</strong></li>
+</ul>
+<p>​    从前面可以看到，随着网络深度增加，网络的准确度应该同步增加，当然要注意过拟合问题。但是网络深度增加的一个问题在于这些增加的层是参数更新的信号，因为梯度是从后向前传播的，增加网络深度后，比较靠前的层梯度会很小。</p>
+<p>​    这意味着这些层基本上学习停滞了，这就是梯度消失问题。深度网络的第二个问题在于训练，当网络更深时意味着参数空间更大，优化问题变得更难，因此简单地去增加网络深度反而出现更高的训练误差。</p>
+<p>​    引入所谓的学习残差的概念，</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/select-limit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/26/select-limit/" itemprop="url">毫秒级实时排序</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T15:53:26+08:00">
+                2018-01-26
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T15:58:54+08:00">
+                2018-01-26
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sort/" itemprop="url" rel="index">
+                    <span itemprop="name">sort</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/26/select-limit/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/select-limit/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://yq.aliyun.com/articles/378962?spm=a2c4e.11153940.bloghomeflow.105.FrxURS" target="_blank" rel="external">实践：几十亿条数据分布在几十个节点上的毫秒级实时排序方法</a></p>
+<p><code>select a from tb order by a limit 100, 10;</code></p>
+<p><code>对分布在几十个节点上的上亿条数据要求1秒内排序。</code></p>
+
           
         
       
@@ -1210,7 +1150,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/21/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><span class="page-number current">22</span><a class="page-number" href="/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/page/50/">50</a><a class="extend next" rel="next" href="/page/23/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/21/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><span class="page-number current">22</span><a class="page-number" href="/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><a class="extend next" rel="next" href="/page/23/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1260,7 +1200,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">249</span>
+                  <span class="site-state-item-count">257</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1271,7 +1211,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">108</span>
+                  <span class="site-state-item-count">112</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1282,7 +1222,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">114</span>
+                  <span class="site-state-item-count">118</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

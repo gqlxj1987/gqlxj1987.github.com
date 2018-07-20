@@ -248,7 +248,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/09/spark-submit/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/24/tanpengyou/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -267,7 +267,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/09/spark-submit/" itemprop="url">Spark Submit 参数分析</a></h1>
+                <a class="post-title-link" href="/2017/12/24/tanpengyou/" itemprop="url">莫道不肝肠</a></h1>
         
 
         <div class="post-meta">
@@ -279,8 +279,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">
-                2017-08-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-24T11:27:26+08:00">
+                2017-12-24
               </time>
             
 
@@ -295,8 +295,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:37:35+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-24T11:42:48+08:00">
+                2017-12-24
               </time>
             
           </span>
@@ -314,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/spark/" itemprop="url" rel="index">
-                    <span itemprop="name">spark</span>
+                  <a href="/categories/emotion/" itemprop="url" rel="index">
+                    <span itemprop="name">emotion</span>
                   </a>
                 </span>
 
@@ -332,8 +332,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/09/spark-submit/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/09/spark-submit/" itemprop="commentCount"></span>
+                <a href="/2017/12/24/tanpengyou/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/24/tanpengyou/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -363,88 +363,13 @@
       
         
           
-            <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="external">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
-<ul>
-<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
-</li>
-<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
-</li>
-</ul>
-<p>Lil bit theory:</p>
-<ul>
-<li>Hadoop/Yarn/OS Deamons:</li>
-</ul>
-<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
-<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
-<ul>
-<li>Yarn ApplicationMaster (AM)</li>
-</ul>
-<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
-<ul>
-<li>HDFS Throughput</li>
-</ul>
-<ul>
-<li>MemoryOverhead</li>
-</ul>
-<blockquote>
-<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
-<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
-</blockquote>
-<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
-<p>tips:</p>
-<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
-<p>相关的配置:</p>
-<blockquote>
-<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
-</blockquote>
-<ul>
-<li>First Approach: Tiny executors [One Executor per core]:</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-cluster`</div><div class="line">= `num-cores-per-node * total-nodes-in-cluster` </div><div class="line">= 16 x 10 = 160</div></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><code>--executor-cores</code> = 1 (one executor per core)</li>
-<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/16 = 4GB</div></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>Not Good!</p>
-<ul>
-<li>Second Approach: Fat executors (One Executor per node):</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-nodes-in-cluster`</div><div class="line">= 10</div></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `total-cores-in-a-node`</div><div class="line">= 16</div></pre></td></tr></table></figure>
-</li>
-<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
-   <figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">= `mem-per-node/num-executors-per-node`</div><div class="line">= 64GB/1 = 64GB</div></pre></td></tr></table></figure>
-<p>   ​<br>Not Good for HDFS throughput</p>
-</li>
-</ul>
-<ul>
-<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
-<ul>
-<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
-<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
-<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
-<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
-<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
-<li>Number of executors per node = 30/10 = 3</li>
-<li>Memory per executor = 64GB/3 = 21GB</li>
-<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
-</ul>
-</li>
-</ul>
-<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+            <p>莫道不肝肠</p>
+<p>没有人会给你这么多耐心，来容忍你这样的拖拉，你这样中二的感觉。。</p>
+<p>真当是说出口的那一句，还是。。</p>
+<p>承诺不了，就不要去说大话了，只会让自己都看轻自己。。</p>
+<p>其实还是胆小，自己不擅长的事情，不敢去做，不敢去承担，只想着逃避，who care you</p>
+<p>之前已经打算好了，何故做小女儿态。。</p>
+<p>做不了别人眼中的自己，做好自己眼中的自己，算是一个卑微的acer的一点梦想吧。。</p>
 
           
         
@@ -493,7 +418,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/07/one-hot/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/20/ml-books/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -512,7 +437,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/07/one-hot/" itemprop="url">One Hot编码</a></h1>
+                <a class="post-title-link" href="/2017/12/20/ml-books/" itemprop="url">机器学习资料</a></h1>
         
 
         <div class="post-meta">
@@ -524,8 +449,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">
-                2017-08-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-20T14:54:41+08:00">
+                2017-12-20
               </time>
             
 
@@ -540,8 +465,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-07T07:47:26+08:00">
-                2017-08-07
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-20T15:35:33+08:00">
+                2017-12-20
               </time>
             
           </span>
@@ -559,8 +484,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/one-hot/" itemprop="url" rel="index">
-                    <span itemprop="name">one hot</span>
+                  <a href="/categories/machine-learning/" itemprop="url" rel="index">
+                    <span itemprop="name">machine learning</span>
                   </a>
                 </span>
 
@@ -577,8 +502,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/07/one-hot/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/07/one-hot/" itemprop="commentCount"></span>
+                <a href="/2017/12/20/ml-books/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/20/ml-books/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -608,34 +533,43 @@
       
         
           
-            <p>独热编码，又成为一位有效编码</p>
-<blockquote>
-<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
-</blockquote>
-<p>优点部分：</p>
+            <p>借鉴于<a href="http://d0evi1.com/tecbook/" target="_blank" rel="external">d0evi1的博客</a></p>
+<h3 id="基础篇">基础篇</h3><p>数学基础</p>
 <ul>
-<li><p>能够处理非连续型数值特征</p>
-</li>
-<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
-</li>
+<li><a href="http://open.163.com/special/opencourse/daishu.html" target="_blank" rel="external">线性代数</a></li>
+<li><a href="https://book.douban.com/subject/1230154/" target="_blank" rel="external">统计学</a>， <a href="https://open.163.com/movie/2011/5/M/O/M807PLQMF_M80HQQGMO.html" target="_blank" rel="external">统计学导论</a></li>
+<li><a href="https://www.coursera.org/learn/calculus1" target="_blank" rel="external">微积分基础</a></li>
+<li><a href="https://open.163.com/movie/2017/5/K/0/MCIM9UCLC_MCIO21CK0.html" target="_blank" rel="external">微积分-积分学</a></li>
 </ul>
-<p>采用one hot的原因：</p>
+<p>机器学习</p>
 <ul>
-<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
-</li>
-<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
-</li>
+<li><a href="https://www.coursera.org/learn/machine-learning" target="_blank" rel="external">吴恩达: machine learning－coursera</a></li>
+<li><a href="http://open.163.com/special/opencourse/machinelearning.html" target="_blank" rel="external">吴恩达: 机器学习－斯坦福</a></li>
+<li><a href="http://book.douban.com/subject/10590856/" target="_blank" rel="external">统计学习方法</a></li>
 </ul>
+<p>coursera的课程</p>
 <ul>
-<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
+<li><a href="https://class.coursera.org/ntumlone-003/lecture" target="_blank" rel="external">机器学习基础</a></li>
+<li><a href="https://class.coursera.org/ntumltwo-002/lecture" target="_blank" rel="external">机器学习技法</a></li>
 </ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div><div class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</div><div class="line"></div><div class="line">enc = OneHotEncoder()</div><div class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.n_values_ is:"</span>,enc.n_values_</div><div class="line"><span class="keyword">print</span> <span class="string">"enc.feature_indices_ is:"</span>,enc.feature_indices_</div><div class="line"><span class="keyword">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</div></pre></td></tr></table></figure>
-<p>输出结果部分：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</div><div class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</div><div class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</div></pre></td></tr></table></figure>
-<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
-<p>eature<em>indices</em>：根据说明，明显可以看出其是对n_values的一个累加。 </p>
-<p>最后表示的为相关的one hot编码?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="string">"""Encode categorical integer features using a one-hot aka one-of-K scheme.</span></div><div class="line"></div><div class="line">    The input to this transformer should be a matrix of integers, denoting</div><div class="line">    the values taken on by categorical (discrete) features. The output will be</div><div class="line">    a sparse matrix where each column corresponds to one possible value of one</div><div class="line">    feature. It is assumed that input features take on values in the range</div><div class="line">    [0, n_values).</div><div class="line"></div><div class="line">    This encoding is needed for feeding categorical data to many scikit-learn</div><div class="line">    estimators, notably linear models and SVMs with the standard kernels.</div><div class="line"></div><div class="line">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</div><div class="line"></div><div class="line">Attributes</div><div class="line">    ----------</div><div class="line">    active_features_ : array</div><div class="line">        Indices for active features, meaning values that actually occur</div><div class="line">        in the training set. Only available when n_values is ``'auto'``.</div><div class="line"></div><div class="line">    feature_indices_ : array of shape (n_features,)</div><div class="line">        Indices to feature ranges.</div><div class="line">        Feature ``i`` in the original data is mapped to features</div><div class="line">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</div><div class="line">        (and then potentially masked by `active_features_` afterwards)</div><div class="line"></div><div class="line">    n_values_ : array of shape (n_features,)</div><div class="line">        Maximum number of values per feature.</div></pre></td></tr></table></figure>
+<p>交大课程</p>
+<ul>
+<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=397" target="_blank" rel="external">机器学习导论</a></li>
+<li><a href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=398" target="_blank" rel="external">统计机器学习</a></li>
+</ul>
+<h3 id="神经网络">神经网络</h3><p><a href="http://blog.sina.com.cn/s/blog_71329a960102v1eo.html" target="_blank" rel="external">神经网络简史</a></p>
+<p><a href="https://classroom.udacity.com/courses/ud730/lessons/6370362152/concepts/63798118150923" target="_blank" rel="external">深度学习 from google</a></p>
+<p>李宏毅<a href="http://space.bilibili.com/23852932/#!/channel/detail?cid=11583" target="_blank" rel="external">bilili</a></p>
+<p>coursera课程</p>
+<p><a href="https://class.coursera.org/neuralnets-2012-001/lecture" target="_blank" rel="external">机器学习中使用的神经网络</a></p>
+<p>tensorflow:</p>
+<p><a href="https://www.youtube.com/watch?v=g-EvyKpZjmQ&amp;list=PLSPPwKHXGS2110rEaNH7amFGmaD5hsObs&amp;spfreload=10" target="_blank" rel="external">standford tensorflow: CS20SI</a></p>
+<p><a href="http://web.stanford.edu/class/cs20si/syllabus.html" target="_blank" rel="external">配套课件ppt</a></p>
+<h3 id="NLP">NLP</h3><p>语法分析_陆俭明</p>
+<p><a href="https://www.youtube.com/watch?v=DJHvaGU9SW8" target="_blank" rel="external">CS224D 深度学习与自然语言处理</a> <a href="http://cs224d.stanford.edu/lectures/" target="_blank" rel="external">ppt</a></p>
+<h3 id="推荐系统">推荐系统</h3><p><a href="http://www.slideshare.net/xamat/recommender-systems-machine-learning-summer-school-2014-cmu" target="_blank" rel="external">Recommender Systems</a></p>
+<p><a href="http://www.slideshare.net/xamat/recsys-2016-tutorial-lessons-learned-from-building-reallife-recommender-systems" target="_blank" rel="external">Recsys 2016 tutorial: Lessons learned from building real-life recommender systems</a></p>
+<h3 id="others">others</h3><p><a href="http://study.163.com/course/introduction.htm?courseId=1003223001#/courseDetail" target="_blank" rel="external">深度学习与计算机视觉</a></p>
 
           
         
@@ -684,7 +618,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/06/go-goroutine/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/markdown-math/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -703,7 +637,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/06/go-goroutine/" itemprop="url">Go Goroutines</a></h1>
+                <a class="post-title-link" href="/2017/12/19/markdown-math/" itemprop="url">Markdown中写数学公式</a></h1>
         
 
         <div class="post-meta">
@@ -715,8 +649,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">
-                2017-08-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T11:50:55+08:00">
+                2017-12-19
               </time>
             
 
@@ -731,8 +665,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-06T16:34:40+08:00">
-                2017-08-06
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T12:11:41+08:00">
+                2017-12-19
               </time>
             
           </span>
@@ -750,8 +684,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
+                  <a href="/categories/math/" itemprop="url" rel="index">
+                    <span itemprop="name">math</span>
                   </a>
                 </span>
 
@@ -768,8 +702,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/06/go-goroutine/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/go-goroutine/" itemprop="commentCount"></span>
+                <a href="/2017/12/19/markdown-math/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/markdown-math/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -799,11 +733,205 @@
       
         
           
-            <p>关于go goroutines部分</p>
-<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
-<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
-<p>通过sync.Mutex进行lock以及unlock操作</p>
-<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
+            <p>作为Latex的入门教程</p>
+<h3 id="插入数学公式">插入数学公式</h3><p><code>$数学公式$</code> 或者<code>$$数学公式$$</code></p>
+<p>行内公式以及行间公式</p>
+<p>$E = mc^2$</p>
+<p>$$<br>E=mc^2<br>$$</p>
+<h3 id="普通公式">普通公式</h3><p>$$<br>x = 100 * y + z - 10 / 33 + 10 % 3<br>$$</p>
+<h3 id="上下标">上下标</h3><p>$$<br>x=a<em>{1}^n \text +a</em>{2}^n<br>$$</p>
+<h3 id="括号">括号</h3><p><code>()</code>，<code>[]</code>和<code>|</code>都表示它们自己，但是<code>{}</code>因为有特殊作用因此当需要显示大括号时一般使用<code>\lbrace \rbrace</code>来表示。<br>$$<br>f(x, y) = 100 <em> \lbrace[(x + y) </em> 3] - 5\rbrace<br>$$</p>
+<h3 id="数学运算">数学运算</h3><p>分数 $\frac{1}{3}</p>
+<p>开方 $\sqrt[3]{x}$</p>
+<p>$\sqrt{5-x}$  </p>
+<h3 id="希腊字母">希腊字母</h3>
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/19/one-week/" itemprop="url">Maria</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T00:05:18+08:00">
+                2017-12-19
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T00:17:26+08:00">
+                2017-12-19
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/12/19/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/one-week/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>Maria</p>
+<p>You’ve gotta see her</p>
+<p>Go insane and out of your mind</p>
+<p>有过甜蜜，也有苦涩，其实，也是找到自我的过程，放弃一些错误的自以为是，不要眼高手低，承认自己。。</p>
+<p>本周工作：</p>
+<ul>
+<li>代码部分的一些整合</li>
+<li>关于recognize inputs部分的一些知识的学习</li>
+<li>sdk存活数据部分？</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>温习机器学习</li>
+<li>latex部分的一些排版规则</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>用户的协同过滤，尝试出一版用户的相关数据</li>
+<li>机器学习入门，关于那本书继续学习</li>
+<li>blockchain部分</li>
+</ul>
+<p>慢慢恢复更新的频率，相关技术书籍的阅读以及blog的编写。。</p>
+<p>事情不要拖拉，房子以及电话上，不要总觉得理所当然。。</p>
+<p>恢复那种战战兢兢的状态，一件事一件事地弄好。。</p>
+<p>答应的事情，尽量坐到，做到心安就行，承认自己不行，并不是一件坏事，还是acer标称咯。。</p>
 
           
         
@@ -852,7 +980,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/learn-react-by-five-step/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/13/neuralnetwork-deep-learning1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -871,7 +999,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/01/learn-react-by-five-step/" itemprop="url">Learn React by five step</a></h1>
+                <a class="post-title-link" href="/2017/12/13/neuralnetwork-deep-learning1/" itemprop="url">neuralnetwork deep learning1</a></h1>
         
 
         <div class="post-meta">
@@ -883,8 +1011,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T07:43:52+08:00">
-                2017-08-01
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-13T18:18:12+08:00">
+                2017-12-13
               </time>
             
 
@@ -899,8 +1027,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:42:32+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T10:34:22+08:00">
+                2017-12-19
               </time>
             
           </span>
@@ -918,8 +1046,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/react/" itemprop="url" rel="index">
-                    <span itemprop="name">react</span>
+                  <a href="/categories/deep-learning/" itemprop="url" rel="index">
+                    <span itemprop="name">deep learning</span>
                   </a>
                 </span>
 
@@ -936,8 +1064,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/01/learn-react-by-five-step/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/learn-react-by-five-step/" itemprop="commentCount"></span>
+                <a href="/2017/12/13/neuralnetwork-deep-learning1/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/13/neuralnetwork-deep-learning1/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -967,246 +1095,30 @@
       
         
           
-            <p><a href="https://www.lullabot.com/articles/how-to-learn-react" target="_blank" rel="external">How to Learn React: A Five-Step Plan</a></p>
-<h3 id="Step_One_-_React_Documentation_+_Code_Sandbox">Step One - React Documentation + Code Sandbox</h3><p><a href="https://codesandbox.io/s/new" target="_blank" rel="external">Code Sandbox</a></p>
-<p>Key Takeaways</p>
+            <p><a href="http://neuralnetworksanddeeplearning.com/chap1.html" target="_blank" rel="external">neural netowrks and deep learning</a></p>
+<p>神经网络的机器学习，主要分为几个部分</p>
+<h3 id="神经网络识别手写">神经网络识别手写</h3><p>two important types of artificial neuron (the perceptron and the sigmoid neuron)</p>
+<p>$$<br>output = \begin{cases}<br>0,    &amp; \text{if } \sum<em>{j}w</em>{j}x<em>{j} \leq threshold \<br>1,     &amp; \text{if } \sum</em>{j}w<em>{j}x</em>{j} &gt; threshold<br>\end{cases}<br>$$</p>
+<p>simplify the describe perceptrons</p>
+<p>$$<br>w \cdot x \equiv \sum<em>{j}w</em>{j}x_{j} \<br>b \equiv -threshold<br>$$</p>
+<p>$$<br>output = \begin{cases}<br>0, &amp; \text{if } w \cdot x +b \leq 0 \<br>1, &amp; \text{if } w \cdot x +b &gt; 0<br>\end {cases}<br>$$</p>
+<p>While the design of the input and output layers of a neural network is often straightforward, there can be quite an art to the design of the hidden layers</p>
+<p><em>multilayer perceptrons</em> or<em>MLPs</em></p>
+<p> <em>feedforward</em> neural networks </p>
+<p>RNN networks, feedback loops are possible</p>
+<p>two problems:</p>
 <ul>
-<li>Introducing JSX</li>
-<li>Rendering Elements</li>
-<li>Components and Props</li>
-<li>State and Lifecycle (super important!)</li>
-<li>Handling Events</li>
-<li>Composition vs Inheritance</li>
-<li>Thinking In React</li>
+<li>breaking to segment, segmentation problem</li>
+<li>classifying individual digits</li>
 </ul>
-<h3 id="Step_Two_-_React_Fundamentals_Course">Step Two - React Fundamentals Course</h3><p><a href="https://reacttraining.com/online/react-fundamentals" target="_blank" rel="external">Fundamentals Course</a></p>
-<p><a href="https://egghead.io/courses/react-fundamentals" target="_blank" rel="external">other resource</a>, <a href="https://www.youtube.com/playlist?list=PLoYCgNOIyGABj2GQSlDRjgvXtqfDxKm5b" target="_blank" rel="external">other2</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li>Re-enforcement of principles from React docs</li>
-<li>Intro to the build tools for React projects, particularly webpack</li>
-<li>Stateless functional components</li>
-<li>Routing (how you navigate from one “page” to the next)</li>
-<li>Fetching async data</li>
-</ul>
-<h3 id="Step_Three_-_Read_ReactBits">Step Three - Read ReactBits</h3><p><a href="https://vasanthk.gitbooks.io/react-bits/" target="_blank" rel="external">ReactBits</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Design Patterns and Techniques (most important tip is probably <a href="https://vasanthk.gitbooks.io/react-bits/patterns/27.passing-function-to-setState.html" target="_blank" rel="external">this</a>)</p>
-</li>
-<li><p>Anti-Patterns</p>
-</li>
-<li>Perf Tips</li>
-</ul>
-<p>Facebook came up with an answer to these questions—the <a href="https://facebook.github.io/flux/" target="_blank" rel="external">Flux architecture</a>. Some time later, Dan Abramov created an implementation of Flux he called <a href="http://redux.js.org/" target="_blank" rel="external">Redux</a>.</p>
-<p><a href="https://mobx.js.org/" target="_blank" rel="external">MobX</a> is recommend</p>
-<h3 id="Step_Four_-_Redux_Documentation_+_Redux_Video_Series">Step Four - Redux Documentation + Redux Video Series</h3><p><a href="https://egghead.io/courses/getting-started-with-redux" target="_blank" rel="external">Getting Started with Redux</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Three principles of Redux</p>
-</li>
-<li><p>Actions</p>
-</li>
-<li>Reducers</li>
-<li>Data flow</li>
-<li>Usage with React</li>
-<li>Async actions</li>
-<li>Async Flow</li>
-<li>Middleware</li>
-</ul>
-<h3 id="Step_Five_-_The_Complete_Redux_Book_+_Redux_Video_Series_Part_2">Step Five - The Complete Redux Book + Redux Video Series Part 2</h3><p><a href="https://leanpub.com/redux-book" target="_blank" rel="external">Redux Book</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Re-enforcement of principles from Redux docs and/or first video series</p>
-</li>
-<li><p>Understanding of basic functional programming principles</p>
-</li>
-<li>Understanding of creating and writing Redux middleware</li>
-<li>Understanding of how to architect a React + Redux application</li>
-</ul>
-<h3 id="Other_things">Other things</h3><p><a href="https://github.com/redux-saga/redux-saga" target="_blank" rel="external">Redux Saga</a> middlemare for Redux</p>
-<p><a href="https://github.com/reactjs/reselect" target="_blank" rel="external">Reselect</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/Authentication-and-Authorization-in-microService/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="url">Authentication and Authorization in MicroService</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T00:29:18+08:00">
-                2017-08-01
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:46:31+08:00">
-                2017-12-12
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/auth/" itemprop="url" rel="index">
-                    <span itemprop="name">auth</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/08/01/Authentication-and-Authorization-in-microService/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/technology-learning/how-we-solved-authentication-and-authorization-in-our-microservice-architecture-994539d1b6e6" target="_blank" rel="external">How We Solved Authentication and Authorization in Our Microservice Architecture</a></p>
-<h3 id="Architecutre">Architecutre</h3><p>Building Blocks of our authentication/authorization layer</p>
-<p>Token Based Authentication</p>
-<blockquote>
-<p>When a user logs in successfully, a jwt is returned. On subsequent requests, the user must attach this token to each request. This is needed so that the api gateway can establish the identity of the user and extract the user’s claims from the token.</p>
-</blockquote>
-<p>Single SignON(SSO) </p>
-<blockquote>
-<p>The way SSO is implemented in our system is simple. When a user logs in for the first time from any frontend app, a cookie called jwt-token gets created on the api-gateway. The cookie’s domain is .andela.com and hence accessible to all andela.com subdomain</p>
-</blockquote>
-<p>针对mobile apps部分</p>
-<blockquote>
-<p>the api-gateway supports passing the jwt via Authorization header as Bearer Tokens</p>
-</blockquote>
-<h3 id="Authentication">Authentication</h3><p>The api gateway</p>
-<h3 id="Authorization">Authorization</h3><p>permissions in authorization service has many to many relationship with roles in user service</p>
-<p>权限模型部分</p>
-
+<p>There are many approaches to solving the segmentation problem. </p>
+<p>One approach is to trial many different ways of segmenting the image, using the individual digit classifier to score each trial segmentation. A trial segmentation gets a high score if the individual digit classifier is confident of its classification in all segments, and a low score if the classifier is having a lot of trouble in one or more segments. </p>
+<p>The idea is that if the classifier is having trouble somewhere, then it’s probably having trouble because the segmentation has been chosen incorrectly. This idea and other variations can be used to solve the segmentation problem quite well.</p>
+<p>10 outputs vs 4 outputs</p>
+<p>gradient descent<br>$$<br>C(w,b) \equiv \frac{1}{2n}\sum_{x} \begin{Vmatrix} y(x)-a  \end{Vmatrix}^2<br>$$</p>
+<p>ball-rolling analogy<br>$$<br>\Delta C \approx \frac{\partial C}{\partial v1} \Delta v1 + \frac{\partial C}{\partial v2} \Delta v2<br>$$</p>
+<p>$$<br>a’ = \sigma(wa + b)<br>$$</p>
+<h3 id="bp算法的工作原理">bp算法的工作原理</h3><h3 id="提高神经网络学习方式">提高神经网络学习方式</h3><h3 id="神经网络可以计算任何方法">神经网络可以计算任何方法</h3><h3 id="深度神经网络很难训练">深度神经网络很难训练</h3><h3 id="deep_learning">deep learning</h3>
           
         
       
@@ -1245,7 +1157,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/23/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><span class="page-number current">24</span><a class="page-number" href="/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/page/50/">50</a><a class="extend next" rel="next" href="/page/25/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/23/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><span class="page-number current">24</span><a class="page-number" href="/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><a class="extend next" rel="next" href="/page/25/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1295,7 +1207,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">249</span>
+                  <span class="site-state-item-count">257</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1306,7 +1218,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">108</span>
+                  <span class="site-state-item-count">112</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1317,7 +1229,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">114</span>
+                  <span class="site-state-item-count">118</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
