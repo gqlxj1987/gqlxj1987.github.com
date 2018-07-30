@@ -248,6 +248,612 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/10/golang-return/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/10/golang-return/" itemprop="url">Golang Return</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-10T10:21:11+08:00">
+                2018-01-10
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-10T11:35:14+08:00">
+                2018-01-10
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/10/golang-return/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/10/golang-return/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://blog.minio.io/golang-internals-part-2-nice-benefits-of-named-return-values-1e95305c8687" target="_blank" rel="external">Golang Internals Part 2: Nice benefits of named return values</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> objectInfo <span class="keyword">struct</span> &#123;</div><div class="line">	arg1 <span class="keyword">int64</span></div><div class="line">	arg2 <span class="keyword">uint64</span></div><div class="line">	arg3 <span class="keyword">string</span></div><div class="line">	arg4 []<span class="keyword">int</span></div><div class="line">&#125;</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">NoNamedReturnParams</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(objectInfo)</span></span> &#123;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">1</span> &#123;</div><div class="line">		<span class="comment">// Do one thing</span></div><div class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">2</span> &#123;</div><div class="line">		<span class="comment">// Do another thing</span></div><div class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">3</span> &#123;</div><div class="line">		<span class="comment">// Do one more thing still</span></div><div class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">// Normal return</span></div><div class="line">	<span class="keyword">return</span> objectInfo&#123;&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>actual code that the golang compiler generates</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">&quot;&quot;.NoNamedReturnParams t=1 size=243 args=0x40 locals=0x0</div><div class="line">0x0000 	TEXT	&quot;&quot;.NoNamedReturnParams(SB), $0-64</div><div class="line">0x0000 	MOVQ	$0, &quot;&quot;.~r1+16(FP)</div><div class="line">0x0009 	LEAQ	&quot;&quot;.~r1+24(FP), DI</div><div class="line">0x000e 	XORPS	X0, X0</div><div class="line">0x0011 	ADDQ	$-16, DI</div><div class="line">0x0015 	DUFFZERO	$288</div><div class="line">0x0028 	MOVQ	&quot;&quot;.i+8(FP), AX</div><div class="line">0x002d 	CMPQ	AX, $1</div><div class="line">0x0031 	JEQ	$0, 199</div><div class="line">0x0037 	CMPQ	AX, $2</div><div class="line">0x003b 	JEQ	$0, 155</div><div class="line">0x003d 	CMPQ	AX, $3</div><div class="line">0x0041 	JNE	111</div><div class="line">0x0043 	MOVQ	&quot;&quot;.statictmp_2(SB), AX</div><div class="line">0x004a 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</div><div class="line">0x004f 	LEAQ	&quot;&quot;.~r1+24(FP), DI</div><div class="line">0x0054 	LEAQ	&quot;&quot;.statictmp_2+8(SB), SI</div><div class="line">0x005b 	DUFFCOPY	$854</div><div class="line">0x006e 	RET</div><div class="line">0x006f 	MOVQ	&quot;&quot;.statictmp_3(SB), AX</div><div class="line">0x0076 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</div><div class="line">0x007b 	LEAQ	&quot;&quot;.~r1+24(FP), DI</div><div class="line">0x0080 	LEAQ	&quot;&quot;.statictmp_3+8(SB), SI</div><div class="line">0x0087 	DUFFCOPY	$854</div><div class="line">0x009a 	RET</div><div class="line">0x009b 	MOVQ	&quot;&quot;.statictmp_1(SB), AX</div><div class="line">0x00a2 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</div><div class="line">0x00a7 	LEAQ	&quot;&quot;.~r1+24(FP), DI</div><div class="line">0x00ac 	LEAQ	&quot;&quot;.statictmp_1+8(SB), SI</div><div class="line">0x00b3 	DUFFCOPY	$854</div><div class="line">0x00c6 	RET</div><div class="line">0x00c7 	MOVQ	&quot;&quot;.statictmp_0(SB), AX</div><div class="line">0x00ce 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</div><div class="line">0x00d3 	LEAQ	&quot;&quot;.~r1+24(FP), DI</div><div class="line">0x00d8 	LEAQ	&quot;&quot;.statictmp_0+8(SB), SI</div><div class="line">0x00df 	DUFFCOPY	$854</div><div class="line">0x00f2 	RET</div></pre></td></tr></table></figure>
+<blockquote>
+<p>All fine and dandy, but if that looks a bit repetitive to you, you are quite right. Essentially for each of the <code>return</code> statements the object to be returned is more or less allocated/initialized (or more precisely copied via the <code>DUFFCOPY</code>macro).</p>
+</blockquote>
+<p>naked return feature of golang</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">NamedReturnParams</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(oi objectInfo)</span></span> &#123;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">1</span> &#123;</div><div class="line">		<span class="comment">// Do one thing</span></div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">2</span> &#123;</div><div class="line">		<span class="comment">// Do another thing</span></div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> i == <span class="number">3</span> &#123;</div><div class="line">		<span class="comment">// Do one more thing still</span></div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">// Normal return</span></div><div class="line">	<span class="keyword">return</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>It reduces the size of the function down from <code>243</code> to <code>67</code> bytes. Also as an additional benefit you will save some CPU cycles upon exiting out because there is no need anymore to do anything in order to setup the return value.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// parse credentialHeader string into its structured form.</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">parseCredentialHeader</span><span class="params">(credElement <span class="keyword">string</span>)</span> <span class="params">(ch credentialHeader)</span></span> &#123;</div><div class="line">    creds := strings.Split(strings.TrimSpace(credElement), <span class="string">"="</span>)</div><div class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(creds) != <span class="number">2</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> creds[<span class="number">0</span>] != <span class="string">"Credential"</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    credElements := strings.Split(strings.TrimSpace(creds[<span class="number">1</span>]), <span class="string">"/"</span>)</div><div class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(credElements) != <span class="number">5</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> <span class="literal">false</span> <span class="comment">/*!isAccessKeyValid(credElements[0])*/</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    <span class="comment">// Save access key id.</span></div><div class="line">    cred := credentialHeader&#123;</div><div class="line">	accessKey: credElements[<span class="number">0</span>],</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">var</span> e error</div><div class="line">    cred.scope.date, e = time.Parse(yyyymmdd, credElements[<span class="number">1</span>])</div><div class="line">    <span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    cred.scope.region = credElements[<span class="number">2</span>]</div><div class="line">    <span class="keyword">if</span> credElements[<span class="number">3</span>] != <span class="string">"s3"</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    cred.scope.service = credElements[<span class="number">3</span>]</div><div class="line">    <span class="keyword">if</span> credElements[<span class="number">4</span>] != <span class="string">"aws4_request"</span> &#123;</div><div class="line">	<span class="keyword">return</span></div><div class="line">    &#125;</div><div class="line">    cred.scope.request = credElements[<span class="number">4</span>]</div><div class="line">    <span class="keyword">return</span> cred</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>隐含的return value的方式</p>
+<p>Note that actually the <code>ch</code> variable is a normal local variable just like any other local variable that is defined within the function. And as such you can change its value from the default ‘zero’ state (but of course then the modified version will be returned upon exiting out).</p>
+<h4 id="others_uses_of_named_return_values">others uses of named return values</h4><p>As pointed out by several persons, another benefit of named return values is the use in closures (i.e. defer statements). Thus one may access the named return value in a function that is called as the result of a <code>defer</code> statement and act accordingly.</p>
+<h4 id="conclusion">conclusion</h4><p>So we will be gradually adopting named return values more and more, both for new code as well as for existing code.</p>
+<p>future to integration with <code>gofmt</code> to modify the source automatically</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/04/go-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/04/go-performance/" itemprop="url">Go performance</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-04T17:12:37+08:00">
+                2018-01-04
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-01-07T15:22:11+08:00">
+                2018-01-07
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go/" itemprop="url" rel="index">
+                    <span itemprop="name">Go</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/04/go-performance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/04/go-performance/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>go performance optimization workflow:</p>
+<ul>
+<li>determine your performance goals</li>
+<li>profile to identify the areas to improve. This can be CPU, heap allocations, or goroutine blocking<ul>
+<li>CPU</li>
+<li>heap allocation</li>
+<li>goroutine blocking</li>
+</ul>
+</li>
+<li>benchmark to determine the speed up your solution will provide using the built-in benchmarking framework (<a href="http://golang.org/pkg/testing/" target="_blank" rel="external">http://golang.org/pkg/testing/</a>) </li>
+<li>profile again afterwards to verify the issue is gone</li>
+<li>use <a href="https://godoc.org/golang.org/x/perf/benchstat" target="_blank" rel="external">https://godoc.org/golang.org/x/perf/benchstat</a> or <a href="https://github.com/codahale/tinystat" target="_blank" rel="external">https://github.com/codahale/tinystat</a> to verify that a set of timings are ‘sufficiently’ different for an optimization to be worth the added code complexity</li>
+</ul>
+<p>The basic rules of the game are:</p>
+<ol>
+<li>minimize CPU usage<ul>
+<li>do less work</li>
+<li>this generally means “a faster algorithm”</li>
+<li>but CPU caches and the hidden constants in O() can play tricks on you</li>
+</ul>
+</li>
+<li>minimize allocations (which leads to less CPU stolen by the GC)</li>
+<li>make your data quick to access</li>
+</ol>
+<h4 id="Basic">Basic</h4><ul>
+<li>be aware of <a href="http://accidentallyquadratic.tumblr.com/" target="_blank" rel="external">http://accidentallyquadratic.tumblr.com/</a></li>
+</ul>
+<h4 id="Introductory_Pofiling">Introductory Pofiling</h4><ul>
+<li><a href="https://github.com/google/pprof" target="_blank" rel="external">pprof</a></li>
+<li>Writing and running (micro)benchmarks<ul>
+<li>-cpuprofile</li>
+<li>-memprofile</li>
+<li>-benchmem</li>
+</ul>
+</li>
+<li>how to read it pprof output</li>
+<li>macro-benchmarks, net/http/pprof</li>
+</ul>
+<h4 id="Tracer">Tracer</h4><ul>
+<li>Techniques specific to the architecture running the code</li>
+<li>introduction to CPU caches<ul>
+<li>building intuition around cache-lines: sizes, padding, alignment</li>
+<li>false-sharing</li>
+<li>OS tools to view cache-misses</li>
+</ul>
+</li>
+<li>branch prediction</li>
+</ul>
+<h4 id="Heap_Allocations">Heap Allocations</h4><ul>
+<li>Understanding escape analysis</li>
+</ul>
+<h4 id="Runtime">Runtime</h4><ul>
+<li>cost of calls via interfaces (indirect calls on the CPU level)</li>
+<li>runtime.convT2E / runtime.convT2I</li>
+<li>type assertions vs. type switches</li>
+<li>defer</li>
+<li>special-case map implementations for ints, strings</li>
+</ul>
+<h4 id="Common_gotchas_with_the_standard_library">Common gotchas with the standard library</h4><ul>
+<li>time.After() leaks until it fires</li>
+<li>Reusing HTTP connections…</li>
+<li>….</li>
+</ul>
+<h3 id="Alternate_implementions">Alternate implementions</h3><ul>
+<li>Popular replacements for standard library packages:<ul>
+<li>encoding/json -&gt; ffjson</li>
+<li>net/http -&gt; fasthttp</li>
+<li>regexp -&gt; ragel (or other regular expression package)</li>
+<li>serialization<ul>
+<li>encoding/gob</li>
+<li>protobuf</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>perf(perf2pprof)</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/25/page-rank/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/25/page-rank/" itemprop="url">Page Rank</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-25T11:50:23+08:00">
+                2017-12-25
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-25T14:22:40+08:00">
+                2017-12-25
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rank/" itemprop="url" rel="index">
+                    <span itemprop="name">rank</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/12/25/page-rank/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/25/page-rank/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>PageRank的相关说明</p>
+<ul>
+<li>整个互联网，看做一张有向图<ul>
+<li>网页是图上的点</li>
+<li>链接是图上的又向边</li>
+</ul>
+</li>
+<li>每个网页有一个权威评分，称作pagerank，可以把它当做一种投票权</li>
+<li>将每个超链接作为一次投票<ul>
+<li>每个网页的pagerank等于所有指向该网页超链接的网页的pagerank的加权和</li>
+<li>这些权值等于这些网页各自向外链接数目的倒数</li>
+</ul>
+</li>
+</ul>
+<p>里面主要的点：</p>
+<ul>
+<li>足够优美，表达简单</li>
+<li>关于加权和部分，计算方式聪明</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Vertex</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></div><div class="line">        self.in_degree = <span class="number">0</span></div><div class="line">        self.out_degree = <span class="number">0</span></div><div class="line">        self.pagerank = <span class="number">0.0</span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Edge</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, start, end)</span>:</span></div><div class="line">        self.start_id = start</div><div class="line">        self.end_id = end</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">addVertex</span><span class="params">(vertex_name, vtx_map)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    return the id of vertex_name</div><div class="line">    if exists in vtx_map, return directly</div><div class="line">    if not exists, add it, and then return</div><div class="line"></div><div class="line">    vertex_name: string, the url of a web page</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    '''</div><div class="line">    res_id = <span class="number">0</span></div><div class="line">    <span class="keyword">if</span> vertex_name <span class="keyword">in</span> vtx_map:</div><div class="line">        <span class="keyword">return</span> vtx_map[vertex_name]</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        res_id = len(vtx_map)</div><div class="line">        vtx_map[vertex_name] = res_id</div><div class="line">    <span class="keyword">return</span> res_id</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">readTable</span><span class="params">(fname, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    read fname line by line, update the vtx_map and edge_list</div><div class="line"></div><div class="line">    fname: string, the file name of the table</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    <span class="keyword">with</span> open(fname, <span class="string">'r'</span>) <span class="keyword">as</span> fin:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> fin.readlines():</div><div class="line">            tmp = line.strip().split(<span class="string">'\t'</span>)</div><div class="line">            <span class="keyword">assert</span>(len(tmp) == <span class="number">2</span>)</div><div class="line">            start = addVertex(tmp[<span class="number">0</span>], vtx_map)</div><div class="line">            end = addVertex(tmp[<span class="number">1</span>], vtx_map)</div><div class="line">            edge_list.append(Edge(start, end))</div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">initialize</span><span class="params">(vtx_map, edge_list, vtx_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    initialize the data structures</div><div class="line"></div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    vtx_list: list, the list of all vertices</div><div class="line">    '''</div><div class="line">    vtx_num = len(vtx_map)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    vtx_list = [Vertex() <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">        vtx_list[i].pagerank = <span class="number">1.0</span> / vtx_num</div><div class="line">    <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">        vtx_list[edge.start_id].out_degree += <span class="number">1</span></div><div class="line">        vtx_list[edge.end_id].in_degree += <span class="number">1</span></div><div class="line">    <span class="keyword">return</span> <span class="keyword">None</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">calcPagerank</span><span class="params">(alpha, num_iter, vtx_map, edge_list)</span>:</span></div><div class="line">    <span class="string">'''</span></div><div class="line">    calc PageRank for all vertices</div><div class="line">    return: vtx_list, list, the list of all vertices</div><div class="line"></div><div class="line">    alpha: float, damping factor</div><div class="line">    num_iter: int, the upper limitation of calculation</div><div class="line">    vtx_map: dict, the map from url to id</div><div class="line">    edge_list: list, the list of all edges</div><div class="line">    '''</div><div class="line">    vtx_list, pr_list = list(), list()</div><div class="line">    initialize(vtx_map, edge_list, vtx_list)</div><div class="line">    vtx_num = len(vtx_list)</div><div class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</div><div class="line">    alpha = float(alpha)</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(num_iter):</div><div class="line">        pr_list = [alpha / vtx_num <span class="keyword">for</span> _ <span class="keyword">in</span> range(vtx_num)]</div><div class="line">        <span class="comment"># calc</span></div><div class="line">        <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</div><div class="line">            pr_list += (<span class="number">1</span> - alpha) * vtx_list[edge.start_id].pagerank / \</div><div class="line">                        vtx_list[edge.start_id].out_degree</div><div class="line">        <span class="comment"># revise</span></div><div class="line">        revise = sum(map(<span class="keyword">lambda</span> vtx: (<span class="number">1</span> - alpha) * vtx.pagerank / vtx_num, \</div><div class="line">                        filter(<span class="keyword">lambda</span> vtx:(vtx.out_degree == <span class="number">0</span>), vtx_list)))</div><div class="line">        <span class="comment"># update</span></div><div class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(vtx_num):</div><div class="line">            vtx_list[i].pagerank = pr_list[i] + revise</div><div class="line">    <span class="keyword">return</span> vtx_list</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">doCalcPageRank</span><span class="params">(fname = <span class="string">'wt2g_inlinks.source'</span>, alpha = <span class="number">0.15</span>, num_iter = <span class="number">30</span>)</span>:</span></div><div class="line">    vtx_map = dict()</div><div class="line">    edge_list = list()</div><div class="line">    readTable(fname, vtx_map, edge_list)</div><div class="line">    <span class="keyword">return</span> calcPagerank(alpha, num_iter, vtx_map, edge_list)</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    <span class="keyword">print</span> doCalcPageRank()</div></pre></td></tr></table></figure>
+<p>相关程序说明：</p>
+<ul>
+<li>​</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/24/tanpengyou/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -605,554 +1211,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/markdown-math/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/19/markdown-math/" itemprop="url">Markdown中写数学公式</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T11:50:55+08:00">
-                2017-12-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T12:11:41+08:00">
-                2017-12-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/19/markdown-math/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/markdown-math/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>作为Latex的入门教程</p>
-<h3 id="插入数学公式">插入数学公式</h3><p><code>$数学公式$</code> 或者<code>$$数学公式$$</code></p>
-<p>行内公式以及行间公式</p>
-<p>$E = mc^2$</p>
-<p>$$<br>E=mc^2<br>$$</p>
-<h3 id="普通公式">普通公式</h3><p>$$<br>x = 100 * y + z - 10 / 33 + 10 % 3<br>$$</p>
-<h3 id="上下标">上下标</h3><p>$$<br>x=a<em>{1}^n \text +a</em>{2}^n<br>$$</p>
-<h3 id="括号">括号</h3><p><code>()</code>，<code>[]</code>和<code>|</code>都表示它们自己，但是<code>{}</code>因为有特殊作用因此当需要显示大括号时一般使用<code>\lbrace \rbrace</code>来表示。<br>$$<br>f(x, y) = 100 <em> \lbrace[(x + y) </em> 3] - 5\rbrace<br>$$</p>
-<h3 id="数学运算">数学运算</h3><p>分数 $\frac{1}{3}</p>
-<p>开方 $\sqrt[3]{x}$</p>
-<p>$\sqrt{5-x}$  </p>
-<h3 id="希腊字母">希腊字母</h3>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/19/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/19/one-week/" itemprop="url">Maria</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-19T00:05:18+08:00">
-                2017-12-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T00:17:26+08:00">
-                2017-12-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/19/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/19/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Maria</p>
-<p>You’ve gotta see her</p>
-<p>Go insane and out of your mind</p>
-<p>有过甜蜜，也有苦涩，其实，也是找到自我的过程，放弃一些错误的自以为是，不要眼高手低，承认自己。。</p>
-<p>本周工作：</p>
-<ul>
-<li>代码部分的一些整合</li>
-<li>关于recognize inputs部分的一些知识的学习</li>
-<li>sdk存活数据部分？</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>温习机器学习</li>
-<li>latex部分的一些排版规则</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>用户的协同过滤，尝试出一版用户的相关数据</li>
-<li>机器学习入门，关于那本书继续学习</li>
-<li>blockchain部分</li>
-</ul>
-<p>慢慢恢复更新的频率，相关技术书籍的阅读以及blog的编写。。</p>
-<p>事情不要拖拉，房子以及电话上，不要总觉得理所当然。。</p>
-<p>恢复那种战战兢兢的状态，一件事一件事地弄好。。</p>
-<p>答应的事情，尽量坐到，做到心安就行，承认自己不行，并不是一件坏事，还是acer标称咯。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/12/13/neuralnetwork-deep-learning1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/12/13/neuralnetwork-deep-learning1/" itemprop="url">neuralnetwork deep learning1</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-13T18:18:12+08:00">
-                2017-12-13
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-19T10:34:22+08:00">
-                2017-12-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/deep-learning/" itemprop="url" rel="index">
-                    <span itemprop="name">deep learning</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/12/13/neuralnetwork-deep-learning1/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/12/13/neuralnetwork-deep-learning1/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://neuralnetworksanddeeplearning.com/chap1.html" target="_blank" rel="external">neural netowrks and deep learning</a></p>
-<p>神经网络的机器学习，主要分为几个部分</p>
-<h3 id="神经网络识别手写">神经网络识别手写</h3><p>two important types of artificial neuron (the perceptron and the sigmoid neuron)</p>
-<p>$$<br>output = \begin{cases}<br>0,    &amp; \text{if } \sum<em>{j}w</em>{j}x<em>{j} \leq threshold \<br>1,     &amp; \text{if } \sum</em>{j}w<em>{j}x</em>{j} &gt; threshold<br>\end{cases}<br>$$</p>
-<p>simplify the describe perceptrons</p>
-<p>$$<br>w \cdot x \equiv \sum<em>{j}w</em>{j}x_{j} \<br>b \equiv -threshold<br>$$</p>
-<p>$$<br>output = \begin{cases}<br>0, &amp; \text{if } w \cdot x +b \leq 0 \<br>1, &amp; \text{if } w \cdot x +b &gt; 0<br>\end {cases}<br>$$</p>
-<p>While the design of the input and output layers of a neural network is often straightforward, there can be quite an art to the design of the hidden layers</p>
-<p><em>multilayer perceptrons</em> or<em>MLPs</em></p>
-<p> <em>feedforward</em> neural networks </p>
-<p>RNN networks, feedback loops are possible</p>
-<p>two problems:</p>
-<ul>
-<li>breaking to segment, segmentation problem</li>
-<li>classifying individual digits</li>
-</ul>
-<p>There are many approaches to solving the segmentation problem. </p>
-<p>One approach is to trial many different ways of segmenting the image, using the individual digit classifier to score each trial segmentation. A trial segmentation gets a high score if the individual digit classifier is confident of its classification in all segments, and a low score if the classifier is having a lot of trouble in one or more segments. </p>
-<p>The idea is that if the classifier is having trouble somewhere, then it’s probably having trouble because the segmentation has been chosen incorrectly. This idea and other variations can be used to solve the segmentation problem quite well.</p>
-<p>10 outputs vs 4 outputs</p>
-<p>gradient descent<br>$$<br>C(w,b) \equiv \frac{1}{2n}\sum_{x} \begin{Vmatrix} y(x)-a  \end{Vmatrix}^2<br>$$</p>
-<p>ball-rolling analogy<br>$$<br>\Delta C \approx \frac{\partial C}{\partial v1} \Delta v1 + \frac{\partial C}{\partial v2} \Delta v2<br>$$</p>
-<p>$$<br>a’ = \sigma(wa + b)<br>$$</p>
-<h3 id="bp算法的工作原理">bp算法的工作原理</h3><h3 id="提高神经网络学习方式">提高神经网络学习方式</h3><h3 id="神经网络可以计算任何方法">神经网络可以计算任何方法</h3><h3 id="深度神经网络很难训练">深度神经网络很难训练</h3><h3 id="deep_learning">deep learning</h3>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1207,7 +1265,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">257</span>
+                  <span class="site-state-item-count">260</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1218,7 +1276,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">112</span>
+                  <span class="site-state-item-count">113</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1229,7 +1287,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">119</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
