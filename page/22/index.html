@@ -80,11 +80,12 @@
 
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="DevilKing's blog">
+<meta property="og:title" content="DevilKing&#39;s blog">
 <meta property="og:url" content="http://gqlxj1987.github.io/page/22/index.html">
-<meta property="og:site_name" content="DevilKing's blog">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:locale" content="zh-Hans">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="DevilKing's blog">
+<meta name="twitter:title" content="DevilKing&#39;s blog">
 
 
 
@@ -248,6 +249,197 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/07/serverless-container/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/03/07/serverless-container/" itemprop="url">无状态化与容器化</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-07T11:54:31+08:00">
+                2018-03-07
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-07T12:11:58+08:00">
+                2018-03-07
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/serverless/" itemprop="url" rel="index">
+                    <span itemprop="name">serverless</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/03/07/serverless-container/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/07/serverless-container/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://dockone.io/article/3682" target="_blank" rel="noopener">原文链接</a></p>
+<p>很多应用拆分成微服务，是为了承载高并发，往往一个进程扛不住这么大的量，因而需要拆分成多组进程，每组进程承载特定的工作，根据并发的压力用多个副本公共承担流量。</p>
+<p>阻碍单体架构变为分布式架构的关键点就在于状态的处理。如果状态全部保存在本地，无论是本地的内存，还是本地的硬盘，都会给架构的横向扩展带来瓶颈。</p>
+<p>所以要讲整个架构分成两个部分，无状态部分和有状态部分，而业务逻辑的部分往往作为无状态的部分，而将状态保存在有状态的中间件中，如缓存、数据库、对象存储、大数据平台、消息队列等。</p>
+<p>容器和微服务是双胞胎，因为微服务会将单体应用拆分成很多小的应用，因而运维和持续集成会工作量变大，而容器技术能很好的解决这个问题。然而在微服务化之前，建议先进行容器化，在容器化之前，建议先无状态化，当整个流程容器化了，以后的微服务拆分才会水到渠成。</p>
+<h4 id="幂等的接口设计">幂等的接口设计</h4><p>由于存在重试的机制，就需要接口是幂等的</p>
+<p>接口分为查询、插入、更新、删除等操作。</p>
+<p>对于查询接口来讲，本身就是幂等的，不用做特殊的判断。</p>
+<p>对于插入接口来讲，如果每一个数据都有唯一的主键，也能保证插入的唯一性，一旦不唯一，则会报错。</p>
+<p>对于更新操作来讲，则比较复杂，分几种情况。</p>
+<p>一种情况是同一个接口，前后调用多次的幂等性。另一种情况是同一个接口，并发环境下调用多次的正确性。</p>
+<p>为了保持幂等性，往往要有一个幂等表，通过传入幂等参数匹配幂等表中ID的方式，保证每个操作只被执行一次，而且在实行最终一致性的时候，可以通过不断重试，保证最终接口调用的成功。</p>
+<p>对于并发条件下，谁先调用，谁后调用，需要通过分布式锁如Redis，ZooKeeper等来实现同一个时刻只有一个请求被执行，如何保证多次执行结果仍然一致呢？则往往需要通过状态机，每个状态只流转一次。还有就是乐观锁，也即分布式的CAS操作，将状态的判断、更新整合在一条语句中，可以保证状态流转的原子性。乐观锁并不保证更新一定成功，需要有对应的机制来应对更新失败。</p>
+<h4 id="容器的技术部分">容器的技术部分</h4><ul>
+<li><p>容器运行时</p>
+<p>看起来是隔离的技术，namesapace</p>
+<p>用起来是隔离的技术，cgroup</p>
+</li>
+</ul>
+<p>当容器平台规模不是很大的时候，Docker Swarm Mode还是比较好用的：</p>
+<ul>
+<li>集群的维护不需要ZooKeeper，不需要Etcd，自己内置</li>
+<li>命令行和Docker一样的，用起来顺手</li>
+<li>服务发现和DNS是内置的</li>
+<li>Docker Overlay网络是内置的</li>
+</ul>
+<p>当规模比较大，应用比较复杂的时候，则推荐Kubernetes。</p>
+<p>可以尝试一下docker swarm的方式来进行</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/07/config-server/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -363,7 +555,7 @@
       
         
           
-            <p><a href="http://limboy.me/tech/2018/03/06/how-to-architecture-config.html" target="_blank" rel="external">原文链接</a></p>
+            <p><a href="http://limboy.me/tech/2018/03/06/how-to-architecture-config.html" target="_blank" rel="noopener">原文链接</a></p>
 <p>配置中心最基础的场景：</p>
 <p>客户端和服务端保持一个长链，当在后台操作配置时，会把这个配置以 K/V 形式存储，然后通知 Procesor，后者拿到 K/V 之后把它推给客户端，整个过程就完成了</p>
 <p>保存K/V时，额外存一个flag字段，表示是否已经成功发送给客户端</p>
@@ -744,22 +936,22 @@
       
         
           
-            <p><a href="https://zhuanlan.zhihu.com/p/33462152" target="_blank" rel="external">原文链接</a></p>
+            <p><a href="https://zhuanlan.zhihu.com/p/33462152" target="_blank" rel="noopener">原文链接</a></p>
 <p>golang部分的锁，主要在sync包里</p>
 <h3 id="runtime/sema(信号量)">runtime/sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</div><div class="line">    lock  mutex</div><div class="line">    head  *sudog</div><div class="line">    tail  *sudog</div><div class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></div><div class="line">&#125;</div><div class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></div><div class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></div><div class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></div><div class="line"><span class="comment">// 内部使用的一个私有版本）</span></div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</span><br><span class="line">    lock  mutex</span><br><span class="line">    head  *sudog</span><br><span class="line">    tail  *sudog</span><br><span class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></span><br><span class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></span><br><span class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></span><br><span class="line"><span class="comment">// 内部使用的一个私有版本）</span></span><br></pre></td></tr></table></figure>
 <p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
 <h3 id="sync/atomic">sync/atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// 互斥量加锁操作</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></div><div class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</div><div class="line">		<span class="keyword">if</span> race.Enabled &#123;</div><div class="line">			race.Acquire(unsafe.Pointer(m))</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line">......</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 互斥量加锁操作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</span><br><span class="line">		<span class="keyword">if</span> race.Enabled &#123;</span><br><span class="line">			race.Acquire(unsafe.Pointer(m))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
 <h3 id="sync/mutex（互斥锁）">sync/mutex（互斥锁）</h3><p>sync/mutex.go</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// A Mutex must not be copied after first use.</span></div><div class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</div><div class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></div><div class="line">    sema  <span class="keyword">uint32</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></div><div class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></div><div class="line"><span class="keyword">const</span> (</div><div class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></div><div class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></div><div class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></div><div class="line">)</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// A Mutex must not be copied after first use.</span></span><br><span class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</span><br><span class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></span><br><span class="line">    sema  <span class="keyword">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></span><br><span class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></span><br><span class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></span><br><span class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
 <p>lock流程</p>
 <blockquote>
 <p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
 </blockquote>
-<h3 id="sync/RWMutex（读写锁）">sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</div><div class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></div><div class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></div><div class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></div><div class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></div><div class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="sync/RWMutex（读写锁）">sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></span><br><span class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></span><br><span class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></span><br><span class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></span><br><span class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>写锁定</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">// First, resolve competition with other writers.</span></div><div class="line">	rw.w.Lock()</div><div class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></div><div class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</div><div class="line">	<span class="comment">// Wait for active readers.</span></div><div class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</div><div class="line">		runtime_Semacquire(&amp;rw.writerSem)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// First, resolve competition with other writers.</span></span><br><span class="line">	rw.w.Lock()</span><br><span class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</span><br><span class="line">	<span class="comment">// Wait for active readers.</span></span><br><span class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</span><br><span class="line">		runtime_Semacquire(&amp;rw.writerSem)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -923,196 +1115,9 @@
       
         
           
-            <p><a href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/" target="_blank" rel="external">原文链接</a></p>
+            <p><a href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/" target="_blank" rel="noopener">原文链接</a></p>
 <p>日志是完全顺序，只接受append操作的数据结构。</p>
 <p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/02/05/mongodb-query-performance/" itemprop="url">Mongodb query performance over ranges</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">
-                2018-02-05
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T16:12:14+08:00">
-                2018-02-05
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mongodb/" itemprop="url" rel="index">
-                    <span itemprop="name">mongodb</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/02/05/mongodb-query-performance/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/mongodb-query-performance/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="external">原文链接</a></p>
-<p>针对<code>$in</code>操作：</p>
-<ul>
-<li><p>index early</p>
-</li>
-<li><p>index often</p>
-</li>
-<li><p>index fully</p>
-<p>queries make use of indexes from left to right.</p>
-</li>
-<li><p>index sorts</p>
-<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
-</li>
-<li><p>commands</p>
-<p>​</p>
-</li>
-</ul>
-<p><strong>The order of fields in an index should be:</strong></p>
-<ol>
-<li><strong>First, fields on which you will query for exact values.</strong></li>
-<li><strong>Second, fields on which you will sort.</strong></li>
-<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
-</ol>
-<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
 
           
         
@@ -1202,7 +1207,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">263</span>
+                  <span class="site-state-item-count">264</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

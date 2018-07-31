@@ -79,94 +79,18 @@
 
 
 
-<meta name="description" content="原文链接
-Agenda:
-
-The Problem
-
-The Solution
-
-Conclusion
-
-
-Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上
-先期采用worker-tier的方式
-
-Sidekiq
-
-Resque
-
-DelayedJob
-
-Elasticbeanstalk Worker Tier
-
-RabbitMQ
-
-and so on…
-
-
-如">
+<meta name="description" content="原文链接 Agenda:  The Problem  The Solution  Conclusion   Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上 先期采用worker-tier的方式  Sidekiq  Resque  DelayedJob  Elasticbeanstalk Worker Tier  RabbitMQ  and so on…   如">
+<meta name="keywords" content="golang">
 <meta property="og:type" content="article">
 <meta property="og:title" content="使用go处理一百万请求">
 <meta property="og:url" content="http://gqlxj1987.github.io/2017/02/12/handling-1-million-requests-with-go/index.html">
-<meta property="og:site_name" content="DevilKing's blog">
-<meta property="og:description" content="原文链接
-Agenda:
-
-The Problem
-
-The Solution
-
-Conclusion
-
-
-Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上
-先期采用worker-tier的方式
-
-Sidekiq
-
-Resque
-
-DelayedJob
-
-Elasticbeanstalk Worker Tier
-
-RabbitMQ
-
-and so on…
-
-
-如">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 Agenda:  The Problem  The Solution  Conclusion   Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上 先期采用worker-tier的方式  Sidekiq  Resque  DelayedJob  Elasticbeanstalk Worker Tier  RabbitMQ  and so on…   如">
+<meta property="og:locale" content="zh-Hans">
 <meta property="og:updated_time" content="2017-02-12T16:33:49.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="使用go处理一百万请求">
-<meta name="twitter:description" content="原文链接
-Agenda:
-
-The Problem
-
-The Solution
-
-Conclusion
-
-
-Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上
-先期采用worker-tier的方式
-
-Sidekiq
-
-Resque
-
-DelayedJob
-
-Elasticbeanstalk Worker Tier
-
-RabbitMQ
-
-and so on…
-
-
-如">
+<meta name="twitter:description" content="原文链接 Agenda:  The Problem  The Solution  Conclusion   Problem接收大量的post json数据的请求，并将这些数据上传至s3服务器上 先期采用worker-tier的方式  Sidekiq  Resque  DelayedJob  Elasticbeanstalk Worker Tier  RabbitMQ  and so on…   如">
 
 
 
@@ -440,7 +364,7 @@ and so on…
       
 
       
-        <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="external">原文链接</a></p>
+        <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="noopener">原文链接</a></p>
 <p>Agenda:</p>
 <ul>
 <li><p>The Problem</p>
@@ -469,19 +393,19 @@ and so on…
 <p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
 <p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
 <h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Go through each payload and queue items individually to be posted to S3</div><div class="line">for _, payload := range content.Payloads &#123;</div><div class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Go through each payload and queue items individually to be posted to S3</span><br><span class="line">for _, payload := range content.Payloads &#123;</span><br><span class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
 <p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
 <blockquote>
 <p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
 </blockquote>
 <p>相关的数据结构为：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">type Worker struct &#123;</div><div class="line">	WorkerPool  chan chan Job</div><div class="line">	JobChannel  chan Job</div><div class="line">	quit    	chan bool</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">type Worker struct &#123;</span><br><span class="line">	WorkerPool  chan chan Job</span><br><span class="line">	JobChannel  chan Job</span><br><span class="line">	quit    	chan bool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
 <p>关键的代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">for &#123;</div><div class="line">		select &#123;</div><div class="line">		case job := &lt;-JobQueue:</div><div class="line">			// a job request has been received</div><div class="line">			go func(job Job) &#123;</div><div class="line">				// try to obtain a worker job channel that is available.</div><div class="line">				// this will block until a worker is idle</div><div class="line">				jobChannel := &lt;-d.WorkerPool</div><div class="line"></div><div class="line">				// dispatch the job to the worker job channel</div><div class="line">				jobChannel &lt;- job</div><div class="line">			&#125;(job)</div><div class="line">		&#125;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">for &#123;</span><br><span class="line">		select &#123;</span><br><span class="line">		case job := &lt;-JobQueue:</span><br><span class="line">			// a job request has been received</span><br><span class="line">			go func(job Job) &#123;</span><br><span class="line">				// try to obtain a worker job channel that is available.</span><br><span class="line">				// this will block until a worker is idle</span><br><span class="line">				jobChannel := &lt;-d.WorkerPool</span><br><span class="line"></span><br><span class="line">				// dispatch the job to the worker job channel</span><br><span class="line">				jobChannel &lt;- job</span><br><span class="line">			&#125;(job)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
 <p>此处为dispatcher操作</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">// Start method starts the run loop for the worker, listening for a quit channel in</div><div class="line">// case we need to stop it</div><div class="line">func (w Worker) Start() &#123;</div><div class="line">	go func() &#123;</div><div class="line">		for &#123;</div><div class="line">			// register the current worker into the worker queue.</div><div class="line">			w.WorkerPool &lt;- w.JobChannel</div><div class="line"></div><div class="line">			select &#123;</div><div class="line">			case job := &lt;-w.JobChannel:</div><div class="line">				// we have received a work request.</div><div class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</div><div class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</div><div class="line">				&#125;</div><div class="line"></div><div class="line">			case &lt;-w.quit:</div><div class="line">				// we have received a signal to stop</div><div class="line">				return</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Start method starts the run loop for the worker, listening for a quit channel in</span><br><span class="line">// case we need to stop it</span><br><span class="line">func (w Worker) Start() &#123;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		for &#123;</span><br><span class="line">			// register the current worker into the worker queue.</span><br><span class="line">			w.WorkerPool &lt;- w.JobChannel</span><br><span class="line"></span><br><span class="line">			select &#123;</span><br><span class="line">			case job := &lt;-w.JobChannel:</span><br><span class="line">				// we have received a work request.</span><br><span class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</span><br><span class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">			case &lt;-w.quit:</span><br><span class="line">				// we have received a signal to stop</span><br><span class="line">				return</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>此处为worker内部的操作</p>
 <p>带来的效果是，服务器数量从100台drop到20台。</p>
 <h4 id="Conclusion">Conclusion</h4><blockquote>
@@ -621,7 +545,7 @@ and so on…
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">263</span>
+                  <span class="site-state-item-count">264</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

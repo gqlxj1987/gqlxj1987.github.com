@@ -79,23 +79,19 @@
 
 
 
-<meta name="description" content="原文链接
-go语言初始化过程
-这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
+<meta name="description" content="原文链接 go语言初始化过程 这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
+<meta name="keywords" content="golang">
 <meta property="og:type" content="article">
 <meta property="og:title" content="golang 机制了解">
 <meta property="og:url" content="http://gqlxj1987.github.io/2018/06/28/golang-tips/index.html">
-<meta property="og:site_name" content="DevilKing's blog">
-<meta property="og:description" content="原文链接
-go语言初始化过程
-这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 go语言初始化过程 这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
+<meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true">
 <meta property="og:updated_time" content="2018-06-28T10:14:21.327Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="golang 机制了解">
-<meta name="twitter:description" content="原文链接
-go语言初始化过程
-这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
+<meta name="twitter:description" content="原文链接 go语言初始化过程 这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，">
 <meta name="twitter:image" content="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true">
 
 
@@ -370,16 +366,16 @@ go语言初始化过程
       
 
       
-        <p><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/04.0.html" target="_blank" rel="external">原文链接</a></p>
+        <p><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/04.0.html" target="_blank" rel="noopener">原文链接</a></p>
 <p>go语言初始化过程</p>
 <p>这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，却在不同线程有多份不同的副本。每个goroutine去访问g时，都是对应到自己线程的这一份副本。针对goroutine部分，</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">CLD                // convention is D is always left cleared</div><div class="line">CALL    runtime·check(SB) //检测像int8,int16,float等是否是预期的大小，检测cas操作是否正常</div><div class="line">MOVL    16(SP), AX        // copy argc</div><div class="line">MOVL    AX, 0(SP)</div><div class="line">MOVQ    24(SP), AX        // copy argv</div><div class="line">MOVQ    AX, 8(SP)</div><div class="line">CALL    runtime·args(SB)    //将argc,argv设置到static全局变量中了</div><div class="line">CALL    runtime·osinit(SB)    //osinit做的事情就是设置runtime.ncpu，不同平台实现方式不一样</div><div class="line">CALL    runtime·hashinit(SB)    //使用读/dev/urandom的方式从内核获得随机数种子</div><div class="line">CALL    runtime·schedinit(SB)    //内存管理初始化，根据GOMAXPROCS设置使用的procs等等</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">CLD                // convention is D is always left cleared</span><br><span class="line">CALL    runtime·check(SB) //检测像int8,int16,float等是否是预期的大小，检测cas操作是否正常</span><br><span class="line">MOVL    16(SP), AX        // copy argc</span><br><span class="line">MOVL    AX, 0(SP)</span><br><span class="line">MOVQ    24(SP), AX        // copy argv</span><br><span class="line">MOVQ    AX, 8(SP)</span><br><span class="line">CALL    runtime·args(SB)    //将argc,argv设置到static全局变量中了</span><br><span class="line">CALL    runtime·osinit(SB)    //osinit做的事情就是设置runtime.ncpu，不同平台实现方式不一样</span><br><span class="line">CALL    runtime·hashinit(SB)    //使用读/dev/urandom的方式从内核获得随机数种子</span><br><span class="line">CALL    runtime·schedinit(SB)    //内存管理初始化，根据GOMAXPROCS设置使用的procs等等</span><br></pre></td></tr></table></figure>
 <p>go关键字的调用协议：先将参数进栈，再被调函数指针和参数字节数进栈，接着调用runtime.newproc函数。所以这里其实就是新开个goroutine执行runtime.main</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">找到一个等待运行的g</div><div class="line">如果g是锁定到某个M的，则让那个M运行</div><div class="line">否则，调用execute函数让g在当前的M中运行</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">找到一个等待运行的g</span><br><span class="line">如果g是锁定到某个M的，则让那个M运行</span><br><span class="line">否则，调用execute函数让g在当前的M中运行</span><br></pre></td></tr></table></figure>
 <p><img src="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true" alt="goroutine状态图"></p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">M</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">for</span> &#123;</div><div class="line">        sched.lock.Lock()    <span class="comment">//互斥地从就绪G队列中取一个g出来运行</span></div><div class="line">        <span class="keyword">if</span> sched.allg &gt; <span class="number">0</span> &#123;</div><div class="line">            g := sched.allg[<span class="number">0</span>]</div><div class="line">            sched.allg = sched.allg[<span class="number">1</span>:]</div><div class="line">            sched.lock.Unlock()</div><div class="line">            g.Run()        <span class="comment">//运行它</span></div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            sched.lock.Unlock()</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">M</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        sched.lock.Lock()    <span class="comment">//互斥地从就绪G队列中取一个g出来运行</span></span><br><span class="line">        <span class="keyword">if</span> sched.allg &gt; <span class="number">0</span> &#123;</span><br><span class="line">            g := sched.allg[<span class="number">0</span>]</span><br><span class="line">            sched.allg = sched.allg[<span class="number">1</span>:]</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">            g.Run()        <span class="comment">//运行它</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>退出goroutine</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">exitsyscall</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(allm) &gt;= GOMAXPROCS &#123;</div><div class="line">        sched.lock.Lock()</div><div class="line">        sched.allg = <span class="built_in">append</span>(sched.allg, g)    <span class="comment">//把g放回到队列中</span></div><div class="line">        sched.lock.Unlock()</div><div class="line">        time.Sleep()    <span class="comment">//这个M不再干活</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">exitsyscall</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(allm) &gt;= GOMAXPROCS &#123;</span><br><span class="line">        sched.lock.Lock()</span><br><span class="line">        sched.allg = <span class="built_in">append</span>(sched.allg, g)    <span class="comment">//把g放回到队列中</span></span><br><span class="line">        sched.lock.Unlock()</span><br><span class="line">        time.Sleep()    <span class="comment">//这个M不再干活</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>内存管理</p>
 <p>在多线程方面，很自然的做法就是每条线程都有自己的本地的内存，然后有一个全局的分配链，当某个线程中内存不足后就向全局分配链中申请内存。这样就避免了多线程同时访问共享变量时的加锁。 在避免内存碎片方面，大块内存直接按页为单位分配，小块内存会切成各种不同的固定大小的块，申请做任意字节内存时会向上取整到最接近的块，将整块分配给申请者以避免随意切割。</p>
 <p>分配器的数据结构包括:</p>
@@ -515,7 +511,7 @@ go语言初始化过程
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">263</span>
+                  <span class="site-state-item-count">264</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

@@ -79,25 +79,18 @@
 
 
 
-<meta name="description" content="原文链接
-There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.
-
-“The make built-in function allocates and">
+<meta name="description" content="原文链接 There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.  “The make built-in function allocates and">
+<meta name="keywords" content="golang">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Constructors In Go">
 <meta property="og:url" content="http://gqlxj1987.github.io/2018/03/12/golang-value-receiver/index.html">
-<meta property="og:site_name" content="DevilKing's blog">
-<meta property="og:description" content="原文链接
-There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.
-
-“The make built-in function allocates and">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.  “The make built-in function allocates and">
+<meta property="og:locale" content="zh-Hans">
 <meta property="og:updated_time" content="2018-03-20T09:02:48.995Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Constructors In Go">
-<meta name="twitter:description" content="原文链接
-There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.
-
-“The make built-in function allocates and">
+<meta name="twitter:description" content="原文链接 There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call make to set that up.  “The make built-in function allocates and">
 
 
 
@@ -371,16 +364,16 @@ There are objects in Go that have to be initialized, for example channels and sl
       
 
       
-        <p><a href="https://scene-si.org/2018/03/08/an-argument-for-value-receiver-constructors/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_118" target="_blank" rel="external">原文链接</a></p>
+        <p><a href="https://scene-si.org/2018/03/08/an-argument-for-value-receiver-constructors/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_118" target="_blank" rel="noopener">原文链接</a></p>
 <p>There are objects in Go that have to be initialized, for example channels and slices immediately come to mind. You’ll have to call <code>make</code> to set that up.</p>
 <blockquote>
 <p>“The make built-in function allocates and initializes an object of type slice, map, or chan (only). Like new, the first argument is a type, not a value. Unlike new, make’s return type is the same as the type of its argument, not a pointer to it.”</p>
 </blockquote>
 <p>关于constructor部分？</p>
-<h4 id="value_receivers">value receivers</h4><figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</div><div class="line">    name <span class="keyword">string</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Person)</span> <span class="title">New</span><span class="params">(name <span class="keyword">string</span>)</span> *<span class="title">Person</span></span> &#123;</div><div class="line">    <span class="keyword">return</span> &amp;Person&#123;name&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="value_receivers">value receivers</h4><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</span><br><span class="line">    name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Person)</span> <span class="title">New</span><span class="params">(name <span class="keyword">string</span>)</span> *<span class="title">Person</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;Person&#123;name&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>And to use such a constructor, you would invoke <code>Person{}.New(&quot;Tit Petric&quot;)</code> and end up with the initialized object. We can in fact reason better about the code we are writing, because we can asume that we’ll end up with a <code>Person</code> object (or a pointer to it), because that’s what we start with</p>
 <p>there’s no performance or memory impact from using value receivers over usual function constructors</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line">New         <span class="number">2000000</span>     <span class="number">754</span> ns/op     <span class="number">0</span> B/op      <span class="number">0</span> allocs/op</div><div class="line">Person.New  <span class="number">2000000</span>     <span class="number">786</span> ns/op     <span class="number">0</span> B/op      <span class="number">0</span> allocs/op</div></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">New         <span class="number">2000000</span>     <span class="number">754</span> ns/op     <span class="number">0</span> B/op      <span class="number">0</span> allocs/op</span><br><span class="line">Person.New  <span class="number">2000000</span>     <span class="number">786</span> ns/op     <span class="number">0</span> B/op      <span class="number">0</span> allocs/op</span><br></pre></td></tr></table></figure>
 <p>原因在于：The constructor code is completely the same, and in both cases, the functions get fully inlined, so whichever format you prefer to write results in completely the same assembly code output</p>
 <h4 id="conclusion">conclusion</h4><p>While value receiver constructors do feel <em>slightly</em> awkward, it’s as close to analogous copy of constructors from other languages. While in PHP the constructor would be invoked when you call <code>new Person(...)</code> and would only return objects of that type, Go actually allows you to go beyond that with <code>Person{}.New()</code>.</p>
 
@@ -513,7 +506,7 @@ There are objects in Go that have to be initialized, for example channels and sl
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">263</span>
+                  <span class="site-state-item-count">264</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
