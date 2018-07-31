@@ -248,6 +248,528 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/08/seq2seq-model-test/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/08/seq2seq-model-test/" itemprop="url">seq2seq model解析</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-08T17:31:50+08:00">
+                2018-04-08
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T18:34:17+08:00">
+                2018-04-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/08/seq2seq-model-test/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/08/seq2seq-model-test/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://cyruschiu.github.io/2017/02/24/learning-Tensoflow-Seq2Seq-for-translate/" target="_blank" rel="external">原文链接</a></p>
+<h3 id="train">train</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:</div><div class="line">   <span class="comment"># 區塊1，模型初始化</span></div><div class="line">   <span class="comment"># Create model.</span></div><div class="line">   print(<span class="string">"Creating %d layers of %d units."</span> % (FLAGS.num_layers, FLAGS.size))</div><div class="line">   <span class="comment"># 透過 create_model() 方法創建一個 seq2seq_model</span></div><div class="line">   model = create_model(sess, <span class="keyword">False</span>)</div><div class="line">   </div><div class="line">   <span class="comment"># 區塊2，讀入資料</span></div><div class="line">   <span class="comment"># Read data into buckets and compute their sizes.</span></div><div class="line">   <span class="keyword">print</span> (<span class="string">"Reading development and training data (limit: %d)."</span></div><div class="line">          % FLAGS.max_train_data_size)</div><div class="line">   <span class="comment"># read_data 函數讀取 train, dev 的路徑，</span></div><div class="line">   dev_set = read_data(from_dev, to_dev)</div><div class="line">   train_set = read_data(from_train, to_train, FLAGS.max_train_data_size)</div><div class="line">   train_bucket_sizes = [len(train_set[b]) <span class="keyword">for</span> b <span class="keyword">in</span> xrange(len(_buckets))]</div><div class="line">   train_total_size = float(sum(train_bucket_sizes))</div><div class="line">   train_buckets_scale = [sum(train_bucket_sizes[:i + <span class="number">1</span>]) / train_total_size</div><div class="line">                          <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_bucket_sizes))]</div><div class="line">   <span class="keyword">while</span> <span class="keyword">True</span>:</div><div class="line">     <span class="comment"># 區塊3，建立 batch</span></div><div class="line">     <span class="comment"># Choose a bucket according to data distribution. We pick a random number</span></div><div class="line">     <span class="comment"># in [0, 1] and use the corresponding interval in train_buckets_scale.</span></div><div class="line">     random_number_01 = np.random.random_sample()</div><div class="line">     bucket_id = min([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_buckets_scale))</div><div class="line">                      <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</div><div class="line">     <span class="comment"># Get a batch and make a step.</span></div><div class="line">     start_time = time.time()</div><div class="line">     encoder_inputs, decoder_inputs, target_weights = model.get_batch(</div><div class="line">         train_set, bucket_id)</div><div class="line">     <span class="comment"># 區塊4，訓練</span></div><div class="line">     _, step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,</div><div class="line">                                  target_weights, bucket_id, <span class="keyword">False</span>)</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
+<h4 id="create_model">create_model</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,</span></span></div><div class="line">             source_vocab_size, # 英文單詞表的數量</div><div class="line">             target_vocab_size, # 法文單詞表的數量</div><div class="line">             buckets, # buckets 於下面詳述</div><div class="line">             size, # 模型每個 layer 的 neuron size</div><div class="line">             num_layers, </div><div class="line">             max_gradient_norm,  # 訓練 RNN 時 clip 梯度的值</div><div class="line">             batch_size, </div><div class="line">             learning_rate,</div><div class="line">             learning_rate_decay_factor,</div><div class="line">             use_lstm=False,</div><div class="line">             num_samples=<span class="number">512</span>, # sampled softmax size</div><div class="line">             forward_only=False, # train時為False, decode時為true</div><div class="line">             dtype=tf.float32):</div></pre></td></tr></table></figure>
+<p>初始化一个seq2seqModel class</p>
+<h4 id="bucket说明">bucket说明</h4><p>Bucket 是工程上使用的一種方式。理論上 RNN 可以輸出任意長度的句子，但這樣勢必會因為每句話的長度不同，而產生許多無用的 graph。使用 Bucket 可以減少產生大量，並可能會有不少重複的 graph。若有一長度為 ( 6, 16 ) 的 (英文, 法文) 句子，那麼則會被分配到 (20, 25) 這個 bucket。並且英文會被 padding 至長度 20，法文會被 padding 至長度 25</p>
+<h4 id="读入资料">读入资料</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_data</span><span class="params">(source_path, target_path, max_size=None)</span>:</span></div><div class="line">  data_set = [[] <span class="keyword">for</span> _ <span class="keyword">in</span> _buckets]</div><div class="line">  <span class="comment"># 讀入英文檔案</span></div><div class="line">  <span class="keyword">with</span> tf.gfile.GFile(source_path, mode=<span class="string">"r"</span>) <span class="keyword">as</span> source_file:</div><div class="line">    <span class="comment"># 讀入法文檔案</span></div><div class="line">    <span class="keyword">with</span> tf.gfile.GFile(target_path, mode=<span class="string">"r"</span>) <span class="keyword">as</span> target_file:</div><div class="line">      <span class="comment"># 每次讀入一行例如 ( '1 2 3 4 5\n', '99 98 97 96 95\n') 的(英,法)句對</span></div><div class="line">      source, target = source_file.readline(), target_file.readline()</div><div class="line">      counter = <span class="number">0</span></div><div class="line">      <span class="comment"># 逐行處理，去除 \n，並且 tokenize 化</span></div><div class="line">      <span class="keyword">while</span> source <span class="keyword">and</span> target <span class="keyword">and</span> (<span class="keyword">not</span> max_size <span class="keyword">or</span> counter &lt; max_size):</div><div class="line">        counter += <span class="number">1</span></div><div class="line">        <span class="keyword">if</span> counter % <span class="number">100000</span> == <span class="number">0</span>:</div><div class="line">          print(<span class="string">"  reading data line %d"</span> % counter)</div><div class="line">          sys.stdout.flush()</div><div class="line">        source_ids = [int(x) <span class="keyword">for</span> x <span class="keyword">in</span> source.split()]</div><div class="line">        target_ids = [int(x) <span class="keyword">for</span> x <span class="keyword">in</span> target.split()]</div><div class="line">        target_ids.append(data_utils.EOS_ID)</div><div class="line">        <span class="comment"># 這邊計算每句話的長度，並且分配到適合該長度的 bucket 之中</span></div><div class="line">        <span class="keyword">for</span> bucket_id, (source_size, target_size) <span class="keyword">in</span> enumerate(_buckets):</div><div class="line">          <span class="keyword">if</span> len(source_ids) &lt; source_size <span class="keyword">and</span> len(target_ids) &lt; target_size:</div><div class="line">            data_set[bucket_id].append([source_ids, target_ids])</div><div class="line">            <span class="keyword">break</span></div><div class="line">        source, target = source_file.readline(), target_file.readline()</div><div class="line">  <span class="keyword">return</span> data_set</div></pre></td></tr></table></figure>
+<h4 id="建立batch">建立batch</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line">random_number_01 = np.random.random_sample()</div><div class="line">bucket_id = min([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(len(train_buckets_scale))</div><div class="line">                       <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</div><div class="line">encoder_inputs, decoder_inputs, target_weights = model.get_batch(</div><div class="line">          train_set, bucket_id)</div></pre></td></tr></table></figure>
+<p>还需要class本身的property:<code>batch_size</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_batch</span><span class="params">(self, data, bucket_id)</span>:</span></div><div class="line">  <span class="comment"># 根據傳進來的 bucket_id 決定這次的 encoder, deocder size，例如 5, 10</span></div><div class="line">  encoder_size, decoder_size = self.buckets[bucket_id]</div><div class="line">  encoder_inputs, decoder_inputs = [], []</div><div class="line">  <span class="comment"># Get a random batch of encoder and decoder inputs from data,</span></div><div class="line">  <span class="comment"># pad them if needed, reverse encoder inputs and add GO to decoder.</span></div><div class="line">  <span class="keyword">for</span> _ <span class="keyword">in</span> xrange(self.batch_size):</div><div class="line">    <span class="comment"># 前面提過 data 是一個長度為4的list，data[i] 存放長度符合 bucket[i] 的資料</span></div><div class="line">    encoder_input, decoder_input = random.choice(data[bucket_id])</div><div class="line">    <span class="comment"># Encoder inputs are padded and then reversed.</span></div><div class="line">    encoder_pad = [data_utils.PAD_ID] * (encoder_size - len(encoder_input))</div><div class="line">    encoder_inputs.append(list(reversed(encoder_input + encoder_pad)))</div><div class="line">    <span class="comment"># Decoder inputs get an extra "GO" symbol, and are padded then.</span></div><div class="line">    decoder_pad_size = decoder_size - len(decoder_input) - <span class="number">1</span></div><div class="line">    decoder_inputs.append([data_utils.GO_ID] + decoder_input +</div><div class="line">                          [data_utils.PAD_ID] * decoder_pad_size)</div><div class="line">  <span class="comment"># Now we create batch-major vectors from the data selected above.</span></div><div class="line">  batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []</div><div class="line">  <span class="comment"># Batch encoder inputs are just re-indexed encoder_inputs.</span></div><div class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(encoder_size):</div><div class="line">    batch_encoder_inputs.append(</div><div class="line">        np.array([encoder_inputs[batch_idx][length_idx]</div><div class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</div><div class="line">  <span class="comment"># Batch decoder inputs are re-indexed decoder_inputs, we create weights.</span></div><div class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(decoder_size):</div><div class="line">    batch_decoder_inputs.append(</div><div class="line">        np.array([decoder_inputs[batch_idx][length_idx]</div><div class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</div><div class="line">    <span class="comment"># Create target_weights to be 0 for targets that are padding.</span></div><div class="line">    <span class="comment"># 這個 weights 是給模型訓練用的，有目標值的地方為1，其他為0</span></div><div class="line">    <span class="comment"># 有目標值的地方，指的是 decoder_input 平移1格的結果</span></div><div class="line">    batch_weight = np.ones(self.batch_size, dtype=np.float32)</div><div class="line">    <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size):</div><div class="line">      <span class="comment"># We set weight to 0 if the corresponding target is a PAD symbol.</span></div><div class="line">      <span class="comment"># The corresponding target is decoder_input shifted by 1 forward.</span></div><div class="line">       <span class="keyword">if</span> length_idx &lt; decoder_size - <span class="number">1</span>:</div><div class="line">           target = decoder_inputs[batch_idx][length_idx + <span class="number">1</span>]</div><div class="line">       <span class="keyword">if</span> length_idx == decoder_size - <span class="number">1</span> <span class="keyword">or</span> target == data_utils.PAD_ID:</div><div class="line">           batch_weight[batch_idx] = <span class="number">0.0</span></div><div class="line">    batch_weights.append(batch_weight)</div><div class="line">  <span class="keyword">return</span> batch_encoder_inputs, batch_decoder_inputs, batch_weights</div></pre></td></tr></table></figure>
+<h4 id="训练">训练</h4><figure class="highlight python"><table><tr><td class="code"><pre><div class="line">self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(</div><div class="line">    self.encoder_inputs, self.decoder_inputs, targets,</div><div class="line">    self.target_weights, buckets,</div><div class="line">    seq2seq=<span class="keyword">lambda</span> x, y: seq2seq_f(x, y, <span class="keyword">False</span>),</div><div class="line">    softmax_loss_function=softmax_loss_function)</div></pre></td></tr></table></figure>
+<p>上面這段程式碼中的 seq2seq 參數 <code>seq2seq_f(x, y, False)</code> 也是定義在 <code>seq2seq_model.py</code> 裡面的。指的是將 x: encoder_input 與 y: decoder_input 輸入，回傳的就是這個 seq2seq model 的 output 與 state。False 這個參數則是 <code>seq2seq_f()</code> 裡面自行定義作為 do_decode or not 的 Boolean。我們把相關的程式碼列出來如下，可以看到多為 tensorflow 之中對於 RNN 的設定。其中比較特別的是 <code>sampled_softmax_loss</code> 以及 <code>seq2seq_f</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">output_projection = <span class="keyword">None</span></div><div class="line">softmax_loss_function = <span class="keyword">None</span></div><div class="line"><span class="comment"># Sampled softmax only makes sense if we sample less than vocabulary size.</span></div><div class="line"><span class="keyword">if</span> num_samples &gt; <span class="number">0</span> <span class="keyword">and</span> num_samples &lt; self.target_vocab_size:</div><div class="line">  w_t = tf.get_variable(<span class="string">"proj_w"</span>, [self.target_vocab_size, size], dtype=dtype)</div><div class="line">  w = tf.transpose(w_t)</div><div class="line">  b = tf.get_variable(<span class="string">"proj_b"</span>, [self.target_vocab_size], dtype=dtype)</div><div class="line">  output_projection = (w, b)</div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">sampled_loss</span><span class="params">(labels, inputs)</span>:</span></div><div class="line">    labels = tf.reshape(labels, [<span class="number">-1</span>, <span class="number">1</span>])</div><div class="line">    <span class="comment"># We need to compute the sampled_softmax_loss using 32bit floats to</span></div><div class="line">    <span class="comment"># avoid numerical instabilities.</span></div><div class="line">    local_w_t = tf.cast(w_t, tf.float32)</div><div class="line">    local_b = tf.cast(b, tf.float32)</div><div class="line">    local_inputs = tf.cast(inputs, tf.float32)</div><div class="line">    <span class="keyword">return</span> tf.cast(</div><div class="line">        tf.nn.sampled_softmax_loss(</div><div class="line">            weights=local_w_t,</div><div class="line">            biases=local_b,</div><div class="line">            labels=labels,</div><div class="line">            inputs=local_inputs,</div><div class="line">            num_sampled=num_samples,</div><div class="line">            num_classes=self.target_vocab_size),</div><div class="line">        dtype)</div><div class="line">  softmax_loss_function = sampled_loss</div><div class="line">    </div><div class="line"><span class="comment"># Create the internal multi-layer cell for our RNN.</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">single_cell</span><span class="params">()</span>:</span></div><div class="line">  <span class="keyword">return</span> tf.contrib.rnn.GRUCell(size)</div><div class="line"><span class="keyword">if</span> use_lstm:</div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">single_cell</span><span class="params">()</span>:</span></div><div class="line">    <span class="keyword">return</span> tf.contrib.rnn.BasicLSTMCell(size)</div><div class="line">cell = single_cell()</div><div class="line"><span class="keyword">if</span> num_layers &gt; <span class="number">1</span>:</div><div class="line">  cell = tf.contrib.rnn.MultiRNNCell([single_cell() <span class="keyword">for</span> _ <span class="keyword">in</span> range(num_layers)])</div><div class="line"><span class="comment"># The seq2seq function: we use embedding for the input and attention.</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">seq2seq_f</span><span class="params">(encoder_inputs, decoder_inputs, do_decode)</span>:</span></div><div class="line">  <span class="keyword">return</span> tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(</div><div class="line">      encoder_inputs,</div><div class="line">      decoder_inputs,</div><div class="line">      cell,</div><div class="line">      num_encoder_symbols=source_vocab_size,</div><div class="line">      num_decoder_symbols=target_vocab_size,</div><div class="line">      embedding_size=size,</div><div class="line">      output_projection=output_projection,</div><div class="line">      feed_previous=do_decode,</div><div class="line">      dtype=dtype)</div></pre></td></tr></table></figure>
+<p><code>sampled_softmax_loss</code> 是用在當有大量的輸出類別必須被 predict 的時候，舉例來說，像是英翻法這樣的翻譯工作，法文的詞典(target_vocab_size) size 有 40000 之多，這時候我們採用 sampled_softmax_loss 可以快速有效地建立一個 softmax classifier。其中的參數<code>num_sampled</code>指的是 sampling 的數目，在這邊是512。<code>num_classes</code>指的就是實際的 class 數目，在這邊就是以法文詞典的數目來代表。要注意的是 <code>num_sampled</code>不可以大於 <code>num_classes</code> 就是了</p>
+<p><code>seq2seq_f()</code> 直接呼叫了 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code>。這個 embedding_attention_seq2seq 是一個帶有 embedding + sequence to sequence 並帶有 attention 機制的模型。encoder_input 首先進入一個 embedding layer，轉為 word vector，之後進入一個 encoder RNN。這個 encoder RNN 的每一個 time step 會被記錄下來，作為 attention 機制的參考。接下來，decoder_input 會進入另一個新建立的 embedding layer，在同樣轉為 word vector 之後，進入一個 attention deocder RNN。這個 deocder 是由 encoder 的最後一個 time step 的 state 進行初始化，其後每一個輸入就是 decoder_input 經過 embedding 之後的 word vector，並且具有對 encoder output 專注的 attention 機制</p>
+<p>在 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code> 之中的參數 <code>feed_previous</code>，當他為 False 的時候 decoder 會使用前面給的 decoer_input 作為輸入，也就是一般在訓練階段的作法。當值為 True 的時候，前面給的 decoder_input 只有第一個值（通常是 GO symbol，代表一個句子的開始） 會作為 decoder 的輸入，而 decoder 的下一個 input，則是 decoder 的前一個 output，也就是只給 deocder 第一個 input，後面讓他自由發揮的意思。這也是一般在 decode/predict 時候的作法。</p>
+<h4 id="perplexity">perplexity</h4><p>$$<br>perplexity=e^{-l}, l=\frac{1}{M}\sum_{i=1}^{m}\log\left(p(s_i) \right )<br>$$</p>
+<p>如同precision recall等指标一样，用来评估一个模型的好坏</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/08/chatbot/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/08/chatbot/" itemprop="url">chatbot</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-08T16:41:02+08:00">
+                2018-04-08
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T16:41:02+08:00">
+                2018-04-08
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/08/chatbot/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/08/chatbot/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/04/spelling-translate/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/04/spelling-translate/" itemprop="url">Spelling Translate</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-04T14:50:11+08:00">
+                2018-04-04
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-08T16:32:28+08:00">
+                2018-04-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/04/spelling-translate/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/04/spelling-translate/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://www.pinchofintelligence.com/old-spelling-to-new-spelling-with-tensorflow/" target="_blank" rel="external">原文链接</a></p>
+<h3 id="prepartion">prepartion</h3><p>选用RNN的网络，主要是针对词来算</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">Xdata = []</div><div class="line">Ydata = []</div><div class="line">MAX_LENGTH_WORD = <span class="number">10</span></div><div class="line"></div><div class="line"></div><div class="line">feature_dict= dict()</div><div class="line">feature_list = list()</div><div class="line"></div><div class="line">PADDING_CHARACTER = <span class="string">'~'</span></div><div class="line">feature_dict[PADDING_CHARACTER]=<span class="number">0</span></div><div class="line">feature_list.append(PADDING_CHARACTER)</div><div class="line">max_features = <span class="number">1</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_vector_from_string</span><span class="params">(input_s)</span>:</span></div><div class="line">    <span class="keyword">global</span> max_features</div><div class="line">    vector_x = []</div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> input_s:</div><div class="line">        <span class="keyword">if</span> i <span class="keyword">not</span> <span class="keyword">in</span> feature_dict:</div><div class="line">            feature_dict[i]=max_features</div><div class="line">            feature_list.append(i)</div><div class="line">            max_features += <span class="number">1</span></div><div class="line">        vector_x.append(feature_dict[i])</div><div class="line">    <span class="keyword">return</span> vector_x</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_to_data</span><span class="params">(input_s,output_s)</span>:</span></div><div class="line">    <span class="keyword">if</span> len(input_s) &lt; MAX_LENGTH_WORD <span class="keyword">and</span> len(output_s) &lt; MAX_LENGTH_WORD:</div><div class="line">        vector_x = get_vector_from_string(input_s)</div><div class="line">        vector_y = get_vector_from_string(output_s)</div><div class="line">        Xdata.append(vector_x)</div><div class="line">        Ydata.append(vector_y)</div><div class="line"></div><div class="line">        </div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_vector</span><span class="params">(vector,end_token=<span class="string">'\n'</span>)</span>:</span></div><div class="line">    print(<span class="string">''</span>.join([feature_list[i] <span class="keyword">for</span> i <span class="keyword">in</span> vector]),end=end_token)</div><div class="line">    </div><div class="line"><span class="keyword">with</span> open(<span class="string">"dictionary_old_new_dutch.csv"</span>) <span class="keyword">as</span> in_file:</div><div class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> in_file:</div><div class="line">            in_s,out_s = line.strip().split(<span class="string">","</span>)</div><div class="line">            add_to_data(in_s,out_s)</div><div class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</div><div class="line">    print_vector(Xdata[i],end_token=<span class="string">''</span>)</div><div class="line">    print(<span class="string">' -&gt; '</span>, end=<span class="string">''</span>)</div><div class="line">    print_vector(Ydata[i])</div></pre></td></tr></table></figure>
+<p>上面部分是将词转化成为vector，注意几点：</p>
+<ul>
+<li>限制max_length_word部分</li>
+<li>这里面没有像之前lstm那样，通过记录词频的方式，来进行one_hot编码</li>
+<li>feature_list记录所有的词，同时，feature_dict记录词进入feature_list的位置</li>
+</ul>
+<h3 id="data_preprocessing">data preprocessing</h3><p>As mentioned above I would like to use a sequence to sequence approach. Important for this approach is having a certain length of words. Words that are longer than that length have been discarded in de data-reading step above. Now we will add paddings to the words that are not long enough. — 对于不够的词增加相应的padding</p>
+<p>Another important step is creating a train and a test set. We only show the network examples from the train set. At the end I will manually evaluate some of the examples in the testset and discuss what the network learned. During training we train in batches with a small amount of data. With a random data splitter we get a different trainset every run. — 挑选合适的训练集和测试集</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">before_padding = Xdata[<span class="number">0</span>]</div><div class="line">Xdata = sequence.pad_sequences(Xdata, maxlen=MAX_LENGTH_WORD)</div><div class="line">Ydata = sequence.pad_sequences(Ydata, maxlen=MAX_LENGTH_WORD)</div><div class="line">after_padding  = Xdata[<span class="number">0</span>]</div><div class="line"></div><div class="line">print_vector(before_padding,end_token=<span class="string">''</span>)</div><div class="line">print(<span class="string">" -&gt; after padding: "</span>, end=<span class="string">''</span>)</div><div class="line">print_vector(after_padding)</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataSplitter</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,percentage)</span>:</span></div><div class="line">        self.percentage = percentage</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">split_data</span><span class="params">(self,data)</span>:</span></div><div class="line">        splitpoint = int(len(data)*self.percentage)</div><div class="line">        <span class="keyword">return</span> data[:splitpoint], data[splitpoint:]</div><div class="line">splitter = DataSplitter(<span class="number">0.8</span>)</div><div class="line">Xdata,Xtest = splitter.split_data(Xdata)</div><div class="line">Ydata,Ytest = splitter.split_data(Ydata)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_random_reversed_dataset</span><span class="params">(Xdata,Ydata,batch_size)</span>:</span></div><div class="line">    newX = []</div><div class="line">    newY = []</div><div class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> range(batch_size):</div><div class="line">        index_taken = random.randint(<span class="number">0</span>,len(Xdata)<span class="number">-1</span>)</div><div class="line">        newX.append(Xdata[index_taken])</div><div class="line">        newY.append(Ydata[index_taken][::<span class="number">-1</span>])</div><div class="line">    <span class="keyword">return</span> newX,newY</div></pre></td></tr></table></figure>
+<p>这里的几点：</p>
+<ul>
+<li>使用sequence.pad_sequences警醒padding补充</li>
+</ul>
+<h3 id="The_network">The network</h3><ul>
+<li>embeds our characters</li>
+<li>has an encoder which returns a sequence of outputs</li>
+<li>has an attention model which uses this sequence to generate output characters</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">batch_size = <span class="number">64</span></div><div class="line">memory_dim = <span class="number">256</span></div><div class="line">embedding_dim = <span class="number">32</span></div><div class="line"></div><div class="line">enc_input = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> i <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line">dec_output = [tf.placeholder(tf.int32, shape=(<span class="keyword">None</span>,)) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)]</div><div class="line"></div><div class="line">weights = [tf.ones_like(labels_t, dtype=tf.float32) <span class="keyword">for</span> labels_t <span class="keyword">in</span> enc_input]</div><div class="line"></div><div class="line">dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32)]+[dec_output[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD<span class="number">-1</span>)])</div><div class="line">empty_dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32,name=<span class="string">"empty_dec_input"</span>) <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)])</div><div class="line"></div><div class="line">cell = tf.nn.rnn_cell.GRUCell(memory_dim)</div><div class="line"></div><div class="line"><span class="comment"># Create a train version of encoder-decoder, and a test version which does not feed the previous input</span></div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>) <span class="keyword">as</span> scope:</div><div class="line">    outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,dec_inp,</div><div class="line">                                                           cell,max_features,max_features,</div><div class="line">                                                           embedding_dim, feed_previous=<span class="keyword">False</span>)</div><div class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">"decoder1"</span>,reuse=<span class="keyword">True</span>) <span class="keyword">as</span> scope:</div><div class="line">    runtime_outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,empty_dec_inp,</div><div class="line">                                                                    cell,max_features,max_features,</div><div class="line">                                                                   embedding_dim,feed_previous=<span class="keyword">True</span>)</div><div class="line"></div><div class="line">loss = tf.nn.seq2seq.sequence_loss(outputs, dec_output, weights, max_features)</div><div class="line"></div><div class="line">optimizer = tf.train.AdamOptimizer()</div><div class="line">train_op = optimizer.minimize(loss)</div><div class="line"></div><div class="line"><span class="comment"># Init everything</span></div><div class="line">sess = tf.InteractiveSession()</div><div class="line">sess.run(tf.initialize_all_variables())</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
+<pre><code><span class="number">1.</span> enc_input和dec_output分别是<span class="number">10</span>dim的数组
+<span class="number">2.</span> init weights部分
+<span class="number">3.</span> memory_dim的意义？
+<span class="number">4.</span> 采用的是GRUCell的小处理阀门
+<span class="number">5.</span> feed_previous的意义？
+</code></pre><h3 id="Training">Training</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span> index_now <span class="keyword">in</span> range(<span class="number">1002</span>):</div><div class="line">    Xin,Yin = get_random_reversed_dataset(Xdata,Ydata,batch_size)</div><div class="line">    Xin = np.array(Xin).T</div><div class="line">    Yin = np.array(Yin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    feed_dict.update(&#123;dec_output[t]: Yin[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;)</div><div class="line">    _, l = sess.run([train_op,loss], feed_dict)</div><div class="line">    <span class="keyword">if</span> index_now%<span class="number">100</span>==<span class="number">1</span>:</div><div class="line">        print(l)</div></pre></td></tr></table></figure>
+<p>每次选取不同的random的数据集来进行相关的训练，增加随机性部分？</p>
+<h3 id="Train_analysis">Train analysis</h3><figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_reversed_max_string_logits</span><span class="params">(logits)</span>:</span></div><div class="line">    string_logits = logits[::<span class="number">-1</span>]</div><div class="line">    concatenated_string = <span class="string">""</span></div><div class="line">    <span class="keyword">for</span> logit <span class="keyword">in</span> string_logits:</div><div class="line">        val_here = np.argmax(logit)</div><div class="line">        concatenated_string += feature_list[val_here]</div><div class="line">    <span class="keyword">return</span> concatenated_string</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">print_out</span><span class="params">(out)</span>:</span></div><div class="line">    out = list(zip(*out))</div><div class="line">    out = out[:<span class="number">10</span>] <span class="comment"># only show the first 10 samples</span></div><div class="line">    </div><div class="line">    <span class="keyword">for</span> index,string_logits <span class="keyword">in</span> enumerate(out):</div><div class="line">        print(<span class="string">"input: "</span>,end=<span class="string">''</span>)</div><div class="line">        print_vector(Xin[index])</div><div class="line">        print(<span class="string">"expected: "</span>,end=<span class="string">''</span>)</div><div class="line">        expected= Yin[index][::<span class="number">-1</span>]</div><div class="line">        print_vector(expected)</div><div class="line">        </div><div class="line">        output = get_reversed_max_string_logits(string_logits)</div><div class="line">        print(<span class="string">"output: "</span> + output)</div><div class="line">        </div><div class="line">         </div><div class="line">        print(<span class="string">"=============="</span>)</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment"># Now run a small test to see what our network does with words</span></div><div class="line">RANDOM_TESTSIZE = <span class="number">5</span></div><div class="line">Xin,Yin = get_random_reversed_dataset(Xtest,Ytest,RANDOM_TESTSIZE)</div><div class="line">Xin_transposed = np.array(Xin).T</div><div class="line">Yin_transposed = np.array(Yin).T</div><div class="line">feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">out = sess.run(runtime_outputs, feed_dict)</div><div class="line">print_out(out)</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">translate_single_word</span><span class="params">(word)</span>:</span></div><div class="line">    Xin = [get_vector_from_string(word)]</div><div class="line">    Xin = sequence.pad_sequences(Xin, maxlen=MAX_LENGTH_WORD)</div><div class="line">    Xin_transposed = np.array(Xin).T</div><div class="line">    feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> range(MAX_LENGTH_WORD)&#125;</div><div class="line">    out = sess.run(runtime_outputs, feed_dict)</div><div class="line">    <span class="keyword">return</span> get_reversed_max_string_logits(out)</div><div class="line"></div><div class="line">interesting_words = [<span class="string">"aerde"</span>,<span class="string">"duyster"</span>, <span class="string">"salfde"</span>, <span class="string">"ontstondt"</span>, <span class="string">"tusschen"</span>,<span class="string">"wacker"</span>,<span class="string">"voorraet"</span>,<span class="string">"gevreeset"</span>,<span class="string">"cleopatra"</span>]</div><div class="line"><span class="keyword">for</span> word <span class="keyword">in</span> interesting_words:</div><div class="line">    print(word + <span class="string">" becomes: "</span> + translate_single_word(word).replace(<span class="string">"~"</span>,<span class="string">""</span>))</div></pre></td></tr></table></figure>
+<p>代码解析：</p>
+<ul>
+<li>首先选取相应的test_case，训练处最终的结果，按照loss最小的参数</li>
+<li>然后是通过run，得到single_word的translate的结果</li>
+<li>相关输出的一些反转，通过vector还原成为相应的单词</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/lstm-exmaple/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -601,567 +1123,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/go101/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/03/go101/" itemprop="url">Go101</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">
-                2018-04-03
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:43:19+08:00">
-                2018-04-04
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/go/" itemprop="url" rel="index">
-                    <span itemprop="name">go</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/03/go101/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/go101/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://go101.org/article/101.html" target="_blank" rel="external">原文链接</a></p>
-<h3 id="value_parts">value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
-<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
-<p>Two kinds points</p>
-<ul>
-<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
-<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
-</ul>
-<p>Internal Definitions of the types</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="comment">// map types</span></div><div class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></div><div class="line">                         <span class="comment">// Go maps are hashtables actually.</span></div><div class="line"></div><div class="line"><span class="comment">// channel types</span></div><div class="line"><span class="keyword">type</span> _channel *channelImpl</div><div class="line"></div><div class="line"><span class="comment">// function types</span></div><div class="line"><span class="keyword">type</span> _function *functionImpl</div><div class="line"></div><div class="line"><span class="comment">// slice types</span></div><div class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</div><div class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></div><div class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>            <span class="comment">// number of elements</span></div><div class="line">	<span class="built_in">cap</span>      <span class="keyword">int</span>            <span class="comment">// capacity</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// string types</span></div><div class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</div><div class="line">	elements *<span class="keyword">byte</span> <span class="comment">// underlying bytes</span></div><div class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>   <span class="comment">// number of bytes</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// general interface types</span></div><div class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</div><div class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</div><div class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></div><div class="line">		methods     []*_function <span class="comment">// implemented methods</span></div><div class="line">	&#125;</div><div class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p><strong>underlying value parts are not copied in value assignments</strong></p>
-<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
-<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
-<ul>
-<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
-<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
-<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
-</ul>
-<h3 id="line_break_rules_in_go">line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>{</code>) of the explicit code block of a <a href="https://go101.org/article/control-flow.html" target="_blank" rel="external">control flow block</a> on a new line.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">for</span></div><div class="line">&#123;</div><div class="line">	<span class="comment">// do something ...</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>活用<code>;</code></p>
-<h3 id="Some_Panic/Recover_Use_Cases">Some Panic/Recover Use Cases</h3><p>avoid panics crashing programs</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> <span class="string">"errors"</span></div><div class="line"><span class="keyword">import</span> <span class="string">"log"</span></div><div class="line"><span class="keyword">import</span> <span class="string">"net"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	listener, err := net.Listen(<span class="string">"tcp"</span>, <span class="string">":12345"</span>)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		log.Fatalln(err)</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">for</span> &#123;</div><div class="line">		conn, err := listener.Accept()</div><div class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">			log.Println(err)</div><div class="line">		&#125;</div><div class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></div><div class="line">		<span class="keyword">go</span> ClientHandler(conn)</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</div><div class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</div><div class="line">			log.Println(<span class="string">"client handler panic:"</span>, v)</div><div class="line">		&#125;</div><div class="line">		c.Close()</div><div class="line">	&#125;()</div><div class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">"just a demo."</span>)) <span class="comment">// a demo-purpose panic</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>automatically restart a crash goroutine</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> <span class="string">"log"</span></div><div class="line"><span class="keyword">import</span> <span class="string">"time"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="keyword">for</span> &#123;</div><div class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></div><div class="line">		<span class="comment">// Simultate an unexpected panic.</span></div><div class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</div><div class="line">			<span class="built_in">panic</span>(<span class="string">"unexpected situation"</span>)</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="keyword">string</span>, f <span class="keyword">func</span>()</span>)</span> &#123;</div><div class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></div><div class="line">			log.Println(name, <span class="string">"is crashed. Restart it now."</span>)</div><div class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></div><div class="line">		&#125;</div><div class="line">	&#125;()</div><div class="line">	f()</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	log.SetFlags(<span class="number">0</span>)</div><div class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#A"</span>, shouldNotExit)</div><div class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#B"</span>, shouldNotExit)</div><div class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>use panic/recover to reduce error checkings</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</div><div class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</div><div class="line">		<span class="comment">// Create a demo-purpose panic.</span></div><div class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">"bad number: %v"</span>, n))</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</div><div class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></div><div class="line">		<span class="comment">// a panic will be created if no errors occur.</span></div><div class="line">		err, _ = <span class="built_in">recover</span>().(error)</div><div class="line">	&#125;()</div><div class="line"></div><div class="line">	doTask(<span class="number">22</span>)</div><div class="line">	doTask(<span class="number">98</span>)</div><div class="line">	doTask(<span class="number">100</span>)</div><div class="line">	doTask(<span class="number">53</span>)</div><div class="line">	<span class="keyword">return</span> <span class="literal">nil</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="close_channel">close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/02/flipkart-data-platform/" itemprop="url">Flipkart Data Platform</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">
-                2018-04-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T19:33:18+08:00">
-                2018-04-02
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-platform/" itemprop="url" rel="index">
-                    <span itemprop="name">data platform</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/02/flipkart-data-platform/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/flipkart-data-platform/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196" target="_blank" rel="external">原文链接</a></p>
-<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
-<p>Overall FDP can be broken down into following high level components.</p>
-<ol>
-<li>Ingestion System</li>
-<li>Batch Data Processing System</li>
-<li>Real time Processing System</li>
-<li>Report Visualization</li>
-<li>Query Platform</li>
-</ol>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
-<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
-<p><a href="https://lens.apache.org/" target="_blank" rel="external">Apache Lens</a> 接入hive等</p>
-<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
-<hr>
-<h2 id="ETL">ETL</h2><p><a href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d" target="_blank" rel="external">原文链接</a></p>
-<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
-<p>mapreduce vs cascading</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
-<hr>
-<h2 id="REAL_TIME_SEACH_INDEX">REAL TIME SEACH INDEX</h2><p><a href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d" target="_blank" rel="external">原文链接</a></p>
-<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a href="https://www.youtube.com/watch?v=05rX0mJ2N4U" target="_blank" rel="external">video</a></p>
-<p>高频繁的更新操作，</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
-<p><a href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart" target="_blank" rel="external">sides</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/02/hot-reloading-go-programs/" itemprop="url">Hot Reloading Go Programs</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">
-                2018-04-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T16:52:23+08:00">
-                2018-04-02
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/hot-reload/" itemprop="url" rel="index">
-                    <span itemprop="name">hot reload</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/02/hot-reloading-go-programs/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/hot-reloading-go-programs/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72" target="_blank" rel="external">原文链接</a></p>
-<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
-<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
-<p>原理上：</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line">watcher, err := fsnotify.NewWatcher()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		<span class="keyword">for</span> &#123;</div><div class="line">			<span class="keyword">select</span> &#123;</div><div class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</div><div class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</div><div class="line">					watcherLog(<span class="string">"sending event %s"</span>, ev)</div><div class="line">					startChannel &lt;- ev.String()</div><div class="line">				&#125;</div><div class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</div><div class="line">				watcherLog(<span class="string">"error: %s"</span>, err)</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;()</div></pre></td></tr></table></figure>
-<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
-<p>核心部分的build代码</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, <span class="keyword">bool</span>)</span></span> &#123;</div><div class="line">	buildLog(<span class="string">"Building..."</span>)</div><div class="line"></div><div class="line">	cmd := exec.Command(<span class="string">"go"</span>, <span class="string">"build"</span>, <span class="string">"-o"</span>, buildPath(), root())</div><div class="line"></div><div class="line">	stderr, err := cmd.StderrPipe()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	stdout, err := cmd.StdoutPipe()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	err = cmd.Start()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		fatal(err)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	io.Copy(os.Stdout, stdout)</div><div class="line">	errBuf, _ := ioutil.ReadAll(stderr)</div><div class="line"></div><div class="line">	err = cmd.Wait()</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">string</span>(errBuf), <span class="literal">false</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="string">""</span>, <span class="literal">true</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<hr>
-<p>另一种live reload的方式</p>
-<p><a href="https://github.com/oxequa/realize" target="_blank" rel="external">git repo</a></p>
-<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/16/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><a class="extend next" rel="next" href="/page/18/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/16/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/53/">53</a><a class="extend next" rel="next" href="/page/18/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1211,7 +1177,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">260</span>
+                  <span class="site-state-item-count">263</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1222,7 +1188,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">113</span>
+                  <span class="site-state-item-count">114</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1233,7 +1199,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">119</span>
+                  <span class="site-state-item-count">120</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

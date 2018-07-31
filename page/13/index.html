@@ -248,6 +248,591 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/10/large-application-with-flask/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/10/large-application-with-flask/" itemprop="url">Large Application With Flask</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-10T14:35:46+08:00">
+                2018-05-10
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-10T14:44:28+08:00">
+                2018-05-10
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/flask/" itemprop="url" rel="index">
+                    <span itemprop="name">flask</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/10/large-application-with-flask/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/10/large-application-with-flask/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://www.digitalocean.com/community/tutorials/how-to-structure-large-flask-applications?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_126" target="_blank" rel="external">原文链接</a></p>
+<p>As we have just been over in the previous section, Flask-way of doing things involves using the tools you are most comfortable with. In our article, we will be using – perhaps – the most common (and sensible) of choices in terms of extensions and libraries (i.e. database extraction layer). These choices will involve:</p>
+<ul>
+<li>SQLAlchemy (via Flask-SQLAlchemy)</li>
+<li>WTForms (via Flask-WTF)</li>
+</ul>
+<p>整个代码架构：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">~/LargeApp</div><div class="line">    |-- run.py</div><div class="line">    |-- config.py</div><div class="line">    |__ /env             # Virtual Environment</div><div class="line">    |__ /app             # Our Application Module</div><div class="line">         |-- __init__.py</div><div class="line">         |-- /module_one</div><div class="line">             |-- __init__.py</div><div class="line">             |-- controllers.py</div><div class="line">             |-- models.py                </div><div class="line">         |__ /templates</div><div class="line">             |__ /module_one</div><div class="line">                 |-- hello.html</div><div class="line">         |__ /static</div><div class="line">         |__ ..</div><div class="line">         |__ .</div><div class="line">    |__ ..</div><div class="line">    |__ .</div></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line">cd ~/LargeApp</div><div class="line">env/bin/pip install flask</div><div class="line">env/bin/pip install flask-sqlalchemy</div><div class="line">env/bin/pip install flask-wtf</div></pre></td></tr></table></figure>
+<p>the data model</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><div class="line"><span class="comment"># Import the database object (db) from the main application module</span></div><div class="line"><span class="comment"># We will define this inside /app/__init__.py in the next sections.</span></div><div class="line"><span class="keyword">from</span> app <span class="keyword">import</span> db</div><div class="line"></div><div class="line"><span class="comment"># Define a base model for other database tables to inherit</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Base</span><span class="params">(db.Model)</span>:</span></div><div class="line"></div><div class="line">    __abstract__  = <span class="keyword">True</span></div><div class="line"></div><div class="line">    id            = db.Column(db.Integer, primary_key=<span class="keyword">True</span>)</div><div class="line">    date_created  = db.Column(db.DateTime,  default=db.func.current_timestamp())</div><div class="line">    date_modified = db.Column(db.DateTime,  default=db.func.current_timestamp(),</div><div class="line">                                           onupdate=db.func.current_timestamp())</div><div class="line"></div><div class="line"><span class="comment"># Define a User model</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span><span class="params">(Base)</span>:</span></div><div class="line"></div><div class="line">    __tablename__ = <span class="string">'auth_user'</span></div><div class="line"></div><div class="line">    <span class="comment"># User Name</span></div><div class="line">    name    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="keyword">False</span>)</div><div class="line"></div><div class="line">    <span class="comment"># Identification Data: email &amp; password</span></div><div class="line">    email    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="keyword">False</span>,</div><div class="line">                                            unique=<span class="keyword">True</span>)</div><div class="line">    password = db.Column(db.String(<span class="number">192</span>),  nullable=<span class="keyword">False</span>)</div><div class="line"></div><div class="line">    <span class="comment"># Authorisation Data: role &amp; status</span></div><div class="line">    role     = db.Column(db.SmallInteger, nullable=<span class="keyword">False</span>)</div><div class="line">    status   = db.Column(db.SmallInteger, nullable=<span class="keyword">False</span>)</div><div class="line"></div><div class="line">    <span class="comment"># New instance instantiation procedure</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name, email, password)</span>:</span></div><div class="line"></div><div class="line">        self.name     = name</div><div class="line">        self.email    = email</div><div class="line">        self.password = password</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></div><div class="line">        <span class="keyword">return</span> <span class="string">'&lt;User %r&gt;'</span> % (self.name)</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/07/gopher-sg/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/07/gopher-sg/" itemprop="url">Gopher Sg</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-07T10:43:12+08:00">
+                2018-05-07
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-11T17:15:22+08:00">
+                2018-05-11
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/07/gopher-sg/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/07/gopher-sg/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://www.youtube.com/watch?index=11&amp;list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&amp;utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_126&amp;v=wh81Xjuq8E4" target="_blank" rel="external">Erlang for Go developers</a></p>
+<p>erlang vs golang:</p>
+<p>相同点：</p>
+<ul>
+<li>在于concurrent部分的设计</li>
+<li>标准库的使用</li>
+</ul>
+<p>不同点：</p>
+<ul>
+<li>deploys on a virtual machine, hot reload</li>
+<li>supports distributed communication</li>
+</ul>
+<p>erlang runtime</p>
+<p>provides behaviours to solve many design problems</p>
+<p>很难传递状态，必须通过消息传递 </p>
+<p>goroutine &lt;-&gt; process (pids)</p>
+<p>erlang process:</p>
+<ul>
+<li>each process has a mailbox</li>
+<li>a process is like a  goroutine + channel</li>
+<li>this composition creates an ‘actor’</li>
+<li>message are serialized through the mailbox</li>
+</ul>
+<p>distributed erlang</p>
+<p>monitor and link for process? 关于进程间的协同操作，这个挺有用的。</p>
+<p>关于supervison trees in go</p>
+<p><a href="https://github.com/ucirello/supervisor" target="_blank" rel="external">repo1</a></p>
+<hr>
+<p><a href="https://www.youtube.com/watch?index=1&amp;list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&amp;utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_126&amp;v=F8nrpe0XWRg" target="_blank" rel="external">Go with Versions</a></p>
+<p>Vgo？</p>
+<p>在获取依赖的时候，出现两种情况，too old/ too new</p>
+<p>software engineering vs programming engineering</p>
+<p>principles of versioning in Go:</p>
+<ul>
+<li>Compatibility</li>
+</ul>
+<p>如果具有相同的import path, 需要坐到后向兼容</p>
+<ul>
+<li>repeatability</li>
+<li>cooperation</li>
+</ul>
+<p>关于依赖的相互适应部分，</p>
+<p>version: major version, minor version, patch version</p>
+<p>using latest version is a feature! but only for library builds</p>
+<hr>
+<p><a href="https://www.youtube.com/watch?v=7R39CMW4MJQ&amp;list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&amp;index=14" target="_blank" rel="external">The Lost Art of Bondage</a></p>
+<p>cudn?</p>
+<p>parse c-header to go source code?</p>
+<p>time spent manually annotating functions vs time spent generating code</p>
+<p>cuda library</p>
+<p>what is the use case of algo?</p>
+<hr>
+<p><a href="https://engineers.sg/video/distributed-tracing-in-grab-gophercon-sg-2017--1751" target="_blank" rel="external">Distributed Tracing in Grab</a></p>
+<p>OpenTracing API</p>
+<p>basictracer-go</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/06/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/06/one-week/" itemprop="url">人生到底是什么</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-06T22:23:05+08:00">
+                2018-05-06
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-08T09:55:32+08:00">
+                2018-05-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/06/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/06/one-week/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>人生到底什么，或许有些意义，或许也没有意义。。。</p>
+<p>有些原则看起来很可笑，很迂腐，但值得内心平和地去坚持。。。</p>
+<p>不要让焦虑去阻碍进步。。</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>gp的token抓取集成</li>
+<li>新的es部分重新灌入，后续保证删除，单机5亿条数据后，写入会非常地缓慢。。</li>
+<li>coinbot的初始部分完成</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>golang重新恢复一些写法</li>
+<li>关于okhttp3加入proxy</li>
+</ul>
+<p>本周未完成：</p>
+<ul>
+<li>关于rn的收尾工作</li>
+</ul>
+<p>下周计划：</p>
+<ul>
+<li>rn的收尾工作</li>
+<li>golang的一些知识的总结</li>
+<li>子渠道部分的一些算法</li>
+</ul>
+<p>突然发生的事情，让人措手不及，怎么就沦为这样的地步，做最坏的打算，资金链崩坏，不再联系，双方见面也尴尬。。。还是希望度过这一难关吧，人还在，什么都有。。。</p>
+<p>人是在了。。。不过感觉关系也就这样了，出了问题遮遮掩掩，并没有彻底地去解决问题。。。还背锅。。。自己自在地活着。。</p>
+<p>还是这样，人畜无害地平庸地生存下去，这样挺好，低欲望，低消费，保持可笑的原则，慢慢走下去，与其说成探索人生，不如说在人生中去过一些地方，遇到一些人，碰到一些事，人生也是一场修行，正念，加油。。。</p>
+<p>外包的事情，抓点紧，这快1个月过去了，感觉还只是1/4的样子。。。算是补贴下贷款吧。。</p>
+<p>其他学习方面和工作上，也抓紧点。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/04/devops/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -610,553 +1195,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/24/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/24/one-week/" itemprop="url">杭州三日游</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-24T23:44:34+08:00">
-                2018-04-24
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-25T10:06:18+08:00">
-                2018-04-25
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/24/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/24/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>青城山下白素贞，洞中千年修此身</p>
-<p>一心向道无杂念，皈依三宝弃红尘</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>react native 开始入门，做了几个页面</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>rn的部分知识，这次相对于之前的入门有所好转，但rn的组件方式导致lib库太繁多。。</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>基本接入部分</li>
-<li>排查相关的运维问题</li>
-<li>rn的基本成型，页面大致搞定，一些跳转方面</li>
-</ul>
-<p>说好的四月下杭州计划，就这样匆匆忙忙的过程中完成。。</p>
-<p>还是缺乏理性，尤其是一到性上，简直是精虫上脑，还吃了短效避孕药。。。希望没啥事。。哎。。渣男附体，苦笑。。</p>
-<p>自己还是太挫了，不管是什么方面。。。还是包裹起来吧，保持一定的距离，做好自己，保持理性。。</p>
-<p>保持计划性，保证计划的实施，稳定性，恒心和耐心，要保持一下去。。。</p>
-<p>撸管什么的，不要想了。。戒掉。。不要放纵自己。。</p>
-<p>努力工作，积极生活。。为自己鼓劲。。就算acer也有梦想。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/23/titus/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/23/titus/" itemprop="url">Titus</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-23T15:08:07+08:00">
-                2018-04-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-23T15:24:53+08:00">
-                2018-04-23
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/container/" itemprop="url" rel="index">
-                    <span itemprop="name">container</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/23/titus/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/23/titus/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/netflix-techblog/titus-the-netflix-container-management-platform-is-now-open-source-f868c9fb5436" target="_blank" rel="external">原文链接</a></p>
-<p>Multiple container management platforms (Kubernetes, Mesosphere DC/OS, and Amazon ECS) have been adopted across the industry during the last two years, driving different benefits to a wide class of use cases. Additionally, a handful of web-scale companies have developed solutions on top of Apache Mesos to meet the unique needs of their organizations.</p>
-<p>可以尝试看下apache mesos？</p>
-<h3 id="How_is_Titus_different_from_other_container_platforms">How is Titus different from other container platforms</h3><ul>
-<li><p>tight integration between Titus and both Amazon and Netflix infrastructure</p>
-<p>Titus has advanced ENI and security group management support spanning not only our networking fabric but also our scheduling logic. This allows us to handle ENIs and IPs as resources and ensure safe large scale deployments that consider EC2 VPC API call rate limits</p>
-<p>同亚马逊的结合</p>
-<p>We also worked with AWS on the design of IP target groups for Application Load Balancers, which brings support for full IP stack containers and AWS load balancing</p>
-</li>
-<li><p>We choose this path to ensure a common developer and operational approach between VMs and containers. This is evident through our <a href="https://github.com/spinnaker/clouddriver/tree/master/clouddriver-titus" target="_blank" rel="external">Spinnaker</a>enablement, support in our service discovery (Eureka), changes in our telemetry system (Atlas), and <a href="http://getvector.io/blog/release/2016/06/01/whats-new-in-vector.html" target="_blank" rel="external">performance insight</a> technologies.</p>
-</li>
-<li><p>scale</p>
-<ul>
-<li><p>we run over a thousand different applications, with some being very compute heavy (media encoding), some being critical Netflix customer facing services, some memory and GPU heavy (algorithm training), some being network bound (stream processing), some that are happy with resource over commitment (big data jobs) and some that are not</p>
-<p>we do not believe there are off-the-shelf solutions that can take on each of these scale challenges</p>
-</li>
-<li><p>We always try to maintain a philosophy of “just enough” vs “just in case” with the goal of keeping things as simple and maintainable as possible.</p>
-<p>In the scheduling layer, we support advanced concepts such as capacity management, agent management, and dynamic scheduling profiles</p>
-</li>
-</ul>
-</li>
-<li><p>​</p>
-</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/23/storytelling-dashboard/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/23/storytelling-dashboard/" itemprop="url">Storytelling in Dashboard</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-23T11:45:37+08:00">
-                2018-04-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-23T15:01:59+08:00">
-                2018-04-23
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dashboard/" itemprop="url" rel="index">
-                    <span itemprop="name">dashboard</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/23/storytelling-dashboard/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/23/storytelling-dashboard/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://susielu.com/data-viz/storytelling-in-dashboards?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_124" target="_blank" rel="external">原文链接</a></p>
-<p>A common categorization for data visualizations is <strong>exploratory</strong> and <strong>explanatory</strong>.</p>
-<p>数据可视化的关键是可解释，可讲故事</p>
-<p><a href="http://www.r2d3.us/%E5%9B%BE%E8%A7%A3%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" target="_blank" rel="external">图解机器学习</a></p>
-<p>关于决策树部分，决策树的末节又叫做叶节点，预测取决于叶节点内哪一类的样本相对较多</p>
-<p>Commonly we reduce these two modes into:<br><em>Explanatory</em> = has a story e.g. scrollytelling<br><em>Exploratory</em> = doesn’t have a story e.g. dashboards</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/12/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/page/14/">14</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><a class="extend next" rel="next" href="/page/14/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/12/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/page/14/">14</a><span class="space">&hellip;</span><a class="page-number" href="/page/53/">53</a><a class="extend next" rel="next" href="/page/14/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1206,7 +1249,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">260</span>
+                  <span class="site-state-item-count">263</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1217,7 +1260,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">113</span>
+                  <span class="site-state-item-count">114</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1228,7 +1271,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">119</span>
+                  <span class="site-state-item-count">120</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
