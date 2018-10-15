@@ -249,6 +249,752 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/28/5-things-hate-about-go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/28/5-things-hate-about-go/" itemprop="url">5 things hate about go</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-28T17:12:57+08:00">
+                2018-05-28
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-28T18:14:26+08:00">
+                2018-05-28
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/28/5-things-hate-about-go/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/28/5-things-hate-about-go/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://jaxenter.com/5-things-you-hate-about-go-143422.html?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_129" target="_blank" rel="noopener">原文链接</a></p>
+<p>My personal favorite is that Go does not offer a <em>reentrant lock</em>, i.e. a lock that can be recursively acquired from the same thread or Goroutine (the Go variant of Coroutines or <em>Green Threads</em>). However, without hacks there is no way to build such an implementation by yourself, since threads are not available in Go and Goroutines do not offer an identifier, which would allow you to recognize the same Goroutine you’ve seen before.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> task <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  task := &amp;task&#123;&#125;</span><br><span class="line">  task = &amp;task&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>At this point, Go is no longer able to see the distinction between the type and the variable</p>
+<h3 id="Type_or_no_type,_that_is_the_question!"><strong>Type or no type, that is the question!</strong></h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> handle = <span class="keyword">int</span> <span class="comment">// after go 1.9</span></span><br><span class="line"><span class="keyword">type</span> handle <span class="keyword">int</span> <span class="comment">// before go 1.9</span></span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> var1 <span class="keyword">int</span> = <span class="number">1</span></span><br><span class="line">  <span class="keyword">var</span> var2 handle = <span class="number">2</span></span><br><span class="line">  types(var1)</span><br><span class="line">  types(var2)</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">types</span><span class="params">(val <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="keyword">int</span>:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">"I am an int: %d"</span>, v))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> handle:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">"I am an handle: %d"</span>, v))</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Gophers_are_lazy_by_nature!">Gophers are lazy by nature!</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  functions := <span class="built_in">make</span>([]<span class="function"><span class="keyword">func</span><span class="params">()</span>, 3)</span></span><br><span class="line"><span class="function">    <span class="title">for</span> <span class="title">i</span> := 0; <span class="title">i</span> &lt; 3; <span class="title">i</span>++</span> &#123;</span><br><span class="line">      functions[i] = <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      fmt.Println(fmt.Sprintf(<span class="string">"iterator value: %d"</span>, i))</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">  functions[<span class="number">0</span>]()</span><br><span class="line">  functions[<span class="number">1</span>]()</span><br><span class="line">  functions[<span class="number">2</span>]()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Of_nil_and_nothing">Of nil and nothing</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">(v <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> e *MyError = <span class="literal">nil</span></span><br><span class="line">  <span class="keyword">if</span> v &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>When <code>e</code> is returned, the <code>*MyError</code> pointer becomes an instance of the interface type <code>error</code> and it’s not nil! </p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/27/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/27/one-week/" itemprop="url">万法缘起</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-27T08:49:18+08:00">
+                2018-05-27
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T22:00:20+08:00">
+                2018-09-16
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/27/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/27/one-week/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>菩萨畏因，众生畏果</p>
+<p>缘起缘灭，终究逃不过自己做的一切。。</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>相关运维部分的交接</li>
+<li>简历部分进行修改</li>
+</ul>
+<p>本周未完成：</p>
+<ul>
+<li>coinbot部分，关于自动化交易部分</li>
+<li>rn部分的第一版的收尾部分</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>开始复习一些东西</li>
+<li>准备简历上的东西，准备投一些</li>
+</ul>
+<p>如期所至的同居生活开始了。。。有过争吵，有过所谓的甜蜜。。。哎，感觉达不到要求，给不了，感觉已经不是那种一人吃饱，全家不愁的状态，不管是心理上，还是物质上，还是配不上人家吧，有时候，也在怀疑，当初自己是怎么做了这个选择。。。窝起来，做一个肥宅多幸福。。。但不管怎么说，现在已经这个状态，先慢慢撑起来吧。。。毕竟最坏的结果，不是已经打算了，窝起来。。。</p>
+<p>还是生活和工作之间，怎么来平衡吧，个人还是有点强迫症，定一个计划出来，拖延症什么的。。要努力克服。。</p>
+<p>简历已经开始着手准备了，那么找工作部分，也要提上日程了。。关于简历上内容的回顾，leetcode的刷题部分，全都要慢慢捡起来。。</p>
+<p>尽量不要给他人困扰，也不要给他人带来麻烦，从根源上，斩断一些缘。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/24/go-std-doc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/24/go-std-doc/" itemprop="url">Go std doc</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-24T15:36:32+08:00">
+                2018-05-24
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-25T10:45:40+08:00">
+                2018-05-25
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/24/go-std-doc/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/24/go-std-doc/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/preytaren/go-doc-zh" target="_blank" rel="noopener">原repo</a></p>
+<h2 id="container/heap">container/heap</h2><p>fix用于单次对堆进行调整</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fix</span><span class="params">(h Interface, i <span class="keyword">int</span>)</span></span></span><br></pre></td></tr></table></figure>
+<p>关于大顶堆以及小顶堆</p>
+<h2 id="container/list">container/list</h2><p>基本的双向链表</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"container/list"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	link := list.New()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt;= <span class="number">10</span>; i++ &#123;</span><br><span class="line">		link.PushBack(i)</span><br><span class="line">	&#125;<span class="comment">//</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> p := link.Front(); p != link.Back(); p = p.Next() &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Number"</span>, p.Value)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="container/ring">container/ring</h2><p>循环表结构</p>
+<p>Do, Ring包提供一个额外的方法Do，会依次将每个节点的Value当做参数调用这个函数</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"container/ring"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(<span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">		fmt.Println(i)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>求和的写法：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"container/ring"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> SumInt <span class="keyword">struct</span> &#123;</span><br><span class="line">	Value <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SumInt)</span> <span class="title">add</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	s.Value += i.(<span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(sum.add)</span><br><span class="line">	fmt.Println(sum.Value)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="sort">sort</h2><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">        Len() <span class="keyword">int</span>            <span class="comment">// 返回当前元素个数</span></span><br><span class="line">        Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span>. <span class="comment">// 判断第i个元素是小于第j个元素</span></span><br><span class="line">        Swap(i, j <span class="keyword">int</span>)       <span class="comment">// 交换两个元素</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>只要实现这三个函数，即可使用sort的相关函数</p>
+<p>Slice</p>
+<p>Slice函数用于对一个Slice进行排序，这是实际使用中更为常用的一个函数，函数接收两个参数。第一个是需要排序的Slice；第二个是Slice元素比较函数，它类似于前面sort.Interface里的Less方法。函数声明如下：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Slice</span><span class="params">(slice <span class="keyword">interface</span>&#123;&#125;, less <span class="keyword">func</span>(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span>)</span></span><br></pre></td></tr></table></figure>
+<h2 id="sync">sync</h2><p>信号量，sync.Cond是信号量的实现</p>
+<p>Signal和Broadcast用于唤醒一个信号量，区别在于Signal只会随机的唤醒一个线程，而Broadcast会唤醒所有在等待的线程。</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Signal</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Broadcast</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure>
+<p>wait</p>
+<p>阻塞等待，当Signal或Broadcast被调用时唤醒，声明如下：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Wait</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure>
+<p>sync.Once保证某个函数有且仅有一次执行，只有一个方法Do，接受一个无参函数作为参数，当你调用Do时会执行这个函数，其方法声明如下：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span></span><br></pre></td></tr></table></figure>
+<h2 id="context">context</h2><p>context也是并发环境的一个常用标准库，它用于在并发环境下在协程之间安全的传递某些上下文信息。</p>
+<p>一个经典的应用场景是服务器模型，当服务器处理接收到的请求时，通常需要并发的运行多个子任务，例如访问服务器，请求授权等。而这些任务都会以子协程的方式运行，也就是说一个请求绑定了多个协程，这些协程需要共享或传递某些请求相关的数据；此外当请求被撤销时，也需要有一种机制保证每个子协程能够安全的退出。而context包就给提供了上面说到的这些功能。</p>
+<p>Context是一个上下文对象，其声明如下：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">    Deadline() (deadline time.Time, ok <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 获取deadline</span></span><br><span class="line">    Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// </span></span><br><span class="line">    Err() error</span><br><span class="line">    Value(key <span class="keyword">interface</span>&#123;&#125;) <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/slack-pipe/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/22/slack-pipe/" itemprop="url">Slack队列</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T19:54:38+08:00">
+                2018-05-22
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-23T11:17:36+08:00">
+                2018-05-23
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/queue/" itemprop="url" rel="index">
+                    <span itemprop="name">queue</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/22/slack-pipe/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/slack-pipe/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://slack.engineering/scaling-slacks-job-queue-687222e9d100" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="initial_job_queue_system_architecture">initial job queue system architecture</h3><p><a href="https://redis.io/commands/rpoplpush#pattern-reliable-queue" target="_blank" rel="noopener">Redis task queue</a>:</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*xg9vacHZdbqyqbCPB9nOLQ.png" alt="redis queue"></p>
+<p>job with an identical ID</p>
+<p>Pools of worker machines poll the Redis clusters, looking for new work. When a worker finds a job in one of the queues it monitors, it moves the job from the pending queue to a list of in-flight jobs, and spawns an asynchronous task to handle it.</p>
+<h3 id="Architectural_Problems">Architectural Problems</h3><ul>
+<li>Redis had little operational headroom, particularly with respect to memory. If we enqueued faster than we dequeued for a sustained period, we would run out of memory and be unable to dequeue jobs (because dequeuing also requires having enough memory to move the job into a processing list).</li>
+<li>Redis connections formed a complete bipartite graph — every job queue client must connect to (and therefore have correct and current information on) every Redis instance.</li>
+<li>Job workers couldn’t scale independently of Redis — adding a worker resulted in extra polling and load on Redis. This property caused a complex feedback situation where attempting to increase our execution capacity could overwhelm an already overloaded Redis instance, slowing or halting progress.</li>
+<li>Previous decisions on which Redis data structures to use meant that dequeuing a job requires work proportional to the length of the queue. As queues become longer, they became more difficult to empty — another unfortunate feedback loop.</li>
+<li>The semantics and quality-of-service guarantees provided to application and platform engineers were unclear and hard to define; asynchronous processing on the job queue is fundamental to our system architecture, but in practice engineers were reluctant to use it. Changes to existing features such as our limited deduplication were also extremely high-risk, as many jobs rely on them to function correctly.</li>
+</ul>
+<p>We thought about replacing Redis with Kafka altogether, but quickly realized that this route would require significant changes to the application logic around scheduling, executing, and de-duping jobs. In the spirit of pursuing a minimum viable change, we decided to add <strong>Kafka in front of Redis</strong> rather than replacing Redis with Kafka outright. This would alleviate a critical bottleneck in our system, while leaving the existing application enqueue and dequeue interfaces in place.</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*gLthmgFNR5NhxFdUO3g9gQ.png" alt="new Queue Architecture"></p>
+<p>Kafka gate:</p>
+<ul>
+<li>A bias towards availability over consitency</li>
+<li>Simple client semantics</li>
+<li>Minimum latency</li>
+</ul>
+<h3 id="replay_jobs_from_kafka_to_redis">replay jobs from kafka to redis</h3><p>use JQRelay to decode the JSON encoded job</p>
+<p><strong>Self-configuration:</strong> When a JQRelay instance starts up, it attempts to acquire a <a href="https://www.consul.io/" target="_blank" rel="noopener">Consul</a> lock on an key/value entry corresponding to the Kafka topic. If it gets the lock, it starts relaying jobs from all partitions of this topic. If it loses its lock, it releases all resources and restarts so that a different instance can pick up this topic. </p>
+<h3 id="load_test">load test</h3><p><strong>Failure testing</strong>: It was important to understand how different Kafka cluster failure scenarios would manifest in the application, e.g. connect failures, job enqueue failures, missing jobs, and duplicate jobs. For this, we tested our cluster against following failure scenarios:</p>
+<ol>
+<li>Hard kill and gracefully kill a broker</li>
+<li>Hard kill and gracefully kill two brokers in a single AZ</li>
+<li>Hard kill all three brokers to force Kafka to pick an unclean leader</li>
+<li>Restart the cluster</li>
+</ol>
+<h3 id="Production_Rollout">Production Rollout</h3><p>Rolling out the new system included the following steps:</p>
+<ol>
+<li><strong>Double writes:</strong> We started by double writing jobs to both the current and new system (each job was enqueued to <em>both</em> Redis and Kakfa). JQRelay, however, operated in a “shadow” mode where it dropped all jobs after reading it from Kafka. This setup let us safely test the new enqueue path from web app to JQRelay with real production traffic.</li>
+<li><strong>Guaranteeing system correctness:</strong> To ensure the correctness of the new system, we tracked and compared the number of jobs passing through each part of the system: from the web app to Kafkagate, Kafkagate to Kafka, and finally Kafka to Redis.</li>
+<li><strong>Heartbeat canaries:</strong> To ensure that the new system worked end-to-end for 50 Redis clusters and 1600 Kafka partitions (50 topics × 32 partitions), we enqueued heartbeat canaries for every Kafka partition every minute. We then monitored and alerted on the end-to-end flow and timing for these heartbeat canaries.</li>
+<li><strong>Final roll-out</strong>: Once we were sure of our system correctness, we enabled it internally for Slack for a few weeks. After that showed no problems, we rolled it out one by one for various job types for our customers.</li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/jvm-statics/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -404,707 +1150,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/go-not-good/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/go-not-good/" itemprop="url">Go the good, the bad and the ugly</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T17:04:31+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-24T10:46:18+08:00">
-                2018-05-24
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/go-not-good/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/go-not-good/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_127" target="_blank" rel="noopener">原文链接</a></p>
-<h3 id="Good">Good</h3><p>new Types</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> UserId <span class="keyword">string</span> <span class="comment">// &lt;-- new type</span></span><br><span class="line"><span class="keyword">type</span> ProductId <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddProduct</span><span class="params">(userId UserId, productId ProductId)</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    userId := UserId(<span class="string">"some-user-id"</span>)</span><br><span class="line">    productId := ProductId(<span class="string">"some-product-id"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Right order: all fine</span></span><br><span class="line">    AddProduct(userId, productId)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wrong order: would compile with raw strings</span></span><br><span class="line">    AddProduct(productId, userId)</span><br><span class="line">    <span class="comment">// Compilation errors:</span></span><br><span class="line">    <span class="comment">// cannot use productId (type ProductId) as type UserId in argument to AddProduct</span></span><br><span class="line">    <span class="comment">// cannot use userId (type UserId) as type ProductId in argument to AddProduct</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="Bad">Bad</h3><h4 id="Go_ignored_advances_in_modern_language_design">Go ignored advances in modern language design</h4><p><strong>functional programing</strong></p>
-<p><strong>No LLVM</strong></p>
-<p><strong>GC</strong></p>
-<h4 id="Interfaces_are_structural_types">Interfaces are structural types</h4><p>Go interfaces are like Java interfaces or Scala &amp; Rust traits: they define behaviour that is later implemented by a type (I won’t call it “class” here).</p>
-<h3 id="No_enumerations">No enumerations</h3><p><code>iota</code></p>
-<h3 id="The:=/var_dilemma">The<code>:=</code>/<code>var</code> dilemma</h3><p>Go provides two ways to declare a variable and assign it a value: <code>var x = &quot;foo&quot;</code> and <code>x := &quot;foo&quot;</code>. </p>
-<p>The main differences are that <code>var</code> allows declaration without initialization (and you then have to declare the type), like in <code>var x string</code>, whereas <code>:=</code> requires assignment and allows a mix of existing and new variables. My guess is that <code>:=</code> was invented to make error handling <em>a bit</em> less painful:</p>
-<h4 id="Zero_values_that_panic">Zero values that panic</h4><p>go have no constructor</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> m1 = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;&#125; <span class="comment">// empty map</span></span><br><span class="line"><span class="keyword">var</span> m0 <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>     <span class="comment">// zero map (nil)</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m1))   <span class="comment">// outputs '0'</span></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m0))   <span class="comment">// outputs '0'</span></span><br><span class="line"><span class="built_in">println</span>(m1[<span class="string">"foo"</span>]) <span class="comment">// outputs ''</span></span><br><span class="line"><span class="built_in">println</span>(m0[<span class="string">"foo"</span>]) <span class="comment">// outputs ''</span></span><br><span class="line">m1[<span class="string">"foo"</span>] = <span class="string">"bar"</span>  <span class="comment">// ok</span></span><br><span class="line">m0[<span class="string">"foo"</span>] = <span class="string">"bar"</span>  <span class="comment">// panics!</span></span><br></pre></td></tr></table></figure>
-<p>上面所示，m1初始化了，但m0没有初始化。。</p>
-<h4 id="Go_doesn’t_have_exceptions-">Go doesn’t have exceptions.</h4><p>just  “<a href="https://blog.golang.org/defer-panic-and-recover" target="_blank" rel="noopener">Defer, panic and recover</a>“</p>
-<h3 id="Ugly">Ugly</h3><h4 id="The_dependency_management_nightmare">The dependency management nightmare</h4><p>Things are getting better though: <code>dep</code>, the <a href="https://golang.github.io/dep/" target="_blank" rel="noopener">official dependency management tool</a> was recently introduced to support vendoring.</p>
-<p>But <code>dep</code> may not live long though as <a href="https://github.com/golang/vgo" target="_blank" rel="noopener"><code>vgo</code></a>, also from Google, wants to bring versioning in the language itself and has been making some waves lately.</p>
-<h4 id="mutability_is_hardcoded_in_the_language">mutability is hardcoded in the language</h4><p>Go makes it easy however to copy an entire struct with a simple assignment, so we may think that passing arguments by value is all that is needed to have immutability at the cost of copying.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</span><br><span class="line">    A <span class="keyword">string</span></span><br><span class="line">    B []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    x := S&#123;<span class="string">"x-A"</span>, []<span class="keyword">string</span>&#123;<span class="string">"x-B"</span>&#125;&#125;</span><br><span class="line">    y := x <span class="comment">// copy the struct</span></span><br><span class="line">    y.A = <span class="string">"y-A"</span></span><br><span class="line">    y.B[<span class="number">0</span>] = <span class="string">"y-B"</span></span><br><span class="line"></span><br><span class="line">    fmt.Println(x, y)</span><br><span class="line">    <span class="comment">// Outputs "&#123;x-A [y-B]&#125; &#123;y-A [y-B]&#125;" -- x was modified!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p> And the since built-in collections (map, slice and array) are references and are mutable, copying a struct that contains one of these just copies the pointer to the same underlying memory.</p>
-<h4 id="Slice_gotchas">Slice gotchas</h4><p>Slices come with many gotchas: as explained in “<a href="https://blog.golang.org/go-slices-usage-and-internals" target="_blank" rel="noopener">Go slices: usage and internals</a>“, re-slicing a slice doesn’t copy the underlying array for performance reasons. </p>
-<p>This is a laudable goal but means that sub-slices of a slice are just views that follow the mutations of the original slice. So don’t forget to <code>copy()</code> a slice if you want to separate it from its origin.</p>
-<p>Forgetting to <code>copy()</code> becomes more dangerous with the <code>append</code> function: appending values to a slice resizes the underlying array <em>if it doesn’t have enough capacity</em> to hold the new values. This means that the result of <code>append</code> may or may not point to the original array depending on its initial capacity. This can cause hard to find non deterministic bugs. (在append的时候，如果没有足够的空间，会重新resize slice，这样pointer会乱指)</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doStuff</span><span class="params">(value []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"value=%v\n"</span>, value)</span><br><span class="line"></span><br><span class="line">    value2 := value[:]</span><br><span class="line">    value2 = <span class="built_in">append</span>(value2, <span class="string">"b"</span>)</span><br><span class="line">    fmt.Printf(<span class="string">"value=%v, value2=%v\n"</span>, value, value2)</span><br><span class="line"></span><br><span class="line">    value2[<span class="number">0</span>] = <span class="string">"z"</span></span><br><span class="line">    fmt.Printf(<span class="string">"value=%v, value2=%v\n"</span>, value, value2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    slice1 := []<span class="keyword">string</span>&#123;<span class="string">"a"</span>&#125; <span class="comment">// length 1, capacity 1</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice1)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[z b] -- ok: value unchanged, value2 updated</span></span><br><span class="line"></span><br><span class="line">    slice10 := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1</span>, <span class="number">10</span>) <span class="comment">// length 1, capacity 10</span></span><br><span class="line">    slice10[<span class="number">0</span>] = <span class="string">"a"</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice10)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[z], value2=[z b] -- WTF?!? value changed???</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="mutability_and_channels:_race_conditions_made_easy">mutability and channels: race conditions made easy</h4><p>As we saw above there is no way in Go to have immutable data structures. This means that once we send a pointer on a channel, it’s game over: we share mutable data between concurrent processes. Of course a channel of structures (and not pointers) copies the values sent on the channel, but as we saw above, this doesn’t deep-copy references, including slices and maps, which are intrinsically mutable. Same goes with struct fields of an interface type: they are pointers, and any mutation method defined by the interface is an open door to race conditions.</p>
-<h4 id="noisy_error_management">noisy error management</h4><p>In “<a href="https://blog.golang.org/errors-are-values" target="_blank" rel="noopener">Error has values</a>“ Rob Pike suggests some strategies to reduce error handling verbosity</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">type errWriter struct &#123;</span><br><span class="line">    w   io.Writer</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (ew *errWriter) write(buf []byte) &#123;</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return // Write nothing if we already errored-out</span><br><span class="line">    &#125;</span><br><span class="line">    _, ew.err = ew.w.Write(buf)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func doIt(fd io.Writer) &#123;</span><br><span class="line">    ew := &amp;errWriter&#123;w: fd&#125;</span><br><span class="line">    ew.write(p0[a:b])</span><br><span class="line">    ew.write(p1[c:d])</span><br><span class="line">    ew.write(p2[e:f])</span><br><span class="line">    // and so on</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return ew.err</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="nil_interface_values">nil interface values</h4><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Explodes <span class="keyword">interface</span> &#123;</span><br><span class="line">    Bang()</span><br><span class="line">    Boom()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Type Bomb implements Explodes</span></span><br><span class="line"><span class="keyword">type</span> Bomb <span class="keyword">struct</span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*Bomb)</span> <span class="title">Bang</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Bomb)</span> <span class="title">Boom</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> bomb *Bomb = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">var</span> explodes Explodes = bomb</span><br><span class="line">    <span class="built_in">println</span>(bomb, explodes) <span class="comment">// '0x0 (0x10a7060,0x0)'</span></span><br><span class="line">    <span class="keyword">if</span> explodes != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">"Not nil!"</span>) <span class="comment">// 'Not nil!' What are we doing here?!?!</span></span><br><span class="line">        explodes.Bang()     <span class="comment">// works fine</span></span><br><span class="line">        explodes.Boom()     <span class="comment">// panic: value method main.Bomb.Boom called using nil *Bomb pointer</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">"nil!"</span>)     <span class="comment">// why don't we end up here?</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="struct_field_tags:_runtime_DSL_in_a_string">struct field tags: runtime DSL in a string</h4><h4 id="Go_has_few_data_structures_beyond_slice_and_map">Go has few data structures beyond slice and map</h4>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/Deep-Reinforcement-Learning/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/Deep-Reinforcement-Learning/" itemprop="url">Deep Reinforcement Learning</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T16:43:13+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T16:47:08+08:00">
-                2018-05-22
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/Deep-Reinforcement-Learning/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/Deep-Reinforcement-Learning/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/applied-data-science/how-to-build-your-own-world-model-using-python-and-keras-64fb388ba459" target="_blank" rel="noopener">原文链接</a></p>
-<p>[<strong><a href="https://arxiv.org/abs/1803.10122" target="_blank" rel="noopener">https://arxiv.org/abs/1803.10122</a></strong></p>
-<h3 id="step_1_The_Problem">step 1 The Problem</h3>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/G-unit-stack/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/G-unit-stack/" itemprop="url">G-unit Stack</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T16:01:49+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T16:09:30+08:00">
-                2018-05-22
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/G-unit/" itemprop="url" rel="index">
-                    <span itemprop="name">G-unit</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/G-unit-stack/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/G-unit-stack/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://iheanyi.com/journal/2018/05/12/the-g-unit-stack-go-graphql-and-grpc/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_128" target="_blank" rel="noopener">原文链接</a></p>
-<p>这里的G-unit是指Go, GraphQL, gRPC</p>
-<p>GraphQL fits really nicely into a service-oriented architecture (SoAs).</p>
-<p>API Gateways</p>
-<p><a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/gateway-routing" target="_blank" rel="noopener">Gateway Routing pattern</a></p>
-<h3 id="GraphQL_as_the_API_Gateway">GraphQL as the API Gateway</h3><p><a href="https://github.com/apollographql/apollo-server" target="_blank" rel="noopener">nodejs GraphQL</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/git-inner-theory/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/22/git-inner-theory/" itemprop="url">Git 内部原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T15:26:58+08:00">
-                2018-05-22
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-05-22T15:58:38+08:00">
-                2018-05-22
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/git/" itemprop="url" rel="index">
-                    <span itemprop="name">git</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/05/22/git-inner-theory/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/05/22/git-inner-theory/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://git-scm.com/book/zh-tw/v1/Git-%E5%85%A7%E9%83%A8%E5%8E%9F%E7%90%86-%E5%BA%95%E5%B1%A4%E5%91%BD%E4%BB%A4-Plumbing-%E5%92%8C%E9%AB%98%E5%B1%A4%E5%91%BD%E4%BB%A4-Porcelain?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_128" target="_blank" rel="noopener">原文链接</a></p>
-<p>.git目录下</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> ls</span></span><br><span class="line">HEAD</span><br><span class="line">branches/</span><br><span class="line">config</span><br><span class="line">description</span><br><span class="line">hooks/</span><br><span class="line">index</span><br><span class="line">info/</span><br><span class="line">objects/</span><br><span class="line">refs/</span><br></pre></td></tr></table></figure>
-<p>新版本Git不再使用<code>branches</code>目录</p>
-<p>有四個重要的檔案或目錄：<code>HEAD</code> 及 <code>index</code> 檔，<code>objects</code> 及 <code>refs</code> 目錄。這些是 Git 的核心部分。<code>objects</code> 目錄存放所有資料內容，<code>refs</code> 目錄存放指向資料 (分支) 的提交物件的指標，<code>HEAD</code> 檔指向目前分支，<code>index</code> 檔保存了暫存區域資訊</p>
-<p>通過 <code>cat-file</code> 命令可以將資料內容取回。該命令是查看 Git 對象的瑞士軍刀。傳入 <code>-p</code> 參數可以讓 <code>cat-file</code> 命令輸出資料內容的類型：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> git cat-file -p d670460b4b4aece5915caf5c68d12f560a9fe3e4</span></span><br><span class="line">test content</span><br></pre></td></tr></table></figure>
-<p>Git 以一種類似 UNIX 檔案系統但更簡單的方式來保存內容。所有內容以 tree 或 blob 物件保存，其中 tree 物件對應於 UNIX 中的目錄，blob 物件則大致對應於 inodes 或檔案內容。一個單獨的 tree 物件包含一條或多條 tree 記錄，每一條記錄含有一個指向 blob 或子 tree 物件的 SHA-1 指標，並附有該物件的許可權模式 (mode)、類型和檔案名資訊。</p>
-<p><img src="https://git-scm.com/figures/18333fig0901-tn.png" alt="git树"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/59/">59</a><a class="extend next" rel="next" href="/page/19/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/60/">60</a><a class="extend next" rel="next" href="/page/19/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1154,7 +1204,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">295</span>
+                  <span class="site-state-item-count">299</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1165,7 +1215,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">124</span>
+                  <span class="site-state-item-count">125</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1176,7 +1226,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">130</span>
+                  <span class="site-state-item-count">131</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
