@@ -249,6 +249,585 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/03/3read/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/08/03/3read/" itemprop="url">今日阅读列表</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-03T13:22:51+08:00">
+                2015-08-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2015-08-03T18:06:21+08:00">
+                2015-08-03
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/08/03/3read/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/03/3read/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h3 id="数据库相关">数据库相关</h3><p>索引的处理：</p>
+<ul>
+<li>内存映射文件</li>
+</ul>
+<p>MongoDB, Cassandra, Riak等</p>
+<ul>
+<li>较小的索引集合，采用元索引或者bloom Filter进行一些优化</li>
+</ul>
+<p>一旦内存数据足够多，比如达到MB，我们就对它们进行排序，而后将它们作为单个小的索引写入硬盘中。最后得到的是一个小的、由不变索引文件组成的年表。</p>
+<ul>
+<li>简单匹配算法（brute force）又叫做面向列（Column Oriented）</li>
+</ul>
+<p>日志结构合并树，在HBase,Cassandra等不同地方应用。</p>
+<p>将索引存储在内存中，或者利用诸如日志结构合并树(Log Structured Merge Tree)这样的写优化索引结构，绕开“随机写惩罚”(random-write penalty)。这是第三种方案为纯粹的简单匹配算法(Pure brute force)。</p>
+<p>面向列是一种简单的理念，和行存储数据不同，通过列分割每一行，将数据追加到单个文件末尾。接着在每个单独的文件中存储每一列，一旦需要只需读取需要的列。<br>这样可以确保文件的含有相同的序列，即每个列文件的第N行含有相同的地址或者偏移量。这个很重要，在某一时刻读取多列，来服务一个单一的查询。意味着“连接(joining)”列速度飞快，倘若所有的列含有相同的序列，我们就能在一个紧凑的循环中这么做，此循环有很好缓存和CPU利用率。许多实现大量使用向量( vectorisation)进一步优化简单连接和过滤操作吞吐量。</p>
+<p>诸如卡夫卡(Kafka)采用一个简单的、基于硬件的高效消息规范。消息可以简单地追加到文件的末尾，或者从预定的偏移量处读取。可以从某个偏移量读取消息，来来回回，你可以从上次结束的偏移量处读取。看得出是很不错的有序输入输出(IO)。</p>
+<p>这和多数面向消息的中间件不同，JMS(Java消息服务)和AMQP(高级消息队列协议)说明文档需要额外的索引，来管理选择器和会话消息。这意味着它们结束某个行为的方式更像数据库，而非某个文件。著名的论述是1995年Jim Gray发表的队列就是数据库(Queue’s are Databases).</p>
+<p>分布式数据库下的CAP（Consistency, Availability, Partition-Tolerance）</p>
+<h3 id="前端读服务">前端读服务</h3><p>是不是借鉴机器人？</p>
+<p>一些设计原则</p>
+<ul>
+<li>无状态</li>
+<li>数据闭环<br>Hash Tag</li>
+<li>缓存银弹</li>
+<li>并发化</li>
+<li>降级开关</li>
+</ul>
+<blockquote>
+<ol>
+<li>开关集中化管理：通过推送机制把开关推送到各个应用；</li>
+<li>可降级的多级读服务：比如只读本地缓存、只读分布式缓存、或者只读一个默认的降级数据；</li>
+<li>开关前置化：如架构是nginx—&gt;tomcat，可以将开关前置到nginx接入层，在nginx层做开关，请求不打到后端应用。</li>
+</ol>
+</blockquote>
+<ul>
+<li>限流</li>
+<li>切流量</li>
+<li>其他</li>
+</ul>
+<blockquote>
+<p>1、首先接入层读取本地proxy cache / local cache；</p>
+<p>2、如果不命中，会读取分布式redis集群；</p>
+<p>3、如果还不命中，会回源到tomcat，然后读取堆内cache；如果没有，则直接调用依赖业务获取数据；然后异步化写到redis集群；</p>
+</blockquote>
+<h3 id="nginx_+_lua">nginx + lua</h3><p><a href="http://jinnianshilongnian.iteye.com/blog/2190344" target="_blank" rel="noopener">跟我学Nginx+Lua开发</a> </p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/02/oneWeekOld/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/08/02/oneWeekOld/" itemprop="url">oneWeekOld</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-02T19:49:49+08:00">
+                2015-08-02
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2015-08-02T19:49:49+08:00">
+                2015-08-02
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/08/02/oneWeekOld/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/02/oneWeekOld/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/08/01/scala1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/08/01/scala1/" itemprop="url">scala学习第三天</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-08-01T13:27:09+08:00">
+                2015-08-01
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2015-09-05T23:33:53+08:00">
+                2015-09-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/scala/" itemprop="url" rel="index">
+                    <span itemprop="name">scala</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/08/01/scala1/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/08/01/scala1/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <a id="more"></a>
+<h3 id="控制抽象">控制抽象</h3><p>函数值用做参数</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">filesMatching</span></span>(query: <span class="type">String</span>,</span><br><span class="line">	matcher: (<span class="type">String</span>, <span class="type">String</span>) =&gt; <span class="type">Boolean</span>) = &#123;</span><br><span class="line"><span class="keyword">for</span> (file &lt;- filesHere; <span class="keyword">if</span> matcher(file.getName, query))</span><br><span class="line">	<span class="keyword">yield</span> file</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>闭包，自由变量？</p>
+<p>List的高阶函数exists 配合占位符</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">containsOdd</span></span>(nums: <span class="type">List</span>[<span class="type">Int</span>]) = nums.exists(_ % <span class="number">2</span> == <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>Curry化</p>
+<p>curry化函数被应用于多个参数列表，</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first</span></span>(x: <span class="type">Int</span>) = (y: <span class="type">Int</span>) =&gt; x+y</span><br></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">withPrintWriter</span></span>(file: <span class="type">File</span>, op: <span class="type">PrintWriter</span> =&gt; <span class="type">Unit</span>) &#123;</span><br><span class="line">	<span class="keyword">val</span> writer = <span class="keyword">new</span> <span class="type">PrintWriter</span>(file)</span><br><span class="line">	<span class="keyword">try</span>&#123;</span><br><span class="line">		op(writer)</span><br><span class="line">	&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">		writer.close()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">withPrintWriter(</span><br><span class="line">	<span class="keyword">new</span> <span class="type">File</span>(<span class="symbol">'date</span>.txt'),</span><br><span class="line">	writer =&gt; writer.println(<span class="keyword">new</span> java.util.<span class="type">Date</span>)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>使用大括号代替小括号包围参数列表，实现内建控制结构</p>
+<p>叫名函数</p>
+<h3 id="组合和继承">组合和继承</h3><p>elem(s:String): Element</p>
+<p>抽象类，无法被实例化，</p>
+<p>无参数方法，且仅通过读含有对象的方式访问可变状态</p>
+<p>字段值在类初始化的时候被预计算，而方法调用在每次调用的时候都要计算。</p>
+<p>scala定义不带参数也没有副作用的方法为无参数方法，省略空的括号，是鼓励的风格，另一方面，永远不要定义没有括号的带副作用的方法。</p>
+<p>子类和超类</p>
+<p>scala仅微定义准备了两个命令空间，值（字段，方法，包还有单例对象），类型（类和特质名）</p>
+<p>多态和动态绑定</p>
+<p>使用组合与继承</p>
+<p>for循环中的until<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span>(i &lt;- <span class="number">0</span> until <span class="keyword">this</span>.contents.length)</span><br></pre></td></tr></table></figure></p>
+<h3 id="scala的层级">scala的层级</h3><p>42为Int的实例，不能使用new Int</p>
+<p>java中基本类型和引用类型的区别，</p>
+<p>Any &lt;- AnyVal, AnyRef, ScalaObject &lt;- …</p>
+<p>AnyRef定义了eq方法，它不能被重写，并且实现为引用相等。 通过eq 引用的相等比较它们的实例部分？那就是==代表为实例的相等？</p>
+<p>scala.Null: 每个引用类型的子类，不兼容值类型</p>
+<p>Scala.Nothing： 任何其他类型的子类，</p>
+<h3 id="特质_trait">特质 trait</h3><p>混入”特质”，而不是继承它们</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">a</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">def</span> <span class="title">b</span> </span>= &#123;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>with 超类中混入特质，</p>
+<p>类似带有方法的java接口？</p>
+<p>特质不能有”类”参数，构造函数不允许有参数，</p>
+<p>class extends trait 构造的时候，需要指明？</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">R</span>(<span class="params">val topLeft: <span class="type">Point</span>, val rightLeft: <span class="type">Ponit</span></span>) <span class="keyword">extends</span></span></span><br></pre></td></tr></table></figure>
+<p>Ordered 用来compare 类似于comparator？</p>
+<p>可堆叠改变特质？</p>
+<p>更类似与切面，但切面也可继承超类以及相关？</p>
+<p>with的次序很重要，一般，越靠近右侧，越先起作用，</p>
+<p>多重继承？trait extends超类，使用super部分，线性化解释super的方式？</p>
+<h3 id="包和引用">包和引用</h3><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> x.x</span><br><span class="line"><span class="keyword">import</span> x._</span><br></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">showFruit</span></span>(fruit: <span class="type">Fruit</span>) &#123;</span><br><span class="line">	<span class="keyword">import</span> fruit._</span><br><span class="line">	println(name + <span class="string">"a "</span> + color)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="type">Fruits</span>.&#123;<span class="type">Apple</span> =&gt; a, <span class="type">Orange</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>java允许外部类访问其内部类的私有成员</p>
+<p>伴生对象？</p>
+<h3 id="样式类和模式匹配">样式类和模式匹配</h3><p>case class 和 pattern matching</p>
+<p>选择器 match {备选项}</p>
+<p>match同switch的比较:</p>
+<ul>
+<li>match始终以值为结果</li>
+<li>备选表达式永远不会掉到下一个case</li>
+<li>如果没有模式匹配，会抛出matchError</li>
+</ul>
+<p><code>case _ =&gt;</code> 通配  </p>
+<p>模式的种类:</p>
+<ul>
+<li>通配模式</li>
+<li>常量模式</li>
+<li>变量模式</li>
+<li>构造器模式</li>
+<li>元组模式</li>
+<li>类型模式</li>
+<li>变量绑定</li>
+</ul>
+<p>模式防卫</p>
+<p>模式重叠</p>
+<p>模式部分，用来进行消息的处理？</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/31/scala31/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -611,597 +1190,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/30/30read/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2015/07/30/30read/" itemprop="url">今日阅读列表</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-07-30T14:34:31+08:00">
-                2015-07-30
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-31T14:33:17+08:00">
-                2015-07-31
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/huffman/" itemprop="url" rel="index">
-                    <span itemprop="name">huffman</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2015/07/30/30read/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/07/30/30read/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="Huffman">Huffman</h3><ul>
-<li>有权的二叉树</li>
-<li>自底向上的堆</li>
-<li>不会存在某个编码是另个编码的前缀</li>
-<li>用于压缩部分效果尤佳</li>
-</ul>
-<p><img src="/images/huffman.png" alt="Huffman"></p>
-<h3 id="延迟队列">延迟队列</h3><blockquote>
-<p>订单类系统，用户创建后一段时间没有付款，需要讲该订单关闭掉，同时把库存还原回去</p>
-</blockquote>
-<p>mongodb做队列，由于mongodb有一个叫做<code>findAndModify</code>的操作。操作为原子性，即，你可以修改一条记录的同时把老的记录返回。</p>
-<p>同时可以考虑java的延迟队列的实现</p>
-<blockquote>
-<p>java.util.concurrent.DelayQueue</p>
-</blockquote>
-<p>同时：</p>
-<blockquote>
-<p>一些总结：能不用锁的地方一定不要用锁，锁会把你的性能耗尽。能不用分布式锁的地方一定不要用，如果你的系统需要使用分布式锁，可以想想有没有其他的简单粗暴的方案，也许会有更好的搜获。分布式系统的一个特点是高并发，如果架上了分布式锁，很可能让你的系统变成了串行处理的系统了，这样就违背分布式系统的初衷了。</p>
-</blockquote>
-<h3 id="activeMq">activeMq</h3><blockquote>
-<p><a href="http://blog.csdn.net/lulongzhou_llz/article/details/46695727" target="_blank" rel="noopener">activeMq消费消息时网络流程异常大</a></p>
-</blockquote>
-<p>主要的矛盾点在于：mq的prefetch机制，以及jmsTemplate的每次new consumer的机制的冲突</p>
-<p>解决方案：</p>
-<ul>
-<li>禁用prefetch</li>
-</ul>
-<p>带来的后果，每次jmsTemplate的receive创建，造成资源浪费</p>
-<ul>
-<li>不使用jmsTemplate</li>
-</ul>
-<p>自己单独创建cosumer，并单线程反复来使用进行receive。要避免，多线程使用一个consumer造成的消息混乱。这块，自身可以采用延迟队列的方式来进行？</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/29/30old/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2015/07/29/30old/" itemprop="url">30岁的自己</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-07-29T23:12:45+08:00">
-                2015-07-29
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-29T23:27:52+08:00">
-                2015-07-29
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/30/" itemprop="url" rel="index">
-                    <span itemprop="name">30</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2015/07/29/30old/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/07/29/30old/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>今天跟李辉，聊到一个很沉重的话题，30岁的自己会成为什么样子，30岁的自己会在哪。</p>
-<p>30岁，2-3年后，自己会是什么样子的一个状态，现在能够想象自己那时候的情况吗？说实话，很难想象。时间变化的很快，转眼间，3年过去了，距离自己5年成为行业中的专家的路子才开个了头，何去何从？</p>
-<p>对30岁的自己定一些目标，不让自己在30岁那个时候去叹息，去哀怨：</p>
-<ul>
-<li>多去尝试新的技术，但不要忘记自己的技术栈</li>
-<li>多去尝试新的人生，但不要忘记自己的初心</li>
-<li>多去尝试新的菜品，但不要让自己变得更胖</li>
-<li>多去尝试新的交际，但不要忘记自己的原则</li>
-<li>…</li>
-</ul>
-<p>其实，就是不断地去尝试，去体验不同的世界，去尝试改变一些环境，既然改变不了世界，就改变自己。</p>
-<p>自己的初心，终老这个行业，努力地去编码，努力地找到自己喜欢的，然后努力地去达成</p>
-<p>学习是一种信仰，人生是一种体悟</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2015/07/28/0728read/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2015/07/28/0728read/" itemprop="url">今日阅读列表</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-07-28T16:37:00+08:00">
-                2015-07-28
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2015-07-31T14:36:10+08:00">
-                2015-07-31
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/go/" itemprop="url" rel="index">
-                    <span itemprop="name">go</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2015/07/28/0728read/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/07/28/0728read/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="gor">gor</h3><blockquote>
-<p>Gor is a simple http traffic replication tool written in Go. Its main goal is to replay traffic from production servers to staging and dev environments.</p>
-</blockquote>
-<p><a href="https://github.com/buger/gor" target="_blank" rel="noopener">项目地址</a></p>
-<p>主要的使用命令：</p>
-<ul>
-<li>使用1个Gor Instance来进行listen和replay(有延迟)</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo gor --input-raw :80 --output-http "http://staging.com"</span><br></pre></td></tr></table></figure>
-<p>这部分的功能好像有延迟的问题，需要考虑</p>
-<ul>
-<li>离线进行replay(推荐)</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> write to file</span></span><br><span class="line">gor --input-raw :80 --output-file requests.gor</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">read</span> from file</span></span><br><span class="line">gor --input-file requests.gor --output-http "http://staging.com"</span><br></pre></td></tr></table></figure>
-<ul>
-<li>采用单独的replay server来进行转存(未通过)</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> Replay server (replay.local).</span></span><br><span class="line">gor --input-tcp replay.local:28020 --output-http http://staging.com</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Run on servers <span class="built_in">where</span> you want to catch traffic. You can run it on each `web` machine.</span></span><br><span class="line">sudo gor --input-raw :80 --output-tcp replay.local:28020</span><br></pre></td></tr></table></figure>
-<p>当然，这块还有更多的扩展</p>
-<h3 id="jquery-each">jquery.each</h3><blockquote>
-<p>We can break the $.each() loop at a particular iteration by making the callback function return false. Returning non-false is the same as a continue statement in a for loop; it will skip immediately to the next iteration.</p>
-</blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="comment">// 結束循環（即break）</span></span><br><span class="line">    jQuery.each(aOptionList, <span class="function"><span class="keyword">function</span>(<span class="params">index, option</span>)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (option.innerHTML === <span class="string">"stop"</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;  <span class="comment">// 返回false即break掉each循環</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// magic</span></span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 繼續下一個循環（即continue）</span></span><br><span class="line">    jQuery.each(aOptionList, <span class="function"><span class="keyword">function</span>(<span class="params">index, option</span>)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (option.innerHTML === <span class="string">"stop"</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;  <span class="comment">// 返回任意非false值</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// magic</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;());</span><br></pre></td></tr></table></figure>
-<h3 id="ajax过程">ajax过程</h3><blockquote>
-<ol>
-<li><p>创建XMLHttpRequest对象,也就是创建一个异步调用对象.</p>
-</li>
-<li><p>创建一个新的HTTP请求,并指定该HTTP请求的方法、URL及验证信息.</p>
-</li>
-<li><p>设置响应HTTP请求状态变化的函数.</p>
-</li>
-<li><p>发送HTTP请求.</p>
-</li>
-<li><p>获取异步调用返回的数据.</p>
-</li>
-<li><p>使用JavaScript和DOM实现局部刷新.</p>
-</li>
-</ol>
-</blockquote>
-<h3 id="浏览器并发">浏览器并发</h3><p>6个并发</p>
-<h3 id="js闭包">js闭包</h3><ul>
-<li>函数嵌套函数</li>
-<li>函数内部可以引用外部的参数和变量</li>
-<li>参数和变量不会被垃圾回收机制回收</li>
-</ul>
-<p>好处部分：</p>
-<ul>
-<li>希望一个变量长期驻扎在内存中</li>
-<li>避免全局变量的污染</li>
-<li>私有成员的存在</li>
-</ul>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">outer</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">var</span> x=<span class="number">10</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;             <span class="comment">//函数嵌套函数</span></span><br><span class="line">                x++;</span><br><span class="line">                alert(x);</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> y = outer();              <span class="comment">//外部函数赋给变量y;</span></span><br><span class="line">y();                 <span class="comment">//y函数调用一次，结果为11，相当于outer()()；</span></span><br><span class="line">y();                <span class="comment">//y函数调用第二次，结果为12，实现了累加</span></span><br><span class="line">&lt;<span class="regexp">/script&gt;</span></span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/58/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/58/">58</a><span class="page-number current">59</span><a class="page-number" href="/page/60/">60</a><span class="space">&hellip;</span><a class="page-number" href="/page/64/">64</a><a class="extend next" rel="next" href="/page/60/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/58/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/58/">58</a><span class="page-number current">59</span><a class="page-number" href="/page/60/">60</a><span class="space">&hellip;</span><a class="page-number" href="/page/65/">65</a><a class="extend next" rel="next" href="/page/60/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1251,7 +1244,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">318</span>
+                  <span class="site-state-item-count">321</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1262,7 +1255,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">133</span>
+                  <span class="site-state-item-count">135</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1273,7 +1266,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">138</span>
+                  <span class="site-state-item-count">140</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
