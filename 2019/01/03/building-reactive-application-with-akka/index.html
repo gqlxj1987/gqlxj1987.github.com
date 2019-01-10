@@ -79,15 +79,18 @@
 
 
 
+<meta name="description" content="原文链接 The actor model provides the core functionality of reactive systems, defined in the Reactive Manifesto as responsive, resilient, elastic, and message driven. static class Counter extends Abstract">
 <meta name="keywords" content="akka">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Building reactive application with Akka">
 <meta property="og:url" content="http://gqlxj1987.github.io/2019/01/03/building-reactive-application-with-akka/index.html">
 <meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 The actor model provides the core functionality of reactive systems, defined in the Reactive Manifesto as responsive, resilient, elastic, and message driven. static class Counter extends Abstract">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-01-03T15:48:17.678Z">
+<meta property="og:updated_time" content="2019-01-09T02:53:26.650Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Building reactive application with Akka">
+<meta name="twitter:description" content="原文链接 The actor model provides the core functionality of reactive systems, defined in the Reactive Manifesto as responsive, resilient, elastic, and message driven. static class Counter extends Abstract">
 
 
 
@@ -295,8 +298,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-01-03T23:48:17+08:00">
-                2019-01-03
+              <time title="更新于" itemprop="dateModified" datetime="2019-01-09T10:53:26+08:00">
+                2019-01-09
               </time>
             
           </span>
@@ -361,7 +364,30 @@
       
 
       
-        
+        <p><a href="https://www.infoq.com/articles/Building-Reactive-Applications-with-Akka" target="_blank" rel="noopener">原文链接</a></p>
+<p>The actor model provides the core functionality of reactive systems, defined in the Reactive Manifesto as responsive, resilient, elastic, and message driven.</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Counter</span> <span class="keyword">extends</span> <span class="title">AbstractLoggingActor</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Message</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> counter = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    &#123;</span><br><span class="line">      receive(ReceiveBuilder</span><br><span class="line">        .match(Message.class, <span class="keyword">this</span>::onMessage)</span><br><span class="line">        .build()</span><br><span class="line">      );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message message)</span> </span>&#123;</span><br><span class="line">      counter++;</span><br><span class="line">      log().info(<span class="string">"Increased counter "</span> + counter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>send message</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">counter.tell(<span class="keyword">new</span> Counter.Message(), ActorRef.noSender());</span><br></pre></td></tr></table></figure>
+<p>change actor behaviour</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onEnable</span><span class="params">(Enable enable)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> (password.equals(enable.password)) &#123;</span><br><span class="line">     log().info(<span class="string">"Alarm enable"</span>);</span><br><span class="line">     getContext().become(enabled);</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     log().info(<span class="string">"Someone failed to enable the alarm"</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">ActorSystem system = ActorSystem.create();</span><br><span class="line">    <span class="keyword">final</span> ActorRef alarm = system.actorOf(Alarm.props(<span class="string">"cat"</span>), <span class="string">"alarm"</span>);</span><br><span class="line"></span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Enable(<span class="string">"dogs"</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Enable(<span class="string">"cat"</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Disable(<span class="string">"dogs"</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Disable(<span class="string">"cat"</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br></pre></td></tr></table></figure>
+<p>Actors may create other actors. When one actor creates another actor, the <em>creator</em> is known as the <em>supervisor</em> and the <em>created actor</em> is known as the <em>worker</em>.</p>
+<p>但是这种方式不被推荐？</p>
+<p>If one actor does not have the means for dealing with a certain situation, it sends a corresponding failure message to its supervisor, asking for help. The supervisor has four different options for reacting to a failure:</p>
+<ul>
+<li><strong>Resume</strong> the child, keeping its accumulated internal state but ignoring the message that lead to the failure.</li>
+<li><strong>Restart</strong> the child, clearing out its accumulated internal state by starting a new instance.</li>
+<li><strong>Stop</strong> the child permanently and send all future messages for the child to the <a href="http://doc.akka.io/docs/akka/current/general/message-delivery-reliability.html#Dead_Letters" target="_blank" rel="noopener">Dead-Letter Office</a>.</li>
+<li><strong>Escalate</strong> the failure, thereby failing the supervisor itself</li>
+</ul>
+<p>针对actor的策略？</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Supervisor</span> <span class="keyword">extends</span> <span class="title">AbstractLoggingActor</span> </span>&#123;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">final</span> ActorRef child = getContext().actorOf(NonTrustWorthyChild.props(), <span class="string">"child"</span>);</span><br><span class="line"></span><br><span class="line">    receive(ReceiveBuilder</span><br><span class="line">      .matchAny(command -&gt; child.forward(command, getContext()))</span><br><span class="line">      .build()</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//…</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>supervisor是child？</p>
+<p>Akka provides two classes of supervision strategies: <code>OneForOneStrategy</code> and <code>AllForOneStrategy.</code>The difference between them is that the former applies the obtained directive only to the failed child, whereas the latter applies it to all siblings as well. Normally, you should use the <code>OneForOneStrategy</code>, which is the default if none is explicitly specified. It is defined by overriding the <code>SupervisorStrategy</code> method.</p>
+<p>The output shows, that after four messages the exception gets escalated to the <code>Supervisor</code> and the remaining messages are sent to the <code>deadLetters</code> box. If the <code>SupervisorStrategy</code> would have been defined to <code>restart()</code>instead of <code>stop()</code>, a new instance of the <code>NonTrustWorthyChild</code> actor would have been started.</p>
+<p>关于子actor的策略，是restart还是stop</p>
+
       
     </div>
     
@@ -479,7 +505,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">350</span>
+                  <span class="site-state-item-count">353</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
