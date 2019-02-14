@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/21/miaosha/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/28/golang-tips/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/06/21/miaosha/" itemprop="url">解决秒杀一则</a></h1>
+                <a class="post-title-link" href="/2018/06/28/golang-tips/" itemprop="url">golang 机制了解</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-21T09:07:24+08:00">
-                2018-06-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-28T17:04:28+08:00">
+                2018-06-28
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-21T09:32:08+08:00">
-                2018-06-21
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-28T18:14:21+08:00">
+                2018-06-28
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/秒杀/" itemprop="url" rel="index">
-                    <span itemprop="name">秒杀</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/06/21/miaosha/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/21/miaosha/" itemprop="commentCount"></span>
+                <a href="/2018/06/28/golang-tips/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/28/golang-tips/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,43 +364,30 @@
       
         
           
-            <p><a href="https://mp.weixin.qq.com/s/hj0U5V5np4fDsdc7jlzmUg" target="_blank" rel="noopener">原文链接</a></p>
-<p><a href="https://github.com/chanjarster/artemis-disruptor-miaosha" target="_blank" rel="noopener">repo</a></p>
+            <p><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/04.0.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>go语言初始化过程</p>
+<p>这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，却在不同线程有多份不同的副本。每个goroutine去访问g时，都是对应到自己线程的这一份副本。针对goroutine部分，</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">CLD                // convention is D is always left cleared</span><br><span class="line">CALL    runtime·check(SB) //检测像int8,int16,float等是否是预期的大小，检测cas操作是否正常</span><br><span class="line">MOVL    16(SP), AX        // copy argc</span><br><span class="line">MOVL    AX, 0(SP)</span><br><span class="line">MOVQ    24(SP), AX        // copy argv</span><br><span class="line">MOVQ    AX, 8(SP)</span><br><span class="line">CALL    runtime·args(SB)    //将argc,argv设置到static全局变量中了</span><br><span class="line">CALL    runtime·osinit(SB)    //osinit做的事情就是设置runtime.ncpu，不同平台实现方式不一样</span><br><span class="line">CALL    runtime·hashinit(SB)    //使用读/dev/urandom的方式从内核获得随机数种子</span><br><span class="line">CALL    runtime·schedinit(SB)    //内存管理初始化，根据GOMAXPROCS设置使用的procs等等</span><br></pre></td></tr></table></figure>
+<p>go关键字的调用协议：先将参数进栈，再被调函数指针和参数字节数进栈，接着调用runtime.newproc函数。所以这里其实就是新开个goroutine执行runtime.main</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">找到一个等待运行的g</span><br><span class="line">如果g是锁定到某个M的，则让那个M运行</span><br><span class="line">否则，调用execute函数让g在当前的M中运行</span><br></pre></td></tr></table></figure>
+<p><img src="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true" alt="goroutine状态图"></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">M</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        sched.lock.Lock()    <span class="comment">//互斥地从就绪G队列中取一个g出来运行</span></span><br><span class="line">        <span class="keyword">if</span> sched.allg &gt; <span class="number">0</span> &#123;</span><br><span class="line">            g := sched.allg[<span class="number">0</span>]</span><br><span class="line">            sched.allg = sched.allg[<span class="number">1</span>:]</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">            g.Run()        <span class="comment">//运行它</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>退出goroutine</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">exitsyscall</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(allm) &gt;= GOMAXPROCS &#123;</span><br><span class="line">        sched.lock.Lock()</span><br><span class="line">        sched.allg = <span class="built_in">append</span>(sched.allg, g)    <span class="comment">//把g放回到队列中</span></span><br><span class="line">        sched.lock.Unlock()</span><br><span class="line">        time.Sleep()    <span class="comment">//这个M不再干活</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>内存管理</p>
+<p>在多线程方面，很自然的做法就是每条线程都有自己的本地的内存，然后有一个全局的分配链，当某个线程中内存不足后就向全局分配链中申请内存。这样就避免了多线程同时访问共享变量时的加锁。 在避免内存碎片方面，大块内存直接按页为单位分配，小块内存会切成各种不同的固定大小的块，申请做任意字节内存时会向上取整到最接近的块，将整块分配给申请者以避免随意切割。</p>
+<p>分配器的数据结构包括:</p>
 <ul>
-<li>300线程，循环1000次，共30w请求</li>
+<li>FixAlloc: 固定大小(128kB)的对象的空闲链分配器,被分配器用于管理存储</li>
+<li>MHeap: 分配堆,按页的粒度进行管理(4kB)，用于直接分配较大(&gt;32kB)的内存空间</li>
+<li>MSpan: 一些由MHeap管理的页</li>
+<li>MCentral: 对于给定尺寸类别的共享的free list</li>
+<li>MCache: 用于小对象的每M一个的cache</li>
 </ul>
-<p>秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的，放在内存中？</p>
-<p><img src="https://mmbiz.qpic.cn/mmbiz_png/eZzl4LXykQwtoJTdVPGMW3QgdBOlR2zP5MgkmSklealPbrL56pZUrdIAhickZcNH0L9AcHXkZRKxg7afOq30daQ/640?wx_fmt=png&amp;wxfrom=5&amp;wx_lazy=1" alt="下单流程"></p>
-<p>通过JMS的消息，作为中间件来</p>
-<p>Disruptor是LMAX公司开源的高性能内存队列。Disruptor能够让开发人员只需写单线程代码，就能够获得非常强悍的性能表现，同时避免了写并发编程的难度和坑。 其本质思想在于多线程未必比单线程跑的快。</p>
-<p>backend利用它把从ActiveMQ Artemis获得请求串行化，判断商品库存是否充足，更新剩余库存，最后异步写入数据库。</p>
-<p>库存充足判断、更新剩余库存的动作都是在内存中进行的，配合Disruptor绕过了并发编程的内存可见性、同步、锁等问题，性能非常强。</p>
-<p>在本项目中商品在内存中相关类是Item.java，在利用jol-cli(点此下载)查看其memory-layout后发现，其大小为24byte：</p>
-<blockquote>
-<p><a href="http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar" target="_blank" rel="noopener">http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar</a></p>
-<p>me.chanjar.jms.server.memdb.Item object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 int Item.amount N/A 16 4 Long Item.id N/A 20 4 (loss due to the next object alignment) Instance size: 24 bytes Space losses: 0 bytes internal + 4 bytes external = 4 bytes total</p>
-</blockquote>
-<p>而Long占用的内存也为24b：</p>
-<blockquote>
-<p>java.lang.Long object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 (alignment/padding gap) N/A 16 8 long Long.value N/A Instance size: 24 bytes Space losses: 4 bytes internal + 0 bytes external = 4 bytes total</p>
-</blockquote>
-<p>假设你有100W商品需要秒杀，那么其占用内存 = 1,000,000 * (24b + 4b + 24b) = 52,000,000b = 49m。仅仅只占49m。</p>
-<p>架构上的优化点</p>
-<ol>
-<li>下单请求异步处理，请求返回的本次请求的ID，客户端拿这个ID到另行发起请求查询结果</li>
-<li>在秒杀期间，商品库存信息在内存中，库存判断及库存扣减都在内存中进行，之后异步到数据库</li>
-<li>利用Disruptor将并发请求串行化，同时避免了多线程编程复杂度</li>
-<li>抛弃数据库事务，采用最终一致性</li>
-</ol>
-<p>和JMS相关的优化点</p>
-<ol>
-<li>重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象(Spring的JmsTemplate就是这么干的)</li>
-<li>将JMS Session设定为transacted=false, AUTO_ACKNOWLEDGE</li>
-<li>发送JMS消息时DeliveryMode=NON_PERSISTENT</li>
-<li>关闭Artemis的重发、消息持久机制</li>
-</ol>
-<p>下单请求的异步处理，将下单流程同单子的查询分为两个不同流程，这样进行异步操作</p>
-<p>同时引入Disruptor，进行相关的串行化的工作</p>
+<p>我们可以将Go语言的内存管理看成一个两级的内存管理结构，MHeap和MCache。</p>
+<p>非阻塞io</p>
+<p>底层非阻塞io是如何实现的呢？简单地说，所有文件描述符都被设置成非阻塞的，某个goroutine进行io操作，读或者写文件描述符，如果此刻io还没准备好，则这个goroutine会被放到系统的等待队列中，这个goroutine失去了运行权，但并不是真正的整个系统“阻塞”于系统调用。</p>
+<p>后台还有一个poller会不停地进行poll，所有的文件描述符都被添加到了这个poller中的，当某个时刻一个文件描述符准备好了，poller就会唤醒之前因它而阻塞的goroutine，于是goroutine重新运行起来</p>
 
           
         
@@ -449,7 +436,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/20/Weber-Fechner-law/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/27/Dynamic-Programming/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -468,7 +455,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/06/20/Weber-Fechner-law/" itemprop="url">Weber-Fechner law</a></h1>
+                <a class="post-title-link" href="/2018/06/27/Dynamic-Programming/" itemprop="url">Dynamic Programming</a></h1>
         
 
         <div class="post-meta">
@@ -480,8 +467,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-20T09:41:07+08:00">
-                2018-06-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-27T16:47:58+08:00">
+                2018-06-27
               </time>
             
 
@@ -496,8 +483,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-20T09:48:11+08:00">
-                2018-06-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-27T20:16:37+08:00">
+                2018-06-27
               </time>
             
           </span>
@@ -515,8 +502,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Weber/" itemprop="url" rel="index">
-                    <span itemprop="name">Weber</span>
+                  <a href="/categories/dp/" itemprop="url" rel="index">
+                    <span itemprop="name">dp</span>
                   </a>
                 </span>
 
@@ -533,8 +520,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/06/20/Weber-Fechner-law/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/20/Weber-Fechner-law/" itemprop="commentCount"></span>
+                <a href="/2018/06/27/Dynamic-Programming/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/27/Dynamic-Programming/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -564,9 +551,18 @@
       
         
           
-            <p><a href="https://zh.wikipedia.org/wiki/%E9%9F%8B%E4%BC%AF-%E8%B2%BB%E5%B8%8C%E7%B4%8D%E5%AE%9A%E7%90%86" target="_blank" rel="noopener">原文链接</a></p>
-<p>性，用公式来表示，就是<code>△Φ/Φ=C</code>，其中<code>Φ</code>为原刺激量，<code>△Φ</code>为此时的差别阈限，<code>C</code>为常数，又称为韦柏率</p>
-<p>我们的感觉很敏感，但也有惰性：它会蒙骗我们的眼睛，也会加重我们的感受而迷失理性。所以我们应带着谦卑的心对待万物众生，韦伯定律中的生活智慧是：给予方要多做雪中送炭的事，少做锦上添花的事，尽量不做画蛇添足的事；而受予方要懂得珍惜自己的点滴所得，善待身边的人</p>
+            <p><a href="http://www.hawstein.com/posts/dp-novice-to-advanced.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>动态规划中，状态和状态转移方程</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Set Min[i] equal to Infinity for all of i</span><br><span class="line">Min[0] = 0</span><br><span class="line"></span><br><span class="line">For i = 1 to S</span><br><span class="line">For j = 0 to N-1</span><br><span class="line">	if (Vj&lt;=i AND Min[i-Vj]+1]&lt;Min[i])</span><br><span class="line">Then Min[i] = Min[i-Vj] + 1</span><br><span class="line"></span><br><span class="line">Output Min[S]</span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">upper_bound</span><span class="params">(arr []<span class="keyword">int</span>, s, e, key <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> arr[e] &lt; key &#123;</span><br><span class="line">		<span class="keyword">return</span> e + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	mid := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> s &lt; e &#123;</span><br><span class="line">		mid = s + (e-s)/<span class="number">2</span></span><br><span class="line">		<span class="keyword">if</span> arr[mid] &lt; key &#123;</span><br><span class="line">			s = mid + <span class="number">1</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			e = mid</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">lengthOfLIS</span><span class="params">(nums []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(nums) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	end := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">0</span>)</span><br><span class="line">	end = <span class="built_in">append</span>(end, nums[<span class="number">0</span>])</span><br><span class="line">	l := <span class="number">1</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt; <span class="built_in">len</span>(nums); i++ &#123;</span><br><span class="line">		pos := upper_bound(end, <span class="number">0</span>, <span class="built_in">len</span>(end)<span class="number">-1</span>, nums[i])</span><br><span class="line">		<span class="keyword">if</span> pos &gt; <span class="built_in">len</span>(end)<span class="number">-1</span> &#123;</span><br><span class="line">			end = <span class="built_in">append</span>(end, nums[i])</span><br><span class="line">			l++</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			end[pos] = nums[i]</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> l</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>二维的DP问题</p>
+<p>状态S[i][j]表示我们走到(i, j)这个格子时，最多能收集到多少个苹果。那么， 状态转移方程如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">S[i][j]=A[i][j] + max(S[i-1][j], if i&gt;0 ; S[i][j-1], if j&gt;0)</span><br></pre></td></tr></table></figure>
+<p>其中i代表行，j代表列，下标均从0开始；A[i][j]代表格子(i, j)处的苹果数量。</p>
+<p>带额外条件的DP问题</p>
+<p>无向图G有N个结点，它的边上带有正的权重值，过路最短问题</p>
+<p>迪杰斯特拉，最短路径问题</p>
+<p>当阅读一个题目并且开始尝试解决它时，首先看一下它的限制。 如果要求在多项式时间内解决，那么该问题就很可能要用DP来解。遇到这种情况， 最重要的就是找到问题的“状态”和“状态转移方程”。(状态不是随便定义的， 一般定义完状态，你要找到当前状态是如何从前面的状态得到的， 即找到状态转移方程)如果看起来是个DP问题，但你却无法定义出状态， 那么试着将问题规约到一个已知的DP问题(正如“高级”一节中的例子一样)。</p>
 
           
         
@@ -615,7 +611,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/19/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/26/worldcup-graphQL/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -634,7 +630,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/06/19/one-week/" itemprop="url">风动，帆动，然心动也</a></h1>
+                <a class="post-title-link" href="/2018/06/26/worldcup-graphQL/" itemprop="url">WorldCup graphQL</a></h1>
         
 
         <div class="post-meta">
@@ -646,8 +642,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-19T09:55:05+08:00">
-                2018-06-19
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-26T15:17:11+08:00">
+                2018-06-26
               </time>
             
 
@@ -662,7 +658,173 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T22:00:05+08:00">
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-27T16:39:37+08:00">
+                2018-06-27
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/graphQL/" itemprop="url" rel="index">
+                    <span itemprop="name">graphQL</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/06/26/worldcup-graphQL/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/26/worldcup-graphQL/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.freecodecamp.org/building-the-2018-world-cup-graphql-api-fab40ccecb9e" target="_blank" rel="noopener">原文链接</a></p>
+<p><img src="https://cdn-images-1.medium.com/max/2000/0*zfRcG-bR_cMXR8cF" alt="sql struct"></p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">query &#123;</span><br><span class="line">  players(name:”Lionel Messi”) &#123;</span><br><span class="line">    name</span><br><span class="line">    dob</span><br><span class="line">    allGoals</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/25/one-week/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/25/one-week/" itemprop="url">动物庄园</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-25T23:13:37+08:00">
+                2018-06-25
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T21:59:36+08:00">
                 2018-09-16
               </time>
             
@@ -699,8 +861,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/06/19/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/19/one-week/" itemprop="commentCount"></span>
+                <a href="/2018/06/25/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/25/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -730,27 +892,29 @@
       
         
           
-            <p>佛学的禅宗，跟所谓的心学部分？</p>
-<p>心是菩提树，身为明镜台。明镜本清净，何处染尘埃。</p>
-<p>身是菩提树，心如明镜台。时时勤拂拭，莫使有尘埃。</p>
+            <p>目光从猪移到人，再从人移到猪，又重新从猪移到人，要分清哪张脸是猪的，哪张脸是人的，已经不可能了</p>
+<p>历史仿佛是在重演，民主，or，专制。。。</p>
 <hr>
-<p>本周：</p>
+<p>本周:</p>
 <ul>
-<li>开始刷leetcode部分的题目</li>
-<li>开始总结相关基础部分的知识</li>
-<li>运营广告平台相关内容</li>
+<li>修改简历，投递相关</li>
+<li>运营广告相关</li>
 </ul>
 <p>下周：</p>
 <ul>
-<li>整理以及修改简历，配合猎头，进行相关的投递</li>
-<li>继续刷题，巩固基础</li>
-<li>sdk部分的一些策略梳理和整理</li>
+<li>关于callback补写的机制的梳理</li>
+<li>关于一些文档的整理</li>
 </ul>
-<p>大考部分，算是见了面，不过心理还是挺抗拒的。。。不管是有没有做好准备，还是本身依然在自我怀疑状态。。。被赶鸭子上架了，只能是慢慢去拖一拖，磨一磨了。。</p>
-<p>徐建的事情，算是有一个初步的结果，虽然整体结果不如意，但起码人还在，还有希望在。。。</p>
-<p>感觉最近心不静，不管是之前制定的leetcode刷题计划，还是健身计划，还是面试的一些总结计划什么的，都没有好好地坚持下去。。。</p>
-<p>尽量心静吧，保持学习的心态。。。</p>
-<p>佛在彼岸，也在心中。。。修行。。。</p>
+<p>一件大事，终于是结束了，算是交了差，其实，还是有点门不当户不对吧，要求太高，还是很难达到。。慢慢看吧。。</p>
+<p>徐建的事情，算是告一段落？又出现了波折。。希望最后能行吧。。。总感觉，经过这次事情后，对于说的话，或多或少，有点不信任感。。。哎。。心太累。。。</p>
+<p>找工作的事情，也在同步进行，是换成大公司的一个业务型人员，还是说想去做一些基础性的平台和方向，看能不能做一些基础数据平台上的事情，不要想着你回济南什么的，要想着未来三年，你想做什么，就去做什么。。加油。。</p>
+<p>锻炼和健身方面，要慢慢捡起来，包括深蹲什么的。。</p>
+<p>心态要放静，事情要一件件地解决，也不是一口气吃成一个大胖子，心静，平和。。</p>
+<p>每天一道到两道题的习惯，继续保持，坚持地不错，后续就是锻炼部分，慢慢恢复。。</p>
+<p>加油，已经有当acer的觉悟了，也就不所谓了。。</p>
+<hr>
+<p>看来，是大公司的业务型做不成了。。哎。。也不知道自己这个决定是否正确。。只能自己加油了。。</p>
+<p>做好每一步，按照计划去学习。。</p>
 
           
         
@@ -799,7 +963,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/13/skipList-tips/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/25/c10k/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -818,7 +982,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/06/13/skipList-tips/" itemprop="url">SkipList Tips</a></h1>
+                <a class="post-title-link" href="/2018/06/25/c10k/" itemprop="url">c10k</a></h1>
         
 
         <div class="post-meta">
@@ -830,8 +994,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-13T16:33:39+08:00">
-                2018-06-13
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-25T11:58:59+08:00">
+                2018-06-25
               </time>
             
 
@@ -846,8 +1010,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-13T16:35:02+08:00">
-                2018-06-13
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-25T11:59:22+08:00">
+                2018-06-25
               </time>
             
           </span>
@@ -865,8 +1029,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/skipList/" itemprop="url" rel="index">
-                    <span itemprop="name">skipList</span>
+                  <a href="/categories/c10k/" itemprop="url" rel="index">
+                    <span itemprop="name">c10k</span>
                   </a>
                 </span>
 
@@ -883,8 +1047,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/06/13/skipList-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/13/skipList-tips/" itemprop="commentCount"></span>
+                <a href="/2018/06/25/c10k/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/25/c10k/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -914,190 +1078,7 @@
       
         
           
-            <p><img src="https://img-blog.csdn.net/20131218143835046?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvaWN0MjAxNA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="skipList结构"></p>
-<blockquote>
-<p>Skip lists  are data structures  that use probabilistic  balancing rather  than  strictly  enforced balancing. As a result, the algorithms  for insertion  and deletion in skip lists  are much simpler and significantly  faster  than  equivalent  algorithms  for balanced trees.</p>
-</blockquote>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/13/mysql-tips/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/13/mysql-tips/" itemprop="url">mysql 简介</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-13T10:49:07+08:00">
-                2018-06-13
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-07-09T10:31:42+08:00">
-                2018-07-09
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index">
-                    <span itemprop="name">mysql</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/13/mysql-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/13/mysql-tips/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://liuzhengyang.github.io/2017/04/18/innodb-mvcc/" target="_blank" rel="noopener">原文链接</a></p>
-<p><img src="https://liuzhengyang.github.io/images/mysql-arch.jpg" alt="mysql架构"></p>
-<p>MVCC(Multi Version Concurrency Control)</p>
-<p>redo log 以及undo log部分</p>
-<p>innodb中通过B+树作为索引的数据结构，并且主键所在的索引为ClusterIndex(聚簇索引), ClusterIndex中的叶子节点中保存了对应的数据内容。一个表只能有一个主键，所以只能有一个聚簇索引，如果表没有定义主键，则选择第一个非NULL唯一索引作为聚簇索引，如果还没有则生成一个隐藏id列作为聚簇索引。 除了Cluster Index外的索引是Secondary Index(辅助索引)。辅助索引中的叶子节点保存的是聚簇索引的叶子节点的值。</p>
-<p>主键的索引结构中,既存储了主键值,又存储了行数据,这种结构称为”聚簇索引”</p>
-<p>B-树和B+树最重要的一个区别就是B+树只有叶节点存放数据，其余节点用来索引，而B-树是每个索引节点都会有Data域</p>
-<p>B-树（B类树）的特定就是每层节点数目非常多，层数很少，目的就是为了就少磁盘IO次数，当查询数据的时候，最好的情况就是很快找到目标索引，然后读取数据，使用B+树就能很好的完成这个目的，但是B-树的每个节点都有data域（指针），这无疑增大了节点大小，说白了增加了磁盘IO次数（磁盘IO一次读出的数据量大小是固定的，单个数据变大，每次读出的就少，IO次数增多，一次IO多耗时啊！），原因1：B+树除了叶子节点其它节点并不存储数据，节点小，磁盘IO次数就少。 原因2：B+树所有的Data域在叶子节点，一般来说都会进行一个优化，就是将所有的叶子节点用指针串起来。这样遍历叶子节点就能获得全部数据。</p>
-<p>MyISAM中有两种索引，分别是主索引和辅助索引，在这里面的主索引使用具有唯一性的键值进行创建，而辅助索引中键值可以是相同的。MyISAM分别会存一个索引文件和数据文件。它的主索引是非聚集索引。当我们查询的时候我们找到叶子节点中保存的地址，然后通过地址我们找到所对应的信息。</p>
-<p>InnoDB索引和MyISAM最大的区别是它只有一个数据文件，在InnoDB中，表数据文件本身就是按B+Tree组织的一个索引结构，这棵树的叶节点数据域保存了完整的数据记录。所以我们又把它的主索引叫做聚集索引。而它的辅助索引和MyISAM也会有所不同，它的辅助索引都是将主键作为数据域。所以，这样当我们查找的时候通过辅助索引要先找到主键，然后通过主索引再找到对于的主键，得到信息。</p>
-<p>MyISAM不支持事务，表锁部分，这样，无法支持事务</p>
-<p><a href="http://blog.codinglabs.org/articles/theory-of-mysql-index.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>添加索引的一些经验</p>
-<ul>
-<li>字段的值的分区度部分，加上索引也无法锁定特别少量的数据</li>
-</ul>
-<p>order以及limit会影响查询的速度，对结果的排序部分</p>
+            <p><a href="https://www.soasme.com/techshack.weekly/verses/93b9e4cb-60aa-49af-a969-be0a0709ce84.html" target="_blank" rel="noopener">原文链接</a></p>
 
           
         
@@ -1137,7 +1118,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/74/">74</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/76/">76</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1185,7 +1166,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">369</span>
+                  <span class="site-state-item-count">379</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1196,7 +1177,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">156</span>
+                  <span class="site-state-item-count">164</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1207,7 +1188,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">160</span>
+                  <span class="site-state-item-count">168</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
