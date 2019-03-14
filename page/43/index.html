@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/go101/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/Consistent-Hashing/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/04/03/go101/" itemprop="url">Go101</a></h1>
+                <a class="post-title-link" href="/2018/04/17/Consistent-Hashing/" itemprop="url">Consistent Hashing</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">
-                2018-04-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-17T10:11:29+08:00">
+                2018-04-17
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:43:19+08:00">
-                2018-04-04
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-18T11:33:59+08:00">
+                2018-04-18
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/go/" itemprop="url" rel="index">
-                    <span itemprop="name">go</span>
+                  <a href="/categories/hash/" itemprop="url" rel="index">
+                    <span itemprop="name">hash</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/04/03/go101/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/go101/" itemprop="commentCount"></span>
+                <a href="/2018/04/17/Consistent-Hashing/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/17/Consistent-Hashing/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,570 +364,418 @@
       
         
           
-            <p><a href="https://go101.org/article/101.html" target="_blank" rel="noopener">原文链接</a></p>
-<h3 id="value_parts">value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
-<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
-<p>Two kinds points</p>
+            <p><a href="https://medium.com/@dgryski/consistent-hashing-algorithmic-tradeoffs-ef6b8e2fcae8" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="mod-N_hashing">mod-N hashing</h3><p>This tends to rule out cryptographic ones like <a href="https://en.wikipedia.org/wiki/SHA-1" target="_blank" rel="noopener">SHA-1</a>or <a href="https://en.wikipedia.org/wiki/MD5" target="_blank" rel="noopener">MD5</a>. Yes they are well distributed but they are also too expensive to compute — there are much cheaper options available. Something like <a href="https://en.wikipedia.org/wiki/MurmurHash" target="_blank" rel="noopener">MurmurHash</a> is good, but there are slightly better ones out there now. Non-cryptographic hash functions like <a href="https://github.com/cespare/xxhash" target="_blank" rel="noopener">xxHash</a>, <a href="https://github.com/dgryski/go-metro" target="_blank" rel="noopener">MetroHash</a> or <a href="https://github.com/dgryski/go-sip13" target="_blank" rel="noopener">SipHash1–3</a> are all good replacements.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">server := serverList[hash(key) % N]</span><br></pre></td></tr></table></figure>
+<p>What are the downsides of this approach? The first is that if you change the number of servers, almost every key will map somewhere else. This is bad.</p>
+<p>optimal option</p>
 <ul>
-<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
-<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
+<li>When adding or removing servers, only 1/nth of the keys should move.</li>
+<li>Don’t move any keys that don’t need to move.</li>
 </ul>
-<p>Internal Definitions of the types</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// map types</span></span><br><span class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></span><br><span class="line">                         <span class="comment">// Go maps are hashtables actually.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// channel types</span></span><br><span class="line"><span class="keyword">type</span> _channel *channelImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// function types</span></span><br><span class="line"><span class="keyword">type</span> _function *functionImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// slice types</span></span><br><span class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>            <span class="comment">// number of elements</span></span><br><span class="line">	<span class="built_in">cap</span>      <span class="keyword">int</span>            <span class="comment">// capacity</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// string types</span></span><br><span class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements *<span class="keyword">byte</span> <span class="comment">// underlying bytes</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>   <span class="comment">// number of bytes</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// general interface types</span></span><br><span class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</span><br><span class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</span><br><span class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></span><br><span class="line">		methods     []*_function <span class="comment">// implemented methods</span></span><br><span class="line">	&#125;</span><br><span class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><strong>underlying value parts are not copied in value assignments</strong></p>
-<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
-<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
+<p>paper and system</p>
 <ul>
-<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
-<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
-<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
+<li><a href="https://www.akamai.com/es/es/multimedia/documents/technical-publication/consistent-hashing-and-random-trees-distributed-caching-protocols-for-relieving-hot-spots-on-the-world-wide-web-technical-publication.pdf" target="_blank" rel="noopener">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a></li>
+<li>last.fm’s <a href="https://www.last.fm/user/RJ/journal/2007/04/10/rz_libketama_-_a_consistent_hashing_algo_for_memcache_clients" target="_blank" rel="noopener">Ketama memcached client</a>.</li>
+<li><a href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf" target="_blank" rel="noopener">Dynamo: Amazon’s Highly Available Key-value Store</a></li>
 </ul>
-<h3 id="line_break_rules_in_go">line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>{</code>) of the explicit code block of a <a href="https://go101.org/article/control-flow.html" target="_blank" rel="noopener">control flow block</a> on a new line.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// do something ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>活用<code>;</code></p>
-<h3 id="Some_Panic/Recover_Use_Cases">Some Panic/Recover Use Cases</h3><p>avoid panics crashing programs</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"errors"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"net"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listener, err := net.Listen(<span class="string">"tcp"</span>, <span class="string">":12345"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalln(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></span><br><span class="line">		<span class="keyword">go</span> ClientHandler(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">"client handler panic:"</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">		c.Close()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">"just a demo."</span>)) <span class="comment">// a demo-purpose panic</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>automatically restart a crash goroutine</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></span><br><span class="line">		<span class="comment">// Simultate an unexpected panic.</span></span><br><span class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">"unexpected situation"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="keyword">string</span>, f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></span><br><span class="line">			log.Println(name, <span class="string">"is crashed. Restart it now."</span>)</span><br><span class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.SetFlags(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#A"</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#B"</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>use panic/recover to reduce error checkings</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Create a demo-purpose panic.</span></span><br><span class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">"bad number: %v"</span>, n))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></span><br><span class="line">		<span class="comment">// a panic will be created if no errors occur.</span></span><br><span class="line">		err, _ = <span class="built_in">recover</span>().(error)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	doTask(<span class="number">22</span>)</span><br><span class="line">	doTask(<span class="number">98</span>)</span><br><span class="line">	doTask(<span class="number">100</span>)</span><br><span class="line">	doTask(<span class="number">53</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="close_channel">close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/02/flipkart-data-platform/" itemprop="url">Flipkart Data Platform</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">
-                2018-04-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T19:33:18+08:00">
-                2018-04-02
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-platform/" itemprop="url" rel="index">
-                    <span itemprop="name">data platform</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/02/flipkart-data-platform/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/flipkart-data-platform/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196" target="_blank" rel="noopener">原文链接</a></p>
-<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
-<p>Overall FDP can be broken down into following high level components.</p>
-<ol>
-<li>Ingestion System</li>
-<li>Batch Data Processing System</li>
-<li>Real time Processing System</li>
-<li>Report Visualization</li>
-<li>Query Platform</li>
-</ol>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
-<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
-<p><a href="https://lens.apache.org/" target="_blank" rel="noopener">Apache Lens</a> 接入hive等</p>
-<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
-<hr>
-<h2 id="ETL">ETL</h2><p><a href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d" target="_blank" rel="noopener">原文链接</a></p>
-<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
-<p>mapreduce vs cascading</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
-<hr>
-<h2 id="REAL_TIME_SEACH_INDEX">REAL TIME SEACH INDEX</h2><p><a href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d" target="_blank" rel="noopener">原文链接</a></p>
-<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a href="https://www.youtube.com/watch?v=05rX0mJ2N4U" target="_blank" rel="noopener">video</a></p>
-<p>高频繁的更新操作，</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
-<p><a href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart" target="_blank" rel="noopener">sides</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/02/hot-reloading-go-programs/" itemprop="url">Hot Reloading Go Programs</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">
-                2018-04-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T16:52:23+08:00">
-                2018-04-02
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/hot-reload/" itemprop="url" rel="index">
-                    <span itemprop="name">hot reload</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/02/hot-reloading-go-programs/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/hot-reloading-go-programs/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72" target="_blank" rel="noopener">原文链接</a></p>
-<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
-<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
-<p>原理上：</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">watcher, err := fsnotify.NewWatcher()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</span><br><span class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</span><br><span class="line">					watcherLog(<span class="string">"sending event %s"</span>, ev)</span><br><span class="line">					startChannel &lt;- ev.String()</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</span><br><span class="line">				watcherLog(<span class="string">"error: %s"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br></pre></td></tr></table></figure>
-<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
-<p>核心部分的build代码</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	buildLog(<span class="string">"Building..."</span>)</span><br><span class="line"></span><br><span class="line">	cmd := exec.Command(<span class="string">"go"</span>, <span class="string">"build"</span>, <span class="string">"-o"</span>, buildPath(), root())</span><br><span class="line"></span><br><span class="line">	stderr, err := cmd.StderrPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	stdout, err := cmd.StdoutPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = cmd.Start()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	io.Copy(os.Stdout, stdout)</span><br><span class="line">	errBuf, _ := ioutil.ReadAll(stderr)</span><br><span class="line"></span><br><span class="line">	err = cmd.Wait()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">string</span>(errBuf), <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="string">""</span>, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<hr>
-<p>另一种live reload的方式</p>
-<p><a href="https://github.com/oxequa/realize" target="_blank" rel="noopener">git repo</a></p>
-<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/devops-one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/02/devops-one-week/" itemprop="url">devops一周总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T10:22:09+08:00">
-                2018-04-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T10:23:10+08:00">
-                2018-04-02
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/devops/" itemprop="url" rel="index">
-                    <span itemprop="name">devops</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/04/02/devops-one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/devops-one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="Runbook的实践">Runbook的实践</h3><p>这篇文章讲述了这个小团队如何让两三个人做 OnCall，但其实讲述的是 Runbook 的一些实践。</p>
+<p>In practice, each server appears multiple times on the circle. These extra points are called “virtual nodes”, or “vnodes”. This reduces the load variance among servers. With a small number of vnodes, different servers could be assigned wildly different numbers of keys. 引入虚拟节点来管理</p>
+<p>One of the other nice things about ring hashing is that the algorithm is straight-forward.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Map)</span> <span class="title">Add</span><span class="params">(nodes ...<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> _, n := <span class="keyword">range</span> nodes &#123;</span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; m.replicas; i++ &#123;</span><br><span class="line">            hash := <span class="keyword">int</span>(m.hash([]<span class="keyword">byte</span>(strconv.Itoa(i) + <span class="string">" "</span> + n)))</span><br><span class="line">            m.nodes = <span class="built_in">append</span>(m.nodes, hash)</span><br><span class="line">            m.hashMap[hash] = n</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    sort.Ints(m.nodes)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>each one is hashed <code>m.replicas</code>times with slightly different names ( <code>0 node1</code>, <code>1 node1</code>, <code>2 node1</code>, …)</p>
+<p>注意这里有replicas的概念，这样子多写几份?然后是对于nodes进行排序，方便进行binary search during lookup</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Map)</span> <span class="title">Get</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    hash := <span class="keyword">int</span>(m.hash([]<span class="keyword">byte</span>(key)))</span><br><span class="line">    idx := sort.Search(<span class="built_in">len</span>(m.keys),</span><br><span class="line">        <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> m.keys[i] &gt;= hash &#125;</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">if</span> idx == <span class="built_in">len</span>(m.keys) &#123;</span><br><span class="line">        idx = <span class="number">0</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> m.hashMap[m.keys[idx]]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Ketama">Ketama</h3><p><a href="https://github.com/dgryski/go-ketama" target="_blank" rel="noopener">go-ketama</a></p>
+<h3 id="Not_enough">Not enough</h3><p>Ring hashing still has some problems.</p>
 <ul>
-<li>Runbook 是用来给 24x7 团队在非工作时间不用召唤开发的情况下可以自己根据文档运行一些基本故障的对应解决方案。</li>
-<li>原则：如果命令未来可能会被再次执行，那就花点时间写点文档，写清楚执行的步骤。</li>
-<li>Runbook 尽可能按照一个模板来写，有一些基本的信息，比如有哪些环境，怎么找日志，怎么做 troubleshooting。</li>
-<li>代码库里面嵌入一些 scripts, 方便执行。</li>
-<li>如果 Runbook 来不及更新，好歹留一条评论在那里。</li>
-<li>Runbook 有个 owner，出问题好抓人。</li>
+<li>the load distribution across the nodes can still be uneven</li>
+</ul>
+<h3 id="Jump_hash">Jump hash</h3><p>Jump Hash addresses the two disadvantages of ring hashes: </p>
+<p>it has no memory overhead and virtually perfect key distribution.</p>
+<p>代码实现: <a href="https://github.com/dgryski/go-jump" target="_blank" rel="noopener">github.com/dgryski/go-jump</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Hash</span><span class="params">(key <span class="keyword">uint64</span>, numBuckets <span class="keyword">int</span>)</span> <span class="title">int32</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> b <span class="keyword">int64</span> = <span class="number">-1</span></span><br><span class="line">  <span class="keyword">var</span> j <span class="keyword">int64</span></span><br><span class="line">  <span class="keyword">for</span> j &lt; <span class="keyword">int64</span>(numBuckets) &#123;</span><br><span class="line">    b = j</span><br><span class="line">    key = key*<span class="number">2862933555777941757</span> + <span class="number">1</span></span><br><span class="line">    j = <span class="keyword">int64</span>(<span class="keyword">float64</span>(b+<span class="number">1</span>) *</span><br><span class="line">      (<span class="keyword">float64</span>(<span class="keyword">int64</span>(<span class="number">1</span>)&lt;&lt;<span class="number">31</span>) / <span class="keyword">float64</span>((key&gt;&gt;<span class="number">33</span>)+<span class="number">1</span>)))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">int32</span>(b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>It then uses the random numbers to “jump forward” in the list of buckets until it falls off the end</p>
+<p>It’s fast and splits the load evenly. What’s the catch? The main limitation is that it only returns an integer in the range <code>0..numBuckets-1</code>. It doesn’t support arbitrary bucket names. (With ring hash, even if two different instances receive their server lists in a different order, the resulting key mapping will still be the same.) </p>
+<h3 id="Multi-Probe_Consistent_Hashing">Multi-Probe Consistent Hashing</h3><p>The basic idea is that instead of hashing the nodes multiple times and bloating the memory usage, the nodes are hashed only once but the key is hashed <code>k</code>times on lookup and the closest node over all queries is returned. The value of <code>k</code> is determined by the desired variance. For a peak-to-mean-ratio of 1.05 (meaning that the most heavily loaded node is at most 5% higher than the average), <code>k</code> is 21. With a tricky data structure you can get the total lookup cost from O(k log n) down to just O(k). <a href="https://github.com/dgryski/go-mpchash" target="_blank" rel="noopener">My implementation</a> uses the tricky data structure.</p>
+<h3 id="Maglev_Hashing">Maglev Hashing</h3><h3 id="Replication">Replication</h3><p>副本机制</p>
+<h3 id="Weighted_Hosts">Weighted Hosts</h3><h3 id="Load_Balancing">Load Balancing</h3><h3 id="Benchmarks">Benchmarks</h3><p><img src="https://cdn-images-1.medium.com/max/1600/1*fl7F4cFSXEcFilGt5-NvFw.png" alt="benchmarks"></p>
+<h3 id="conclusion">conclusion</h3><p><a href="http://www.evanlin.com/til-consistent-hashing-algorithm-tradeoffs/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_123" target="_blank" rel="noopener">参考资料</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/running-keras-model-in-golang/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/17/running-keras-model-in-golang/" itemprop="url">Running keras model in golang</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-17T09:48:44+08:00">
+                2018-04-17
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-17T10:08:32+08:00">
+                2018-04-17
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/17/running-keras-model-in-golang/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/17/running-keras-model-in-golang/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://www.tonytruong.net/running-a-keras-tensorflow-model-in-golang/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_123" target="_blank" rel="noopener">原文链接</a></p>
+<p>为什么要running在golang上</p>
+<ul>
+<li>Current infrastructure is already running Kubernetes / Docker containers and Golang makes the binaries extremely small and efficient 运行比较小</li>
+<li>Web frameworks for Go are much faster than the Python ones golang的web性能高</li>
+<li>The team aren’t necessarily data scientists working in Python and work in Go 没必要切换语言？</li>
+<li>Pushing data internally using GRPC for faster communication between micro services </li>
+</ul>
+<h3 id="Binary_Classification_in_Keras">Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></span><br><span class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">"myModel"</span>)  </span><br><span class="line"><span class="comment"># Tag the model, required for Go</span></span><br><span class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">"myTag"</span>])  </span><br><span class="line">builder.save()  </span><br><span class="line">sess.close()</span><br></pre></td></tr></table></figure>
+<p>采用saveModel的方式</p>
+<h3 id="loading_and_running_the_model_in_Go">loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (  </span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    tf <span class="string">"github.com/tensorflow/tensorflow/tensorflow/go"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </span><br><span class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></span><br><span class="line">    model, err := tf.LoadSavedModel(<span class="string">"myModel"</span>, []<span class="keyword">string</span>&#123;<span class="string">"myTag"</span>&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error loading saved model: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> model.Session.Close()</span><br><span class="line"></span><br><span class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="keyword">float32</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    result, err := model.Session.Run(</span><br><span class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inputLayer_input"</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        []tf.Output&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inferenceLayer/Sigmoid"</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="literal">nil</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error running the session with input, err: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Result value: %v \n"</span>, result[<span class="number">0</span>].Value())</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The tensor we input is in the shape <code>[batch size][width][height][channels]</code>. </p>
+<p>相同版本的python代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">%%time</span><br><span class="line"><span class="keyword">from</span> keras.preprocessing <span class="keyword">import</span> image  </span><br><span class="line"><span class="keyword">from</span> keras.models <span class="keyword">import</span> load_model  </span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line">model = load_model(<span class="string">"model.h5"</span>)  </span><br><span class="line">img = np.zeros((<span class="number">1</span>,<span class="number">250</span>,<span class="number">250</span>,<span class="number">3</span>))  </span><br><span class="line">x = np.vstack([img]) <span class="comment"># just append to this if we have more than one image.  </span></span><br><span class="line">classes = model.predict_classes(x)  </span><br><span class="line">print(classes)</span><br></pre></td></tr></table></figure>
+<p>可以尝试比较一下相关的时间问题？</p>
+<h3 id="Performance">Performance</h3><p>Recall the model was:</p>
+<p>3x3x32 Convolutional Layer<br>3x3x32 Convolutional Layer<br>2x2 Max Pool Layer<br>64 Node Fully Connected Layer with Dropout<br>1 Sigmoid output Layer</p>
+<p><strong>For Python</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~2.72s to warm up and run one inference and ~0.049s for each inference after</li>
+<li><strong>GPU</strong>: - ~3.52s to warm up and run one inference and ~0.009s for each inference after</li>
+<li><strong>Saved Model Size (HDF5)</strong> 242MB</li>
+</ul>
+<p><strong>For Go</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~0.255s to warm up and run one inference and ~0.045s for each inference after</li>
+<li><strong>GPU</strong>: - N/A</li>
+<li><strong>Saved Model Size(Protobuf binaries)</strong> 236MB</li>
+</ul>
+<p>use Go to serve up your models in prod</p>
+<p>感觉在k8s上运行更好一些？</p>
+<p>在于model训练之后，基本稳定后的predict的操作</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/Line-of-sight-in-code/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/17/Line-of-sight-in-code/" itemprop="url">Line of sight in code</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-17T09:39:54+08:00">
+                2018-04-17
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-17T09:48:24+08:00">
+                2018-04-17
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/17/Line-of-sight-in-code/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/17/Line-of-sight-in-code/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/@matryer/line-of-sight-in-code-186dd7cdea88" target="_blank" rel="noopener">原文链接</a></p>
+<p>通过在阅读代码的sight来关注code的优化问题，有意思的视角</p>
+<blockquote>
+<p>Line of sight is “a straight line along which an observer has unobstructed vision”</p>
+</blockquote>
+<p>good code,  The idea is that another programmer (including your future self) can glance down a single column and understand the expected flow of the code.</p>
+<blockquote>
+<p>Most people focus on the cost of writing code (ever heard “how long will this take to finish?”) But the far greater cost is in maintaining code — especially in successful projects. Making functions obvious, clear, simple and easy to understand is vital to this cause.</p>
+</blockquote>
+<p>Tips for a good line of sight:</p>
+<ul>
+<li>Align the happy path to the left; you should quickly be able to scan down one column to see the expected execution flow</li>
+<li>Don’t hide happy path logic inside a nest of indented braces 成功路径显而易见</li>
+<li>Exit early from your function 尽早退出你的功能</li>
+<li>Avoid else returns; consider flipping the if statement 避免无谓的else</li>
+<li>Put the happy return statement as the very last line</li>
+<li>Extract functions and methods to keep bodies small and readable extract的必要性</li>
+<li>If you need big indented bodies, consider giving them their own function 分拆own function</li>
 </ul>
 
           
@@ -977,7 +825,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/15/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -996,7 +844,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/04/02/one-week/" itemprop="url">大佛普拉斯</a></h1>
+                <a class="post-title-link" href="/2018/04/15/one-week/" itemprop="url">天元突破</a></h1>
         
 
         <div class="post-meta">
@@ -1008,8 +856,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T09:39:33+08:00">
-                2018-04-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-15T17:07:38+08:00">
+                2018-04-15
               </time>
             
 
@@ -1024,7 +872,7 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-04-15T17:28:43+08:00">
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-15T23:02:50+08:00">
                 2018-04-15
               </time>
             
@@ -1061,8 +909,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/04/02/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/one-week/" itemprop="commentCount"></span>
+                <a href="/2018/04/15/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/15/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1092,28 +940,225 @@
       
         
           
-            <p>有钱人的世界是彩色的，孤独流浪的人，最后可能连个线都没有</p>
-<p>释迦，孑然一身，孤独地在世间逛一逛</p>
+            <p>你认为我是谁。。</p>
+<p>我可是要钻向天际的男人。。</p>
+<p>不要管那么多，就是燃就够了。。</p>
 <hr>
-<p>本周：</p>
+<p>本周工作：</p>
 <ul>
-<li>接入几家agency</li>
-<li>继续理解ml中关于lstm部分知识</li>
+<li>尝试性完成了dutch新老语种的转换</li>
+<li>关于android端的banner部分</li>
 </ul>
 <p>本周所学：</p>
 <ul>
-<li>lstm中bucket部分，关于前后变换的长度限制</li>
-<li>conda的部分使用</li>
+<li>关于kaggle部分的使用</li>
+<li>对于词典的编码上，bucket部分，转换部分，算是对lstm有一个入门的想法</li>
 </ul>
-<p>下周计划：</p>
+<p>下周工作：</p>
 <ul>
-<li>尝试将lstm部分写出来，开始训练，写代码</li>
-<li>整理一下，开始进行leetcode的训练</li>
+<li>考试题目</li>
+<li>react native框架尝试搭起来，包括蓝牙通信</li>
 </ul>
-<p>锻炼部分，恢复的不错，继续坚持和保持下去，关于跑步的里程数方面，提高到一周15km，定一个全年跑步里程数，加油！</p>
-<p>烦恼什么，不过是在哪里什么都不动的自我逃避，行动起来，不管是什么样，行动</p>
-<p>时间分配上，开始找到一些感觉，但还不够，回家的那几个小时，要抓起来，调整下作息，早上的时候，可以来段英语学习。。</p>
-<p>相处上，还是按部就班，尽量保持独立吧，还是抓不住什么，自己要控制lol。。简直像是精虫上脑一样。。。</p>
+<p>锻炼部分，坚持下去，包括健身房，跑步上，已经提升到15km，要稳定下去，饮食方面，晚餐尽量少吃，晚上的keep也要坚持10-20分钟的运动</p>
+<p>相处上，还是按部就班，尽量保持独立吧，自己要控制lol。。简直像是精虫上脑一样，尽量少lol。。未来还是有很多的不确定性，不要停留原地，不管它，做好自己。。。</p>
+<p>技术上，deep learning上加快速度，有点慢。。。其他技术上，整理一下东西出来。。</p>
+<p>简历可以开始更新一下了。。考虑之后想做什么方向。。</p>
+<p>时间把控上，还是做的不够，关于英语听说部分，安排时间。。</p>
+<p>不要有太多的想法，就是学习就够了。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/13/bolt-go/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/13/bolt-go/" itemprop="url">bolt-内嵌kv存储</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-13T16:21:55+08:00">
+                2018-04-13
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-15T17:07:27+08:00">
+                2018-04-15
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/go/" itemprop="url" rel="index">
+                    <span itemprop="name">go</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/13/bolt-go/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/13/bolt-go/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/boltdb/bolt" target="_blank" rel="noopener">repo</a></p>
+<blockquote>
+<p>However, this limited scope also means that the project is complete.</p>
+</blockquote>
+<p>more featureful version <a href="https://github.com/coreos/bbolt" target="_blank" rel="noopener">repo</a></p>
+<p>关于transactions的手动实现</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Start a writable transaction.</span></span><br><span class="line">tx, err := db.Begin(<span class="literal">true</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">defer</span> tx.Rollback()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Use the transaction...</span></span><br><span class="line">_, err := tx.CreateBucket([]<span class="keyword">byte</span>(<span class="string">"MyBucket"</span>))</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Commit the transaction and check for error.</span></span><br><span class="line"><span class="keyword">if</span> err := tx.Commit(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用bucket部分</p>
+<p>这里面比较有意思的是：通过seek()部分操作</p>
+<ul>
+<li>prefix scans</li>
+<li>range scans</li>
+<li>foreach</li>
+</ul>
+<p>天然支持database backups</p>
+<h2 id="comparison_with_other_databases">comparison with other databases</h2><h3 id="Postgres,_MySQL,_&amp;_other_relational_databases">Postgres, MySQL, &amp; other relational databases</h3><p>sql</p>
+<p>Bolt accesses all data by a byte slice key. This makes Bolt fast to read and write data by key but provides no built-in support for joining values together. Bolt runs as a library included in your application so all data access has to go through your application’s process. This brings data closer to your application but limits multi-process access to the data.</p>
+<h3 id="LevelDB,_RocksDB">LevelDB, RocksDB</h3><p>their underlying structure is a log-structured merge-tree (LSM tree). An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables</p>
+<p>Bolt uses a B+tree internally and only a single file. </p>
+<p>If you require a high random write throughput (&gt;10,000 w/sec) or you need to use spinning disks then LevelDB could be a good choice. If your application is read-heavy or does a lot of range scans then Bolt could be a good choice.</p>
+<p>One other important consideration is that LevelDB does not have transactions. It supports batch writing of key/values pairs and it supports read snapshots but it will not give you the ability to do a compare-and-swap operation safely. Bolt supports fully serializable ACID transactions.(事务上的支持)</p>
+<h3 id="LMDB">LMDB</h3><p>Bolt was originally a port of LMDB so it is architecturally similar. Both use a B+tree, have ACID semantics with fully serializable transactions, and support lock-free MVCC using a single writer and multiple readers.</p>
+<p>on safe actions</p>
+<p>on api, LMDB requires a maximum mmap size when opening an <code>mdb_env</code> whereas Bolt will handle incremental mmap resizing automatically</p>
+<h2 id="conclusion">conclusion</h2><ul>
+<li>Bolt is good for read intensive workloads.</li>
+<li>Bolt uses a B+tree internally so there can be a lot of random page access</li>
+<li>Bulk loading a lot of random writes into a new bucket can be slow as the page will not split until the transaction is committed. 在一个事务里尽量是连续性的操作</li>
+<li>The data structures in the Bolt database are memory mapped so the data file will be endian specific</li>
+<li>Because of the way pages are laid out on disk, Bolt cannot truncate data files and return free pages back to the disk. Instead, Bolt maintains a free list of unused pages within its data file. These free pages can be reused by later transactions. 关于bolt的reuse特性</li>
+</ul>
 
           
         
@@ -1153,7 +1198,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/42/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/42/">42</a><span class="page-number current">43</span><a class="page-number" href="/page/44/">44</a><span class="space">&hellip;</span><a class="page-number" href="/page/78/">78</a><a class="extend next" rel="next" href="/page/44/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/42/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/42/">42</a><span class="page-number current">43</span><a class="page-number" href="/page/44/">44</a><span class="space">&hellip;</span><a class="page-number" href="/page/81/">81</a><a class="extend next" rel="next" href="/page/44/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1201,7 +1246,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">388</span>
+                  <span class="site-state-item-count">402</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1212,7 +1257,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">165</span>
+                  <span class="site-state-item-count">170</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1223,7 +1268,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">170</span>
+                  <span class="site-state-item-count">175</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

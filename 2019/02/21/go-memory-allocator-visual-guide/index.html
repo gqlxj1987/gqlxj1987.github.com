@@ -79,18 +79,20 @@
 
 
 
-<meta name="description" content="原文链接">
+<meta name="description" content="原文链接 So how do we reduce the memory fragment? The answer to this question depends on the specific memory allocation algorithm, the underlying library use. 关键参数：thread memory and page heap TCMalloc Go">
 <meta name="keywords" content="go">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Go Memory Allocator Visual Guide">
 <meta property="og:url" content="http://gqlxj1987.github.io/2019/02/21/go-memory-allocator-visual-guide/index.html">
 <meta property="og:site_name" content="DevilKing&#39;s blog">
-<meta property="og:description" content="原文链接">
+<meta property="og:description" content="原文链接 So how do we reduce the memory fragment? The answer to this question depends on the specific memory allocation algorithm, the underlying library use. 关键参数：thread memory and page heap TCMalloc Go">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-02-21T10:58:31.285Z">
+<meta property="og:image" content="https://cdn-images-1.medium.com/max/1600/1*T9WO7O3EWTWJjCrxaOz4cg.png">
+<meta property="og:updated_time" content="2019-03-04T11:23:58.794Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Go Memory Allocator Visual Guide">
-<meta name="twitter:description" content="原文链接">
+<meta name="twitter:description" content="原文链接 So how do we reduce the memory fragment? The answer to this question depends on the specific memory allocation algorithm, the underlying library use. 关键参数：thread memory and page heap TCMalloc Go">
+<meta name="twitter:image" content="https://cdn-images-1.medium.com/max/1600/1*T9WO7O3EWTWJjCrxaOz4cg.png">
 
 
 
@@ -298,8 +300,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-02-21T18:58:31+08:00">
-                2019-02-21
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-04T19:23:58+08:00">
+                2019-03-04
               </time>
             
           </span>
@@ -365,6 +367,24 @@
 
       
         <p><a href="https://blog.learngoprogramming.com/a-visual-guide-to-golang-memory-allocator-from-ground-up-e132258453ed" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>So how do we reduce the memory fragment?</strong> The answer to this question depends on the specific memory allocation algorithm, the underlying library use.</p>
+<p>关键参数：<strong>thread memory</strong> and <strong>page heap</strong></p>
+<p>TCMalloc Go also divides Memory Pages into a block of <strong>67</strong> different classes Size.</p>
+<p>引入<strong>mspan</strong>的概念</p>
+<p>针对每一个logical processor都会有<strong>mcache</strong></p>
+<p>For each class size, there are two types.</p>
+<ol>
+<li><strong>scan</strong> — Object that contains a pointer.</li>
+<li><strong>noscan</strong> — Object that doesn’t contains a pointer.</li>
+</ol>
+<h3 id="Object_allocation_Flow">Object allocation Flow</h3><p>• Size &gt; 32k is a large object, allocated directly from <strong>mheap.</strong></p>
+<p>• Size &lt; 16B, using mcache’s tiny allocator allocation</p>
+<p>• Size between 16B ~ 32k, calculate the sizeClass to be used and then use the block allocation of the corresponding sizeClass in mcache</p>
+<p>• If the sizeClass corresponding to mcache has no available blocks, apply to mcentral.</p>
+<p>• If there are no blocks available for mcentral, apply to mheap and <strong>use BestFit to find the most suitable mspan</strong>. If the application size is exceeded, it will be divided as needed to return the number of pages the user needs. The remaining pages constitute a new mspan, and the mheap free list is returned.</p>
+<p>• If there is no span available for mheap, apply to the operating system for a new set of pages (at least 1MB).</p>
+<p>So even for a simple go program virtual Space is around <code>~100 MB</code> while RSS is just <code>696kB</code> .</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*T9WO7O3EWTWJjCrxaOz4cg.png" alt="allocate memory"></p>
 
       
     </div>
@@ -465,8 +485,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
             
@@ -483,7 +512,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">388</span>
+                  <span class="site-state-item-count">402</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -494,7 +523,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">165</span>
+                  <span class="site-state-item-count">170</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -505,7 +534,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">170</span>
+                  <span class="site-state-item-count">175</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -530,6 +559,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Object_allocation_Flow"><span class="nav-number">1.</span> <span class="nav-text">Object allocation Flow</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
