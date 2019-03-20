@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="architecture,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="原文链接 软件架构师的主要核心职责不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构使得添加新的功能保持简单、经济和高效。 真正本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化 相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用间接控制流转移的方法来提高可维护性 函数式编程-&amp;gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时">
+<meta name="keywords" content="architecture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Clean Architecture">
+<meta property="og:url" content="http://gqlxj1987.github.io/2019/03/18/clean-architecture/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 软件架构师的主要核心职责不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构使得添加新的功能保持简单、经济和高效。 真正本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化 相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用间接控制流转移的方法来提高可维护性 函数式编程-&amp;gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-18T11:54:33.304Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Clean Architecture">
+<meta name="twitter:description" content="原文链接 软件架构师的主要核心职责不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构使得添加新的功能保持简单、经济和高效。 真正本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化 相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用间接控制流转移的方法来提高可维护性 函数式编程-&amp;gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gqlxj1987.github.io/2019/03/18/clean-architecture/">
+
+
+
+
+
+  <title>Clean Architecture | DevilKing's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">DevilKing's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/18/clean-architecture/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Clean Architecture</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-18T19:28:15+08:00">
+                2019-03-18
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-18T19:54:33+08:00">
+                2019-03-18
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/architecture/" itemprop="url" rel="index">
+                    <span itemprop="name">architecture</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/18/clean-architecture/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/18/clean-architecture/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://skyscribe.github.io/post/2019/01/26/clean-architecture-notes/" target="_blank" rel="noopener">原文链接</a></p>
+<p>软件架构师的主要核心职责<strong>不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构</strong>使得添加新的功能保持简单、经济和高效。</p>
+<p>真正<strong>本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化</strong></p>
+<p>相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用<strong>间接控制流转移</strong>的方法来提高可维护性</p>
+<p>函数式编程-&gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时数据一旦产生就不能被修改了，否则就会有副作用。 流行起来的原因，在于数据的隔离性</p>
+<p>软件架构师的任务就是需要清楚地认识到这些编程范式<strong>只是在不同的维度上对程序员加了各种各样的约束</strong>，以解决它所适应的场景的问题而已。 理顺问题的场景然后清楚地了解编程实现和交付中的各种困难，减小软件扩展和维护的成本，是架构师所面临的最根本的挑战</p>
+<p>设计的目标：</p>
+<ul>
+<li><strong>变更它们的成本很低</strong>，因为软件系统总是要添加新功能才更有生命力，修改困难的软件就会被慢慢放弃了</li>
+<li><strong>理解起来容易</strong>，因为维护软件总是需要人来做，而参与其中的人总是在流动的</li>
+<li><strong>可以被轻易地重用在合适的地方</strong>，因为永远也没有人可以预测未来的软件项目需求；重头再写类似的代码的代价又过于高昂</li>
+</ul>
+<p>单一原则</p>
+<p> <strong>一个模块和他相关联交互的Actor只有一个</strong>，这样用UML描述模块关系的时候就比较清楚的看出这一原则有没有呗违反了。</p>
+<p>使用UML描述</p>
+<p>核心的业务规则可以保持稳定，<strong>核心业务逻辑层的稳定提炼需要依赖于领域知识</strong></p>
+<p>现在我们可以支持在程序执行的过程中，<strong>不重启主要系统，而将新开发的功能插入运行的系统中的办法</strong>来实现功能的实时更新和扩展， 这种插件化技术甚至在很多开发环境中成为默认的扩展方式；这一技术能够工作的前提是系统的架构必须有良好的考虑和组织</p>
+<p>组件内聚原则：</p>
+<ul>
+<li>重用和发布等同原则 (Common Resue/Release Equivalence Principle)</li>
+<li>通用闭合原则 (Common Closure Principle)</li>
+<li>通用重用原则 (Common Reuse Principle)</li>
+</ul>
+<p>那么我们需要保证，在组件依赖关系图上，<strong>沿着依赖方向组件的稳定性值需要保持递减</strong>。 对于违反了这一原则的组件，一个简单的处理方法依然是<strong>使用依赖倒置原则创建新的抽象组件</strong>，从而避免稳定的组件依赖于不稳定的组件。</p>
+<p><strong>策略一旦选定变化起来就比较困难，而细节实现的变化往往容易</strong>。 策略的部分包括这些业务规则和过程，而细节则是具体的技术实现、数据库、通信协议、框架、库等。 由于<strong>商业业务规则比较稳定而技术的变化比较快，我们需要保持这些稳定的部分</strong>，而尽可能的不写死具体实现这些业务规则的技术细节。(关于策略的选取部分)</p>
+<p>好的边界划分方法是<strong>尽可能降低一些不成熟的决策产生的影响，降低对这些容易变化的决策的依赖</strong>。 我们需要在在重要的模块或者子系统和不太重要的子系统之间划分出清晰的边界(边界的制定，又有利于第三方组件的实现)</p>
+<p>整洁架构的特征：</p>
+<ul>
+<li>框架独立性：不依赖于任何库或者软件架构</li>
+<li>可测试性，各个部分可以独立测试</li>
+<li>界面隔离和独立，不管是命令行界面系统还是桌面客户端或者是浏览器等技术</li>
+<li>数据库独立性，可以替换各种SQL数据库，或者是文档数据库等，核心的业务逻辑不依赖于这些具体技术</li>
+<li>外部代理独立性，核心的业务系统并不知道外围的接口和协议</li>
+</ul>
+<p>一定的框架独立性，非常好的可测试性部分，很值得去探究</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/architecture/" rel="tag"># architecture</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/18/oracle-jfr/" rel="next" title="oracle JFR">
+                <i class="fa fa-chevron-left"></i> oracle JFR
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/18/reactive-programing/" rel="prev" title="Reactive Programing">
+                Reactive Programing <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div class="ds-thread" data-thread-key="2019/03/18/clean-architecture/" data-title="Clean Architecture" data-url="http://gqlxj1987.github.io/2019/03/18/clean-architecture/">
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/guiquanli.png" alt="gqlxj1987">
+            
+              <p class="site-author-name" itemprop="name">gqlxj1987</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">414</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">176</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">181</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gqlxj1987</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"gqlxj2015"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>

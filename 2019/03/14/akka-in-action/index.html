@@ -88,7 +88,7 @@
 <meta property="og:description" content="原文链接 针对买票的一个并发问题 akka的模型：  在票务代理和打印室之间，事件和票只能以不变的消息的方式进行传递。 票务代理和打印室的请求已异步消息入队的方式进行，这样就不需要线程等待方法的执行和甚至接受。 票务代理和打印室可以持有彼此的引用，这个引用包含了彼此之间可以发送消息的地址。这些消息会被暂时存在一个信箱里，然后根据到底的顺序一个个执行。（别担心，等会我们会好好解释这个工具集是怎么实现">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://withshenhui.gitbooks.io/akka-in-action-cn/content/figures/file-85_1.png">
-<meta property="og:updated_time" content="2019-03-15T08:04:13.595Z">
+<meta property="og:updated_time" content="2019-03-18T09:50:57.665Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Akka in action">
 <meta name="twitter:description" content="原文链接 针对买票的一个并发问题 akka的模型：  在票务代理和打印室之间，事件和票只能以不变的消息的方式进行传递。 票务代理和打印室的请求已异步消息入队的方式进行，这样就不需要线程等待方法的执行和甚至接受。 票务代理和打印室可以持有彼此的引用，这个引用包含了彼此之间可以发送消息的地址。这些消息会被暂时存在一个信箱里，然后根据到底的顺序一个个执行。（别担心，等会我们会好好解释这个工具集是怎么实现">
@@ -300,8 +300,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-15T16:04:13+08:00">
-                2019-03-15
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-18T17:50:57+08:00">
+                2019-03-18
               </time>
             
           </span>
@@ -432,6 +432,19 @@
 <li>流水线化这类函数，其中一个函数依赖于一个或多个其他函数的结果。</li>
 </ul>
 <p>关于route部分？</p>
+<p>futures部分，提供onComplete方法来处理success和failure</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"><span class="keyword">import</span> scala.util._</span><br><span class="line"><span class="keyword">import</span> scala.util.control.<span class="type">NonFatal</span></span><br><span class="line"><span class="keyword">import</span> scala.concurrent._</span><br><span class="line"><span class="keyword">import</span> <span class="type">ExecutionContext</span>.<span class="type">Implicits</span>.global</span><br><span class="line"><span class="keyword">val</span> futureFail = <span class="type">Future</span> &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">Exception</span>(<span class="string">"error!"</span>)&#125;</span><br><span class="line">futureFail.onComplete &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Success</span>(value) =&gt; println(value)</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Failure</span>(<span class="type">NonFatal</span>(e)) =&gt; println(e)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line">java.lang.<span class="type">Exception</span>: error!</span><br></pre></td></tr></table></figure>
+<p>futures的组合部分</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getWeather</span></span>(ticketInfo:<span class="type">TicketInfo</span>):<span class="type">Future</span>[<span class="type">TicketInfo</span>] = &#123;</span><br><span class="line">  <span class="keyword">val</span> futureWeatherX = callWeatherXService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futureWeatherY = callWeatherYService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futures = <span class="type">Seq</span>(futureWeatherX, futureWeatherY)</span><br><span class="line">  <span class="keyword">val</span> fastestResponse = <span class="type">Future</span>.firstCompletedOf(futures)</span><br><span class="line">  fastestResponse.map&#123; weatherResponse =&gt;</span><br><span class="line">    ticketInfo.copy(weather = weatherResponse)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Akka构建本地以及分布式系统">Akka构建本地以及分布式系统</h4><p>分布式系统遇到的问题：</p>
+<ul>
+<li>延迟：在合作者之间有网络意味着a，每个消息有延时，和b(TODO:不知所云)。由于拥塞导致的延时，重发的包，断断续续的连接，等等。</li>
+<li>部分失败：当系统中的某一部分总是出现、消失、重现时，知道分布式系统中所有部分是够工作是非常难于解决的问题。</li>
+<li>内存访问：本地系统中获取一个内存中对象的引用不会时不时失败，但是在分布式系统中的确会发生。</li>
+<li>并发：没有什么拥有一切东西，上述因素意味着交错操作的计划可能会出错。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> path = <span class="string">"akka.tcp://backend@0.0.0.0:2551/user/simple"</span></span><br><span class="line"><span class="keyword">val</span> simple = frontend.actorSelection(path)</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line"></span><br><span class="line">path: <span class="type">String</span> = akka.tcp:<span class="comment">//backend@0.0.0.0:2551/user/simple</span></span><br><span class="line">simple: akka.actor.<span class="type">ActorSelection</span> = <span class="type">ActorSelection</span>[<span class="type">Actor</span>[akka.tcp:<span class="comment">//backend@0.0.0.0:2551/]/user/simple]</span></span><br></pre></td></tr></table></figure>
+<p>远端的actor路径</p>
 
       
     </div>
@@ -532,8 +545,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
             
@@ -550,7 +572,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">409</span>
+                  <span class="site-state-item-count">414</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -561,7 +583,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">173</span>
+                  <span class="site-state-item-count">176</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -572,7 +594,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">178</span>
+                  <span class="site-state-item-count">181</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -597,6 +619,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Akka构建本地以及分布式系统"><span class="nav-number">1.</span> <span class="nav-text">Akka构建本地以及分布式系统</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
