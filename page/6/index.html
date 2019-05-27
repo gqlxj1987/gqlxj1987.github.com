@@ -249,6 +249,722 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/actor-vs-goroutine/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/20/actor-vs-goroutine/" itemprop="url">actor vs goroutine</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T09:58:17+08:00">
+                2019-03-20
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-20T19:50:02+08:00">
+                2019-03-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/concurrency/" itemprop="url" rel="index">
+                    <span itemprop="name">concurrency</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/20/actor-vs-goroutine/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/actor-vs-goroutine/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>参考<a href="https://stackoverflow.com/questions/22621514/is-scalas-actors-similar-to-gos-coroutines" target="_blank" rel="noopener">stackoverflow1</a></p>
+<p>CSP模型：Communicating Sequential Processes(formal language for describing patterns of interaction in concurrent systems)</p>
+<p>processes share a “channel”</p>
+<p>at this time they are limited to the current runtime and cannot be distributed, even between two runtimes on the same physical box</p>
+<p>CSP does not support fault tolerance in a meaningful way, so you as the developer have to figure out how to handle failure that can occur on both sides of channels, and such logic ends up getting strewn about all over the application</p>
+<p>CSP强调通信，channel可以被多个生产者和消费者共享，但是消息是否被消费了？unbuffered?</p>
+<p>actor: involve entities that have their own mailbox.  They are asynchronous by nature, and have location transparency that spans runtimes and machines</p>
+<p>也有共享的机制，通过eventbus部分？</p>
+<p>Actors have another very nice feature - fault tolerance.  By organizing actors into a supervision hierarchy per the OTP specification devised inErlang, you can build a domain of failure into your application.</p>
+<p>Actors are also a concurrency paradigm, where the actor can have mutable state inside of it and a guarantee of no multithreaded access to the state, unless the developer building an actor-based system accidentally introduces it, for example by registering the Actor as a listener for a callback, or going asynchronous inside the actor via Futures.(actor的状态不变性)</p>
+<p><strong>The only similarity (aside the nitpicking) is they both have to do with concurrency and message passing. But that is where the similarity ends.</strong></p>
+<p>Actors help things to be “worry free distributed”</p>
+<p>Where a “worry free” piece is usually associated with terms such as: <code>fault tolerance</code>, <code>resiliency</code>, <code>availability</code>, etc.. </p>
+<p>Goroutines help to reason about concurrency sequentially</p>
+<p>参考<a href="https://www.quora.com/How-are-Akka-actors-different-from-Go-channels-How-are-two-related-to-each-other" target="_blank" rel="noopener">quora1</a></p>
+<p>Go has a <em>select</em> statement for choosing between alternatives (the CSP <em>choice</em>) which may include channels, timers or simply skipping on to the next thing. This allows what one might call “waiting faster” by picking up from whichever channel is available first. But remember that whilst a goroutine is waiting on the channels (CSP calls them guards) in a <em>select</em>, it consumes no CPU and very little memory.</p>
+<p>Akka implements a fixed kind  network (of variable topology) in CSP terms. One feature of this kind of network is that there is no explicit flow control because no write rendezvous is ever needed on an infinite buffer. The model is fully asynchronous.</p>
+<p>downsides to the actor model</p>
+<ul>
+<li>There are cases where flow control is needed. Although these can be implemented in Akka using handshake dialogues, the code gets messy and it’s not efficient any more</li>
+<li>There is no ability of an actor to <em>refuse</em> to communicate. When a message arrives, it has to be processed or, perhaps, put into a buffer to be dealt with later. 消息ignore机制</li>
+<li>Akka places full reliance on the infinite input buffers never running out of memory - but this is not guaranteed.</li>
+</ul>
+<p>downside to the csp:</p>
+<ul>
+<li>Any network of goroutines that has some mutual dependency may deadlock. The developer must be aware of this and code so that deadlock is eliminated; this involves identifying mutual dependencies and altering them in some way (there are several well-known techniques, the easiest of these being to use a pure client-server pattern, which is known to be deadlock-free).</li>
+</ul>
+<p>The main difference is that a message exchange is synchronous in CSP (i.e. a “touch point” of the execution of two processes where they hand over the message) whereas it is completely decoupled in the Actor model, with message delivery being unconfirmed to the sender and taking an arbitrary amount of time</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/19/completionStage-and-compltetableFuture/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/19/completionStage-and-compltetableFuture/" itemprop="url">CompletionStage and CompltetableFuture</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-19T18:24:51+08:00">
+                2019-03-19
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-19T19:04:46+08:00">
+                2019-03-19
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/19/completionStage-and-compltetableFuture/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/19/completionStage-and-compltetableFuture/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://millross-consultants.com/completion-stage-future-introduction.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>CompletionStage pipelines</p>
+<p>CompletableFuture implements the CompletionStage interface.</p>
+<p>A convenient example of this is the thenApply method, which is analogous to map on the streaming API (or on the Optional class, for example).</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// We'll allow a 2-sized thread pool for async execution, rather than using the fork/join pool for asynchronous</span></span><br><span class="line"><span class="comment">// value generation</span></span><br><span class="line"><span class="keyword">final</span> Executor executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">demoThenApply</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">1</span>), executor) </span><br><span class="line">        .thenApply(i -&gt; i + <span class="number">3</span>);</span><br><span class="line">    assertThat(future.get(), is(<span class="number">4</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> value)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> delayedValueSupplier(value, <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> value, <span class="keyword">final</span> <span class="keyword">int</span> delayMs)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> () -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(delayMs);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Problem while waiting to return value"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>pipeline</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">demoMultiStagePipeline</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="comment">// We'll use one future to specify how long a subsequent future will take</span></span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">3</span>), executor)</span><br><span class="line">        .thenApply(i -&gt; &#123;</span><br><span class="line">            System.out.println(<span class="string">"First future completed, "</span> + i);</span><br><span class="line">            <span class="keyword">return</span> i + <span class="number">1</span>;</span><br><span class="line">        &#125;)</span><br><span class="line">        .thenCompose(i -&gt; CompletableFuture</span><br><span class="line">            .supplyAsync(delayedValueSupplier(i + <span class="number">2</span>, i * <span class="number">100</span>), executor));</span><br><span class="line">    assertThat(future.get(), is(<span class="number">6</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/19/nginx-quick-reference/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/19/nginx-quick-reference/" itemprop="url">Nginx Quick Reference</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-19T17:39:09+08:00">
+                2019-03-19
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-19T17:59:57+08:00">
+                2019-03-19
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/nginx/" itemprop="url" rel="index">
+                    <span itemprop="name">nginx</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/19/nginx-quick-reference/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/19/nginx-quick-reference/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/trimstray/nginx-quick-reference" target="_blank" rel="noopener">原文链接</a></p>
+<p>通过map去代替allow/deny</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">map $remote_addr $globals_internal_map_acl &#123;</span><br><span class="line"></span><br><span class="line">  # Status code:</span><br><span class="line">  #  - 0 = false</span><br><span class="line">  #  - 1 = true</span><br><span class="line">  default 0;</span><br><span class="line"></span><br><span class="line">  ### INTERNAL ###</span><br><span class="line">  10.255.10.0/24 1;</span><br><span class="line">  10.255.20.0/24 1;</span><br><span class="line">  10.255.30.0/24 1;</span><br><span class="line">  192.168.0.0/16 1;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>map anything</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">map $http_user_agent $device_redirect &#123;</span><br><span class="line"></span><br><span class="line">  default &quot;desktop&quot;;</span><br><span class="line"></span><br><span class="line">  ~(?i)ip(hone|od) &quot;mobile&quot;;</span><br><span class="line">  ~(?i)android.*(mobile|mini) &quot;mobile&quot;;</span><br><span class="line">  ~Mobile.+Firefox &quot;mobile&quot;;</span><br><span class="line">  ~^HTC &quot;mobile&quot;;</span><br><span class="line">  ~Fennec &quot;mobile&quot;;</span><br><span class="line">  ~IEMobile &quot;mobile&quot;;</span><br><span class="line">  ~BB10 &quot;mobile&quot;;</span><br><span class="line">  ~SymbianOS.*AppleWebKit &quot;mobile&quot;;</span><br><span class="line">  ~Opera\sMobi &quot;mobile&quot;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($device_redirect = &quot;mobile&quot;) &#123;</span><br><span class="line"></span><br><span class="line">  return 301 https://m.domain.com$request_uri;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>work_processes</p>
+<blockquote>
+<p>I think for high load proxy servers (also standalone servers) good value is <code>ALL_CORES - 1</code> (please test it before used).</p>
+</blockquote>
+<p>gzip</p>
+<blockquote>
+<p>You shouldn’t use HTTP compression on private responses when using TLS.</p>
+<p>Compression can be (I think) okay to HTTP compress publicly available static content like css or js and HTML content with zero sensitive info (like an “About Us” page).</p>
+</blockquote>
+<p>#####Mitigating Slow HTTP DoS attack (Closing Slow Connections)</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">client_body_timeout 10s;</span><br><span class="line">client_header_timeout 10s;</span><br><span class="line">keepalive_timeout 5s 5s;</span><br><span class="line">send_timeout 10s;</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/18/reactive-programing/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/18/reactive-programing/" itemprop="url">Reactive Programing</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-18T19:59:33+08:00">
+                2019-03-18
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-03-19T10:55:02+08:00">
+                2019-03-19
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/reactive/" itemprop="url" rel="index">
+                    <span itemprop="name">reactive</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/18/reactive-programing/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/18/reactive-programing/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://skyscribe.github.io/post/2018/03/10/functional-reactive-programming/" target="_blank" rel="noopener">原文链接</a></p>
+<p>因为<strong>无状态是微服务的潜在要求</strong>也是最重要的一个要求之一； 函数式编程相较于其他编程范式更强调无副作用的编程思维，和微服务的基本要求自然契合的很好</p>
+<p>函数式编程的基本思路是将<strong>程序的执行看作是一堆函数的组合处理和求值</strong>过程；纯粹的函数式编程要求数据是不可变的， 同样的数值输入在流经同样的函数处理的时候必须得到确定的输出，不容许有预料之外的副作用产生。(数据的不变性)</p>
+<p>流+函数式-&gt;响应式</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">requestStream.subscribe(<span class="function"><span class="keyword">function</span>(<span class="params">requestUrl</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// execute the request</span></span><br><span class="line">    <span class="keyword">var</span> responseStream = Rx.Observable.create(<span class="function"><span class="keyword">function</span> (<span class="params">observer</span>) </span>&#123;</span><br><span class="line">        jQuery.getJSON(requestUrl)</span><br><span class="line">            .done(<span class="function"><span class="keyword">function</span>(<span class="params">response</span>) </span>&#123; observer.onNext(response); &#125;)</span><br><span class="line">            .fail(<span class="function"><span class="keyword">function</span>(<span class="params">jqXHR, status, error</span>) </span>&#123; observer.onError(error); &#125;)</span><br><span class="line">            .always(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123; observer.onCompleted(); &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    responseStream.subscribe(<span class="function"><span class="keyword">function</span>(<span class="params">response</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// do something with the response</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>处理这些响应数据的代码放在第二个subscribe中</p>
+<p>Java8采用<code>stream()</code>接口来引入</p>
+<p>RxJava扩展观察者模式</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> io.reactivex.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWorld</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Flowable.just(<span class="string">"Hello world"</span>).subscribe(System.out::println);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>数据流传递给方法</p>
+<p>使用并发的方式</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .flatMap(v -&gt;</span><br><span class="line">    Flowable.just(v)</span><br><span class="line">      .subscribeOn(Schedulers.computation())</span><br><span class="line">      .map(w -&gt; w * w)</span><br><span class="line">  ).blockingSubscribe(System.out::println);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .parallel()</span><br><span class="line">  .runOn(Schedulers.computation())</span><br><span class="line">  .map(v -&gt; v * v)</span><br><span class="line">  .sequential()</span><br><span class="line">  .blockingSubscribe(System.out::println);</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Assume the record values represent lines of text.  For the sake of this example, you can ignore</span></span><br><span class="line"><span class="comment">// whatever may be stored in the record keys.</span></span><br><span class="line">KStream&lt;String, String&gt; textLines = ...;</span><br><span class="line"></span><br><span class="line">KStream&lt;String, Long&gt; wordCounts = textLines</span><br><span class="line">    <span class="comment">// Split each text line, by whitespace, into words.  The text lines are the record</span></span><br><span class="line">    <span class="comment">// values, i.e. you can ignore whatever data is in the record keys and thus invoke</span></span><br><span class="line">    <span class="comment">// `flatMapValues` instead of the more generic `flatMap`.</span></span><br><span class="line">    .flatMapValues(value -&gt; Arrays.asList(value.toLowerCase().split(<span class="string">"\\W+"</span>)))</span><br><span class="line">    <span class="comment">// Group the stream by word to ensure the key of the record is the word.</span></span><br><span class="line">    .groupBy((key, word) -&gt; word)</span><br><span class="line">    <span class="comment">// Count the occurrences of each word (record key).</span></span><br><span class="line">    <span class="comment">// This will change the stream type from `KGroupedStream&lt;String, String&gt;` to</span></span><br><span class="line">    <span class="comment">// `KTable&lt;String, Long&gt;` (word -&gt; count).</span></span><br><span class="line">    .count()</span><br><span class="line">    <span class="comment">// Convert the `KTable&lt;String, Long&gt;` into a `KStream&lt;String, Long&gt;`.</span></span><br><span class="line">    .toStream();</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/18/clean-architecture/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -434,742 +1150,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/18/oracle-jfr/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/18/oracle-jfr/" itemprop="url">oracle JFR</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-18T10:36:58+08:00">
-                2019-03-18
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-18T19:27:39+08:00">
-                2019-03-18
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/jfr/" itemprop="url" rel="index">
-                    <span itemprop="name">jfr</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/18/oracle-jfr/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/18/oracle-jfr/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://zhouhai02.com/post/flink-internals/flink-application-profile-by-jfr-jmc-flame-graph/" target="_blank" rel="noopener">原文链接</a></p>
-<p>和传统的JProfiler/VisualVM这些基于JMX的工具所不同的是，JFR记录的信息是<strong>近似而非精确</strong>的；当然大部分情况下这些<strong>模糊性信息就足够说明问题</strong>了。 对于大部分场景下，这些近似信息反而可以更容易发现一些真正的问题。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">env.java.opts: "-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints"</span><br></pre></td></tr></table></figure>
-<p>加入java opts</p>
-<p>开启jfr</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">/usr/<span class="built_in">local</span>/jdk1.8.0_112/bin/jcmd 47897 JFR.start name=MyRecording settings=/home/zhouhai02/flink_profiler.jfc delay=5s duration=10m</span></span><br></pre></td></tr></table></figure>
-<p>check</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.check</span><br></pre></td></tr></table></figure>
-<p>导出</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.dump name=MyRecording filename=dump.jfr</span><br></pre></td></tr></table></figure>
-<p>导入到JMC上去分析</p>
-<p><strong>Java Mission Control</strong></p>
-<p>热点线程</p>
-<p><img src="https://skyscribe.github.io/assets/images/jfr/jfr_threads_hot_threads.jpg" alt="hot thread"></p>
-<p>给出线程上下文切换的频率。同样，也可以类似得出相应的切换时间</p>
-<p>同时，火焰图部分</p>
-<p><img src="https://zhouhai02.com/img/troubleshooting/flink-jm-dump.svg" alt="火焰图"></p>
-<p>火焰图展示了在采样周期内，code-path被执行的时间占比，纵轴是code-path，从下至上一般就是调用栈，相同的采样调用栈会被合并，栈顶元素就是采样的时候CPU运行的stack，横轴是某个stack的占用时间，跨度越大说明其占CPU比重越高，也就是最耗费CPU的，stack在横轴上是按照字母序排列的，颜色深浅仅仅是为了区分，并没特殊意义。我只需要关注火焰图中的“平顶山”，这往往代表着某段代码的调用占用CPU过多。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/17/time-plan/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/17/time-plan/" itemprop="url">2019时间的安排</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-17T22:16:29+08:00">
-                2019-03-17
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-18T17:56:17+08:00">
-                2019-03-18
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/time/" itemprop="url" rel="index">
-                    <span itemprop="name">time</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/17/time-plan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/17/time-plan/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>尝试更严格的自律。。。</p>
-<hr>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/17/2019-plan/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/17/2019-plan/" itemprop="url">2019活下去</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-17T15:17:17+08:00">
-                2019-03-17
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-18T18:02:27+08:00">
-                2019-03-18
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/17/2019-plan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/17/2019-plan/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>方向的变化，外界的压力，莫名其妙的情绪，很容易让人很丧气，不知道目标和方向在哪里，今天的自己，能否撑到明天。。。</p>
-<p>有时候，挺丧气的，不再是一人吃饱，全家不饿的状态，但是自己不管是状态上，还是心理上，完全没达到相应的状态，很是苦笑。。。</p>
-<p>但不管怎么样，活下去，认真地活下去，不用管后面是什么样，想着可以为现在做一些事情，为后面的人留下一些东西，就够了，这才是应该有的野望。。</p>
-<hr>
-<p>工作上：</p>
-<ul>
-<li>方向上的转换有点快，但是一些主线上的东西，不会变，看能不能基于akka部分，将整套流程能够实现出来</li>
-<li>基础上，尝试运用重构的一些概念理论去重构下整个项目，作为一个实践的课题</li>
-<li>语言上，尝试下rust的学习，例如rust os部分，起码可以尝试去学习一下</li>
-<li>作为转型的机器学习部分，能不能找一些例子，在现有的资源上，做一些东西出来(资源不能浪费)</li>
-</ul>
-<p>业余上：</p>
-<ul>
-<li>rust部分，看能不能按照os的路子，写出来</li>
-<li>blog部分，要保持更新的节奏，尤其是技术上，多写写读后感。。看能不能到550大关，加油</li>
-<li>leetcode。。。<a href="https://github.com/gqlxj1987/leetcode-daily" target="_blank" rel="noopener">leetcode daily</a></li>
-</ul>
-<p>生活上：</p>
-<ul>
-<li>下江南，走西北，去东南亚过年？</li>
-<li>身体锻炼，要恢复起来，周末的跑步，周中的keep以及跳舞部分，要逐渐地恢复起来。。</li>
-<li>电影和书上，要保持频率，是不是可以把布袋戏捡起来了，作为保持节奏的一种？</li>
-<li>相机要重新拿起来，拍一些有意思的东西出来。。</li>
-</ul>
-<p>待人处物上：</p>
-<ul>
-<li>也没有什么小心翼翼的了，既然都做好了打算，没什么好失去的，能留下一点是一点，做好自己就可以了</li>
-<li>尝试去沟通，多去陪伴，不要懒</li>
-<li>身外之物，尝试去长期去看待，起码今年的形势会比去年好，慢慢来，ps4没有的话，换一个显示器+手柄也是可以的</li>
-</ul>
-<p>活下去，认真地活下去，全力以赴，但又不报任何希望，有付出就可以了</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/17/leveldb/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/17/leveldb/" itemprop="url">Leveldb 101</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-17T10:29:44+08:00">
-                2019-03-17
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-17T13:38:32+08:00">
-                2019-03-17
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/17/leveldb/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/17/leveldb/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>我们可以从两个不同的角度来看待LevleDb：静态角度和动态角度。</p>
-<ul>
-<li><p>从静态角度，可以假想整个系统正在运行过程中（不断插入删除读取数据），此时我们给LevelDb照相，从照片可以看到之前系统的数据在内存和磁盘中是如何分布的，处于什么状态等；</p>
-</li>
-<li><p>从动态的角度，主要是了解系统是如何写入一条记录，读出一条记录，删除一条记录的，同时也包括除了这些接口操作外的内部操作比如compaction，系统运行时崩溃后如何恢复系统等等方面。</p>
-</li>
-</ul>
-<p>对于分析一个数据库，也基本遵循这样的思路</p>
-<p>构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。</p>
-<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15lqug1xfj30mn0lbjso.jpg" alt="leveldb结构"></p>
-<p>当应用写入一条Key:Value记录的时候，LevelDb会先往log文件里写入，成功后将记录插进Memtable中，这样基本就算完成了写入操作，因为一次写入操作只涉及一次磁盘顺序写和一次内存写入，所以这是为何说LevelDb写入速度极快的主要原因</p>
-<p>log的作用主要是用于系统崩溃恢复</p>
-<p>有序的key值，对于其它Level的SSTable文件来说，则不会出现同一层级内.sst文件的key重叠现象，就是说Level L中任意两个.sst文件，那么可以保证它们的key值是不会重叠的</p>
-<p>由于log采用32K作为一个block部分，必然出现数据拆分的问题，这时候，数据分为几个类型：FULL/FIRST/MIDDLE/LAST</p>
-<p>SSTable</p>
-<p>可以将.sst文件划分为数据存储区和数据管理区，数据存储区存放实际的Key:Value数据，数据管理区则提供一些索引指针等管理数据，目的是更快速便捷的查找相应的记录。两个区域都是在上述的分块基础上的，就是说文件的前面若干块实际存储KV数据，后面数据管理区存储管理数据。管理数据又分为四种不同类型：紫色的Meta Block，红色的MetaBlock 索引和蓝色的数据索引块以及一个文件尾部块</p>
-<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15pcamqbnj30jk0bb753.jpg" alt="sstable"></p>
-<p>Data Block 内的 KV 记录是按照 Key 由小到大排列的，数据索引区的每条记录是对某个 Data Block 建立的索引信息，每条索引信息包含三个内容，以图 所示的数据块 i 的索引 Index i 来说：红色部分的第一个字段记载大于等于数据块 i 中最大的 Key 值的那个 Key，第二个字段指出数据块 i 在.sst 文件中的起始位置，第三个字段指出 Data Block i 的大小（有时候是有数据压缩的）。后面两个字段好理解，是用于定位数据块在文件中的位置的</p>
-<p>关于数据记录，还有重启点</p>
-<p>“重启点” 的意思是：在这条记录开始，不再采取只记载不同的 Key 部分，而是重新记录所有的 Key 值，假设 Key i+1 是一个重启点，那么 Key 里面会完整存储 “the color”，而不是采用简略的 “olor” 方式。Block 尾部就是指出哪些记录是这些重启点的。</p>
-<h4 id="MemTable">MemTable</h4><p>核心的数据结构是一个skiplist</p>
-<p>关于k8s上的database的争论部分？</p>
-<p>log 文件内是 key 无序的，而 Memtable 中是 key 有序的。</p>
-<h4 id="查找记录">查找记录</h4><p>从 Memtable 到 Immutable Memtable，再从 Immutable Memtable 到文件，而文件是从低 level 到高 level 这么一个查询路径</p>
-<p>level 0的文件查找，同其他level文件的查找不同(level 0存在不同文件重叠key的情况，需要按新鲜度进行排序)</p>
-<h4 id="Compaction">Compaction</h4><p>当memTable满的时候，发生minor compaction. minor compaction 实现起来也很简单，就是按照 immutable memtable 中记录由小到大遍历，并依次写入一个 level 0 的新建 SSTable 文件中，写完后建立文件的 index 数据，这样就完成了一次 minor compaction。</p>
-<p><img src="https://ws3.sinaimg.cn/large/006tKfTcly1g15qbhauxnj30ih0fjwf7.jpg" alt="major compaction"></p>
-<h4 id="Cache">Cache</h4>
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/87/">87</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/88/">88</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1217,7 +1202,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">435</span>
+                  <span class="site-state-item-count">439</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
