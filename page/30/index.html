@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/10/29/crud/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/07/miaosha/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/10/29/crud/" itemprop="url">Don't talk CRUD</a></h1>
+                <a class="post-title-link" href="/2018/12/07/miaosha/" itemprop="url">秒杀架构浅析</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-29T19:54:16+08:00">
-                2018-10-29
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-07T10:25:33+08:00">
+                2018-12-07
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-10-30T11:16:51+08:00">
-                2018-10-30
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-12T00:19:16+08:00">
+                2018-12-12
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/crud/" itemprop="url" rel="index">
-                    <span itemprop="name">crud</span>
+                  <a href="/categories/sql/" itemprop="url" rel="index">
+                    <span itemprop="name">sql</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/10/29/crud/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/10/29/crud/" itemprop="commentCount"></span>
+                <a href="/2018/12/07/miaosha/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/07/miaosha/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,22 +364,46 @@
       
         
           
-            <p><a href="https://codecoding.net/ruby/on/rails/2018/09/14/dont-talk-crud.html?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_143" target="_blank" rel="noopener">原文链接</a></p>
-<p>从一个需求开始</p>
-<blockquote>
-<p>I want to be able to assign the account manager to the user who is my client.</p>
-</blockquote>
-<p>solution way</p>
+            <p><a href="https://crossoverjie.top/2018/05/07/ssm/SSM18-seconds-kill/" target="_blank" rel="noopener">原文链接</a></p>
+<p>其实抛开秒杀这个场景来说正常的一个下单流程可以简单分为以下几步：</p>
 <ul>
-<li><p>First of all we need to stop thinking in a CRUD way</p>
-<p>化身领域的方式来进行，思考namespace，module部分，</p>
-</li>
-<li><p>action name</p>
-</li>
+<li>校验库存</li>
+<li>扣库存</li>
+<li>创建订单</li>
+<li>支付</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">app/contexts/authentication` or `app/domains/authentication</span><br></pre></td></tr></table></figure>
-<p>关于context或者说domain的设置部分</p>
-<p><strong>DDD blue book</strong></p>
+<p>超卖现象</p>
+<p>采用乐观锁的实现方式</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">update</span> <span class="attr">id</span>=<span class="string">"updateByOptimistic"</span> <span class="attr">parameterType</span>=<span class="string">"com.crossoverJie.seconds.kill.pojo.Stock"</span>&gt;</span></span><br><span class="line">    update stock</span><br><span class="line">    <span class="tag">&lt;<span class="name">set</span>&gt;</span></span><br><span class="line">        sale = sale + 1,</span><br><span class="line">        version = version + 1,</span><br><span class="line">    <span class="tag">&lt;/<span class="name">set</span>&gt;</span></span><br><span class="line">    WHERE id = #&#123;id,jdbcType=INTEGER&#125;</span><br><span class="line">    AND version = #&#123;version,jdbcType=INTEGER&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">update</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`stock`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">unsigned</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'名称'</span>,</span><br><span class="line">  <span class="string">`count`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'库存'</span>,</span><br><span class="line">  <span class="string">`sale`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'已售'</span>,</span><br><span class="line">  <span class="string">`version`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'乐观锁，版本号'</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure>
+<p>version作为关键字来使用？</p>
+<p>分布式限流的方式</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">//限流</span></span><br><span class="line"><span class="keyword">boolean</span> limit = redisLimit.limit();</span><br><span class="line"><span class="keyword">if</span> (!limit)&#123;</span><br><span class="line">    res.setCode(StatusEnum.REQUEST_LIMIT.getCode());</span><br><span class="line">    res.setMessage(StatusEnum.REQUEST_LIMIT.getMessage());</span><br><span class="line">    <span class="keyword">return</span> res ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>每次请求时将当前时间(精确到秒)作为 Key 写入到 Redis 中，超时时间设置为 2 秒，Redis 将该 Key 的值进行自增。</li>
+<li>当达到阈值时返回错误。</li>
+<li>写入 Redis 的操作用 Lua 脚本来完成，利用 Redis 的单线程机制可以保证每个 Redis 请求的原子性。</li>
+</ul>
+<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line"><span class="comment">--lua 下标从 1 开始</span></span><br><span class="line"><span class="comment">-- 限流 key</span></span><br><span class="line"><span class="keyword">local</span> key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="comment">-- 限流大小</span></span><br><span class="line"><span class="keyword">local</span> limit = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="comment">-- 获取当前流量大小</span></span><br><span class="line"><span class="keyword">local</span> curentLimit = <span class="built_in">tonumber</span>(redis.call(<span class="string">'get'</span>, key) <span class="keyword">or</span> <span class="string">"0"</span>)</span><br><span class="line"><span class="keyword">if</span> curentLimit + <span class="number">1</span> &gt; limit <span class="keyword">then</span></span><br><span class="line">    <span class="comment">-- 达到限流大小 返回</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="comment">-- 没有达到阈值 value + 1</span></span><br><span class="line">    redis.call(<span class="string">"INCRBY"</span>, key, <span class="number">1</span>)</span><br><span class="line">    redis.call(<span class="string">"EXPIRE"</span>, key, <span class="number">2</span>)</span><br><span class="line">    <span class="keyword">return</span> curentLimit + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">limit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String key = String.valueOf(System.currentTimeMillis() / <span class="number">1000</span>);</span><br><span class="line">    Object result = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> Jedis) &#123;</span><br><span class="line">        result = ((Jedis) <span class="keyword">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> JedisCluster) &#123;</span><br><span class="line">        result = ((JedisCluster) <span class="keyword">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//throw new RuntimeException("instance is error") ;</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (FAIL_CODE != (Long) result) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>乐观锁更新+分布式限流+redis缓存</p>
+<ul>
+<li>每次查询库存时走 Redis。</li>
+<li>扣库存时更新 Redis。</li>
+<li>需要提前将库存信息写入 Redis（手动或者程序自动都可以）</li>
+</ul>
+<p>更进一步，加上kafka异步队列</p>
+<p>因为异步了，所以最终需要采取回调或者是其他提醒的方式提醒用户购买完成。</p>
+<p>但好像代码里面没有采用回调的方式？</p>
+<p>其实经过上面的一顿优化总结起来无非就是以下几点：</p>
+<ul>
+<li>尽量将请求拦截在上游。</li>
+<li>还可以根据 UID 进行限流。</li>
+<li>最大程度的减少请求落到 DB。</li>
+<li>多利用缓存。</li>
+<li>同步操作异步化。</li>
+<li>fail fast，尽早失败，保护应用</li>
+</ul>
 
           
         
@@ -428,7 +452,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/10/28/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/06/resteasy/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -447,7 +471,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/10/28/one-week/" itemprop="url">楚门的世界</a></h1>
+                <a class="post-title-link" href="/2018/12/06/resteasy/" itemprop="url">Resteasy</a></h1>
         
 
         <div class="post-meta">
@@ -459,8 +483,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-28T16:18:24+08:00">
-                2018-10-28
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-06T21:34:00+08:00">
+                2018-12-06
               </time>
             
 
@@ -475,8 +499,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-10-30T23:41:20+08:00">
-                2018-10-30
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T22:13:39+08:00">
+                2018-12-06
               </time>
             
           </span>
@@ -494,8 +518,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/resteasy/" itemprop="url" rel="index">
+                    <span itemprop="name">resteasy</span>
                   </a>
                 </span>
 
@@ -512,8 +536,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/10/28/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/10/28/one-week/" itemprop="commentCount"></span>
+                <a href="/2018/12/06/resteasy/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/06/resteasy/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -543,32 +567,11 @@
       
         
           
-            <p>如果再也见不到你，我再祝你早安、午安、晚安</p>
-<p>困于自己的牢笼，还是去继续探索世界</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>进行提测</li>
-<li>新的feature_graph脚本的讨论</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>demo day的恢复</li>
-<li>相关流程的熟悉</li>
-<li>熟悉了一些k8s的命令</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>支持提测，修复相关的bug</li>
-<li>无时间列的情况</li>
-<li>调研新版的fe脚本部分</li>
-</ul>
-<p>第一版终于是提交了，算是开了一个头，不过感觉还是做的像个玩具一样。。。效果什么的，操作上什么的，感觉还是比较业余。希望后面能够做的越来越专业吧，希望自己能够往更上一点的架构层次上去想一想，每次重构一点代码，每次学习一点东西</p>
-<p>谁给你的自信，能够让你放松。。。无论是生活还是工作。。。秉持正念，苦行僧。。。</p>
-<p>前头还说按部就班，后面感觉自己就放松了一些，还是要找到方向，找到持续学习的地方。。。</p>
-<p>在生活上，也放松了对自己的要求，不要轻易破坏自己的一些想法和一些原则，虽然看起来是那么可笑以及幼稚，但其实是自己刺猬的一种方式，缩在自己的套中。。。</p>
-<p>按照基本的要求去规范自己，不要偷懒，也不要过多地牵扯太多，珍惜这样的时光，但也不想失去自己。。。</p>
-<p>锻炼部分，又偷懒了，还是慢慢恢复吧，下午的晚饭，忍住不要吃了。。。看能否抵挡一些脂肪</p>
+            <p>RESTEasy is a JBoss project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is a <strong>fully certified</strong> and portable implementation of the <a href="https://jax-rs-spec.java.net/" target="_blank" rel="noopener">JAX-RS 2.1</a> specification, a JCP specification that provides a Java API for RESTful Web Services over the HTTP protocol.</p>
+<p>采用的是跟spring boot不一样的策略，任意的servlet的容器中都可以运行的restful的服务？</p>
+<p>感觉又不是，前者更强调servlet的体系部分，而后者掩盖了这一体系</p>
+<p><a href="https://github.com/resteasy/Resteasy" target="_blank" rel="noopener">repo</a></p>
+<p>关于JAX-RS的意思？</p>
 
           
         
@@ -617,7 +620,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/10/25/pws-dynamic-load/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/06/compile/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -636,7 +639,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/10/25/pws-dynamic-load/" itemprop="url">PWS动态算子加载</a></h1>
+                <a class="post-title-link" href="/2018/12/06/compile/" itemprop="url">Compile Thoery</a></h1>
         
 
         <div class="post-meta">
@@ -648,8 +651,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-25T10:25:56+08:00">
-                2018-10-25
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-06T21:23:05+08:00">
+                2018-12-06
               </time>
             
 
@@ -664,8 +667,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-10-25T10:37:39+08:00">
-                2018-10-25
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T21:25:11+08:00">
+                2018-12-06
               </time>
             
           </span>
@@ -683,8 +686,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
+                  <a href="/categories/compile/" itemprop="url" rel="index">
+                    <span itemprop="name">compile</span>
                   </a>
                 </span>
 
@@ -701,8 +704,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/10/25/pws-dynamic-load/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/10/25/pws-dynamic-load/" itemprop="commentCount"></span>
+                <a href="/2018/12/06/compile/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/06/compile/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -732,15 +735,13 @@
       
         
           
-            <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">URLClassLoaderTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String remoteJarPath = <span class="string">"http://localhost:8080/operators/base-operator.jar"</span>;</span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testLoadRemoteJar</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        URI uri = <span class="keyword">new</span> URI(remoteJarPath);</span><br><span class="line">        URLClassLoader classLoader = <span class="keyword">new</span> URLClassLoader(<span class="keyword">new</span> URL[]&#123;uri.toURL()&#125;);</span><br><span class="line">        Thread.currentThread().setContextClassLoader(classLoader);</span><br><span class="line">        ServiceLoader&lt;Operator&gt; loader = ServiceLoader.load(Operator.class);</span><br><span class="line">        Iterator&lt;Operator&gt; iterator = loader.iterator();</span><br><span class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Operator operator = iterator.next();</span><br><span class="line">                log.info(<span class="string">"OperatorInfo: name=&#123;&#125;, platform=&#123;&#125;"</span>, operator.getName(), operator.getPlatform());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.warn(<span class="string">"Failed to instantiate operator"</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>以代码为例说明：</p>
-<ul>
-<li>采用URLClassLoader的方式来加载jar包</li>
-<li>在此基础上，加入SerivceLoader来加载类Operator的class</li>
-</ul>
-<p>关于URLClassLoader部分</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Bean</span> </span>&#123;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sayHello</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		System.out.println(<span class="string">"Hello from loaded Bean class !!!"</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Constructor;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.net.URLClassLoader;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">URLClassLoaderTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> args</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@throws</span> Exception </span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Getting the jar URL which contains target class</span></span><br><span class="line">		URL[] classLoaderUrls = <span class="keyword">new</span> URL[]&#123;<span class="keyword">new</span> URL(<span class="string">"file:///home/ashraf/Desktop/simple-bean-1.0.jar"</span>)&#125;;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Create a new URLClassLoader </span></span><br><span class="line">		URLClassLoader urlClassLoader = <span class="keyword">new</span> URLClassLoader(classLoaderUrls);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Load the target class</span></span><br><span class="line">        Class&lt;?&gt; beanClass = urlClassLoader.loadClass(<span class="string">"com.jcg.Bean"</span>);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Create a new instance from the loaded class</span></span><br><span class="line">        Constructor&lt;?&gt; constructor = beanClass.getConstructor();</span><br><span class="line">        Object beanObj = constructor.newInstance();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Getting a method from the loaded class and invoke it</span></span><br><span class="line">        Method method = beanClass.getMethod(<span class="string">"sayHello"</span>);</span><br><span class="line">        method.invoke(beanObj);</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>见上面的例子，利用反射的方式？</p>
+            <p><a href="http://weinan.io/2018/09/21/compile.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>编译原理分为前端和后端</p>
+<p>「前端」是用来处理 Context Free Language ，把 text 转化成 tokens ，然后再把 tokens 通过 syntax rules 转化成 AST 的过程。</p>
+<p>其中把 text 转化成 tokens ，一般用到的技术是 Regular Expression ，也就是「正则表达式」，背后对应的是无状态的自动机 NFA ， NFA 可以转化为 DFA 。</p>
+<p>然后， tokens 根据 syntax rules 进行 semantic analysis 的过程，是通过 parser 来完成的。</p>
+<p>因为 context free language 需要分析文本前后的联系，也就是所谓代码的内在关系，所以必须用到内存，但不必用到随机存取内存，因此就在无状态自动机基础上加上 stack memory ，变成 Pushdown Automaton ，也就是 PDA ，下推自动机。</p>
+<p>「后端」就是把 AST 转化成实际的目标代码</p>
 
           
         
@@ -789,7 +790,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/10/21/git-flight-rules/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/05/baseline-env/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -808,7 +809,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/10/21/git-flight-rules/" itemprop="url">Git Flight Rules</a></h1>
+                <a class="post-title-link" href="/2018/12/05/baseline-env/" itemprop="url">baseline 开发</a></h1>
         
 
         <div class="post-meta">
@@ -820,8 +821,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-21T23:28:36+08:00">
-                2018-10-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-05T23:13:04+08:00">
+                2018-12-05
               </time>
             
 
@@ -836,8 +837,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-03T21:58:44+08:00">
-                2018-12-03
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T10:25:46+08:00">
+                2018-12-06
               </time>
             
           </span>
@@ -855,8 +856,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/git/" itemprop="url" rel="index">
-                    <span itemprop="name">git</span>
+                  <a href="/categories/devops/" itemprop="url" rel="index">
+                    <span itemprop="name">devops</span>
                   </a>
                 </span>
 
@@ -873,8 +874,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/10/21/git-flight-rules/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/10/21/git-flight-rules/" itemprop="commentCount"></span>
+                <a href="/2018/12/05/baseline-env/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/05/baseline-env/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -904,15 +905,18 @@
       
         
           
-            <p><a href="https://github.com/k88hudson/git-flight-rules" target="_blank" rel="noopener">repo地址</a></p>
-<p>提交的信息写错了</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">git commit --amend --only -m <span class="string">'xxxxxxx'</span></span></span><br></pre></td></tr></table></figure>
-<h3 id="我想要暂存一个新文件的一部分，而不是这个文件的全部">我想要暂存一个新文件的一部分，而不是这个文件的全部</h3><p>一般来说, 如果你想暂存一个文件的一部分, 你可这样做:</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ git add --patch filename.x</span><br></pre></td></tr></table></figure>
-<p><code>-p</code> 简写。这会打开交互模式， 你将能够用 <code>s</code> 选项来分隔提交(commit)； 然而, 如果这个文件是新的, 会没有这个选择， 添加一个新文件时, 这样做:</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ git add -N filename.x</span><br></pre></td></tr></table></figure>
-<p>然后, 你需要用 <code>e</code> 选项来手动选择需要添加的行，执行 <code>git diff --cached</code> 将会显示哪些行暂存了哪些行只是保存在本地了。</p>
-<p><a href="https://github.com/git-tips/tips" target="_blank" rel="noopener">更多的tips</a></p>
+            <p>针对先知多模块，多依赖的问题，通过DNS fallback的方式，针对流量进行导流，从而能够导流到自己开发的模块上</p>
+<p>前端有一个gateway的来进行拦截</p>
+<p>mirror的方式，其实是借鉴docker的volumes的方式，mount本地的目录</p>
+<p>intercept的方式，将流量进行导流？使用到了k8s的svc的功能</p>
+<p>存在的几点疑问：</p>
+<ul>
+<li>所谓的导流到本地IDE的开发是指？</li>
+<li>传jar，然后重启pod的方式，是否还是有些繁琐</li>
+</ul>
+<p>关于dns fallback的机制？</p>
+<p>嵌入到k8s的svc机制中去了？</p>
+<h3 id="针对automl的开发？">针对automl的开发？</h3><p>考虑真正的service mesh部分？</p>
 
           
         
@@ -961,7 +965,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/10/21/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/05/scala-trait/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -980,7 +984,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/10/21/one-week/" itemprop="url">Wake me up !</a></h1>
+                <a class="post-title-link" href="/2018/12/05/scala-trait/" itemprop="url">scala trait</a></h1>
         
 
         <div class="post-meta">
@@ -992,8 +996,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-21T21:48:46+08:00">
-                2018-10-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-05T22:52:51+08:00">
+                2018-12-05
               </time>
             
 
@@ -1008,8 +1012,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-10-21T23:30:54+08:00">
-                2018-10-21
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-05T23:02:06+08:00">
+                2018-12-05
               </time>
             
           </span>
@@ -1027,8 +1031,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weeekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weeekly</span>
+                  <a href="/categories/scala/" itemprop="url" rel="index">
+                    <span itemprop="name">scala</span>
                   </a>
                 </span>
 
@@ -1045,8 +1049,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/10/21/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/10/21/one-week/" itemprop="commentCount"></span>
+                <a href="/2018/12/05/scala-trait/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/05/scala-trait/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1076,35 +1080,11 @@
       
         
           
-            <p>我也一直 都不会是特别的</p>
-<p>虽然如此 但对我来说或许足够了</p>
-<p>虽然知道不能继续如此 但对我来说或许已经满足了</p>
-<p>耳边传来了别人正在唱歌的动听的歌声</p>
-<p>虽然感到了有些沮丧</p>
-<p>明天到来就用这样的态度</p>
-<p>生活下去吧</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>修复dag合并的问题，同时将node部分进行整合，提升相关效率</li>
-<li>人工特征流程部分完成</li>
-<li>整体流程串联成功</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>一些边界条件部分的修复</li>
-<li>另起一个实验数据部分</li>
-<li>准备提测的相关事宜</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于进度的一些把控方面</li>
-<li>同他人的协同方面正在恢复</li>
-</ul>
-<p>时间安排上，尽快地安排一下，合理地安排学习和游戏的时间部分，总感觉自己的学习新知识部分，有点拉下来了。。。早日把jenkins部分的源码部分进行阅读，按里面有没有可以借鉴部分</p>
-<p>身体锻炼上，起码恢复了每周一跑，继续坚持，同时在周中的时候，看有没有机会加入5km的跑步环节，节食部分，也要坚持下去，晚上不要吃太多，以水果啥的为主</p>
-<p>目标是架构的设计一些方面，之前做的可能更轻量级，更小众，现在要涉及一些企业级的框架部分，希望自己能够慢慢转向这个方向，去设计一些东西，能够将之前的一些设计完善起来，同时加入自己的理解部分</p>
-<p>正如歌词里提到的，已经知道不能继续如此，应该感到很满足才对，有过这段很珍贵的经历，就已经很足够了。虽然会有些沮丧，但明天还是会继续，就用这样的态度，生活下去吧</p>
+            <p><a href="http://weinan.io/2018/11/05/scala.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>trait并不是interface，而是一个功能模块，允许用户把这个模块插入到class中</p>
+<p>trait本身也可以继承，方法也可以直接在trait里实现</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">scala&gt;</span><span class="bash"> val service2 = new ServiceImportante(<span class="string">"dos"</span>) with StdoutLogging &#123;</span></span><br><span class="line">     |   override def work(i: Int): Int = &#123;</span><br><span class="line">     |     info(s"Starting work: i = $i")</span><br><span class="line">     |     val result = super.work(i)</span><br><span class="line">     |     info(s"Ending work: i = $i, result = $result")</span><br><span class="line">     |     result</span><br><span class="line">     |   &#125;</span><br><span class="line">     | &#125;</span><br><span class="line">service2: ServiceImportante with StdoutLogging = $anon$1@674fee6d</span><br></pre></td></tr></table></figure>
+<p>当然也可以重复使用<code>ServiceImportante with StdoutLogging</code>，定义一个新的class</p>
 
           
         
@@ -1144,7 +1124,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/90/">90</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/95/">95</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1192,7 +1172,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">449</span>
+                  <span class="site-state-item-count">473</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1203,7 +1183,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">191</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1214,7 +1194,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">189</span>
+                  <span class="site-state-item-count">194</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

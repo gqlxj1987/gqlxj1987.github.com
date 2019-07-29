@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/05/k8s-vs-docker-swarm/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/05/k8s-vs-docker-swarm/" itemprop="url">K8s vs Docker Swarm</a></h1>
+                <a class="post-title-link" href="/2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/" itemprop="url">The Affinity Between Events, Streams and Serverless</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-05T20:38:43+08:00">
-                2019-03-05
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-25T22:28:23+08:00">
+                2019-03-25
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-10T22:58:49+08:00">
-                2019-03-10
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index">
-                    <span itemprop="name">k8s</span>
+                  <a href="/categories/architecture/" itemprop="url" rel="index">
+                    <span itemprop="name">architecture</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/05/k8s-vs-docker-swarm/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/05/k8s-vs-docker-swarm/" itemprop="commentCount"></span>
+                <a href="/2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,21 +364,31 @@
       
         
           
-            <p><a href="https://medium.com/@sanudatta11/kubernetes-vs-docker-swarm-whos-the-bigger-and-better-53bbe76b9d11" target="_blank" rel="noopener">原文链接</a></p>
-<p>Swarm:</p>
+            <p><a href="https://www.confluent.io/blog/journey-to-event-driven-part-3-affinity-between-events-streams-serverless" target="_blank" rel="noopener">原文链接</a></p>
+<p>The key to event-first systems design is understanding that a series of events captures behavior. By persisting the streams in Kafka we then have a record of all system activity (a source of truth), and also a mechanism to drive reactions. </p>
+<h3 id="FaaS">FaaS</h3><p>FaaS is the ability to take a function and run it somewhere in the cloud; it’s the “compute” part of the serverless stack where you bring your own code.</p>
+<p>The function contains a bespoke logic block. It is then called via some kind of registry like an API gateway, or it is scheduled or triggered by a cloud-related event (i.e., data written to Amazon S3).</p>
+<p>There are many benefits to FaaS:</p>
+<ul>
+<li>Lightweight</li>
+<li>Decoupled</li>
+<li>Scalable</li>
+<li>Very cost efficient (pay per use)</li>
+</ul>
+<p>They are processed in isolation to perform simple enrichment and filtering before passing to a storage layer or queue. If the system<br>needs to guarantee event ordering when writing to an output stream then, as previously discussed, concurrent FaaS execution will lead to corruption unless they are synchronously driven at the partition level.</p>
+<p>主要针对stateless的stream，FaaS的优势就体现出来了</p>
+<blockquote>
+<h4 id="Caveat_emptor:_FaaS_gives_us_an_excellent_solution_where_processing_is_atomic_(stateless),_reliable_latency_is_not_a_concern_(1–100_ms)_and_the_order_of_processing_is_not_important-_Stateful_processing_is_also_suitable_provided_that_it_is_against_an_external_resource_and_stale_data_concerns_are_understood-">Caveat emptor: FaaS gives us an excellent  solution where processing is atomic (stateless), reliable latency is not  a concern (1–100 ms) and the order of processing is not important.  Stateful processing is also suitable provided that it is against an  external resource and stale data concerns are understood.</h4></blockquote>
+<p><strong>FaaS event-driven principles:</strong></p>
 <ol>
-<li>Less cluttered/heavy and with just working methodology</li>
-<li>No Single Point of Failure option for Docker Swarm</li>
-<li>Secure due to auto-generation of security certificates.</li>
-<li>Compatibility with Backward versions easily.</li>
+<li><strong>In band but edge</strong> (stateless on the way in or out), i.e., map user GeoIP to a geocell</li>
+<li><strong>In band, stateless and not latency sensitive</strong></li>
+<li><strong>In band and enriched against external resources</strong>, i.e., enrich a user’s address</li>
+<li><strong>Out of band, but edge:</strong>  This is FaaS processing on a known set of data in response to an event  where there is no downstream stream processing. For example, you can  perform large-scale analytic processing of all auction site bidders  against “cars in 2018” (a non-event-streaming problem).</li>
+<li><strong>Ad hoc requests, but not streaming:</strong>  They tend to be historic. If a large set of data is to be processed,  then it is likely to be batch oriented. Historic analytics include Monte  Carlo simulation, raw number crunching of event data, etc.</li>
 </ol>
-<p><strong>Drawbacks of Kubernetes</strong></p>
-<ul>
-<li>When doing it yourself, Kubernetes installation can be quite complex with steep learning curve. An option to solve this issue is to opt for a managed <a href="https://vexxhost.com/public-cloud/container-services/kubernetes/" target="_blank" rel="noopener">Kubernetes-as-a-service</a> such as ours.</li>
-<li>In Kubernetes, it is required to have a separate set of tools for management, including kubectl CLI.</li>
-<li>It is Incompatible with existing Docker CLI and Compose tools</li>
-</ul>
-<p>1````                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
+<p>尽量在一些对时间不敏感的位置，偶尔的请求，但不要持续性。。</p>
+<h3 id="Next">Next</h3><p>The CNCF Serverless Working Group (which Confluent participates in) is shaping how FaaS will look in the next couple of years. There is a grand plan that CloudEvents should be publishable, emit through multiple transports and clouds and be consumed by a destination function that is written in any language.(有关CloudEvents部分)</p>
 
           
         
@@ -427,7 +437,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/kafka-producer-use/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/21/AutoML-and-Neural-Architecture-Search/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -446,7 +456,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/kafka-producer-use/" itemprop="url">kafka producer java guide</a></h1>
+                <a class="post-title-link" href="/2019/03/21/AutoML-and-Neural-Architecture-Search/" itemprop="url">AutoML and Neural Architecture Search</a></h1>
         
 
         <div class="post-meta">
@@ -458,8 +468,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T20:37:35+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-21T23:55:48+08:00">
+                2019-03-21
               </time>
             
 
@@ -474,8 +484,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-05T19:00:10+08:00">
-                2019-03-05
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
               </time>
             
           </span>
@@ -493,8 +503,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/automl/" itemprop="url" rel="index">
+                    <span itemprop="name">automl</span>
                   </a>
                 </span>
 
@@ -511,8 +521,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/kafka-producer-use/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/kafka-producer-use/" itemprop="commentCount"></span>
+                <a href="/2019/03/21/AutoML-and-Neural-Architecture-Search/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/21/AutoML-and-Neural-Architecture-Search/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -542,19 +552,10 @@
       
         
           
-            <p><a href="https://crossoverjie.top/2018/10/11/kafka/kafka-product/" target="_blank" rel="noopener">原文链接</a></p>
-<p>同步/异步的方式</p>
-<p>异步的方式，采用callback的方式，实现onCompleted的方法</p>
-<p>callback/future之间的区别？</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function">Future&lt;RecordMetadata&gt; <span class="title">send</span><span class="params">(ProducerRecord&lt;K, V&gt; producer, Callback callback)</span></span>;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>初始化以及真正发送消息的 <code>kafka-producer-network-thread</code> IO 线程。</li>
-<li>将消息序列化。</li>
-<li>得到需要发送的分区。</li>
-<li>写入内部的一个缓存区中。</li>
-<li>初始化的 IO 线程不断的消费这个缓存来发送消息。</li>
-</ul>
-<p> <code>Producer</code> 的关闭，Producer 在使用过程中消耗了不少资源（线程、内存、网络等）因此需要显式的关闭从而回收这些资源。</p>
+            <p><a href="https://towardsdatascience.com/everything-you-need-to-know-about-automl-and-neural-architecture-search-8db1863682bf" target="_blank" rel="noopener">原文链接</a></p>
+<p>NAS is an algorithm that <em>searches</em> for the best <em>neural network architecture</em>.(Neural Architecture Search)</p>
+<p>In the NAS algorithm, a controller Recurrent Neural Network (RNN) samples these building blocks, putting them together to create some kind of end-to-end architecture.</p>
+<p>the search space itself is quite limited. NAS is designed to build architectures that are very similar in style to the current state-of-the-art.(重复性)</p>
 
           
         
@@ -603,7 +604,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/auto-increment-in-innodb/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/programming-models-for-the-event-driven-architecture/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -622,7 +623,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/auto-increment-in-innodb/" itemprop="url">Auto_increment in Innodb</a></h1>
+                <a class="post-title-link" href="/2019/03/20/programming-models-for-the-event-driven-architecture/" itemprop="url">Programming Models for the Event-driven architecture</a></h1>
         
 
         <div class="post-meta">
@@ -634,8 +635,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T20:10:31+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T20:40:09+08:00">
+                2019-03-20
               </time>
             
 
@@ -650,8 +651,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-04T20:33:49+08:00">
-                2019-03-04
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
               </time>
             
           </span>
@@ -669,8 +670,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index">
-                    <span itemprop="name">mysql</span>
+                  <a href="/categories/architecture/" itemprop="url" rel="index">
+                    <span itemprop="name">architecture</span>
                   </a>
                 </span>
 
@@ -687,8 +688,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/auto-increment-in-innodb/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/auto-increment-in-innodb/" itemprop="commentCount"></span>
+                <a href="/2019/03/20/programming-models-for-the-event-driven-architecture/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/programming-models-for-the-event-driven-architecture/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -718,38 +719,29 @@
       
         
           
-            <p><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>To use the <code>AUTO_INCREMENT</code> mechanism with an <code>InnoDB</code> table, an <code>AUTO_INCREMENT</code> column must be defined as part of an index such that it is possible to perform the equivalent of an indexed <code>SELECT MAX(*ai_col*)</code> lookup on the table to obtain the maximum column value. Typically, this is achieved by making the column the first column of some table index.</p>
-<h4 id="Lock_mode">Lock mode</h4><ul>
-<li><p>“<a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>-like” statements</p>
-<p>All statements that generate new rows in a table, including <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-select.html" target="_blank" rel="noopener"><code>INSERT ... SELECT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE ... SELECT</code></a>, and <a href="https://dev.mysql.com/doc/refman/8.0/en/load-data.html" target="_blank" rel="noopener"><code>LOAD DATA</code></a>. Includes “simple-inserts”,“bulk-inserts”, and “mixed-mode” inserts.</p>
-</li>
-<li><p>“Simple inserts”</p>
-<p>Statements for which the number of rows to be inserted can be determined in advance (when the statement is initially processed). This includes single-row and multiple-row <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a> and <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE</code></a> statements that do not have a nested subquery, but not <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-on-duplicate.html" target="_blank" rel="noopener"><code>INSERT ... ON DUPLICATE KEY UPDATE</code></a>.</p>
-</li>
-<li><p>“Bulk inserts”</p>
-<p>Statements for which the number of rows to be inserted (and the number of required auto-increment values) is not known in advance. This includes <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-select.html" target="_blank" rel="noopener"><code>INSERT ... SELECT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE ... SELECT</code></a>, and <a href="https://dev.mysql.com/doc/refman/8.0/en/load-data.html" target="_blank" rel="noopener"><code>LOAD DATA</code></a> statements, but not plain <code>INSERT</code>. <code>InnoDB</code> assigns new values for the <code>AUTO_INCREMENT</code> column one at a time as each row is processed.</p>
-</li>
-<li><p>“Mixed-mode inserts”</p>
-</li>
-</ul>
-<p> The settings are 0, 1, or 2, for “traditional”, “consecutive”, or “interleaved” lock mode</p>
-<h4 id="Usage_implications">Usage implications</h4><p>replication的场景下，0,1会同步相应的lock mode，2则不会同步。但针对行锁以及mixed-format replication情况下，都无所谓</p>
-<p>0,1,2情况下，回滚都会导致相应的auto_increment丢失</p>
-<p>In all lock modes (0, 1, and 2), if a user specifies NULL or 0 for the <code>AUTO_INCREMENT</code> column in an <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>, <code>InnoDB</code> treats the row as if the value was not specified and generates a new value for it.</p>
-<p>如果指定为负数，行为无效？</p>
-<p>当发现1被占了，auto_increment的起跳，变为100？</p>
-<ul>
-<li><p>consider the following statement, issued when the most-recently generated sequence number is 100:</p>
-<figure class="highlight"><table><tr><td class="code"><pre><span class="line">mysql&gt; INSERT INTO t1 (c1,c2) VALUES (1,'a'), (NULL,'b'), (101,'c'), (NULL,'d');</span><br></pre></td></tr></table></figure>
-<p>With any <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_autoinc_lock_mode" target="_blank" rel="noopener"><code>innodb_autoinc_lock_mode</code></a> setting, this statement generates a duplicate-key error 23000 (<code>Can&#39;t write; duplicate key in table</code>) because 101 is allocated for the row <code>(NULL, &#39;b&#39;)</code> and insertion of the row <code>(101, &#39;c&#39;)</code> fails.</p>
-</li>
-</ul>
-<p>关于修改auto_increment的值的情况？</p>
-<h4 id="counter的实现">counter的实现</h4><p>在5.7及之前，采用写内存的方式，server restart之后会做max的操作，来获取当前最大的</p>
-<p>在8.0中，采用写redo log的方式，直接写文件的方式，这样可能导致的问题，是在写redo log的时候，server crash的情况，导致max值没有回写成功</p>
-<p>所以在create table的时候，带上auto_increment的值时，5.7是不生效的，8.0中是生效的</p>
-<p>5.7很容易引起reuse的情况，毕竟是在内存中操作</p>
+            <p><a href="https://www.confluent.io/blog/journey-to-event-driven-part-2-programming-models-event-driven-architecture" target="_blank" rel="noopener">原文链接</a></p>
+<p>Distributed object (RPC sync), service-oriented architecture (SOA), <a href="https://en.wikipedia.org/wiki/Enterprise_service_bus" target="_blank" rel="noopener">enterprise service bus</a> (ESB), <a href="https://en.wikipedia.org/wiki/Event-driven_architecture" target="_blank" rel="noopener">event-driven architecture</a> (EDA), <a href="https://en.wikipedia.org/wiki/Reactive_programming" target="_blank" rel="noopener">reactive programming</a> to <a href="https://en.wikipedia.org/wiki/Microservices" target="_blank" rel="noopener">microservices</a> and now FaaS have each built on the learnings of the previous.</p>
+<p>####Event-driven reactive system</p>
+<p>The Reactive Manifesto has influenced many frameworks and platforms, including <a href="https://akka.io/" target="_blank" rel="noopener">Akka</a> (an <a href="https://en.wikipedia.org/wiki/Actor_model" target="_blank" rel="noopener">actor-based library circa 1973</a>), <a href="https://vertx.io/" target="_blank" rel="noopener">Vert.x</a> (reactive microservices) and <a href="http://www.lagomframework.com/" target="_blank" rel="noopener">Lagom</a> (an opinionated, reactive microservice framework)</p>
+<p>The Akka scaling mechanism uses a <a href="https://developer.lightbend.com/blog/2017-05-17-atotm-clustering-and-remoting/" target="_blank" rel="noopener">cluster</a> service which pools actors from remote nodes that join as cluster members. Inactive actors are persisted to disk to minimize idle resource requirements</p>
+<p>Persistent actors will store their set of events to a journal (log)</p>
+<p>关于akka的持久化部分</p>
+<p>reactive以响应为主，RxJava这种，akka这种</p>
+<h4 id="Event-driven_stream_system">Event-driven stream system</h4><p>Stream processor patterns enable <a href="https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/kstream/KStream.html#filter-org.apache.kafka.streams.kstream.Predicate-" target="_blank" rel="noopener">filtering</a>, projections, <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#joining" target="_blank" rel="noopener">joins</a>, <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#streams-developer-guide-dsl-aggregating" target="_blank" rel="noopener">aggregations</a>, materialized views and other <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html" target="_blank" rel="noopener">streaming functionality</a>. </p>
+<p>A proven approach is to capture domain knowledge as events using <a href="http://A proven approach is to capture domain knowledge as events using Domain Driven Design (DDD" target="_blank" rel="noopener">domain-driven design</a> and event storming. This approach works well because the events centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the systems functions.)(DDD) and event storming. This approach works well because the events-centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the system’s functions</p>
+<p>Stream processors can also be used to materialize tables from the stream of events to enable a view of the data (e.g., how much money was in my account at time X). The term is called <a href="https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/" target="_blank" rel="noopener">turning the database inside out</a></p>
+<p>Unlike a traditional database, the platform scales horizontally to thousands of processors, observe real-time events, replay streams on demand to perform historical processing and catch up with the live, data-in-motion view.</p>
+<p>A traditional OLTP system uses a two-phase commit to move money from a debit account to a credit account. It is very simple but presents scalability challenges. In the event-driven world, we’d build a scalable model where the event streams flow between processors. By the end of the flow, the payment is transacted. (通过分拆processor达到transacted的特点)</p>
+<h4 id="scaling_mechanism">scaling mechanism</h4><p>通过partition来达到scaling的目的</p>
+<h4 id="Comparing_persistence_models">Comparing persistence models</h4><p>CQRS的意思？</p>
+<p>持久化，通过event log的方式</p>
+<p>With stream processing, <a href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying" target="_blank" rel="noopener">the log</a> stores the truth for the entity; it is organized as a stream. The log (stream) also stores every version of the entity.</p>
+<p>The event streaming platform provides the means of storing data as a stream and streaming events at scale. In order to facilitate this functionality the underlying protocol needs to ensure qualities such as offline status, different consumer rates, high throughput, low latency and elasticity (amongst others). The <a href="https://docs.confluent.io/5.0.1/clients/javadocs/org/apache/kafka/clients/consumer/KafkaConsumer.html" target="_blank" rel="noopener">consumer model</a> is one which exposes the protocol to the developer; this means the<br>consumer will have the opportunity to ACK, NACK message receipt and interact with the correctness of accepting a message payload.</p>
+<p>We also hear about backpressure being a concern to control event throughput. I would question if this is actually a requirement or<br>marketing speak. Brokered systems like Kafka provide huge buffers (the default in Kafka is two weeks) which negate the need for explicit flow control for the vast majority of use cases. In the very few that remain you can easily build backpressure as a control plane detail; it would be developed using stream processors that analyze throughput of events and apply rate limiting events to the relevant producers.(由于提供buffer的问题，backpressure基本不需要考虑)</p>
+<p>However, for event-sourcing, things get more complex; the ability to rebuild application state on demand needs a dedicated framework and process control to ensure point-in-time or snapshot state is correctly rebuilt. You cannot simply start replaying events from an offset and expect the downstream aggregates to be deterministically reproduced as they were previously. (关于恢复的困难性)</p>
+<p>All of the <a href="https://www.confluent.io/blog/apache-kafka-tested/" target="_blank" rel="noopener">trust and resilience</a> is based upon the event streaming platform’s <a href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/" target="_blank" rel="noopener">correctness</a> and guarantees of working with the commit log.(面向commit log部分)</p>
+<p>以数据为中心</p>
+<p>By storing only the events and never the commands, we have a wealth of capability that not only allows the system to be refined, extended and proven but also supports evolutionary change.</p>
 
           
         
@@ -798,7 +790,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/8-fun-machine-learning-project/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/concurrency-in-go-vs-erlang/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -817,7 +809,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/8-fun-machine-learning-project/" itemprop="url">8 fun machine learning project</a></h1>
+                <a class="post-title-link" href="/2019/03/20/concurrency-in-go-vs-erlang/" itemprop="url">Concurrency in go vs erlang</a></h1>
         
 
         <div class="post-meta">
@@ -829,8 +821,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T19:54:32+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T19:49:09+08:00">
+                2019-03-20
               </time>
             
 
@@ -845,8 +837,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-04T20:07:29+08:00">
-                2019-03-04
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
               </time>
             
           </span>
@@ -864,8 +856,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
+                  <a href="/categories/concurrency/" itemprop="url" rel="index">
+                    <span itemprop="name">concurrency</span>
                   </a>
                 </span>
 
@@ -882,8 +874,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/8-fun-machine-learning-project/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/8-fun-machine-learning-project/" itemprop="commentCount"></span>
+                <a href="/2019/03/20/concurrency-in-go-vs-erlang/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/concurrency-in-go-vs-erlang/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -913,19 +905,10 @@
       
         
           
-            <p><a href="https://elitedatascience.com/machine-learning-projects-for-beginners?dt_dapp=1&amp;dt_platform=com.douban.activity.wechat_friends" target="_blank" rel="noopener">原文链接</a></p>
-<h3 id="Machine_Learning_Gladiator">Machine Learning Gladiator</h3><p>out-of-the-box models</p>
-<p>熟悉流程</p>
-<ul>
-<li>Importing data</li>
-<li>Cleaning data</li>
-<li>Splitting it into train/test or cross-validation sets</li>
-<li>Pre-processing</li>
-<li>Transformations</li>
-<li>Feature engineering</li>
-</ul>
-<p>You should practice <strong>regression</strong>, <strong>classification</strong>, and <strong>clustering</strong> algorithms.</p>
-<p>主要是熟悉sklearn的使用？</p>
+            <p><a href="https://dev.to/pieohpah/concurrency-in-go-vs-erlang-595a" target="_blank" rel="noopener">原文链接</a></p>
+<p>A process’s mailbox is akin to Go’s channel, but it is not shared. It’s a private data buffer for that particular process to go through, one by one, synchronously. When a process sends something to another process’s mailbox, that thing gets stored there until that process can make use of it.</p>
+<p>In imperative programming (in Go’s case, structured, which is imperative), you mostly program to change some states, and thus you have to care about <em>WHEN</em> each line of code gets run (<code>A</code> changes state <code>X</code>, then <code>B</code> reads <code>X</code> is consequentially different from <code>B</code> reads <code>X</code>, then <code>A</code> changes <code>X</code>)</p>
+<p>In declarative programming, one expresses the logic without caring about control flow because each expression / function does not have side effects aka changing the state outside of itself.</p>
 
           
         
@@ -974,7 +957,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/actor-vs-goroutine/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -993,7 +976,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/one-week/" itemprop="url">慎言，慎行</a></h1>
+                <a class="post-title-link" href="/2019/03/20/actor-vs-goroutine/" itemprop="url">actor vs goroutine</a></h1>
         
 
         <div class="post-meta">
@@ -1005,8 +988,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T19:29:51+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T09:58:17+08:00">
+                2019-03-20
               </time>
             
 
@@ -1021,8 +1004,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-03-04T19:32:29+08:00">
-                2019-03-04
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
               </time>
             
           </span>
@@ -1040,8 +1023,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/concurrency/" itemprop="url" rel="index">
+                    <span itemprop="name">concurrency</span>
                   </a>
                 </span>
 
@@ -1058,8 +1041,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/one-week/" itemprop="commentCount"></span>
+                <a href="/2019/03/20/actor-vs-goroutine/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/actor-vs-goroutine/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1089,8 +1072,34 @@
       
         
           
-            <p>慎独，慎微，慎言，慎行</p>
-<hr>
+            <p>参考<a href="https://stackoverflow.com/questions/22621514/is-scalas-actors-similar-to-gos-coroutines" target="_blank" rel="noopener">stackoverflow1</a></p>
+<p>CSP模型：Communicating Sequential Processes(formal language for describing patterns of interaction in concurrent systems)</p>
+<p>processes share a “channel”</p>
+<p>at this time they are limited to the current runtime and cannot be distributed, even between two runtimes on the same physical box</p>
+<p>CSP does not support fault tolerance in a meaningful way, so you as the developer have to figure out how to handle failure that can occur on both sides of channels, and such logic ends up getting strewn about all over the application</p>
+<p>CSP强调通信，channel可以被多个生产者和消费者共享，但是消息是否被消费了？unbuffered?</p>
+<p>actor: involve entities that have their own mailbox.  They are asynchronous by nature, and have location transparency that spans runtimes and machines</p>
+<p>也有共享的机制，通过eventbus部分？</p>
+<p>Actors have another very nice feature - fault tolerance.  By organizing actors into a supervision hierarchy per the OTP specification devised inErlang, you can build a domain of failure into your application.</p>
+<p>Actors are also a concurrency paradigm, where the actor can have mutable state inside of it and a guarantee of no multithreaded access to the state, unless the developer building an actor-based system accidentally introduces it, for example by registering the Actor as a listener for a callback, or going asynchronous inside the actor via Futures.(actor的状态不变性)</p>
+<p><strong>The only similarity (aside the nitpicking) is they both have to do with concurrency and message passing. But that is where the similarity ends.</strong></p>
+<p>Actors help things to be “worry free distributed”</p>
+<p>Where a “worry free” piece is usually associated with terms such as: <code>fault tolerance</code>, <code>resiliency</code>, <code>availability</code>, etc.. </p>
+<p>Goroutines help to reason about concurrency sequentially</p>
+<p>参考<a href="https://www.quora.com/How-are-Akka-actors-different-from-Go-channels-How-are-two-related-to-each-other" target="_blank" rel="noopener">quora1</a></p>
+<p>Go has a <em>select</em> statement for choosing between alternatives (the CSP <em>choice</em>) which may include channels, timers or simply skipping on to the next thing. This allows what one might call “waiting faster” by picking up from whichever channel is available first. But remember that whilst a goroutine is waiting on the channels (CSP calls them guards) in a <em>select</em>, it consumes no CPU and very little memory.</p>
+<p>Akka implements a fixed kind  network (of variable topology) in CSP terms. One feature of this kind of network is that there is no explicit flow control because no write rendezvous is ever needed on an infinite buffer. The model is fully asynchronous.</p>
+<p>downsides to the actor model</p>
+<ul>
+<li>There are cases where flow control is needed. Although these can be implemented in Akka using handshake dialogues, the code gets messy and it’s not efficient any more</li>
+<li>There is no ability of an actor to <em>refuse</em> to communicate. When a message arrives, it has to be processed or, perhaps, put into a buffer to be dealt with later. 消息ignore机制</li>
+<li>Akka places full reliance on the infinite input buffers never running out of memory - but this is not guaranteed.</li>
+</ul>
+<p>downside to the csp:</p>
+<ul>
+<li>Any network of goroutines that has some mutual dependency may deadlock. The developer must be aware of this and code so that deadlock is eliminated; this involves identifying mutual dependencies and altering them in some way (there are several well-known techniques, the easiest of these being to use a pure client-server pattern, which is known to be deadlock-free).</li>
+</ul>
+<p>The main difference is that a message exchange is synchronous in CSP (i.e. a “touch point” of the execution of two processes where they hand over the message) whereas it is completely decoupled in the Actor model, with message delivery being unconfirmed to the sender and taking an arbitrary amount of time</p>
 
           
         
@@ -1130,7 +1139,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/90/">90</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/95/">95</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1178,7 +1187,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">449</span>
+                  <span class="site-state-item-count">473</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1189,7 +1198,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">191</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1200,7 +1209,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">189</span>
+                  <span class="site-state-item-count">194</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

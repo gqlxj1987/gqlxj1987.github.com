@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/09/spark-submit/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/07/config-server/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/09/spark-submit/" itemprop="url">Spark Submit 参数分析</a></h1>
+                <a class="post-title-link" href="/2018/03/07/config-server/" itemprop="url">设置配置中心</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">
-                2017-08-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-07T11:27:53+08:00">
+                2018-03-07
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:37:35+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-07T12:05:41+08:00">
+                2018-03-07
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/spark/" itemprop="url" rel="index">
-                    <span itemprop="name">spark</span>
+                  <a href="/categories/config-server/" itemprop="url" rel="index">
+                    <span itemprop="name">config-server</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/09/spark-submit/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/09/spark-submit/" itemprop="commentCount"></span>
+                <a href="/2018/03/07/config-server/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/07/config-server/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,88 +364,44 @@
       
         
           
-            <p><a href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_99" target="_blank" rel="noopener">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
+            <p><a href="http://limboy.me/tech/2018/03/06/how-to-architecture-config.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>配置中心最基础的场景：</p>
+<p>客户端和服务端保持一个长链，当在后台操作配置时，会把这个配置以 K/V 形式存储，然后通知 Procesor，后者拿到 K/V 之后把它推给客户端，整个过程就完成了</p>
+<p>保存K/V时，额外存一个flag字段，表示是否已经成功发送给客户端</p>
+<h4 id="多份配置的处理">多份配置的处理</h4><ul>
+<li>存储</li>
+</ul>
+<p>一个设备的 K/V 对通常不会超过 100 项，每对 Size 不超过 1K，也就是一台设备对应的大小上限为 100K 左右，假如设备数为 100 万，就需要 100G 的磁盘空间</p>
+<p>采用索引加上组合的方式，</p>
+<p>参考一下 Go 语言里 Slice 的设计，Slice 内部使用了一个数组，但可以指定使用该数组的哪一部分，其实就是索引。</p>
+<p>这样某个 Key 如果有新的 Value 了，只需在对应的 Key 后面 append 即可。此时需要同步更新设备的索引，这块可能花一点时间，如果数据都在内存的话其实也还好（由于只是存索引，因此这些数据量内存 hold 得住），持久化可以异步进行。</p>
 <ul>
-<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
+<li><p>流量</p>
+<ul>
+<li><p>对数据进行压缩</p>
+<p>例如使用lz4,lzma等</p>
 </li>
-<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
-</li>
-</ul>
-<p>Lil bit theory:</p>
-<ul>
-<li>Hadoop/Yarn/OS Deamons:</li>
-</ul>
-<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
-<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
-<ul>
-<li>Yarn ApplicationMaster (AM)</li>
-</ul>
-<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
-<ul>
-<li>HDFS Throughput</li>
-</ul>
-<ul>
-<li>MemoryOverhead</li>
-</ul>
-<blockquote>
-<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
-<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
-</blockquote>
-<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
-<p>tips:</p>
-<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
-<p>相关的配置:</p>
-<blockquote>
-<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
-</blockquote>
-<ul>
-<li>First Approach: Tiny executors [One Executor per core]:</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">= `total-cores-in-cluster`</span><br><span class="line">= `num-cores-per-node * total-nodes-in-cluster` </span><br><span class="line">= 16 x 10 = 160</span><br></pre></td></tr></table></figure>
+<li><p>使用diff</p>
+<p>Diff 的话一种处理方式是把 K/V 的索引放到客户端，然后比对两个索引的 Diff，再把真正的 Value Diff 下发到客户端进行合并。这样就会有一个问题，客户端需要上报它当前的配置中心的索引值，这就涉及到上报时机。服务端在得知更新后，主动向客户端要当前保存在客户端的 Config Indexes，对比之后再发送 Diff</p>
+<p>​</p>
 </li>
 </ul>
-</blockquote>
-<ul>
-<li><code>--executor-cores</code> = 1 (one executor per core)</li>
-<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">= `mem-per-node/num-executors-per-node`</span><br><span class="line">= 64GB/16 = 4GB</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>Not Good!</p>
-<ul>
-<li>Second Approach: Fat executors (One Executor per node):</li>
-</ul>
-<blockquote>
-<ul>
-<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">= `total-nodes-in-cluster`</span><br><span class="line">= 10</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<ul>
-<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
-   <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">= `total-cores-in-a-node`</span><br><span class="line">= 16</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
-   <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">= `mem-per-node/num-executors-per-node`</span><br><span class="line">= 64GB/1 = 64GB</span><br></pre></td></tr></table></figure>
-<p>   ​<br>Not Good for HDFS throughput</p>
 </li>
 </ul>
 <ul>
-<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
+<li><p>同步策略</p>
 <ul>
-<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
-<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
-<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
-<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
-<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
-<li>Number of executors per node = 30/10 = 3</li>
-<li>Memory per executor = 64GB/3 = 21GB</li>
-<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
+<li><p>多设备</p>
+<p>简单的处理可以用令牌桶算法：桶里的令牌数代表服务器当前的承载能力，每次请求进来消耗一个令牌，如果令牌消耗完了，请求直接拒绝，等服务器缓过来了，再往桶里加令牌。</p>
+</li>
+<li><p>多维度</p>
+<p>维度的更新</p>
+</li>
 </ul>
 </li>
 </ul>
-<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+<p><img src="http://limboy.me/image/design_config_08.jpg" alt="更新策略"></p>
+<p>上面可以看出，该配置针对每个duid都会有一些配置，而不是我们传统意义上的针对app_key部分，这样，可以确保每个用户都能收到</p>
 
           
         
@@ -494,7 +450,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/07/one-hot/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/11/xinli/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -513,7 +469,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/07/one-hot/" itemprop="url">One Hot编码</a></h1>
+                <a class="post-title-link" href="/2018/02/11/xinli/" itemprop="url">2018碎碎念</a></h1>
         
 
         <div class="post-meta">
@@ -525,8 +481,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">
-                2017-08-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-11T17:25:51+08:00">
+                2018-02-11
               </time>
             
 
@@ -541,8 +497,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-07T07:47:26+08:00">
-                2017-08-07
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-12T00:35:19+08:00">
+                2018-03-12
               </time>
             
           </span>
@@ -560,8 +516,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/one-hot/" itemprop="url" rel="index">
-                    <span itemprop="name">one hot</span>
+                  <a href="/categories/心理/" itemprop="url" rel="index">
+                    <span itemprop="name">心理</span>
                   </a>
                 </span>
 
@@ -578,8 +534,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/07/one-hot/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/07/one-hot/" itemprop="commentCount"></span>
+                <a href="/2018/02/11/xinli/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/11/xinli/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -609,34 +565,23 @@
       
         
           
-            <p>独热编码，又成为一位有效编码</p>
-<blockquote>
-<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
-</blockquote>
-<p>优点部分：</p>
-<ul>
-<li><p>能够处理非连续型数值特征</p>
-</li>
-<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
-</li>
-</ul>
-<p>采用one hot的原因：</p>
-<ul>
-<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
-</li>
-<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
-</li>
-</ul>
-<ul>
-<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</span><br><span class="line"></span><br><span class="line">enc = OneHotEncoder()</span><br><span class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</span><br><span class="line"><span class="keyword">print</span> <span class="string">"enc.n_values_ is:"</span>,enc.n_values_</span><br><span class="line"><span class="keyword">print</span> <span class="string">"enc.feature_indices_ is:"</span>,enc.feature_indices_</span><br><span class="line"><span class="keyword">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</span><br></pre></td></tr></table></figure>
-<p>输出结果部分：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</span><br><span class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</span><br><span class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</span><br></pre></td></tr></table></figure>
-<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
-<p>eature<em>indices</em>：根据说明，明显可以看出其是对n_values的一个累加。 </p>
-<p>最后表示的为相关的one hot编码?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="string">"""Encode categorical integer features using a one-hot aka one-of-K scheme.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    The input to this transformer should be a matrix of integers, denoting</span></span><br><span class="line"><span class="string">    the values taken on by categorical (discrete) features. The output will be</span></span><br><span class="line"><span class="string">    a sparse matrix where each column corresponds to one possible value of one</span></span><br><span class="line"><span class="string">    feature. It is assumed that input features take on values in the range</span></span><br><span class="line"><span class="string">    [0, n_values).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    This encoding is needed for feeding categorical data to many scikit-learn</span></span><br><span class="line"><span class="string">    estimators, notably linear models and SVMs with the standard kernels.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Attributes</span></span><br><span class="line"><span class="string">    ----------</span></span><br><span class="line"><span class="string">    active_features_ : array</span></span><br><span class="line"><span class="string">        Indices for active features, meaning values that actually occur</span></span><br><span class="line"><span class="string">        in the training set. Only available when n_values is ``'auto'``.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    feature_indices_ : array of shape (n_features,)</span></span><br><span class="line"><span class="string">        Indices to feature ranges.</span></span><br><span class="line"><span class="string">        Feature ``i`` in the original data is mapped to features</span></span><br><span class="line"><span class="string">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</span></span><br><span class="line"><span class="string">        (and then potentially masked by `active_features_` afterwards)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    n_values_ : array of shape (n_features,)</span></span><br><span class="line"><span class="string">        Maximum number of values per feature.</span></span><br></pre></td></tr></table></figure>
+            <p>或许是自己习惯了单身，亦或许是有些门不当户不对，有时候莫名地会感到很沮丧，也在疑问自己为什么会去打破自己的坚壳。。</p>
+<p>骨子里还是自卑吧，也不想改变，顺其自然地发展吧，做到自己能做到的一切，至于做不到的，及时讲吧。。不要怕让人失望，为自己一些。。</p>
+<p>时间上，要好好想一想，不然都没有提升，该做的东西要逐步地实施。。</p>
+<hr>
+<p>每次都担惊受怕，哎，自己估计还是不行，有时候会因为躲过而庆幸？哎，自己还是像个傻瓜一样，啥都不会。。</p>
+<p>关于计划和总结，要抓紧时间弄一下，时间上做下规划。。</p>
+<p>顺其自然吧。。</p>
+<hr>
+<p>大姨妈又没准时地来，哎，每次都担惊受怕，自己还是不行，后面，坚持戴吧，太难受，太煎熬。。</p>
+<p>计划和总结要弄了，不要再拖了。。</p>
+<p>有时候，想想都没做好心理准备，其实挺可怕的，整个人生和计划上，都错乱了。。</p>
+<p>顺其自然吧。。身体健康，努力向上。。</p>
+<hr>
+<p>大姨妈还是来了。。有点长吁一口气。。拖的计划，感觉又可以往后延了。。苦笑。。</p>
+<p>锻炼和身体部分，还是要继续坚持下去。。慢慢调整状态</p>
+<p>同时相关的时间表部分，也要列出来。。。新计划，要逐渐地实施起来。。</p>
+<p>感觉自己有点变得不像自己，努力找到自己，找到自己的定位。。</p>
 
           
         
@@ -685,7 +630,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/06/go-goroutine/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/07/go-lock/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -704,7 +649,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/06/go-goroutine/" itemprop="url">Go Goroutines</a></h1>
+                <a class="post-title-link" href="/2018/02/07/go-lock/" itemprop="url">Go Lock</a></h1>
         
 
         <div class="post-meta">
@@ -716,8 +661,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">
-                2017-08-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-07T10:56:38+08:00">
+                2018-02-07
               </time>
             
 
@@ -732,8 +677,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-08-06T16:34:40+08:00">
-                2017-08-06
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-08T11:48:13+08:00">
+                2018-02-08
               </time>
             
           </span>
@@ -751,8 +696,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
+                  <a href="/categories/lock/" itemprop="url" rel="index">
+                    <span itemprop="name">lock</span>
                   </a>
                 </span>
 
@@ -769,8 +714,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/06/go-goroutine/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/06/go-goroutine/" itemprop="commentCount"></span>
+                <a href="/2018/02/07/go-lock/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/07/go-lock/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -800,11 +745,22 @@
       
         
           
-            <p>关于go goroutines部分</p>
-<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
-<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
-<p>通过sync.Mutex进行lock以及unlock操作</p>
-<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
+            <p><a href="https://zhuanlan.zhihu.com/p/33462152" target="_blank" rel="noopener">原文链接</a></p>
+<p>golang部分的锁，主要在sync包里</p>
+<h3 id="runtime/sema(信号量)">runtime/sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</span><br><span class="line">    lock  mutex</span><br><span class="line">    head  *sudog</span><br><span class="line">    tail  *sudog</span><br><span class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></span><br><span class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></span><br><span class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></span><br><span class="line"><span class="comment">// 内部使用的一个私有版本）</span></span><br></pre></td></tr></table></figure>
+<p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
+<h3 id="sync/atomic">sync/atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 互斥量加锁操作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</span><br><span class="line">		<span class="keyword">if</span> race.Enabled &#123;</span><br><span class="line">			race.Acquire(unsafe.Pointer(m))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+<h3 id="sync/mutex（互斥锁）">sync/mutex（互斥锁）</h3><p>sync/mutex.go</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// A Mutex must not be copied after first use.</span></span><br><span class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</span><br><span class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></span><br><span class="line">    sema  <span class="keyword">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></span><br><span class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></span><br><span class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></span><br><span class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>lock流程</p>
+<blockquote>
+<p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
+</blockquote>
+<h3 id="sync/RWMutex（读写锁）">sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></span><br><span class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></span><br><span class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></span><br><span class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></span><br><span class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>写锁定</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// First, resolve competition with other writers.</span></span><br><span class="line">	rw.w.Lock()</span><br><span class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</span><br><span class="line">	<span class="comment">// Wait for active readers.</span></span><br><span class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</span><br><span class="line">		runtime_Semacquire(&amp;rw.writerSem)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -853,7 +809,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/learn-react-by-five-step/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -872,7 +828,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/01/learn-react-by-five-step/" itemprop="url">Learn React by five step</a></h1>
+                <a class="post-title-link" href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="url">Building distributed log from scratch With Storage Mechanics</a></h1>
         
 
         <div class="post-meta">
@@ -884,8 +840,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T07:43:52+08:00">
-                2017-08-01
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T16:55:09+08:00">
+                2018-02-05
               </time>
             
 
@@ -900,8 +856,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:42:32+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T19:34:03+08:00">
+                2018-02-05
               </time>
             
           </span>
@@ -919,8 +875,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/react/" itemprop="url" rel="index">
-                    <span itemprop="name">react</span>
+                  <a href="/categories/storage/" itemprop="url" rel="index">
+                    <span itemprop="name">storage</span>
                   </a>
                 </span>
 
@@ -937,8 +893,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/01/learn-react-by-five-step/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/learn-react-by-five-step/" itemprop="commentCount"></span>
+                <a href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -968,65 +924,9 @@
       
         
           
-            <p><a href="https://www.lullabot.com/articles/how-to-learn-react" target="_blank" rel="noopener">How to Learn React: A Five-Step Plan</a></p>
-<h3 id="Step_One_-_React_Documentation_+_Code_Sandbox">Step One - React Documentation + Code Sandbox</h3><p><a href="https://codesandbox.io/s/new" target="_blank" rel="noopener">Code Sandbox</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li>Introducing JSX</li>
-<li>Rendering Elements</li>
-<li>Components and Props</li>
-<li>State and Lifecycle (super important!)</li>
-<li>Handling Events</li>
-<li>Composition vs Inheritance</li>
-<li>Thinking In React</li>
-</ul>
-<h3 id="Step_Two_-_React_Fundamentals_Course">Step Two - React Fundamentals Course</h3><p><a href="https://reacttraining.com/online/react-fundamentals" target="_blank" rel="noopener">Fundamentals Course</a></p>
-<p><a href="https://egghead.io/courses/react-fundamentals" target="_blank" rel="noopener">other resource</a>, <a href="https://www.youtube.com/playlist?list=PLoYCgNOIyGABj2GQSlDRjgvXtqfDxKm5b" target="_blank" rel="noopener">other2</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li>Re-enforcement of principles from React docs</li>
-<li>Intro to the build tools for React projects, particularly webpack</li>
-<li>Stateless functional components</li>
-<li>Routing (how you navigate from one “page” to the next)</li>
-<li>Fetching async data</li>
-</ul>
-<h3 id="Step_Three_-_Read_ReactBits">Step Three - Read ReactBits</h3><p><a href="https://vasanthk.gitbooks.io/react-bits/" target="_blank" rel="noopener">ReactBits</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Design Patterns and Techniques (most important tip is probably <a href="https://vasanthk.gitbooks.io/react-bits/patterns/27.passing-function-to-setState.html" target="_blank" rel="noopener">this</a>)</p>
-</li>
-<li><p>Anti-Patterns</p>
-</li>
-<li>Perf Tips</li>
-</ul>
-<p>Facebook came up with an answer to these questions—the <a href="https://facebook.github.io/flux/" target="_blank" rel="noopener">Flux architecture</a>. Some time later, Dan Abramov created an implementation of Flux he called <a href="http://redux.js.org/" target="_blank" rel="noopener">Redux</a>.</p>
-<p><a href="https://mobx.js.org/" target="_blank" rel="noopener">MobX</a> is recommend</p>
-<h3 id="Step_Four_-_Redux_Documentation_+_Redux_Video_Series">Step Four - Redux Documentation + Redux Video Series</h3><p><a href="https://egghead.io/courses/getting-started-with-redux" target="_blank" rel="noopener">Getting Started with Redux</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Three principles of Redux</p>
-</li>
-<li><p>Actions</p>
-</li>
-<li>Reducers</li>
-<li>Data flow</li>
-<li>Usage with React</li>
-<li>Async actions</li>
-<li>Async Flow</li>
-<li>Middleware</li>
-</ul>
-<h3 id="Step_Five_-_The_Complete_Redux_Book_+_Redux_Video_Series_Part_2">Step Five - The Complete Redux Book + Redux Video Series Part 2</h3><p><a href="https://leanpub.com/redux-book" target="_blank" rel="noopener">Redux Book</a></p>
-<p>Key Takeaways</p>
-<ul>
-<li><p>Re-enforcement of principles from Redux docs and/or first video series</p>
-</li>
-<li><p>Understanding of basic functional programming principles</p>
-</li>
-<li>Understanding of creating and writing Redux middleware</li>
-<li>Understanding of how to architect a React + Redux application</li>
-</ul>
-<h3 id="Other_things">Other things</h3><p><a href="https://github.com/redux-saga/redux-saga" target="_blank" rel="noopener">Redux Saga</a> middlemare for Redux</p>
-<p><a href="https://github.com/reactjs/reselect" target="_blank" rel="noopener">Reselect</a></p>
+            <p><a href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/" target="_blank" rel="noopener">原文链接</a></p>
+<p>日志是完全顺序，只接受append操作的数据结构。</p>
+<p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
 
           
         
@@ -1075,7 +975,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/08/01/Authentication-and-Authorization-in-microService/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -1094,7 +994,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="url">Authentication and Authorization in MicroService</a></h1>
+                <a class="post-title-link" href="/2018/02/05/mongodb-query-performance/" itemprop="url">Mongodb query performance over ranges</a></h1>
         
 
         <div class="post-meta">
@@ -1106,8 +1006,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-01T00:29:18+08:00">
-                2017-08-01
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">
+                2018-02-05
               </time>
             
 
@@ -1122,8 +1022,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-12-12T11:46:31+08:00">
-                2017-12-12
+              <time title="更新于" itemprop="dateModified" datetime="2018-02-05T16:12:14+08:00">
+                2018-02-05
               </time>
             
           </span>
@@ -1141,8 +1041,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/auth/" itemprop="url" rel="index">
-                    <span itemprop="name">auth</span>
+                  <a href="/categories/mongodb/" itemprop="url" rel="index">
+                    <span itemprop="name">mongodb</span>
                   </a>
                 </span>
 
@@ -1159,8 +1059,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/08/01/Authentication-and-Authorization-in-microService/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/08/01/Authentication-and-Authorization-in-microService/" itemprop="commentCount"></span>
+                <a href="/2018/02/05/mongodb-query-performance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/02/05/mongodb-query-performance/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1190,23 +1090,30 @@
       
         
           
-            <p><a href="https://medium.com/technology-learning/how-we-solved-authentication-and-authorization-in-our-microservice-architecture-994539d1b6e6" target="_blank" rel="noopener">How We Solved Authentication and Authorization in Our Microservice Architecture</a></p>
-<h3 id="Architecutre">Architecutre</h3><p>Building Blocks of our authentication/authorization layer</p>
-<p>Token Based Authentication</p>
-<blockquote>
-<p>When a user logs in successfully, a jwt is returned. On subsequent requests, the user must attach this token to each request. This is needed so that the api gateway can establish the identity of the user and extract the user’s claims from the token.</p>
-</blockquote>
-<p>Single SignON(SSO) </p>
-<blockquote>
-<p>The way SSO is implemented in our system is simple. When a user logs in for the first time from any frontend app, a cookie called jwt-token gets created on the api-gateway. The cookie’s domain is .andela.com and hence accessible to all andela.com subdomain</p>
-</blockquote>
-<p>针对mobile apps部分</p>
-<blockquote>
-<p>the api-gateway supports passing the jwt via Authorization header as Bearer Tokens</p>
-</blockquote>
-<h3 id="Authentication">Authentication</h3><p>The api gateway</p>
-<h3 id="Authorization">Authorization</h3><p>permissions in authorization service has many to many relationship with roles in user service</p>
-<p>权限模型部分</p>
+            <p><a href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_115" target="_blank" rel="noopener">原文链接</a></p>
+<p>针对<code>$in</code>操作：</p>
+<ul>
+<li><p>index early</p>
+</li>
+<li><p>index often</p>
+</li>
+<li><p>index fully</p>
+<p>queries make use of indexes from left to right.</p>
+</li>
+<li><p>index sorts</p>
+<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
+</li>
+<li><p>commands</p>
+<p>​</p>
+</li>
+</ul>
+<p><strong>The order of fields in an index should be:</strong></p>
+<ol>
+<li><strong>First, fields on which you will query for exact values.</strong></li>
+<li><strong>Second, fields on which you will sort.</strong></li>
+<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
+</ol>
+<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
 
           
         
@@ -1246,7 +1153,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/63/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/63/">63</a><span class="page-number current">64</span><a class="page-number" href="/page/65/">65</a><span class="space">&hellip;</span><a class="page-number" href="/page/90/">90</a><a class="extend next" rel="next" href="/page/65/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/63/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/63/">63</a><span class="page-number current">64</span><a class="page-number" href="/page/65/">65</a><span class="space">&hellip;</span><a class="page-number" href="/page/95/">95</a><a class="extend next" rel="next" href="/page/65/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1294,7 +1201,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">449</span>
+                  <span class="site-state-item-count">473</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1305,7 +1212,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">191</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1316,7 +1223,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">189</span>
+                  <span class="site-state-item-count">194</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

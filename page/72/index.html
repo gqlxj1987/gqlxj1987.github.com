@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/01/31/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/07/redis-pool-timeout/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/01/31/one-week/" itemprop="url">江南无所有，聊赠一枝春</a></h1>
+                <a class="post-title-link" href="/2017/05/07/redis-pool-timeout/" itemprop="url">Redis connection pool timeout</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-01-31T10:10:55+08:00">
-                2017-01-31
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T16:29:06+08:00">
+                2017-05-07
               </time>
             
 
@@ -296,8 +296,192 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-03T22:42:39+08:00">
-                2017-02-03
+              <time title="更新于" itemprop="dateModified" datetime="2017-06-20T23:59:33+08:00">
+                2017-06-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/05/07/redis-pool-timeout/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/07/redis-pool-timeout/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>在jinwu的运行过程中，出现过，在取redis中的数值时</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br></pre></td></tr></table></figure>
+<p>在将poolsize升至500后，有时会出现这样的错误：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">win id error ERR max number of clients reached</span><br><span class="line">response id error ERR max number of clients reached</span><br></pre></td></tr></table></figure>
+<p>出现这样的问题，可能是因为：</p>
+<blockquote>
+<ul>
+<li>Redis is busy doing some expensive work (unlikely)</li>
+<li>you use PubSub or Multi and don’t close it correctly (multi.Close() when multi is not needed any more) so connection is not returned to the pool</li>
+</ul>
+</blockquote>
+<p>猜测的原因，是因为并发数太大，导致redis部分的pool connection没有及时释放。</p>
+<p>注意到redis连接option中这样的一个参数：</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Options <span class="keyword">struct</span> &#123;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The maximum number of socket connections.</span></span><br><span class="line">	<span class="comment">// Default is 10 connections.</span></span><br><span class="line">	PoolSize <span class="keyword">int</span></span><br><span class="line">	<span class="comment">// Specifies amount of time client waits for connection if all</span></span><br><span class="line">	<span class="comment">// connections are busy before returning an error.</span></span><br><span class="line">	<span class="comment">// Default is 1 seconds.</span></span><br><span class="line">	PoolTimeout time.Duration</span><br><span class="line">	<span class="comment">// Specifies amount of time after which client closes idle</span></span><br><span class="line">	<span class="comment">// connections. Should be less than server's timeout.</span></span><br><span class="line">	<span class="comment">// Default is to not close idle connections.</span></span><br><span class="line">	IdleTimeout time.Duration</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意到poolTimeout这样的参数，1s的timeout的设置，在高并发的情况，可能有些connection来不及返回，这样导致获取不到connection,这样就会出现timeout的情况</p>
+<p>于是，针对现有的情况，做了以下处理</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">Cluster = redis.NewClusterClient(&amp;redis.ClusterOptions&#123;</span><br><span class="line">        Addrs:        addresses,</span><br><span class="line">        PoolSize:     <span class="number">1000</span>,</span><br><span class="line">        PoolTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        IdleTimeout:  <span class="number">10</span> * time.Minute,</span><br><span class="line">        ReadTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        WriteTimeout: <span class="number">1</span> * time.Minute,</span><br><span class="line">        <span class="comment">// Password: password,</span></span><br><span class="line">    &#125;)</span><br></pre></td></tr></table></figure>
+<p>将pooltimeout以及相关的timeout设置地稍微大一些，是不是可以避免这样因为高并发引起的timeout的bug？</p>
+<p>当然，这样的情况，主要是针对接口不是那么实时，不需要在1s以内返回这样的接口</p>
+<p>解决思路参考：</p>
+<p><a href="https://github.com/go-redis/redis/issues/195" target="_blank" rel="noopener">connection pool timeout</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/07/one-week/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/05/07/one-week/" itemprop="url">空帆船</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T11:04:12+08:00">
+                2017-05-07
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-07T11:31:34+08:00">
+                2017-05-07
               </time>
             
           </span>
@@ -333,8 +517,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/01/31/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/01/31/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/05/07/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/07/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,32 +548,48 @@
       
         
           
-            <p>不能开枪，你开枪跟其他人有什么区别。。</p>
-<p>我也是人，为什么要跟其他人有区别。。</p>
+            <p>我迎着风</p>
+<p>金山银山 繁华云烟 温柔之夜</p>
+<p>我什么也不带走</p>
+<p>我爱这艰难又拼尽了全力的每一天</p>
+<hr>
 <p>本周完成：</p>
 <ul>
-<li>小程序部分入门</li>
+<li><p>修复redis高并发下的bug，主要是一些pool参数的一些设置问题</p>
+</li>
+<li><p>代码部分的重构，加入git父子模块部分</p>
+</li>
+<li><p>监控部分开始整理，针对在线数据部分</p>
+</li>
 </ul>
 <p>本周未完成：</p>
 <ul>
-<li><p>出数据部分的及时性</p>
+<li><p>监控文档部分未完成</p>
 </li>
-<li><p>相关文档的补全</p>
+<li><p>关于代码重构部分</p>
+</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li><p>代码重构部分，看能否提取一些公共库出来</p>
+</li>
+<li><p>关于uuid的重复部分，取rand部分</p>
+</li>
+<li><p>redis的pool参数设置问题</p>
+</li>
+<li><p>关于seelog部分的按照分钟来取</p>
 </li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li>数据的及时性保证以及梳理</li>
+<li><p>监控的文档部分的整理</p>
+</li>
+<li><p>在线数据部分整理维度，相关数据进行整合</p>
+</li>
 </ul>
-<ul>
-<li>文档的补全，关于文档部分以及关于代码部分的重构</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>小程序部分</li>
-</ul>
-<p>一周的假期结束了，也要开始收收心，在工作上投入更多的精力</p>
-<p>相关的时间表部分，也要开始慢慢恢复起来</p>
+<p>一年过去了。。重新慢慢回到轨道上。。</p>
+<p>锻炼，吉他，文章，读书部分，强制性地去调整状态，不要想那么多，该是什么样就是什么样</p>
+<p>forever young~</p>
 
           
         
@@ -438,7 +638,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/01/15/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/02/designing-data-intensive-applications/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -457,7 +657,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/01/15/one-week/" itemprop="url">Everglow</a></h1>
+                <a class="post-title-link" href="/2017/05/02/designing-data-intensive-applications/" itemprop="url">Designing-Data-Intensive-Applications</a></h1>
         
 
         <div class="post-meta">
@@ -469,8 +669,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-01-15T15:55:45+08:00">
-                2017-01-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-02T18:41:07+08:00">
+                2017-05-02
               </time>
             
 
@@ -485,8 +685,374 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-01-15T17:55:58+08:00">
-                2017-01-15
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-08T19:48:09+08:00">
+                2017-05-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/data-intensive/" itemprop="url" rel="index">
+                    <span itemprop="name">data-intensive</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/05/02/designing-data-intensive-applications/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/02/designing-data-intensive-applications/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>原文参考：</p>
+<p><a href="http://tech.marksblogg.com/designing-data-intensive-applications-review.html?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_79" target="_blank" rel="noopener">A Review of “Designing Data-Intensive Applications”</a></p>
+<h3 id="Foundations_of_Data_Systems">Foundations of Data Systems</h3><p>In a section of describing performance the concepts of percentiles, outliers, latency and response times are introduced to help quantify performance.</p>
+<p>Approaches to interacting with data are discussed with SQL and MapReduce receiving the most attention</p>
+<p>Big-O notation is introduced to explain computational complexity of algorithms</p>
+<p>Append-only systems, b-trees, bloom filters, hash maps, sorted string tables, log-structured merge-trees are all brought up. </p>
+<p>Storage system implementation details such as how to handle deleting records, crash recovery, partially-written records and concurrency control are covered as well. It’s also explained how the above play a role in systems such as Google’s Bigtable, HBase, Cassandra and Elasticsearch to name a few.</p>
+<p>Page 88 onward does a good job of contrasting OLTP and OLAP systems and uses this as a segue into data warehousing. </p>
+<p>Data cubes, ETL, column-oriented storage, star- and snowflake schemas, fact and dimension tables, sort orderings and aggregation are all discussed. Teradata, Vertica, SAP HANA and ParAccel, Redshift and Hadoop are mentioned as systems incorporating these concepts into their offerings</p>
+<p>data flow:<br>REST, RPC, microservices, streams and message brokers are explained and implementations such as TIBCO, IBM WebSphere, webMethods, RabbitMQ, ActiveMQ, HornetQ, NATS and Kafka are referenced.</p>
+<h3 id="Distributed_Data">Distributed Data</h3><p>multiple machines problems:<br>Single-leader, multi-leader and leaderless replication, synchronous and asynchronous replication, fault tolerance, node outages, leadership elections, replication logs, consistency, monotonic reads, consistent prefix reads and replication lag are all discussed</p>
+<p>partitioning data in order to achieve scalability:<br>shards in MongoDB, Elasticsearch and SolrCloud, regions in HBase, tablets in BigTable, vnodes in Cassandra and Riak and vBuckets in Couchbase.</p>
+<p>transaction:<br>ACID, weak isolation levels, dirty reads and writes, materialising conflicts, locks and MVCC.</p>
+<p>problems about distributed systems:<br>Network partitions, unreliable clocks, process pauses and mitigating garbage collection issues</p>
+<p>consistency and consensus:<br>The CAP theorem, linearisability, serialisability, quorums, ordering guarantees, coordinator failure, exactly-once message processing among many other topics</p>
+<h3 id="Derived_Data">Derived Data</h3><p>data flow engines such as Spark, Tez and Flink.</p>
+<p>batch processing against stream processing: “offline” data vs “online” data</p>
+<p>stream processing:<br>Producers, consumers, brokers, logs, offsets, topics, partitions, replaying, immutability, windowing methods, joins and fault tolerance</p>
+<h3 id="the_future_of_data">the future of data</h3><ul>
+<li>The second topic is migration of data between systems becoming as easy as the following would go a long way to make data systems act in a more unix pipe-like fashion.</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> mysql | elasticsearch</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>on databases that check themselves for failure and auto-heal.</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/04/27/golang-memory/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/04/27/golang-memory/" itemprop="url">Golang 内存管理初探</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-27T00:03:01+08:00">
+                2017-04-27
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-04-27T00:13:46+08:00">
+                2017-04-27
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/04/27/golang-memory/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/27/golang-memory/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://mp.weixin.qq.com/s/LXj5rrtmxB7NyQbOg9N5wA" target="_blank" rel="noopener">golang内存管理(上篇)</a></p>
+<p>tcmalloc的介绍</p>
+<p>一个Goroutine部分，分为G,M,P三个部分组成</p>
+<ul>
+<li><p>G Goroutine执行的上下文环境</p>
+</li>
+<li><p>M 操作系统线程</p>
+</li>
+<li><p>P Processer. 调度器</p>
+</li>
+</ul>
+<h4 id="逃逸分析">逃逸分析</h4><figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> ()</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> *<span class="title">int</span></span> &#123;  </span><br><span class="line">  <span class="keyword">var</span> x <span class="keyword">int</span></span><br><span class="line">  <span class="keyword">return</span> &amp;x</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">bar</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">  x := <span class="built_in">new</span>(<span class="keyword">int</span>)</span><br><span class="line">  *x = <span class="number">1</span></span><br><span class="line">  <span class="keyword">return</span> *x</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>关于执行的命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> go run -gcflags <span class="string">'-m -l'</span> escape.go</span></span><br><span class="line">./escape.go:6: moved to heap: x</span><br><span class="line">./escape.go:7: &amp;x escape to heap</span><br><span class="line">./escape.go:11: bar new(int) does not escape</span><br></pre></td></tr></table></figure>
+<p>注意上面的代码，foo()的x是分配到堆上，而bar()中的x是分配到栈上</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/04/24/one-week/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/04/24/one-week/" itemprop="url">回归初心</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-24T22:34:03+08:00">
+                2017-04-24
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-04-24T23:37:55+08:00">
+                2017-04-24
               </time>
             
           </span>
@@ -522,8 +1088,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/01/15/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/01/15/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/04/24/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/24/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -553,659 +1119,38 @@
       
         
           
-            <p>oh they say people come, they say people go.</p>
-<p>This particular diamond was extra special</p>
-<p>There’s a feeling you give me, an everglow</p>
-<p>本周工作：</p>
+            <p>听惯了网易云音乐，感觉太过重看中些评论，其实，有时候，只是想静静地听听音乐，回归豆瓣音乐，就是安静地听听音乐，其实挺好。。</p>
+<p>本周完成：</p>
 <ul>
-<li><p>解析部分重构上线，加载10%的量</p>
+<li><p>完成bidder数据部分的整合</p>
 </li>
-<li><p>zhulong增加overview部分</p>
-</li>
-<li><p>修正word_trace部分的数据</p>
-</li>
-<li><p>pluto部分的移交</p>
+<li><p>重构代码</p>
 </li>
 </ul>
 <p>未完成：</p>
 <ul>
-<li><p>real-cpi，最终的策略部分，没有文档</p>
+<li><p>hawkeye相关数据的整理，关于数据部分的缺失</p>
 </li>
-<li><p>关于收入报警部分，经常写不入数据库的原因探究</p>
-</li>
-<li><p>关于数据整理的文档</p>
-</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li><p>现有数据问题的文档</p>
-</li>
-<li><p>报警部分增加更多监控，同时将收入报警部分改造至pluto部分</p>
-</li>
-<li><p>考虑解析部分，上一个点，100%的量</p>
+<li><p>关于invalid connection错误的处理？</p>
 </li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>关于zookeeper的一些操作，consumergroup的删除等等</p>
+<li><p>关于redis定义的部分，注意关于空值的一些处理，尽量不要使用空值的key去取数据</p>
 </li>
-<li><p>关于spring同kafka部分的结合，以及通过kafka来转嫁解析压力</p>
-</li>
-</ul>
-<p>规划部分，又拖了一周了。。拖延症，要不得。。慢慢捡起来。。</p>
-<p>每天的读书计划部分，要坚持下去</p>
-<p>还有每天的编程体验。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/01/08/time-plan/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/01/08/time-plan/" itemprop="url">把时间当做朋友</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-01-08T23:43:11+08:00">
-                2017-01-08
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-03-13T01:00:41+08:00">
-                2017-03-13
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/time/" itemprop="url" rel="index">
-                    <span itemprop="name">time</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/01/08/time-plan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/01/08/time-plan/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>关于时间的安排方面，进行一些规划</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">时间</th>
-<th style="text-align:right">动作</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">7:30</td>
-<td style="text-align:right">起床</td>
-</tr>
-<tr>
-<td style="text-align:left">7:30 - 8:30</td>
-<td style="text-align:right">看一部分书</td>
-</tr>
-<tr>
-<td style="text-align:left">8:30 - 9:30</td>
-<td style="text-align:right">路上看kindle</td>
-</tr>
-<tr>
-<td style="text-align:left">10:00 - 10:30 (周一)</td>
-<td style="text-align:right">gmail邮件处理</td>
-</tr>
-<tr>
-<td style="text-align:left">21:30 - 22:30</td>
-<td style="text-align:right">处理工作余下的事情，以及查看一些书</td>
-</tr>
-<tr>
-<td style="text-align:left">23:00 - 24:00 (周一，三，五)</td>
-<td style="text-align:right">练吉他</td>
-</tr>
-<tr>
-<td style="text-align:left">23:00 - 24:00 (周二，周四)</td>
-<td style="text-align:right">keep</td>
-</tr>
-<tr>
-<td style="text-align:left">00:00 - 00:30</td>
-<td style="text-align:right">整理今日所得</td>
-</tr>
-</tbody>
-</table>
-<p>看书部分，可以加入一些leecode的刷题？</p>
-<p>关于教程方面，放在每晚的睡觉前以及早起的时候？研究一下自己的心理状态，转变自己的想法和心态。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/01/08/one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/01/08/one-week/" itemprop="url">游园会与棉花糖</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-01-08T10:01:58+08:00">
-                2017-01-08
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-01-08T13:46:16+08:00">
-                2017-01-08
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/01/08/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/01/08/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>本周工作：</p>
-<ul>
-<li><p>针对新版的event事件，调整平台程序</p>
-</li>
-<li><p>针对收入抓取部分，调整多线程部分</p>
-</li>
-<li><p>调整解析程序，部署测试环境</p>
-</li>
-</ul>
-<p>未完成：</p>
-<ul>
-<li><p>关于real-cpi的计算，最后的结论是？</p>
-</li>
-<li><p>gor的流量复制问题</p>
+<li><p>关于goroutines的使用方面，主要是内存和CPU部分的使用</p>
 </li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li><p>关于解析部分的测试环境，完全搞定</p>
+<li><p>关于hawkeye数据部分的整理</p>
 </li>
-<li><p>给出相关数据整理的一些文档</p>
-</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li><p>与时间做朋友，慢慢转向一些卡片记录的方式</p>
-</li>
-<li><p>deep learning部分，一些概念的普及</p>
+<li><p>关于bidder数据以及文档的整理</p>
 </li>
 </ul>
-<p>新的一年开启，也要做些计划，不管是晋升还是知识的累计方面，都需要做些规划，譬如，每年修改简历？</p>
-<p>书和leecode部分，也要慢慢坚持形成习惯</p>
-<p>project52部分,要坚持下去。。</p>
-<p>关于每天的编程体验？</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/01/07/2016summary/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/01/07/2016summary/" itemprop="url">2016总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-01-07T14:39:05+08:00">
-                2017-01-07
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-03T14:07:21+08:00">
-                2017-02-03
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/01/07/2016summary/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/01/07/2016summary/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>新年伊始，对于2016年做下总结，也慢慢开启新一年的计划</p>
-<p>看了自己最近一年的总结，周总结的计划是坚持下来，但是相关的一些技术文档，没有积累，新的一年，要加强这块部分</p>
-<p>姐姐的事情，看起来，基本告一段落了，是个好结果，后续，就看个人了。</p>
-<p>自己的事情，感觉摸不透，先试试看吧，尝试在生活和工作之间做下平衡，</p>
-<h5 id="工作上">工作上</h5><ul>
-<li><p>接触到大数据部分，spark和scala部分的知识</p>
-</li>
-<li><p>golang部分算是入了门</p>
-</li>
-<li><p>关于数据处理部分，kafka的使用，codis的使用上有些心得</p>
-</li>
-<li><p>技术上还是没有到4，有关对于结果负责的问题没有做到极致</p>
-</li>
-</ul>
-<h5 id="看书上">看书上</h5><ul>
-<li><p>leecode 刷了部分，还没坚持下来</p>
-</li>
-<li><p>blog部分，坚持地不错，到了90篇</p>
-</li>
-<li><p>书部分，电子书居多，还是要写读书笔记</p>
-</li>
-</ul>
-<h5 id="app部分">app部分</h5><ul>
-<li><p>初步接触了react app的开发，但进行了半途</p>
-</li>
-<li><p>接触到了一部分微信小程序</p>
-</li>
-</ul>
-<h5 id="生活上">生活上</h5><ul>
-<li><p>完成了第一次的西藏之行</p>
-</li>
-<li><p>听了第一次的音乐会</p>
-</li>
-<li><p>去了第一次的南京</p>
-</li>
-<li><p>买了一把吉他，作为自己30岁的生日礼物</p>
-</li>
-<li><p>周末的锻炼习惯，慢慢形成，应该算减肥有一定的效果</p>
-</li>
-<li><p><del>追一个</del></p>
-</li>
-</ul>
-<p>做事情还是有点拖拉，拖延症有点严重。</p>
+<p>这次由于懒的问题，导致断档比较严重，后续不要这样子了。。。</p>
+<p>关于锻炼，还有学吉他部分，要慢慢恢复起来。。</p>
+<p>船到桥头自然直。。。</p>
 
           
         
@@ -1245,7 +1190,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/90/">90</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/95/">95</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1293,7 +1238,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">449</span>
+                  <span class="site-state-item-count">473</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1304,7 +1249,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">185</span>
+                  <span class="site-state-item-count">191</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1315,7 +1260,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">189</span>
+                  <span class="site-state-item-count">194</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
