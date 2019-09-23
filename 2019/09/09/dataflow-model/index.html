@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="data,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="论文地址 针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost 举的例子，流式视频的广告投放问题 关于数据处理的几个重点：  exactly-once semantics temporal primitives necessary for windowing, not provide wind">
+<meta name="keywords" content="data">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Dataflow Model">
+<meta property="og:url" content="http://gqlxj1987.github.io/2019/09/09/dataflow-model/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="论文地址 针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost 举的例子，流式视频的广告投放问题 关于数据处理的几个重点：  exactly-once semantics temporal primitives necessary for windowing, not provide wind">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg">
+<meta property="og:updated_time" content="2019-09-16T15:20:21.442Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="The Dataflow Model">
+<meta name="twitter:description" content="论文地址 针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost 举的例子，流式视频的广告投放问题 关于数据处理的几个重点：  exactly-once semantics temporal primitives necessary for windowing, not provide wind">
+<meta name="twitter:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"hide","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gqlxj1987.github.io/2019/09/09/dataflow-model/">
+
+
+
+
+
+  <title>The Dataflow Model | DevilKing's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">DevilKing's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/09/dataflow-model/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">The Dataflow Model</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-09T22:24:07+08:00">
+                2019-09-09
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-16T23:20:21+08:00">
+                2019-09-16
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/data/" itemprop="url" rel="index">
+                    <span itemprop="name">data</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/09/dataflow-model/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/09/dataflow-model/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="http://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf" target="_blank" rel="noopener">论文地址</a></p>
+<p>针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost</p>
+<p>举的例子，流式视频的广告投放问题</p>
+<p>关于数据处理的几个重点：</p>
+<ul>
+<li>exactly-once semantics</li>
+<li>temporal primitives necessary for windowing, not provide windowing semantics that are limited totuple- or processing-time-based windows</li>
+<li>provide event-time-based windowing either rely on ordering (SQLStream [27]),or have limited window triggering3semantics in event-timemode (Stratosphere/Flink)</li>
+</ul>
+<p>a single unified model</p>
+<ul>
+<li>Allows for the calculation of event-time5ordered re-sults, windowed by features of the data themselves,over an unbounded, unordered data source, with cor-rectness, latency, and cost tunable across a broad spec-trum of combinations</li>
+<li>Decomposes pipeline implementation across four re-lated dimensions, providing clarity, composability, andflexibility:<ul>
+<li>– Whatresults are being computed.</li>
+<li>– Wherein event time they are being computed.</li>
+<li>– Whenin processing time they are materialized.</li>
+<li>– Howearlier results relate to later refinements.</li>
+</ul>
+</li>
+<li>Separates the logical notion of data processing fromthe underlying physical implementation, allowing thechoice of batch, micro-batch, or streaming engine tobecome one of simply correctness, latency, and cost</li>
+</ul>
+<p>那么总结起来：</p>
+<ul>
+<li>a window model</li>
+<li>a triggering model</li>
+<li>a incremental processing model</li>
+<li>scalable implements </li>
+</ul>
+<h3 id="Window">Window</h3><p>When dealing with unbounded data,windowing is required for some operations (to delineate fi-nite boundaries in most forms of grouping: aggregation,outer joins, time-bounded operations, etc.), and unneces-sary for others (filtering, mapping, inner joins, etc.).</p>
+<ul>
+<li>Fixed，静态window</li>
+<li>Sliding，滑动窗口</li>
+<li>Sessions，windows that capture some period of activ-ity over a subset of the data，按照key以及timeout来计算</li>
+</ul>
+<p>(particularly time management [28] and semantic models [9], but alsowindowing [22], out-of-order processing [23], punctuations[30], heartbeats [21], watermarks [2], frames)</p>
+<h3 id="DATA_FLOW_MODEL">DATA FLOW MODEL</h3><p>核心要素：</p>
+<ul>
+<li>ParDo, Each input ele-ment to be processed (which itself may be a finite col-lection) is provided to a user-defined function (calledaDoFnin Dataflow), which can yield zero or more out-put elements per input. (多输出设定？)</li>
+<li>GroupByKey, key-grouping (key, value) pairs</li>
+</ul>
+<p>可map也可以reduce</p>
+<ul>
+<li>support for un-aligned windows, for which there are two key insights. Thefirst is that it is simpler to treat all windowing strategiesas unaligned from the perspective of the model, and allowunderlying implementations to apply optimizations relevantto the aligned cases where applicable. </li>
+<li>windowing can be broken apart into two related operations: assignWindow and mergedWindow</li>
+</ul>
+<p>pass (key, value, eventtime, window) 4-tuples</p>
+<p>window assign-&gt;window merge:</p>
+<ul>
+<li>DropTimestamps- Drops element timestamps, asonly the window is relevant from here on out9.</li>
+<li>GroupByKey- Groups (value, window) tuples by key.</li>
+<li>MergeWindows- Merges the set of currently bufferedwindows for a key. The actual merge logic is definedby the windowing strategy. In this case, the windowsforv1andv4overlap, so the sessions windowing strat-egy merges them into a single new, larger session, asindicated in bold.</li>
+<li>GroupAlsoByWindow- For each key, groups valuesby window. After merging in the prior step,v1andv4are now in identical windows, and thus are groupedtogether at this step</li>
+<li>ExpandToElements- Expands per-key, per-windowgroups of values into (key, value, eventtime, window)tuples, with new per-window timestamps. In this ex-ample, we set the timestamp to the end of the window,but any timestamp greater than or equal to the times-tamp of the earliest event in the window is valid withrespect to watermark correctness</li>
+</ul>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg" style="zoom:40%"></p>
+<p>有关watermarks，too fast or too slow</p>
+<p>A useful insight in addressing the complete-ness problem is that the Lambda Architecture effectivelysidesteps the issue: it does not solve the completeness prob-lem by somehow providing correct answers faster; it simplyprovides the best low-latency estimate of a result that thestreaming pipeline can provide, with the promise of eventualconsistency and correctness once the batch pipeline runs</p>
+<ul>
+<li>Windowing determines where in event time data are grouped together for processing.</li>
+<li>Triggering determines when in processing time the results of groupings are emitted as panes</li>
+</ul>
+<p>trigger同window的结合</p>
+<ul>
+<li>Discarding: Upon triggering, window contents arediscarded, and later results bear no relation to previ-ous results. </li>
+<li>Accumulating: Upon triggering, window contentsare left intact in persistent state, and later results be-come a refinement of previous results.</li>
+<li>Accumulating &amp; Retracting: Upon triggering, inaddition to theAccumulatingsemantics, a copy of theemitted value is also stored in persistent state. Whenthe window triggers again in the future, a retraction forthe previous value will be emitted first, followed by thenew value as a normal datum(反馈+反向更新)</li>
+</ul>
+<p>design principles</p>
+<ul>
+<li>Never rely on any notion of completeness.</li>
+<li>Be flexible, to accommodate the diversity of known usecases, and those to come in the future.</li>
+<li>Not only make sense, but also add value, in the contextof each of the envisioned execution engines.</li>
+<li>Encourage clarity of implementation.•Support robust analysis of data in the context in whichthey occurred</li>
+</ul>
+<p>One particularly large log join pipeline runs in streamingmode on MillWheel by default, but has a separate Flume-Java batch implementation used for large scale backfills.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/data/" rel="tag"># data</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/09/09/life-is-fruit/" rel="next" title="人生果实">
+                <i class="fa fa-chevron-left"></i> 人生果实
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/09/16/Statefulness-on-K8s/" rel="prev" title="Statefulness on K8s">
+                Statefulness on K8s <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div class="ds-thread" data-thread-key="2019/09/09/dataflow-model/" data-title="The Dataflow Model" data-url="http://gqlxj1987.github.io/2019/09/09/dataflow-model/">
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
+
+  
+</div>
+<div class="copyright">
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"gqlxj2015"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>
