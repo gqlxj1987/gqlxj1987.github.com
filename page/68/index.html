@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/delay-queue/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/lstm-exmaple/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/20/delay-queue/" itemprop="url">延迟队列</a></h1>
+                <a class="post-title-link" href="/2018/04/03/lstm-exmaple/" itemprop="url">LSTM Example</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T11:25:49+08:00">
-                2018-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T17:51:48+08:00">
+                2018-04-03
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T11:33:25+08:00">
-                2018-03-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:52:35+08:00">
+                2018-04-04
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/delay-queue/" itemprop="url" rel="index">
-                    <span itemprop="name">delay queue</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/20/delay-queue/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/delay-queue/" itemprop="commentCount"></span>
+                <a href="/2018/04/03/lstm-exmaple/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/lstm-exmaple/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,53 +364,590 @@
       
         
           
-            <p><a href="https://tech.youzan.com/queuing_delay/" target="_blank" rel="noopener">原文链接</a></p>
-<p>业务场景：</p>
-<ul>
-<li>当订单一直处于未支付状态时，如何及时的关闭订单，并退还库存？</li>
-<li>如何定期检查处于退款状态的订单是否已经退款成功？</li>
-<li>新创建店铺，N天内没有上传商品，系统如何知道该信息，并发送激活短信？等等</li>
-</ul>
-<p>设计目标：</p>
-<ul>
-<li>消息传输可靠性：消息进入到延迟队列后，保证至少被消费一次。</li>
-<li>Client支持丰富：由于业务上的需求，至少支持PHP和Python。</li>
-<li>高可用性：至少得支持多实例部署。挂掉一个实例后，还有后备实例继续提供服务。</li>
-<li>实时性：允许存在一定的时间误差。</li>
-<li>支持消息删除：业务使用方，可以随时删除指定消息。</li>
-</ul>
-<p><img src="https://tech.youzan.com/content/images/2016/03/all-1.png" alt="设计结构"></p>
-<p>msg结构：</p>
-<ul>
-<li>Topic：Job类型。可以理解成具体的业务名称。</li>
-<li>Id：Job的唯一标识。用来检索和删除指定的Job信息。</li>
-<li>Delay：Job需要延迟的时间。单位：秒。（服务端会将其转换为绝对时间）</li>
-<li>TTR（time-to-run)：Job执行超时时间。单位：秒。</li>
-<li>Body：Job的内容，供消费者做具体的业务处理，以json格式存储。</li>
-</ul>
-<p>一个msg的生命周期：</p>
-<ul>
-<li>用户对某个商品下单，系统创建订单成功，同时往延迟队列里put一个job。job结构为：{‘topic’:’order<em>close’, ‘id’:’order</em>close<em>order</em>NoXXX’, ‘delay’:1800 ,’TTR’:60 , ‘body’:’XXXXXXX’}</li>
-<li>延迟队列收到该job后，先往job pool中存入job信息，然后根据delay计算出绝对执行时间，并以轮询(round-robbin)的方式将job id放入某个bucket。</li>
-<li>timer每时每刻都在轮询各个bucket，当1800秒（30分钟）过后，检查到上面的job的执行时间到了，取得job id从job pool中获取元信息。如果这时该job处于deleted状态，则pass，继续做轮询；如果job处于非deleted状态，首先再次确认元信息中delay是否大于等于当前时间，如果满足则根据topic将job id放入对应的ready queue，然后从bucket中移除；如果不满足则重新计算delay时间，再次放入bucket，并将之前的job id从bucket中移除。</li>
-<li>消费端轮询对应的topic的ready queue（这里仍然要判断该job的合理性），获取job后做自己的业务逻辑。与此同时，服务端将已经被消费端获取的job按照其设定的TTR，重新计算执行时间，并将其放入bucket。</li>
-<li>消费端处理完业务后向服务端响应finish，服务端根据job id删除对应的元信息。</li>
-</ul>
+            <p><a href="https://towardsdatascience.com/lstm-by-example-using-tensorflow-feb0c1968537" target="_blank" rel="noopener">原文链接</a></p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*epcf2SBjRHBynBNFf-CpQA.png" alt="predict"></p>
+<p>​                        Figure 1. LSTM cell with three inputs and 1 output.</p>
+<p>A way to convert symbol to number is to assign a unique integer to each symbol based on frequency of occurrence</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">build_dataset</span><span class="params">(words)</span>:</span></span><br><span class="line">    count = collections.Counter(words).most_common()</span><br><span class="line">    dictionary = dict()</span><br><span class="line">    <span class="keyword">for</span> word, _ <span class="keyword">in</span> count:</span><br><span class="line">        dictionary[word] = len(dictionary)</span><br><span class="line">    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))</span><br><span class="line">    <span class="keyword">return</span> dictionary, reverse_dictionary</span><br></pre></td></tr></table></figure>
+<p>上面就是采用通过词频的方式，来进行转化编码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">RNN</span><span class="params">(x, weights, biases)</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># reshape to [1, n_input]</span></span><br><span class="line">    x = tf.reshape(x, [<span class="number">-1</span>, n_input])</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Generate a n_input-element sequence of inputs</span></span><br><span class="line">    <span class="comment"># (eg. [had] [a] [general] -&gt; [20] [6] [33])</span></span><br><span class="line">    x = tf.split(x,n_input,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 1-layer LSTM with n_hidden units.</span></span><br><span class="line">    rnn_cell = rnn.BasicLSTMCell(n_hidden)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># generate prediction</span></span><br><span class="line">    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># there are n_input outputs but</span></span><br><span class="line">    <span class="comment"># we only want the last output</span></span><br><span class="line">    <span class="keyword">return</span> tf.matmul(outputs[<span class="number">-1</span>], weights[<span class="string">'out'</span>]) + biases[<span class="string">'out'</span>]</span><br></pre></td></tr></table></figure>
+<p>Final notes:</p>
+<ol>
+<li>Using int to encode symbols is easy but the “meaning” of the word is lost. Symbol to int is used to simplify the discussion on building a LSTM application using Tensorflow. Word2Vec is a more optimal way of encoding symbols to vector.</li>
+<li>One-hot vector representation of output is inefficient especially if we have a realistic vocabulary size. Oxford dictionary has over 170,000 words. The example above has 112. Again, this is only for simplifying the discussion.</li>
+<li>The number of inputs in this example is 3, see what happens when you use other numbers (eg 4, 5 or more).</li>
+</ol>
 <hr>
+<p>想法：</p>
 <ul>
-<li>timer是通过独立线程的无限循环来实现，在没有ready job的时候会对CPU造成一定的浪费。 </li>
-<li>消费端在reserve job的时候，采用的是http短轮询的方式，且每次只能取的一个job。如果ready job较多的时候会加大网络I/O的消耗。</li>
-<li>数据存储使用的redis，消息在持久化上受限于redis的特性。</li>
+<li>one hot的进化？词语太多的话，数组170000？左右</li>
+<li>关于word的meaning部分，采用word2vec的方式，</li>
+<li>关于input的参数的使用？如何使用？</li>
 </ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/GAN-example/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/03/GAN-example/" itemprop="url">GAN Example on Keras</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T10:57:11+08:00">
+                2018-04-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:52:45+08:00">
+                2018-04-04
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/03/GAN-example/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/GAN-example/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://towardsdatascience.com/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0" target="_blank" rel="noopener">原文链接</a></p>
+<p>GAN is almost always explained like the case of a counterfeiter (Generative) and the police (Discriminator). Initially, the counterfeiter will show the police a fake money. The police says it is fake. The police gives feedback to the counterfeiter why the money is fake. The counterfeiter attempts to make a new fake money based on the feedback it received. The police says the money is still fake and offers a new set of feedback. The counterfeiter attempts to make a new fake money based on the latest feedback. The cycle continues indefinitely until the police is fooled by the fake money because it looks real</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*QHMGABbwL04x5VGYc_UWSA.png" alt="discriminator"></p>
+<p>Figure 1. Discriminator of DCGAN tells how real an input image of a digit is. MNIST Dataset is used as ground truth for real images. Strided convolution instead of max-pooling down samples the image.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">self.D = Sequential()</span><br><span class="line">depth = <span class="number">64</span></span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line"><span class="comment"># In: 28 x 28 x 1, depth = 1</span></span><br><span class="line"><span class="comment"># Out: 14 x 14 x 1, depth=64</span></span><br><span class="line">input_shape = (self.img_rows, self.img_cols, self.channel)</span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">1</span>, <span class="number">5</span>, strides=<span class="number">2</span>, input_shape=input_shape, padding=<span class="string">'same'</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">2</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">4</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">8</span>, <span class="number">5</span>, strides=<span class="number">1</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 1-dim probability</span></span><br><span class="line">self.D.add(Flatten())</span><br><span class="line">self.D.add(Dense(<span class="number">1</span>))</span><br><span class="line">self.D.add(Activation(<span class="string">'sigmoid'</span>))</span><br><span class="line">self.D.summary()</span><br></pre></td></tr></table></figure>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*gvBT3h4JD7eUN0GexHwx2w.png" alt="generator"></p>
+<p>Figure 2. Generator model synthesizes fake MNIST images from noise. Upsampling is used instead of fractionally-strided transposed convolution.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">self.G = Sequential()</span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line">depth = <span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span></span><br><span class="line">dim = <span class="number">7</span></span><br><span class="line"><span class="comment"># In: 100</span></span><br><span class="line"><span class="comment"># Out: dim x dim x depth</span></span><br><span class="line">self.G.add(Dense(dim*dim*depth, input_dim=<span class="number">100</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">'relu'</span>))</span><br><span class="line">self.G.add(Reshape((dim, dim, depth)))</span><br><span class="line">self.G.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># In: dim x dim x depth</span></span><br><span class="line"><span class="comment"># Out: 2*dim x 2*dim x depth/2</span></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">2</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">'relu'</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">4</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">'relu'</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(Conv2DTranspose(int(depth/<span class="number">8</span>), <span class="number">5</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">'relu'</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 28 x 28 x 1 grayscale image [0.0,1.0] per pix</span></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="number">1</span>, <span class="number">5</span>, padding=<span class="string">'same'</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">'sigmoid'</span>))</span><br><span class="line">self.G.summary()</span><br></pre></td></tr></table></figure>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*PIpd1jHbPc2QrTOPhvxoaw.png" alt="model"></p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*N3nT9AXVnsFBta2R1eEMjg.png" alt="train model"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">images_train = self.x_train[np.random.randint(<span class="number">0</span>,</span><br><span class="line">     self.x_train.shape[<span class="number">0</span>], size=batch_size), :, :, :]</span><br><span class="line"> noise = np.random.uniform(<span class="number">-1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> images_fake = self.generator.predict(noise)</span><br><span class="line"> x = np.concatenate((images_train, images_fake))</span><br><span class="line"> y = np.ones([<span class="number">2</span>*batch_size, <span class="number">1</span>])</span><br><span class="line"> y[batch_size:, :] = <span class="number">0</span></span><br><span class="line"> d_loss = self.discriminator.train_on_batch(x, y)</span><br><span class="line"></span><br><span class="line"> y = np.ones([batch_size, <span class="number">1</span>])</span><br><span class="line"> noise = np.random.uniform(<span class="number">-1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> a_loss = self.adversarial.train_on_batch(noise, y)</span><br></pre></td></tr></table></figure>
+<h3 id="Some_tips">Some tips</h3><p>Training GAN models requires a lot of patience due to its depth. Here are some pointers:</p>
+<ol>
+<li>Problem: generated images look like noise. Solution: use dropout on both Discriminator and Generator. Low dropout values (0.3 to 0.6) generate more realistic images.</li>
+<li>Problem: Discriminator loss converges rapidly to zero thus preventing the Generator from learning. Solution: Do not pre-train the Discriminator. Instead make its learning rate bigger than the Adversarial model learning rate. Use a different training noise sample for the Generator.</li>
+<li>Problem: generator images still look like noise. Solution: check if the activation, batch normalization and dropout are applied in the correct sequence.</li>
+<li>Problem: figuring out the correct training/model parameters. Solution: start with some known working values from published papers and codes and adjust one parameter at a time. Before training for 2000 or more steps, observe the effect of parameter value adjustment at about 500 or 1000 steps.</li>
+</ol>
+<p>尝试使用kaggle来做下试验？</p>
+<h2 id="tips:">tips:</h2><p>在进行深度学习的时候，先尝试将相关图能画出来，讲流程图能画出来</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/03/go101/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/03/go101/" itemprop="url">Go101</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">
+                2018-04-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-04T14:43:19+08:00">
+                2018-04-04
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/go/" itemprop="url" rel="index">
+                    <span itemprop="name">go</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/03/go101/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/03/go101/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://go101.org/article/101.html" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="value_parts">value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
+<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
+<p>Two kinds points</p>
+<ul>
+<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
+<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
+</ul>
+<p>Internal Definitions of the types</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// map types</span></span><br><span class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></span><br><span class="line">                         <span class="comment">// Go maps are hashtables actually.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// channel types</span></span><br><span class="line"><span class="keyword">type</span> _channel *channelImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// function types</span></span><br><span class="line"><span class="keyword">type</span> _function *functionImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// slice types</span></span><br><span class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>            <span class="comment">// number of elements</span></span><br><span class="line">	<span class="built_in">cap</span>      <span class="keyword">int</span>            <span class="comment">// capacity</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// string types</span></span><br><span class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements *<span class="keyword">byte</span> <span class="comment">// underlying bytes</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>   <span class="comment">// number of bytes</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// general interface types</span></span><br><span class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</span><br><span class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</span><br><span class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></span><br><span class="line">		methods     []*_function <span class="comment">// implemented methods</span></span><br><span class="line">	&#125;</span><br><span class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>underlying value parts are not copied in value assignments</strong></p>
+<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
+<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
+<ul>
+<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
+<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
+<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
+</ul>
+<h3 id="line_break_rules_in_go">line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>{</code>) of the explicit code block of a <a href="https://go101.org/article/control-flow.html" target="_blank" rel="noopener">control flow block</a> on a new line.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// do something ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>活用<code>;</code></p>
+<h3 id="Some_Panic/Recover_Use_Cases">Some Panic/Recover Use Cases</h3><p>avoid panics crashing programs</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"errors"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"net"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listener, err := net.Listen(<span class="string">"tcp"</span>, <span class="string">":12345"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalln(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></span><br><span class="line">		<span class="keyword">go</span> ClientHandler(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">"client handler panic:"</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">		c.Close()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">"just a demo."</span>)) <span class="comment">// a demo-purpose panic</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>automatically restart a crash goroutine</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></span><br><span class="line">		<span class="comment">// Simultate an unexpected panic.</span></span><br><span class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">"unexpected situation"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="keyword">string</span>, f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></span><br><span class="line">			log.Println(name, <span class="string">"is crashed. Restart it now."</span>)</span><br><span class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.SetFlags(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#A"</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">"job#B"</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>use panic/recover to reduce error checkings</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Create a demo-purpose panic.</span></span><br><span class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">"bad number: %v"</span>, n))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></span><br><span class="line">		<span class="comment">// a panic will be created if no errors occur.</span></span><br><span class="line">		err, _ = <span class="built_in">recover</span>().(error)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	doTask(<span class="number">22</span>)</span><br><span class="line">	doTask(<span class="number">98</span>)</span><br><span class="line">	doTask(<span class="number">100</span>)</span><br><span class="line">	doTask(<span class="number">53</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="close_channel">close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/02/flipkart-data-platform/" itemprop="url">Flipkart Data Platform</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">
+                2018-04-02
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T19:33:18+08:00">
+                2018-04-02
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/data-platform/" itemprop="url" rel="index">
+                    <span itemprop="name">data platform</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/02/flipkart-data-platform/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/flipkart-data-platform/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196" target="_blank" rel="noopener">原文链接</a></p>
+<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
+<p>Overall FDP can be broken down into following high level components.</p>
+<ol>
+<li>Ingestion System</li>
+<li>Batch Data Processing System</li>
+<li>Real time Processing System</li>
+<li>Report Visualization</li>
+<li>Query Platform</li>
+</ol>
+<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
+<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
+<p><a href="https://lens.apache.org/" target="_blank" rel="noopener">Apache Lens</a> 接入hive等</p>
+<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
 <hr>
-<ul>
-<li>基于wait／notify方式的Timer实现</li>
-<li>提供TCP长连的API，实现push或者long-polling的消息reserve方法</li>
-<li>拥有自己的存储方案（内嵌数据库、自定义数据结构写文件），确保消息的持久化</li>
-</ul>
-<ul>
-<li>考虑提供周期性任务的直接支持</li>
-</ul>
+<h2 id="ETL">ETL</h2><p><a href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d" target="_blank" rel="noopener">原文链接</a></p>
+<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
+<p>mapreduce vs cascading</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
+<hr>
+<h2 id="REAL_TIME_SEACH_INDEX">REAL TIME SEACH INDEX</h2><p><a href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d" target="_blank" rel="noopener">原文链接</a></p>
+<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a href="https://www.youtube.com/watch?v=05rX0mJ2N4U" target="_blank" rel="noopener">video</a></p>
+<p>高频繁的更新操作，</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
+<p><a href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart" target="_blank" rel="noopener">sides</a></p>
 
           
         
@@ -459,7 +996,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/mson-better-than-json/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -478,7 +1015,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/03/20/mson-better-than-json/" itemprop="url">mson 让json序列化更快</a></h1>
+                <a class="post-title-link" href="/2018/04/02/hot-reloading-go-programs/" itemprop="url">Hot Reloading Go Programs</a></h1>
         
 
         <div class="post-meta">
@@ -490,8 +1027,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T10:19:07+08:00">
-                2018-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">
+                2018-04-02
               </time>
             
 
@@ -506,8 +1043,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:45:22+08:00">
-                2018-03-20
+              <time title="更新于" itemprop="dateModified" datetime="2018-04-02T16:52:23+08:00">
+                2018-04-02
               </time>
             
           </span>
@@ -525,8 +1062,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/mson/" itemprop="url" rel="index">
-                    <span itemprop="name">mson</span>
+                  <a href="/categories/hot-reload/" itemprop="url" rel="index">
+                    <span itemprop="name">hot reload</span>
                   </a>
                 </span>
 
@@ -543,8 +1080,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/03/20/mson-better-than-json/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/mson-better-than-json/" itemprop="commentCount"></span>
+                <a href="/2018/04/02/hot-reloading-go-programs/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/04/02/hot-reloading-go-programs/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -574,542 +1111,18 @@
       
         
           
-            <p><a href="https://tech.meituan.com/MSON.html?utm_source=tuicool&amp;utm_medium=referral" target="_blank" rel="noopener">原文链接</a></p>
-<p>可以发现Gson序列化占用了大部分的执行时间，从图2可以更直观地看到Gson.fromJson占用了61%的执行时间。分析Gson的源码可以发现，它在序列化时大量使用了反射，每一个field，每一个get、set都需要用反射，由此带来了性能问题。</p>
-<h4 id="减少反射">减少反射</h4><p>采用JSONObject的方式来做序列化，</p>
-<h4 id="简单且性能好的">简单且性能好的</h4><p>采用AnnotationProcessor(注解处理器)的方式，找到有JsonType注解的bean来处理，</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(fullClassName);</span><br><span class="line">ClassModel classModel = <span class="keyword">new</span> ClassModel().setModifier(<span class="string">"public final"</span>).setClassName(simpleClassName);</span><br><span class="line">......</span><br><span class="line">JavaFile javaFile = <span class="keyword">new</span> JavaFile();</span><br><span class="line">javaFile.setPackageModel(<span class="keyword">new</span> PackageModel().setPackageName(packageName))</span><br><span class="line">        .setImportModel(<span class="keyword">new</span> ImportModel()</span><br><span class="line">                .addImport(elementClassName)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonObject"</span>)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonArray"</span>)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.exceptions.JsonParseException"</span>)</span><br><span class="line">                .addImports(extension.getImportList())</span><br><span class="line">        ).setClassModel(classModel);</span><br><span class="line"></span><br><span class="line">List&lt;? extends Element&gt; enclosedElements = element.getEnclosedElements();</span><br><span class="line"><span class="keyword">for</span> (Element e : enclosedElements) &#123;</span><br><span class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123;</span><br><span class="line">        processFieldElement(e, extension, toJsonMethodBlock, fromJsonMethodBlock);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">try</span> (Writer writer = sourceFile.openWriter()) &#123;</span><br><span class="line">    writer.write(javaFile.toSourceString());</span><br><span class="line">    writer.flush();</span><br><span class="line">    writer.close();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="继续优化">继续优化</h4><p>当JSON数据量比较大时用JSONObject处理会比较慢，究其原因是JSONObject会一次性将字符串读进来解析成一个map，这样会有比较大的内存浪费和频繁内存创建。经过调研Gson内部的实现细节，发现Gson底层有流式的解析器而且可以按需解析，可以做到匹配上的字段才去解析。根据这个发现我们将我们IJSONObject和IJsonArray换成了Gson底层的流解析来进一步优化我们的速度</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Friend object = <span class="keyword">new</span> Friend();</span><br><span class="line">reader.beginObject();</span><br><span class="line"><span class="keyword">while</span> (reader.hasNext()) &#123;</span><br><span class="line">    String field = reader.nextName();</span><br><span class="line">    <span class="keyword">if</span> (<span class="string">"id"</span>.equals(field)) &#123;</span><br><span class="line">        object.id = reader.nextInt();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="string">"name"</span>.equals(field)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (reader.peek() == JsonToken.NULL) &#123;</span><br><span class="line">            reader.nextNull();</span><br><span class="line">            object.name = <span class="keyword">null</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            object.name = reader.nextString();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        reader.skipValue();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">reader.endObject();</span><br></pre></td></tr></table></figure>
-<h4 id="兼容性">兼容性</h4><p>兼容性主要体现在能支持的数据类型上，目前MSON支持了基础数据类型，包装类型、枚举、数组、List、Set、Map、SparseArray以及各种嵌套类型（比如：<code>Map&lt;String, Map&lt;String, List&lt;String[]&gt;&gt;&gt;</code>）</p>
-<h4 id="结论上">结论上</h4><p>兼容性上，mson最好</p>
-<p>性能上，mson也较少耗时，Gson和fastjson的耗时相当</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/math-tips/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/20/math-tips/" itemprop="url">数学小tips</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T09:59:42+08:00">
-                2018-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:18:17+08:00">
-                2018-03-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/math/" itemprop="url" rel="index">
-                    <span itemprop="name">math</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/20/math-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/math-tips/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://zh.wikipedia.org/wiki/链式法则" target="_blank" rel="noopener">链式法则</a></p>
-<p>设<em>f</em>和<em>g</em>为两个关于<em>x</em>可导函数，则有下面的公式:<br>$$<br>(f\circ g)’(x)=f’(g(x))g’(x)<br>$$<br>考虑函数<em>z</em> = <em>f</em>(<em>x</em>, <em>y</em>)，其中<em>x</em> = <em>g</em>(<em>t</em>)，<em>y</em> = <em>h</em>(<em>t</em>)，<em>g</em>(<em>t</em>)和<em>h</em>(<em>t</em>)是可微函数<br>$$<br>\frac{dz}{dx} = \frac{\partial z}{\partial x} \frac{\partial x}{\partial t} + \frac{\partial z}{\partial y} \frac{\partial y}{\partial t}<br>$$<br>这个公式是作为梯度下降算法的基本参照</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/19/microservice-guide/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/19/microservice-guide/" itemprop="url">微服务的入门</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-19T19:43:28+08:00">
-                2018-03-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-19T20:01:56+08:00">
-                2018-03-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/microservice/" itemprop="url" rel="index">
-                    <span itemprop="name">microservice</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/19/microservice-guide/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/19/microservice-guide/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://mp.weixin.qq.com/s/8Oq6TBDKe1zWwtlvkWfWPQ" target="_blank" rel="noopener">原文链接1</a></p>
-<p><a href="http://www.infoq.com/cn/articles/micro-service-technology-stack?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_117" target="_blank" rel="noopener">原文链接2</a></p>
-<p>文章一：</p>
-<ul>
-<li>spring boot + dubbo</li>
-<li>docker</li>
-<li>jenkins</li>
-<li>关于发布服务和引用服务，如何使用</li>
-</ul>
-<p>文章二：</p>
-<p>微服务2.0：容器，PaaS，Cloud Native，gRPC，ServiceMesh，Serverless</p>
-<p><img src="https://s3.amazonaws.com/infoq.content.live.0/articles/micro-service-technology-stack/zh/resources/3581-1518281425958.png" alt="微服务基础架构"></p>
-<p><img src="https://s3.amazonaws.com/infoq.content.live.0/articles/micro-service-technology-stack/zh/resources/2852-1518281425019.png" alt="微服务的体系结构"></p>
-<p>同时，Spring也支持Swagger契约编程模型，</p>
-<p>Motan，gRPC</p>
-<p>Spring Cloud体系的话，使用Eureka，同时，Consul也不错</p>
-<p>基于nginx/openresty的Kong的服务网关</p>
-<p>配置中心的Apollo</p>
-<p>OpenTSDB，做Metrics的监控，Argus配合使用，</p>
-<p>InfulxDB以及Grafana，</p>
-<p>服务容错类型：</p>
-<p>Hystrix，封装组件，进行容错，？(<strong>如何使用?</strong>)</p>
-<p>kafka之上的，hermes加入了企业的治理能力，</p>
-<p>针对分布式访问数据层部分，MyCAT，分表中间件，</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/19/clusterFs/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/19/clusterFs/" itemprop="url">ClusterFS纠错码设计</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-19T18:39:20+08:00">
-                2018-03-19
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-19T19:39:40+08:00">
-                2018-03-19
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/clusterfs/" itemprop="url" rel="index">
-                    <span itemprop="name">clusterfs</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/03/19/clusterFs/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/19/clusterFs/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://www.taocloudx.com/index.php?a=shows&amp;catid=4&amp;id=104" target="_blank" rel="noopener">原文链接</a></p>
-<p>副本以及纠错码的方式，副本读写效率高，但浪费空间，</p>
-<p>EC纠错码，Erasure Code，使用RS(Reed-Solomon)码算法对原始数据进行编码，在原始数据中加入redundancy，之后将编码文件分片存储到volume中的相应bricks中</p>
-<p>RS(Reed-Solomon)码有两个参数n和m，记为RS(n,m)，n代表原始数据块个数，m代表校验块个数</p>
-<p>Glusterfs文件系统模块化的通过各种Translator(一种强大的文件系统扩展机制)链接起来实现各种功能，各Translator在需要运行时通过动态库的方式加载。其中Cluster translator 是Glusterfs实现存储功能的核心，实现了DHT、AFR、EC等重要功能。</p>
-<p><strong>Usable size = Brick size * (#Bricks - Redundancy)</strong></p>
-<p><strong>0&lt; redundancy&lt;#Bricks /2</strong></p>
-<p>计算方式：</p>
-<p>其中，#Bricks表示每个Dispersed Set中的brick总数，例如：</p>
-<p>1）3 bricks，创建Dispersed Type为1*(2+1)，存储磁盘空间利用率66.7%；</p>
-<p>2）10bricks，创建Dispersed Type为2*(4+1)的卷，存储磁盘空间利用率为80%。</p>
+            <p><a href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72" target="_blank" rel="noopener">原文链接</a></p>
+<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
+<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
+<p>原理上：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">watcher, err := fsnotify.NewWatcher()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</span><br><span class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</span><br><span class="line">					watcherLog(<span class="string">"sending event %s"</span>, ev)</span><br><span class="line">					startChannel &lt;- ev.String()</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</span><br><span class="line">				watcherLog(<span class="string">"error: %s"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br></pre></td></tr></table></figure>
+<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
+<p>核心部分的build代码</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	buildLog(<span class="string">"Building..."</span>)</span><br><span class="line"></span><br><span class="line">	cmd := exec.Command(<span class="string">"go"</span>, <span class="string">"build"</span>, <span class="string">"-o"</span>, buildPath(), root())</span><br><span class="line"></span><br><span class="line">	stderr, err := cmd.StderrPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	stdout, err := cmd.StdoutPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = cmd.Start()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	io.Copy(os.Stdout, stdout)</span><br><span class="line">	errBuf, _ := ioutil.ReadAll(stderr)</span><br><span class="line"></span><br><span class="line">	err = cmd.Wait()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">string</span>(errBuf), <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="string">""</span>, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>另一种live reload的方式</p>
+<p><a href="https://github.com/oxequa/realize" target="_blank" rel="noopener">git repo</a></p>
+<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
 
           
         
@@ -1149,7 +1162,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/67/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/67/">67</a><span class="page-number current">68</span><a class="page-number" href="/page/69/">69</a><span class="space">&hellip;</span><a class="page-number" href="/page/101/">101</a><a class="extend next" rel="next" href="/page/69/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/67/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/67/">67</a><span class="page-number current">68</span><a class="page-number" href="/page/69/">69</a><span class="space">&hellip;</span><a class="page-number" href="/page/103/">103</a><a class="extend next" rel="next" href="/page/69/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
