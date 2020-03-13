@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/auto-increment-in-innodb/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/knative/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/auto-increment-in-innodb/" itemprop="url">Auto_increment in Innodb</a></h1>
+                <a class="post-title-link" href="/2019/03/10/knative/" itemprop="url">Knative building containers on k8s</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T20:10:31+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T23:36:42+08:00">
+                2019-03-10
               </time>
             
 
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index">
-                    <span itemprop="name">mysql</span>
+                  <a href="/categories/k8s/" itemprop="url" rel="index">
+                    <span itemprop="name">k8s</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/auto-increment-in-innodb/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/auto-increment-in-innodb/" itemprop="commentCount"></span>
+                <a href="/2019/03/10/knative/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/knative/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,38 +364,18 @@
       
         
           
-            <p><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>To use the <code>AUTO_INCREMENT</code> mechanism with an <code>InnoDB</code> table, an <code>AUTO_INCREMENT</code> column must be defined as part of an index such that it is possible to perform the equivalent of an indexed <code>SELECT MAX(*ai_col*)</code> lookup on the table to obtain the maximum column value. Typically, this is achieved by making the column the first column of some table index.</p>
-<h4 id="Lock_mode">Lock mode</h4><ul>
-<li><p>“<a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>-like” statements</p>
-<p>All statements that generate new rows in a table, including <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-select.html" target="_blank" rel="noopener"><code>INSERT ... SELECT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE ... SELECT</code></a>, and <a href="https://dev.mysql.com/doc/refman/8.0/en/load-data.html" target="_blank" rel="noopener"><code>LOAD DATA</code></a>. Includes “simple-inserts”,“bulk-inserts”, and “mixed-mode” inserts.</p>
-</li>
-<li><p>“Simple inserts”</p>
-<p>Statements for which the number of rows to be inserted can be determined in advance (when the statement is initially processed). This includes single-row and multiple-row <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a> and <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE</code></a> statements that do not have a nested subquery, but not <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-on-duplicate.html" target="_blank" rel="noopener"><code>INSERT ... ON DUPLICATE KEY UPDATE</code></a>.</p>
-</li>
-<li><p>“Bulk inserts”</p>
-<p>Statements for which the number of rows to be inserted (and the number of required auto-increment values) is not known in advance. This includes <a href="https://dev.mysql.com/doc/refman/8.0/en/insert-select.html" target="_blank" rel="noopener"><code>INSERT ... SELECT</code></a>, <a href="https://dev.mysql.com/doc/refman/8.0/en/replace.html" target="_blank" rel="noopener"><code>REPLACE ... SELECT</code></a>, and <a href="https://dev.mysql.com/doc/refman/8.0/en/load-data.html" target="_blank" rel="noopener"><code>LOAD DATA</code></a> statements, but not plain <code>INSERT</code>. <code>InnoDB</code> assigns new values for the <code>AUTO_INCREMENT</code> column one at a time as each row is processed.</p>
-</li>
-<li><p>“Mixed-mode inserts”</p>
-</li>
-</ul>
-<p> The settings are 0, 1, or 2, for “traditional”, “consecutive”, or “interleaved” lock mode</p>
-<h4 id="Usage_implications">Usage implications</h4><p>replication的场景下，0,1会同步相应的lock mode，2则不会同步。但针对行锁以及mixed-format replication情况下，都无所谓</p>
-<p>0,1,2情况下，回滚都会导致相应的auto_increment丢失</p>
-<p>In all lock modes (0, 1, and 2), if a user specifies NULL or 0 for the <code>AUTO_INCREMENT</code> column in an <a href="https://dev.mysql.com/doc/refman/8.0/en/insert.html" target="_blank" rel="noopener"><code>INSERT</code></a>, <code>InnoDB</code> treats the row as if the value was not specified and generates a new value for it.</p>
-<p>如果指定为负数，行为无效？</p>
-<p>当发现1被占了，auto_increment的起跳，变为100？</p>
+            <p><a href="https://medium.com/google-cloud/hands-on-knative-part-1-f2d5ce89944e" target="_blank" rel="noopener">原文链接</a></p>
 <ul>
-<li><p>consider the following statement, issued when the most-recently generated sequence number is 100:</p>
-<figure class="highlight"><table><tr><td class="code"><pre><span class="line">mysql&gt; INSERT INTO t1 (c1,c2) VALUES (1,'a'), (NULL,'b'), (101,'c'), (NULL,'d');</span><br></pre></td></tr></table></figure>
-<p>With any <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_autoinc_lock_mode" target="_blank" rel="noopener"><code>innodb_autoinc_lock_mode</code></a> setting, this statement generates a duplicate-key error 23000 (<code>Can&#39;t write; duplicate key in table</code>) because 101 is allocated for the row <code>(NULL, &#39;b&#39;)</code> and insertion of the row <code>(101, &#39;c&#39;)</code> fails.</p>
-</li>
+<li><a href="https://github.com/knative/docs/tree/master/serving" target="_blank" rel="noopener">Knative Serving</a> for rapid deployment and autoscaling of serverless containers.</li>
+<li><a href="https://github.com/knative/docs/tree/master/eventing" target="_blank" rel="noopener">Knative Eventing</a> for loosely coupled, event-driven services.</li>
+<li><a href="https://github.com/knative/docs/tree/master/build" target="_blank" rel="noopener">Knative Build</a> for painless code-to-container-in-a-registry workflows.</li>
 </ul>
-<p>关于修改auto_increment的值的情况？</p>
-<h4 id="counter的实现">counter的实现</h4><p>在5.7及之前，采用写内存的方式，server restart之后会做max的操作，来获取当前最大的</p>
-<p>在8.0中，采用写redo log的方式，直接写文件的方式，这样可能导致的问题，是在写redo log的时候，server crash的情况，导致max值没有回写成功</p>
-<p>所以在create table的时候，带上auto_increment的值时，5.7是不生效的，8.0中是生效的</p>
-<p>5.7很容易引起reuse的情况，毕竟是在内存中操作</p>
+<p>serverless containers?</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  runLatest:</span></span><br><span class="line"><span class="attr">    configuration:</span></span><br><span class="line"><span class="attr">      revisionTemplate:</span></span><br><span class="line"><span class="attr">        spec:</span></span><br><span class="line"><span class="attr">          container:</span></span><br><span class="line">            <span class="comment"># replace &#123;username&#125; with your DockerHub </span></span><br><span class="line"><span class="attr">            image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line"><span class="attr">            env:</span></span><br><span class="line"><span class="attr">              - name:</span> <span class="string">TARGET</span></span><br><span class="line"><span class="attr">                value:</span> <span class="string">"C# Sample v1"</span></span><br></pre></td></tr></table></figure>
+<p>First, a Knative service is created along with its pod. Second, a configuration is created to capture the current configuration of the Knative service. Third, a revision is created as a snapshot of the current configuration. Finally, a route is created to direct traffic to the newly created Knative service</p>
+<p>这个是不是已经在k8s里面了？</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*B6PXYFlpWOYNBDU-lpic4g.png" alt="change configure of service"></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  release:</span></span><br><span class="line">    <span class="comment"># Ordered list of 1 or 2 revisions. </span></span><br><span class="line">    <span class="comment"># First revision is traffic target "current"</span></span><br><span class="line">    <span class="comment"># Second revision is traffic target "candidate"</span></span><br><span class="line"><span class="attr">    revisions:</span> <span class="string">["helloworld-csharp-00001",</span> <span class="string">"helloworld-csharp-00004"</span><span class="string">]</span></span><br><span class="line"><span class="attr">    rolloutPercent:</span> <span class="number">20</span> <span class="comment"># Percent [0-99] of traffic to route to "candidate" revision</span></span><br><span class="line"><span class="attr">    configuration:</span></span><br><span class="line"><span class="attr">      revisionTemplate:</span></span><br><span class="line"><span class="attr">        spec:</span></span><br><span class="line"><span class="attr">          container:</span></span><br><span class="line">            <span class="comment"># Replace &#123;username&#125; with your actual DockerHub</span></span><br><span class="line"><span class="attr">            image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line"><span class="attr">            env:</span></span><br><span class="line"><span class="attr">              - name:</span> <span class="string">TARGET</span></span><br><span class="line"><span class="attr">                value:</span> <span class="string">"C# Sample v4"</span></span><br></pre></td></tr></table></figure>
 
           
         
@@ -444,7 +424,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/8-fun-machine-learning-project/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/parse-json-too-fast/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -463,7 +443,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/8-fun-machine-learning-project/" itemprop="url">8 fun machine learning project</a></h1>
+                <a class="post-title-link" href="/2019/03/10/parse-json-too-fast/" itemprop="url">Parse Json too fast</a></h1>
         
 
         <div class="post-meta">
@@ -475,8 +455,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T19:54:32+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T22:59:30+08:00">
+                2019-03-10
               </time>
             
 
@@ -510,8 +490,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
+                  <a href="/categories/json/" itemprop="url" rel="index">
+                    <span itemprop="name">json</span>
                   </a>
                 </span>
 
@@ -528,8 +508,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/8-fun-machine-learning-project/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/8-fun-machine-learning-project/" itemprop="commentCount"></span>
+                <a href="/2019/03/10/parse-json-too-fast/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/parse-json-too-fast/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -559,19 +539,18 @@
       
         
           
-            <p><a href="https://elitedatascience.com/machine-learning-projects-for-beginners?dt_dapp=1&amp;dt_platform=com.douban.activity.wechat_friends" target="_blank" rel="noopener">原文链接</a></p>
-<h3 id="Machine_Learning_Gladiator">Machine Learning Gladiator</h3><p>out-of-the-box models</p>
-<p>熟悉流程</p>
-<ul>
-<li>Importing data</li>
-<li>Cleaning data</li>
-<li>Splitting it into train/test or cross-validation sets</li>
-<li>Pre-processing</li>
-<li>Transformations</li>
-<li>Feature engineering</li>
-</ul>
-<p>You should practice <strong>regression</strong>, <strong>classification</strong>, and <strong>clustering</strong> algorithms.</p>
-<p>主要是熟悉sklearn的使用？</p>
+            <p><a href="https://branchfree.org/2019/02/25/paper-parsing-gigabytes-of-json-per-second/" target="_blank" rel="noopener">原文链接</a></p>
+<p>The chief point of difference between simdjson and systems such as RapidJSON and sajson lies in the “Stage 1” of simdjson; the part of the system that detects the locations of structural and pseudo-structural characters from the input. This system operates with large scale and regular operations over 64 bytes of the input at once, and can take advantage of both SIMD operations (when examining characters and character classes) as well as 64-bit bitwise operations (when applying transformations on the masks obtained from the SIMD operations). As such, it can achieve “economies of scale” as compared to a step-by-step approach.</p>
+<p>一次性读入64 bytes的数据，然后同时操作？</p>
+<p> Stage 1 proceeds as follows:</p>
+<ol>
+<li>Validation of UTF-8 across the whole input.</li>
+<li>Detection of odd-length sequences of backslashes (that will result in escaping the subsequent character)</li>
+<li>Detection of which characters are “inside” quotes, by filtering out escaped quote characters from the previous step, then doing a parallel prefix sum over XOR (using the PCLMULQDQ instruction with an argument of -1 as the multiplier) to turn our escaped quote mask into a mask showing which bits are between a pair of quotes.</li>
+<li>Detection of structural characters and whitespace via table-based lookup (implemented with a pair of VPSHUFB instructions).</li>
+<li>Detection of pseudo-structural characters (those characters I talked about in the summary of stage 1 that need to be exposed to the subsequent stage 2 for error detection and atom handling).</li>
+<li>Conversion of the bitmask containing structural and pseudo-structural characters into a series of indexes.</li>
+</ol>
 
           
         
@@ -620,7 +599,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/fully-utilise-docker/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -639,7 +618,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/one-week/" itemprop="url">慎言，慎行</a></h1>
+                <a class="post-title-link" href="/2019/03/10/fully-utilise-docker/" itemprop="url">Fully Utilise Docker in development</a></h1>
         
 
         <div class="post-meta">
@@ -651,8 +630,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T19:29:51+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T15:50:32+08:00">
+                2019-03-10
               </time>
             
 
@@ -686,8 +665,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/docker/" itemprop="url" rel="index">
+                    <span itemprop="name">docker</span>
                   </a>
                 </span>
 
@@ -704,8 +683,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/one-week/" itemprop="commentCount"></span>
+                <a href="/2019/03/10/fully-utilise-docker/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/fully-utilise-docker/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -735,8 +714,11 @@
       
         
           
-            <p>慎独，慎微，慎言，慎行</p>
-<hr>
+            <p><a href="https://medium.com/tsftech/how-to-fully-utilise-docker-during-development-42bb3cdc3017" target="_blank" rel="noopener">原文链接</a></p>
+<p>主要是针对node环境？</p>
+<p>wiki搭建环境</p>
+<p>本地测试很长时间？ci环境不是很好部署？</p>
+<p>Multistage builds is a Docker feature that neatly allows us to build one container to encapsulate the build and then copy artefacts into a new container optimised for Production.</p>
 
           
         
@@ -785,7 +767,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/04/emacs-intro-1/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/frontend-bootcamp/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -804,7 +786,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/04/emacs-intro-1/" itemprop="url">Emacs学习(一)</a></h1>
+                <a class="post-title-link" href="/2019/03/10/frontend-bootcamp/" itemprop="url">Frontend Bootcamp</a></h1>
         
 
         <div class="post-meta">
@@ -816,8 +798,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-04T19:24:21+08:00">
-                2019-03-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T14:56:20+08:00">
+                2019-03-10
               </time>
             
 
@@ -851,8 +833,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/emacs/" itemprop="url" rel="index">
-                    <span itemprop="name">emacs</span>
+                  <a href="/categories/frontend/" itemprop="url" rel="index">
+                    <span itemprop="name">frontend</span>
                   </a>
                 </span>
 
@@ -869,8 +851,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/04/emacs-intro-1/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/04/emacs-intro-1/" itemprop="commentCount"></span>
+                <a href="/2019/03/10/frontend-bootcamp/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/frontend-bootcamp/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -900,9 +882,13 @@
       
         
           
-            <p><a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/index.html#Top" target="_blank" rel="noopener">原文链接</a></p>
-<p>开一个长期的专栏，来学习一下emacs</p>
-<h4 id="screen">screen</h4><p>关于screen的组织部分</p>
+            <p><a href="https://microsoft.github.io/frontend-bootcamp/" target="_blank" rel="noopener">原文链接</a></p>
+<p><img src="https://raw.githubusercontent.com/Microsoft/frontend-bootcamp/master/assets/css-syntax.png" alt="css选择器"></p>
+<p><a href="https://reactjs.org/docs/introducing-jsx.html" target="_blank" rel="noopener">JSX介绍</a></p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> element = <span class="xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello, world!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span>;</span><br></pre></td></tr></table></figure>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">ReactDOM.render(</span><br><span class="line">  &lt;div&gt;</span><br><span class="line">    &lt;App text=<span class="string">"Hello World"</span> /&gt;</span><br><span class="line">    &lt;App text=<span class="string">"How are you doing?"</span> /&gt;</span><br><span class="line">  &lt;<span class="regexp">/div&gt;,</span></span><br><span class="line"><span class="regexp">  document.getElementById('app')</span></span><br><span class="line"><span class="regexp">);</span></span><br></pre></td></tr></table></figure>
+<p>React allows each control to specify its own data store, called <strong>state</strong>.</p>
+<p>首先是组件的思想，然后有组件的话，必然会涉及到状态</p>
 
           
         
@@ -951,7 +937,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/25/programming-model-for-event-first/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/javascript-callback/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -970,7 +956,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/02/25/programming-model-for-event-first/" itemprop="url">programming model for event-first</a></h1>
+                <a class="post-title-link" href="/2019/03/10/javascript-callback/" itemprop="url">Javascript Callback</a></h1>
         
 
         <div class="post-meta">
@@ -982,8 +968,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-25T11:52:36+08:00">
-                2019-02-25
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T14:42:48+08:00">
+                2019-03-10
               </time>
             
 
@@ -1005,6 +991,28 @@
           </span>
 
           
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/javascript/" itemprop="url" rel="index">
+                    <span itemprop="name">javascript</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
 
           
             
@@ -1013,8 +1021,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/02/25/programming-model-for-event-first/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/25/programming-model-for-event-first/" itemprop="commentCount"></span>
+                <a href="/2019/03/10/javascript-callback/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/javascript-callback/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1044,7 +1052,11 @@
       
         
           
-            
+            <p><a href="https://codeburst.io/javascript-what-the-heck-is-a-callback-aba4da2deced" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>Simply put:</strong> <em>A callback is a function that is to be executed</em> <strong>after</strong> <em>another function has finished executing — hence the name ‘call back’.</em></p>
+<p><strong>More complexly put:</strong> <em>In JavaScript, functions are objects. Because of this, functions can take functions as arguments, and can be returned by other functions. Functions that do this are called</em> <strong>higher-order functions</strong>. Any function that is passed as an argument is called a<em> <em>*callback function</em></em>.</p>
+<p><a href="https://codeburst.io/build-a-simple-twitter-bot-with-node-js-in-just-38-lines-of-code-ed92db9eb078" target="_blank" rel="noopener">twitter bot code</a></p>
+
           
         
       
@@ -1083,7 +1095,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/106/">106</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/108/">108</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1105,7 +1117,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
 
   

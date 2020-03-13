@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/06/resteasy/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/18/redis-cluster/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/12/06/resteasy/" itemprop="url">Resteasy</a></h1>
+                <a class="post-title-link" href="/2018/12/18/redis-cluster/" itemprop="url">redis集群下key的一些策略</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-06T21:34:00+08:00">
-                2018-12-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-18T19:55:23+08:00">
+                2018-12-18
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T22:13:39+08:00">
-                2018-12-06
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-18T20:02:12+08:00">
+                2018-12-18
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/resteasy/" itemprop="url" rel="index">
-                    <span itemprop="name">resteasy</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/12/06/resteasy/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/06/resteasy/" itemprop="commentCount"></span>
+                <a href="/2018/12/18/redis-cluster/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/18/redis-cluster/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,11 +364,121 @@
       
         
           
-            <p>RESTEasy is a JBoss project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is a <strong>fully certified</strong> and portable implementation of the <a href="https://jax-rs-spec.java.net/" target="_blank" rel="noopener">JAX-RS 2.1</a> specification, a JCP specification that provides a Java API for RESTful Web Services over the HTTP protocol.</p>
-<p>采用的是跟spring boot不一样的策略，任意的servlet的容器中都可以运行的restful的服务？</p>
-<p>感觉又不是，前者更强调servlet的体系部分，而后者掩盖了这一体系</p>
-<p><a href="https://github.com/resteasy/Resteasy" target="_blank" rel="noopener">repo</a></p>
-<p>关于JAX-RS的意思？</p>
+            <table>
+<thead>
+<tr>
+<th>压测client</th>
+<th>压测server</th>
+<th>线程/进程</th>
+<th>最大qps</th>
+<th>command</th>
+<th>args</th>
+<th>是否pipeline</th>
+<th>集群是否指定slot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>20</td>
+<td>522</td>
+<td>mget</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>7200</td>
+<td>mget</td>
+<td>700</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>1418</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11435</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11295</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12300</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>15354</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12378</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>y</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>13618</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>y</td>
+</tr>
+</tbody>
+</table>
+<p>测试主要集中在mget以及lrange部分</p>
+<p>mget部分</p>
+<p>对于mget命令，在集群执行时，相比对单点redis执行，会增加了拆分成get的多次网络连接成本，因此效率会大大降低。解决方案是将需要再同一条mget命令出现的key写在同一个slot上，这样的话jedis客户端会将mget保留并传给对应的redis node，而不是拆分成多个get</p>
+<p>关于slot的使用</p>
+<p>因此对于需要mget的key需要手动分配到同一个slot上，官方给出的具体方式是使用{}将需要hash计算的部分扩起来，这样只要{} 内包含的字段一样的key，都会被分配到同一个slot上，例如下面这三条会被分配到同一个slot上</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&#123;recom:item_123:i2i&#125;:xxxxxxxxxxxxx</span><br><span class="line">&#123;recom:item_123:i2i&#125;:qqqqqqqqqqqqq</span><br><span class="line">&#123;recom:item_123:i2i&#125;:fffffffffffff</span><br></pre></td></tr></table></figure>
+<p>扩起来的话，具体的写法是什么样的？</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">CLUSTER KEYSLOT "&#123;lewis1&#125;5400"       #查看key存在于哪个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br><span class="line"> </span><br><span class="line">CLUSTER KEYSLOT "&#123;lewis1&#125;421"        #括号部分内容一样的key会被hash到同一个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br></pre></td></tr></table></figure>
+<p>这样写的情况下，手动指定的情况下，与codis的区别是？</p>
 
           
         
@@ -417,7 +527,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/06/compile/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/18/spring-boot-actuator/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -436,7 +546,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/12/06/compile/" itemprop="url">Compile Thoery</a></h1>
+                <a class="post-title-link" href="/2018/12/18/spring-boot-actuator/" itemprop="url">Spring Boot Actuator</a></h1>
         
 
         <div class="post-meta">
@@ -448,8 +558,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-06T21:23:05+08:00">
-                2018-12-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-18T19:40:52+08:00">
+                2018-12-18
               </time>
             
 
@@ -464,8 +574,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T21:25:11+08:00">
-                2018-12-06
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-18T19:54:49+08:00">
+                2018-12-18
               </time>
             
           </span>
@@ -483,8 +593,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/compile/" itemprop="url" rel="index">
-                    <span itemprop="name">compile</span>
+                  <a href="/categories/spring-boot/" itemprop="url" rel="index">
+                    <span itemprop="name">spring boot</span>
                   </a>
                 </span>
 
@@ -501,8 +611,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/12/06/compile/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/06/compile/" itemprop="commentCount"></span>
+                <a href="/2018/12/18/spring-boot-actuator/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/18/spring-boot-actuator/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -532,13 +642,26 @@
       
         
           
-            <p><a href="http://weinan.io/2018/09/21/compile.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>编译原理分为前端和后端</p>
-<p>「前端」是用来处理 Context Free Language ，把 text 转化成 tokens ，然后再把 tokens 通过 syntax rules 转化成 AST 的过程。</p>
-<p>其中把 text 转化成 tokens ，一般用到的技术是 Regular Expression ，也就是「正则表达式」，背后对应的是无状态的自动机 NFA ， NFA 可以转化为 DFA 。</p>
-<p>然后， tokens 根据 syntax rules 进行 semantic analysis 的过程，是通过 parser 来完成的。</p>
-<p>因为 context free language 需要分析文本前后的联系，也就是所谓代码的内在关系，所以必须用到内存，但不必用到随机存取内存，因此就在无状态自动机基础上加上 stack memory ，变成 Pushdown Automaton ，也就是 PDA ，下推自动机。</p>
-<p>「后端」就是把 AST 转化成实际的目标代码</p>
+            <p><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>You can choose to manage and monitor your application by using HTTP endpoints or with JMX. Auditing, health, and metrics gathering can also be automatically applied to your application</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>exposing endpoints</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">management.endpoints.web.exposure.include=*</span><br><span class="line">management.endpoints.web.exposure.exclude=env,beans</span><br></pre></td></tr></table></figure>
+<p>注意有JMX和web的两种不同类型</p>
+<p>CORS Support</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">management.endpoints.web.cors.allowed-origins=http://example.com</span><br><span class="line">management.endpoints.web.cors.allowed-methods=GET,POST</span><br></pre></td></tr></table></figure>
+<p>实现一些自定义的endpoints</p>
+<p>You can also write technology-specific endpoints by using <code>@JmxEndpoint</code> or <code>@WebEndpoint</code>. These endpoints are restricted to their respective technologies. For example, <code>@WebEndpoint</code> is exposed only over HTTP and not over JMX.</p>
+<p>You can write technology-specific extensions by using <code>@EndpointWebExtension</code> and <code>@EndpointJmxExtension</code>. These annotations let you provide technology-specific operations to augment an existing endpoint.</p>
+<p>To provide custom health information, you can register Spring beans that implement the <a href="https://github.com/spring-projects/spring-boot/tree/v2.1.1.RELEASE/spring-boot-project/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java" target="_blank" rel="noopener"><code>HealthIndicator</code></a> interface. You need to provide an implementation of the <code>health()</code> method and return a <code>Health</code> response.</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.Health;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.HealthIndicator;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyHealthIndicator</span> <span class="keyword">implements</span> <span class="title">HealthIndicator</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Health <span class="title">health</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">int</span> errorCode = check(); <span class="comment">// perform some specific health check</span></span><br><span class="line">		<span class="keyword">if</span> (errorCode != <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> Health.down().withDetail(<span class="string">"Error Code"</span>, errorCode).build();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> Health.up().build();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>引出来一个reactive health indicators部分，如何监控</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyReactiveHealthIndicator</span> <span class="keyword">implements</span> <span class="title">ReactiveHealthIndicator</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Mono&lt;Health&gt; <span class="title">health</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> doHealthCheck() <span class="comment">//perform some specific health check that returns a Mono&lt;Health&gt;</span></span><br><span class="line">			.onErrorResume(ex -&gt; Mono.just(<span class="keyword">new</span> Health.Builder().down(ex).build())));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>类似流式的方式</p>
+<p>http的management配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">management.server.port=8081</span><br><span class="line">management.server.address=127.0.0.1</span><br></pre></td></tr></table></figure>
+<p>Jmx的配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring.jmx.unique-names=true</span><br><span class="line">management.endpoints.jmx.domain=com.example.myapp</span><br></pre></td></tr></table></figure>
 
           
         
@@ -587,7 +710,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/05/baseline-env/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/15/jenkins-plugin-manager/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -606,7 +729,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/12/05/baseline-env/" itemprop="url">baseline 开发</a></h1>
+                <a class="post-title-link" href="/2018/12/15/jenkins-plugin-manager/" itemprop="url">Jenkins plugin manager(1)</a></h1>
         
 
         <div class="post-meta">
@@ -618,8 +741,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-05T23:13:04+08:00">
-                2018-12-05
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-15T18:47:50+08:00">
+                2018-12-15
               </time>
             
 
@@ -634,8 +757,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-06T10:25:46+08:00">
-                2018-12-06
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-15T18:48:37+08:00">
+                2018-12-15
               </time>
             
           </span>
@@ -653,8 +776,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/devops/" itemprop="url" rel="index">
-                    <span itemprop="name">devops</span>
+                  <a href="/categories/jenkins/" itemprop="url" rel="index">
+                    <span itemprop="name">jenkins</span>
                   </a>
                 </span>
 
@@ -671,8 +794,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/12/05/baseline-env/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/05/baseline-env/" itemprop="commentCount"></span>
+                <a href="/2018/12/15/jenkins-plugin-manager/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/15/jenkins-plugin-manager/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -702,350 +825,367 @@
       
         
           
-            <p>针对先知多模块，多依赖的问题，通过DNS fallback的方式，针对流量进行导流，从而能够导流到自己开发的模块上</p>
-<p>前端有一个gateway的来进行拦截</p>
-<p>mirror的方式，其实是借鉴docker的volumes的方式，mount本地的目录</p>
-<p>intercept的方式，将流量进行导流？使用到了k8s的svc的功能</p>
-<p>存在的几点疑问：</p>
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/15/jenkins-build/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/12/15/jenkins-build/" itemprop="url">Jenkins Build</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-15T18:43:11+08:00">
+                2018-12-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-15T18:48:31+08:00">
+                2018-12-15
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/jenkins/" itemprop="url" rel="index">
+                    <span itemprop="name">jenkins</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/12/15/jenkins-build/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/15/jenkins-build/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/15/graphql-api/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/12/15/graphql-api/" itemprop="url">GraphQL Api</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-15T11:51:05+08:00">
+                2018-12-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-12-15T13:00:20+08:00">
+                2018-12-15
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/graphQL/" itemprop="url" rel="index">
+                    <span itemprop="name">graphQL</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/12/15/graphql-api/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/15/graphql-api/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/Shopify/graphql-design-tutorial/blob/master/TUTORIAL.md?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_145" target="_blank" rel="noopener">原文链接</a></p>
+<p>针对collection-&gt;product的多对多关系</p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">interface Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  rules: [AutomaticCollectionRule!]!</span><br><span class="line">  rulesApplyDisjunctively: Bool!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule &#123;</span><br><span class="line">  column: String!</span><br><span class="line">  relation: String!</span><br><span class="line">  condition: String!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionMembership &#123;</span><br><span class="line">  collectionId: ID!</span><br><span class="line">  productId: ID!</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>针对er模型</p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">interface Collection &#123;</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection &#123;</span><br><span class="line">  [AutomaticCollectionRule]</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection &#123;</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule &#123; &#125;</span><br><span class="line"></span><br><span class="line">type CollectionMembership &#123;</span><br><span class="line">  Collection</span><br><span class="line">  Product</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><em>Rule #1: Always start with a high-level view of the objects and their relationships before you deal with specific fields.</em></p>
+<p>对于状态进行clean</p>
+<p>去掉了collectionMembership部分，替换成为product</p>
+<p><em>Rule #2: Never expose implementation details in your API design.</em></p>
+<p><em>Rule #3: Design your API around the business domain, not the implementation, user-interface, or legacy APIs.</em></p>
+<p>Most of your major identifiable business objects (e.g. products, collections, etc) should implement <code>Node</code>.</p>
+<p><em>Rule #7: Always check whether list fields should be paginated or not.</em></p>
+<p>### </p>
+<p>针对每一个field去判断其合适的一个展现形式，以及继承方式等，这样在后面的扩展的时候，能够随时添加，游刃有余</p>
+<p><em>Rule #8: Always use object references instead of ID fields.</em></p>
+<p><em>Rule #9: Choose field names based on what makes sense, not based on the implementation or what the field is called in legacy APIs.</em></p>
+<p>最终版的schema如下：</p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">type Collection implements Node &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  ruleSet: CollectionRuleSet</span><br><span class="line">  products: ProductConnection!</span><br><span class="line">  title: String!</span><br><span class="line">  image: Image</span><br><span class="line">  description: HTML!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionRuleSet &#123;</span><br><span class="line">  rules: [CollectionRule!]!</span><br><span class="line">  appliesDisjunctively: Bool!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionRule &#123;</span><br><span class="line">  field: CollectionRuleField!</span><br><span class="line">  relation: CollectionRuleRelation!</span><br><span class="line">  value: String!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">enum CollectionRuleField &#123;</span><br><span class="line">  TAG</span><br><span class="line">  TITLE</span><br><span class="line">  TYPE</span><br><span class="line">  INVENTORY</span><br><span class="line">  PRICE</span><br><span class="line">  VENDOR</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">enum CollectionRuleRelation &#123;</span><br><span class="line">  CONTAINS</span><br><span class="line">  ENDS_WITH</span><br><span class="line">  EQUALS</span><br><span class="line">  GREATER_THAN</span><br><span class="line">  LESS_THAN</span><br><span class="line">  NOT_CONTAINS</span><br><span class="line">  NOT_EQUALS</span><br><span class="line">  STARTS_WITH</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="考虑接口部分的问题:">考虑接口部分的问题:</h4><p>在考虑关系membership部分的时候，考虑的几个点：</p>
 <ul>
-<li>所谓的导流到本地IDE的开发是指？</li>
-<li>传jar，然后重启pod的方式，是否还是有些繁琐</li>
+<li>整个关系是否适合crud</li>
+<li>对于关联field部分，有一些delta的修改，关系是否需要改变</li>
+<li>关系是否large或者需要分页</li>
+<li>Is the relationship ordered</li>
+<li>Is the relationship mandatory</li>
+<li>Do both sides have IDs</li>
 </ul>
-<p>关于dns fallback的机制？</p>
-<p>嵌入到k8s的svc机制中去了？</p>
-<h3 id="针对automl的开发？">针对automl的开发？</h3><p>考虑真正的service mesh部分？</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/05/scala-trait/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/12/05/scala-trait/" itemprop="url">scala trait</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-05T22:52:51+08:00">
-                2018-12-05
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-05T23:02:06+08:00">
-                2018-12-05
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/scala/" itemprop="url" rel="index">
-                    <span itemprop="name">scala</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/12/05/scala-trait/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/05/scala-trait/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://weinan.io/2018/11/05/scala.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>trait并不是interface，而是一个功能模块，允许用户把这个模块插入到class中</p>
-<p>trait本身也可以继承，方法也可以直接在trait里实现</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">scala&gt;</span><span class="bash"> val service2 = new ServiceImportante(<span class="string">"dos"</span>) with StdoutLogging &#123;</span></span><br><span class="line">     |   override def work(i: Int): Int = &#123;</span><br><span class="line">     |     info(s"Starting work: i = $i")</span><br><span class="line">     |     val result = super.work(i)</span><br><span class="line">     |     info(s"Ending work: i = $i, result = $result")</span><br><span class="line">     |     result</span><br><span class="line">     |   &#125;</span><br><span class="line">     | &#125;</span><br><span class="line">service2: ServiceImportante with StdoutLogging = $anon$1@674fee6d</span><br></pre></td></tr></table></figure>
-<p>当然也可以重复使用<code>ServiceImportante with StdoutLogging</code>，定义一个新的class</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/" itemprop="url">AUTO_INCREMENT Handling in InnoDB</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-03T23:56:33+08:00">
-                2018-12-03
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-12-04T10:22:55+08:00">
-                2018-12-04
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index">
-                    <span itemprop="name">mysql</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html" target="_blank" rel="noopener">原文链接</a></p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">type Mutation &#123;</span><br><span class="line">  collectionDelete(id: ID!)</span><br><span class="line">  collectionPublish(collectionId: ID!)</span><br><span class="line">  collectionUnpublish(collectionId: ID!)</span><br><span class="line">  collectionAddProducts(collectionId: ID!, productIds: [ID!]!)</span><br><span class="line">  collectionRemoveProducts(collectionId: ID!, productIds: [ID!])</span><br><span class="line">  collectionCreate(title: String!, ruleSet: CollectionRuleSetInput, image: ImageInput, description: HTML!)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">input CollectionRuleSetInput &#123;</span><br><span class="line">  rules: [CollectionRuleInput!]!</span><br><span class="line">  appliesDisjunctively: Bool!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">input CollectionRuleInput &#123;</span><br><span class="line">  field: CollectionRuleField!</span><br><span class="line">  relation: CollectionRuleRelation!</span><br><span class="line">  value: String!</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><em>Rule #16: When writing separate mutations for relationships, consider whether it would be useful for the mutations to operate on multiple elements at once.</em></p>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line">type CollectionUpdatePayload &#123;</span><br><span class="line">  userErrors: [UserError!]!</span><br><span class="line">  collection: Collection</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><em>Rule #23: Most payload fields for a mutation should be nullable, unless there is really a value to return in every possible error case.</em> 关于这条的理解，大部分的payload都是nullable</p>
+<p>tips:</p>
+<ul>
+<li>graphQL，更体现domain部分</li>
+</ul>
 
           
         
@@ -1085,7 +1225,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/40/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><span class="page-number current">41</span><a class="page-number" href="/page/42/">42</a><span class="space">&hellip;</span><a class="page-number" href="/page/106/">106</a><a class="extend next" rel="next" href="/page/42/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/40/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/40/">40</a><span class="page-number current">41</span><a class="page-number" href="/page/42/">42</a><span class="space">&hellip;</span><a class="page-number" href="/page/108/">108</a><a class="extend next" rel="next" href="/page/42/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1107,7 +1247,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
 
   

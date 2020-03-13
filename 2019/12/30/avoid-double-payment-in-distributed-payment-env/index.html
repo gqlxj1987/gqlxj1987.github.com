@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="distributed,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="原文链接 There are three different common techniques used in distributed systems to achieve eventual consistency: read repair, write repair, and asynchronous repair. Asynchronous repair involves the serve">
+<meta name="keywords" content="distributed">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Avoid double payment in distributed payment env">
+<meta property="og:url" content="http://gqlxj1987.github.io/2019/12/30/avoid-double-payment-in-distributed-payment-env/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 There are three different common techniques used in distributed systems to achieve eventual consistency: read repair, write repair, and asynchronous repair. Asynchronous repair involves the serve">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://miro.medium.com/max/3568/1*_q2kiqlR69N_Tybu37Px2Q.png">
+<meta property="og:updated_time" content="2020-01-06T02:05:27.468Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Avoid double payment in distributed payment env">
+<meta name="twitter:description" content="原文链接 There are three different common techniques used in distributed systems to achieve eventual consistency: read repair, write repair, and asynchronous repair. Asynchronous repair involves the serve">
+<meta name="twitter:image" content="https://miro.medium.com/max/3568/1*_q2kiqlR69N_Tybu37Px2Q.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"hide","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gqlxj1987.github.io/2019/12/30/avoid-double-payment-in-distributed-payment-env/">
+
+
+
+
+
+  <title>Avoid double payment in distributed payment env | DevilKing's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">DevilKing's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/12/30/avoid-double-payment-in-distributed-payment-env/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Avoid double payment in distributed payment env</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-12-30T16:02:13+08:00">
+                2019-12-30
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-01-06T10:05:27+08:00">
+                2020-01-06
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/distributed/" itemprop="url" rel="index">
+                    <span itemprop="name">distributed</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/12/30/avoid-double-payment-in-distributed-payment-env/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/12/30/avoid-double-payment-in-distributed-payment-env/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb" target="_blank" rel="noopener">原文链接</a></p>
+<p>There are <a href="https://en.wikipedia.org/wiki/Eventual_consistency#Conflict_resolution" target="_blank" rel="noopener">three different common techniques</a> used in distributed systems to achieve <a href="https://en.wikipedia.org/wiki/Eventual_consistency" target="_blank" rel="noopener"><strong>eventual consistency</strong></a>: <a href="https://docs.datastax.com/en/cassandra/3.0/cassandra/operations/opsRepairNodesReadRepair.html" target="_blank" rel="noopener">read repair</a>, write repair, and asynchronous repair.</p>
+<p>Asynchronous repair involves the server being responsible for running  data consistency checks, such as table scans, lambda functions, and cron jobs. Additionally, asynchronous notifications from the server to the  client are widely used in the payments industry to force consistency on  the client side. </p>
+<p><strong>write repair</strong>, where every write call from the client to the server attempts to repair an inconsistent, broken state.</p>
+<p>By design, idempotency safely allows multiple identical calls from clients using an <strong>auto-retry mechanism</strong> for an API to achieve eventual consistency. </p>
+<p>it offers low latency while still providing clean separation between  high-velocity product code and low-velocity system management code.</p>
+<ul>
+<li>An <strong>idempotency key</strong> is passed into the framework, representing a single idempotent request</li>
+<li>Tables of idempotency information, always read and written from a <strong>sharded master</strong> database (for <a href="https://en.wikipedia.org/wiki/Consistency_(database_systems" target="_blank" rel="noopener">consistency</a>))</li>
+<li>Database transactions are combined in different parts of the codebase to ensure <a href="https://en.wikipedia.org/wiki/Atomicity_(database_systems" target="_blank" rel="noopener">atomicity</a>), using <a href="https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html" target="_blank" rel="noopener">Java lambdas</a></li>
+<li>Error responses are classified as “<strong>retryable</strong>” or “<strong>non-retryable</strong>“</li>
+</ul>
+<p>Orpheus is centered around the assumption that almost every standard API request can be separated into <strong>three distinct phases</strong>: Pre-RPC, RPC, and Post-RPC.</p>
+<ol>
+<li><strong>Pre-RPC:</strong> Details of the payment request are recorded in the database.</li>
+<li><strong>RPC:</strong> The request is made live to the external service over network and the  response is received. This is a place to do one or more idempotent  computations or RPCs (for example, query service for the status of a  transaction first if it’s a retry-attempt).</li>
+<li><strong>Post-RPC:</strong> Details of the response from the external service are recorded in the  database, including its successfulness and whether a bad request is <strong>retryable</strong> or not.</li>
+</ol>
+<p>To maintain data integrity, we adhere to <strong>two simple ground rules</strong>:</p>
+<ol>
+<li><strong>No service interaction over networks in Pre and Post-RPC phases</strong></li>
+<li><strong>No database interactions in the RPC phases</strong></li>
+</ol>
+<p>针对pre-RPC和post-RPC的database操作进行合并。every database commit in each of the Pre-RPC and Post-RPC phases is <strong>combined into a single database transaction</strong>. This ensures atomicity — entire units of work (here the Pre-RPC and Post-RPC phases) can fail or succeed as a unit <strong>consistently</strong>.</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Response <span class="title">processPayment</span><span class="params">(InitiatePaymentRequest request, UriInfo uriInfo)</span></span></span><br><span class="line"><span class="function">   <span class="keyword">throws</span> YourCustomException </span>&#123;</span><br><span class="line"></span><br><span class="line"> <span class="keyword">return</span> orpheusManager.process(</span><br><span class="line">     request.getIdempotencyKey(),</span><br><span class="line">     uriInfo,</span><br><span class="line">     <span class="comment">// 1. Pre-RPC</span></span><br><span class="line">     () -&gt; &#123;</span><br><span class="line">       <span class="comment">// Record payment request information from the request object</span></span><br><span class="line">       PaymentRequestResource paymentRequestResource = recordPaymentRequest(request);</span><br><span class="line">       <span class="keyword">return</span> Optional.of(paymentRequestResource);</span><br><span class="line">     &#125;,</span><br><span class="line">     <span class="comment">// 2. RPC</span></span><br><span class="line">     (isRetry, paymentRequest) -&gt; &#123;</span><br><span class="line">       <span class="keyword">return</span> executePayment(paymentRequest, isRetry);</span><br><span class="line">     &#125;,</span><br><span class="line">     <span class="comment">// 3. Post RPC - record response information to database</span></span><br><span class="line">     (isRetry, paymentResponse) -&gt; &#123;</span><br><span class="line">       <span class="keyword">return</span> recordPaymentResponse(paymentResponse);</span><br><span class="line">     &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>FSM state machine</p>
+<p>针对retry和noretry的情况进行分类</p>
+<p><img src="https://miro.medium.com/max/3568/1*_q2kiqlR69N_Tybu37Px2Q.png" alt="retry or no-retry"></p>
+<p>Choosing an idempotency key is crucial — the client can choose either to have <strong>request-level</strong> idempotency or <strong>entity-level</strong> idempotency based on what key to use.</p>
+<p>each api request has an expiring lease</p>
+<p>A lease comes with an expiration to cover the scenario where there are timeouts on the server side.</p>
+<p>由于replica lag的问题，尽量不要使用replica database</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/distributed/" rel="tag"># distributed</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/12/29/sockmap/" rel="next" title="Sockmap - TCP Future">
+                <i class="fa fa-chevron-left"></i> Sockmap - TCP Future
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/02/recommend-system-intro/" rel="prev" title="Recommend System Intro">
+                Recommend System Intro <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div class="ds-thread" data-thread-key="2019/12/30/avoid-double-payment-in-distributed-payment-env/" data-title="Avoid double payment in distributed payment env" data-url="http://gqlxj1987.github.io/2019/12/30/avoid-double-payment-in-distributed-payment-env/">
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
+
+  
+</div>
+<div class="copyright">
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"gqlxj2015"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>
