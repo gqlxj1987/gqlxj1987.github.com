@@ -249,6 +249,180 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/09/03/grpc-k8s/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/09/03/grpc-k8s/" itemprop="url">Grpc 在k8s中的一些使用</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-03T22:41:02+08:00">
+                2018-09-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-09-03T23:51:13+08:00">
+                2018-09-03
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/gRpc/" itemprop="url" rel="index">
+                    <span itemprop="name">gRpc</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/09/03/grpc-k8s/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/09/03/grpc-k8s/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="http://www.evanlin.com/go-grpc-service/?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_140" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="stream发送多条命令">stream发送多条命令</h3><figure class="highlight protobuf"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">rpc</span> SayHelloStreamServer (HelloRequest) <span class="keyword">returns</span> (stream HelloReply) &#123;&#125;</span></span><br></pre></td></tr></table></figure>
+<p>这样在client端采用</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">stream, err := c.SayHelloStreamServer(ctx, &amp;pb.HelloRequest&#123;Name: name&#125;)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatalf(<span class="string">"could not greet: %v"</span>, err)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    res, err := stream.Recv()</span><br><span class="line">    <span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line">    log.Println(res.Message)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="控制rpc_service之间的connect时间">控制rpc service之间的connect时间</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line">ctx, cancel := context.WithTimeout(context.Background(), <span class="number">20</span>*time.Second)</span><br></pre></td></tr></table></figure>
+<h3 id="超过最大size部分">超过最大size部分</h3><figure class="highlight protobuf"><table><tr><td class="code"><pre><span class="line">defaultServerMaxReceiveMessageSize = <span class="number">1024</span> * <span class="number">1024</span> * <span class="number">4</span></span><br></pre></td></tr></table></figure>
+<p>预设大小是4m</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	srv := <span class="built_in">new</span>(server)</span><br><span class="line">	c, err := net.Listen(<span class="string">"tcp"</span>, port)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"failed to listen: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	opts := []grpc.ServerOption&#123;</span><br><span class="line">		grpc.MaxMsgSize(<span class="number">1024</span> * <span class="number">1024</span> * <span class="number">8</span>),</span><br><span class="line">	&#125;</span><br><span class="line">	s := grpc.NewServer(opts...)</span><br><span class="line">	pb.RegisterGreeterServer(s, srv)</span><br><span class="line">	log.Println(<span class="string">"Server starting..."</span>)</span><br><span class="line">	s.Serve(c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段是改变server端，当然client端也可以改变</p>
+<h3 id="在k8s的使用">在k8s的使用</h3><p>首先是相关的yaml文件的一个解析部分</p>
+<h3 id="结论部分">结论部分</h3><p>尝试自己去实现一些基于grpc的服务，client端同server端之间的连接部分</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/09/03/go-modules/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -877,174 +1051,6 @@
 <p>套接字部分，转换给文件描述符</p>
 <p>关于fork部分的操作</p>
 <figure class="highlight go"><table><tr><td class="code"><pre><span class="line">cmd := exec.Command(os.Args[<span class="number">0</span>], <span class="string">"-graceful"</span>)</span><br><span class="line">cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr</span><br><span class="line">cmd.ExtraFiles = []*os.File&#123;newFD&#125;</span><br><span class="line">cmd.Run()</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/08/31/install-kubernetes-cluster-guide/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/08/31/install-kubernetes-cluster-guide/" itemprop="url">Install Kubernetes Cluster guide</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-08-31T10:33:17+08:00">
-                2018-08-31
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-08-31T10:36:00+08:00">
-                2018-08-31
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/08/31/install-kubernetes-cluster-guide/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/08/31/install-kubernetes-cluster-guide/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.8.14" target="_blank" rel="noopener">原文链接</a></p>
-<p>关于一些机器的优化部分</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat &gt; kubernetes.conf &lt;&lt;EOF</span><br><span class="line">net.bridge.bridge-nf-call-iptables=1</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables=1</span><br><span class="line">net.ipv4.ip_forward=1</span><br><span class="line">vm.swappiness=0</span><br><span class="line">vm.overcommit_memory=1</span><br><span class="line">vm.panic_on_oom=0</span><br><span class="line">fs.inotify.max_user_watches=89100</span><br><span class="line">fs.file-max=52706963</span><br><span class="line">fs.nr_open=52706963</span><br><span class="line">net.ipv6.conf.all.disable_ipv6=1</span><br><span class="line">net.netfilter.nf_conntrack_max=2310720</span><br><span class="line">EOF</span><br><span class="line">sudo cp kubernetes.conf  /etc/sysctl.d/kubernetes.conf</span><br><span class="line">sudo sysctl -p /etc/sysctl.d/kubernetes.conf</span><br></pre></td></tr></table></figure>
-<p>设置系统时区部分</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 调整系统 TimeZone</span></span><br><span class="line">sudo timedatectl set-timezone Asia/Shanghai</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将当前的 UTC 时间写入硬件时钟</span></span><br><span class="line">sudo timedatectl set-local-rtc 0</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启依赖于系统时间的服务</span></span><br><span class="line">sudo systemctl restart rsyslog </span><br><span class="line">sudo systemctl restart crond</span><br></pre></td></tr></table></figure>
 
           
         

@@ -249,6 +249,186 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/06/03/uidGenerator/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/06/03/uidGenerator/" itemprop="url">UidGenerator</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-06-03T19:52:31+08:00">
+                2019-06-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/uid/" itemprop="url" rel="index">
+                    <span itemprop="name">uid</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/06/03/uidGenerator/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/06/03/uidGenerator/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/baidu/uid-generator/blob/master/README.zh_cn.md" target="_blank" rel="noopener">repo链接</a></p>
+<p> 在实现上, UidGenerator通过借用未来时间来解决sequence天然存在的并发限制; 采用RingBuffer来缓存已生成的UID, 并行化UID的生产和消费, 同时对CacheLine补齐，避免了由RingBuffer带来的硬件级「伪共享」问题. 最终单机QPS可达600万</p>
+<p><img src="https://github.com/baidu/uid-generator/blob/master/doc/snowflake.png" alt="snowflake"></p>
+<p>Snowflake算法描述：指定机器 &amp; 同一时刻 &amp; 某一并发序列，是唯一的。据此可生成一个64 bits的唯一ID（long）。默认采用上图字节分配方式：</p>
+<ul>
+<li>sign(1bit)<br>固定1bit符号标识，即生成的UID为正数。</li>
+<li>delta seconds (28 bits)<br>当前时间，相对于时间基点”2016-05-20”的增量值，单位：秒，最多可支持约8.7年</li>
+<li>worker id (22 bits)<br>机器id，最多可支持约420w次机器启动。内置实现为在启动时由数据库分配，默认分配策略为用后即弃，后续可提供复用策略。</li>
+<li>sequence (13 bits)<br>每秒下的并发序列，13 bits可支持每秒8192个并发。</li>
+</ul>
+<p>采用RingBuffer环形数组的方式，开启高并发，存在生产者/消费者。CachedUidGenerator采用了双RingBuffer，Uid-RingBuffer用于存储Uid、Flag-RingBuffer用于存储Uid状态(是否可填充、是否可消费)</p>
+<p>RingBuffer填充时机</p>
+<ul>
+<li>初始化预填充<br>RingBuffer初始化时，预先填充满整个RingBuffer.</li>
+<li>即时填充<br>Take消费时，即时检查剩余可用slot量(<code>tail</code> - <code>cursor</code>)，如小于设定阈值，则补全空闲slots。阈值可通过<code>paddingFactor</code>来进行配置，请参考Quick Start中CachedUidGenerator配置</li>
+<li>周期填充<br>通过Schedule线程，定时补全空闲slots。可通过<code>scheduleInterval</code>配置，以应用定时填充功能，并指定Schedule时间间隔</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/06/03/golang-real-world-concurrency-bugs/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -895,194 +1075,6 @@
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&lt; go1.10beta1 tool pprof block.out</span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 12.34s, 100% of 12.34s total</span><br><span class="line">Dropped 31 nodes (cum &lt;= 0.06s)</span><br><span class="line">Showing top 10 nodes out of 32</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">     4.21s 34.09% 34.09%      4.21s 34.09%  runtime.chanrecv1</span><br><span class="line">     4.13s 33.46% 67.55%      4.13s 33.46%  runtime.selectgo</span><br><span class="line">     4.01s 32.45%   100%      4.01s 32.45%  sync.(*WaitGroup).Wait</span><br><span class="line">         0     0%   100%      4.01s 32.45%  github.com/cep21/trace-110.TestServer</span><br><span class="line">         0     0%   100%      4.01s 32.45%  github.com/cep21/trace-110.startServer</span><br><span class="line">         0     0%   100%         4s 32.40%  github.com/cep21/trace-110.takeIO</span><br></pre></td></tr></table></figure>
 <p>trace</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">go test -trace trace.out</span><br><span class="line"></span><br><span class="line">go1.10beta1 tool trace trace.out</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/06/01/modern-server-side-stack/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/06/01/modern-server-side-stack/" itemprop="url">Modern Server-side Stack</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-06-01T11:49:57+08:00">
-                2019-06-01
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/06/01/modern-server-side-stack/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/06/01/modern-server-side-stack/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/velotio-perspectives/introduction-to-the-modern-server-side-stack-golang-protobuf-and-grpc-40407486568" target="_blank" rel="noopener">原文链接</a></p>
-<p>Go’s primary focus is the following:</p>
-<ul>
-<li>First class support for concurrency</li>
-<li>An elegant, modern language that is very simple to its core</li>
-<li>Very good performance</li>
-<li>First-hand support for the tools required for modern software development</li>
-</ul>
-<p>goroutines + channel部分</p>
-<p>After looking at the language, you may feel that the language doesn’t follow any particular philosophy or direction and it feels like every feature is included in here to solve a specific problem and nothing morethan that. For example, it has methods and interfaces but not classes; the compiler produces a statically linked binary but still has a garbagecollector; it has strict static typing but doesn’t support generics. The language does have a thin runtime but doesn’t support exceptions.</p>
-<p>Here are the focus points of Protobuf:</p>
-<ul>
-<li>It’s a binary format, unlike JSON and XML, which are text-based and hence it’s vastly space efficient.</li>
-<li>First hand and sophisticated support for schemas.</li>
-<li>First-hand support for generating parsing and consumer code in various languages.</li>
-</ul>
-<p>REST</p>
-<p>the service is behaving like a monolithic system, which along with what is required is also doing n number of other things to provide the client with the intended ‘browsing’ experience.</p>
-<p>gRPC intends to improve upon the following technical aspects over traditional HTTP requests:</p>
-<ul>
-<li>HTTP/2 by default with all its goodies.</li>
-<li>Protobuf as machines are talking.</li>
-<li>Dedicated support for streaming calls thanks to HTTP/2.</li>
-<li>Pluggable auth, tracing, load balancing and health checking because you always need these.</li>
-</ul>
 
           
         

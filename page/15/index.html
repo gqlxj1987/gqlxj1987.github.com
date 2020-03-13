@@ -249,6 +249,186 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/07/why-fuck-templating-yaml/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/07/07/why-fuck-templating-yaml/" itemprop="url">Why Fuck Templating Yaml</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-07T16:47:23+08:00">
+                2019-07-07
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/yaml/" itemprop="url" rel="index">
+                    <span itemprop="name">yaml</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/07/07/why-fuck-templating-yaml/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/07/why-fuck-templating-yaml/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://leebriggs.co.uk/blog/2019/02/07/why-are-we-templating-yaml.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>At some point, we decided it was okay for us to template yaml. When did this happen? How is this acceptable?</p>
+<p> It’s incredibly likely that the reason you have multiple configuration files is because the $thing that uses that config is slightly different from its companions. Examples of this include:</p>
+<ul>
+<li>Applications deployed in different environments, like dev, stg and prod</li>
+<li>Applications deployed in different regions, like Europe or North American</li>
+</ul>
+<h4 id="Helm_Charts">Helm Charts</h4><p>Optional values just make things ugly in templating languages, and you can’t just leave the value blank, so you have to resort to ugly loops and conditionals that are probably going to bite you later.</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="string">&#123;&#123;-</span> <span class="string">with</span> <span class="string">.Values.podAnnotations</span>  <span class="string">&#125;&#125;</span></span><br><span class="line"><span class="attr">      annotations:</span></span><br><span class="line"><span class="string">&#123;&#123;</span> <span class="string">toYaml</span> <span class="string">.</span> <span class="string">| indent 8  &#125;&#125;</span></span><br><span class="line"><span class="string"><span class="template-variable">&#123;&#123;- end  &#125;&#125;</span></span></span><br></pre></td></tr></table></figure>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">something:</span> <span class="string">nothing</span></span><br><span class="line"><span class="attr">  hello:</span> <span class="string">goodbye</span></span><br></pre></td></tr></table></figure>
+<p>这段yaml可能不是valid</p>
+<p>yaml部分，关于indent部分，很让人get confused</p>
+<h3 id="JSON,_Jsonnet_&amp;_YAML">JSON, Jsonnet &amp; YAML</h3><p><a href="https://yaml.org/spec/1.2/spec.html#id2759572" target="_blank" rel="noopener">YAML is a superset of JSON</a> and converting between the two is trivial. Many applications and programming languages will parse JSON and YAML natively, and many can convert between the two very simple</p>
+<p>采用json的方式，去定义yaml部分</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">local annotations = &#123;</span><br><span class="line">  &apos;nginx.ingress.kubernetes.io/app-root&apos;: &apos;/&apos;,</span><br><span class="line">  &apos;nginx.ingress.kubernetes.io/enable-cors&apos;: true,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  metadata: &#123;</span><br><span class="line">    annotations: annotations,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125; + &#123; // this adds another JSON object</span><br><span class="line">  metadata+: &#123; // I&apos;m using the + operator, so we&apos;ll append to the existing metadata</span><br><span class="line">    annotations+: &#123; // same as above</span><br><span class="line">      something: &apos;nothing&apos;,</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>结果：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">   <span class="attr">"metadata"</span>: &#123;</span><br><span class="line">      <span class="attr">"annotations"</span>: &#123;</span><br><span class="line">         <span class="attr">"nginx.ingress.kubernetes.io/app-root"</span>: <span class="string">"/"</span>,</span><br><span class="line">         <span class="attr">"nginx.ingress.kubernetes.io/enable-cors"</span>: <span class="literal">true</span>,</span><br><span class="line">         <span class="attr">"something"</span>: <span class="string">"nothing"</span></span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/03/ForkJoinPoll/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -885,176 +1065,6 @@
 <p>Choosing a filtering library comes at cost though — libraries have to be type-agnostic and thus will generally be using reflect under the hood to do type assertions which is not ideal for performance. 关于filtering库的一个实现思路</p>
 <figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Filter is a filter function applied to a single record.</span></span><br><span class="line"><span class="keyword">type</span> Filter <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">string</span>)</span> <span class="title">bool</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// <span class="title">FilterBulk</span> <span class="title">is</span> <span class="title">a</span> <span class="title">bulk</span> <span class="title">filter</span> <span class="title">function</span> <span class="title">applied</span> <span class="title">to</span> <span class="title">an</span> <span class="title">entire</span> <span class="title">slice</span> <span class="title">of</span> <span class="title">records</span>.</span></span><br><span class="line"><span class="function"><span class="title">type</span> <span class="title">FilterBulk</span> <span class="title">func</span><span class="params">([]<span class="keyword">string</span>)</span> []<span class="title">string</span></span></span><br></pre></td></tr></table></figure>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ApplyFilters applies a set of filters to a record list.</span></span><br><span class="line"><span class="comment">// Each record will be checked against each filter.</span></span><br><span class="line"><span class="comment">// The filters are applied in the order they are passed in.</span></span><br><span class="line"><span class="function">func <span class="title">ApplyFilters</span><span class="params">(records []string, filters ...Filter)</span> []string </span>&#123;</span><br><span class="line">    <span class="comment">// Make sure there are actually filters to be applied.</span></span><br><span class="line">    <span class="function"><span class="keyword">if</span> <span class="title">len</span><span class="params">(filters)</span> </span>== <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> records</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    filteredRecords := make([]string, <span class="number">0</span>, len(records))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Range over the records and apply all the filters to each record.</span></span><br><span class="line">    <span class="comment">// If the record passes all the filters, add it to the final slice.</span></span><br><span class="line">    <span class="keyword">for</span> _, r := range records &#123;</span><br><span class="line">        keep := <span class="keyword">true</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, f := range filters &#123;</span><br><span class="line">            <span class="keyword">if</span> !f(r) &#123;</span><br><span class="line">                keep = <span class="keyword">false</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> keep &#123;</span><br><span class="line">            filteredRecords = append(filteredRecords, r)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> filteredRecords</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ApplyBulkFilters applies a set of filters to the entire slice of records.</span></span><br><span class="line"><span class="comment">// Used when each record filter requires knowledge of the other records, e.g. de-duping.</span></span><br><span class="line"><span class="function">func <span class="title">ApplyBulkFilters</span><span class="params">(records []string, filters ...FilterBulk)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> _, f := range filters &#123;</span><br><span class="line">        records = f(records)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> records</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> filters = map[<span class="keyword">int</span>]FilterSet&#123; </span><br><span class="line">    <span class="number">1</span>: FilterForAnimals, </span><br><span class="line">    <span class="number">2</span>: FilterForIDs, </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// FilterForAnimals applies a set of filters removing any non-animals.</span></span><br><span class="line"><span class="function">func <span class="title">FilterForAnimals</span><span class="params">(records []string)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ApplyBulkFilters(</span><br><span class="line">        ApplyFilters(records,</span><br><span class="line">            FilterMagicalCreatures,</span><br><span class="line">            FilterStringLength,</span><br><span class="line">            FilterInts,</span><br><span class="line">            FilterWords,</span><br><span class="line">        ),</span><br><span class="line">        FilterDuplicates,</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// FilterForIDs applies a set of filters removing any non-IDs.</span></span><br><span class="line"><span class="function">func <span class="title">FilterForIDs</span><span class="params">(records []string)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ApplyBulkFilters(</span><br><span class="line">        ApplyFilters(records,</span><br><span class="line">            FilterIDs,</span><br><span class="line">        ),</span><br><span class="line">        FilterDuplicates,</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/02/one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/07/02/one-week/" itemprop="url">克服懒</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-02T09:57:11+08:00">
-                2019-07-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/07/02/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/02/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>最近太懒了，都懒得思考了，懒得去反省自身的处境，所以，才会有现在这么窘迫的境况。。。算是对自己的惩罚吧。。</p>
-<p>希望没什么事情吧，双方的心理上，都没有做好准备，哎。。。每次都做好了措施，我这样的不良，也不配。。。</p>
-<p>关于时间上的安排方面，最近的进度上，自从感觉搬过来之后，就有些懈怠了，找到地方去学习，找到让自己心安的办法。。。</p>
-<p>锻炼的自律保持的不错，但其他方面就太差了。。。放任自流，你在逃避什么。。。</p>
-<p>与其羡慕别人，不如一步一步地做好自己，努力过好每一天。。。</p>
-<p>给予自己能够给予的东西，至于结果如何，无所谓了。。。</p>
-<hr>
 
           
         

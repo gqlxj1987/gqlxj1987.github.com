@@ -249,6 +249,181 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/15/TSDB-from-Scratch/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/15/TSDB-from-Scratch/" itemprop="url">TSDB from Scratch</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-15T16:55:37+08:00">
+                2018-07-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-17T15:22:06+08:00">
+                2018-07-17
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/TSDB/" itemprop="url" rel="index">
+                    <span itemprop="name">TSDB</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/15/TSDB-from-Scratch/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/15/TSDB-from-Scratch/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://fabxc.org/tsdb/" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="Time_series_data">Time series data</h3><p>Each data point is a tuple of a timestamp and a value</p>
+<p>A 64 bit float turns out to be a good representation for counter as well as gauge values, so we go with that. (时间戳？)</p>
+<p>定义好相应的label部分</p>
+<h3 id="Vertical_and_Horizontal">Vertical and Horizontal</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">series</span><br><span class="line">  ^   </span><br><span class="line">  │   . . . . . . . . . . . . . . . . .   . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │     . . . . . . . . . . . . . . . . . . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │         . . . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . . .   . . . .   </span><br><span class="line">  │     . . . . . . . . . .   . . . . . . . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │           . . .   . . . . . . . . .   . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │         . . . . . . . . .       . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . .   . . . . </span><br><span class="line">  v</span><br><span class="line">    &lt;-------------------- time ---------------------&gt;</span><br></pre></td></tr></table></figure>
+<p>关于写放大的问题？</p>
+<p>解决方案:</p>
+<ul>
+<li>Writes are now batched, samples are stored sequentially</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> tree ./data</span></span><br><span class="line">./data</span><br><span class="line">├── b-000001</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   ├── 000001</span><br><span class="line">│   │   ├── 000002</span><br><span class="line">│   │   └── 000003</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000004</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000005</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">└── b-000006</span><br><span class="line">    ├── meta.json</span><br><span class="line">    └── wal</span><br><span class="line">        ├── 000001</span><br><span class="line">        ├── 000002</span><br><span class="line">        └── 000003</span><br></pre></td></tr></table></figure>
+<p>Queried data can be rather aggressively cached in memory, yet under memory pressure the pages will be evicted. If the machine has unused memory, Prometheus will now happily cache the entire database, yet will immediately return it once another application needs it.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/15/golang-distributed-data-store/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -977,188 +1152,6 @@
 <p>把自己想象成为万物的一种，去沉浸在自己做的事情中，这样就不会去焦虑和急躁。。。</p>
 <p>锻炼上慢慢开始恢复。。</p>
 <p>相关的一些时间管理上，慢慢恢复起来。。。不要偷懒。。。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/04/sometime-conclusion/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/07/04/sometime-conclusion/" itemprop="url">近段时间的总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-04T22:12:01+08:00">
-                2018-07-04
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T21:58:38+08:00">
-                2018-09-16
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/07/04/sometime-conclusion/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/04/sometime-conclusion/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>由于本身工作，找工作，借钱等问题，导致这段时间异常焦躁，异常地烦躁不安，心静不下来。。哎。。。</p>
-<hr>
-<p>找工作的事情</p>
-<ul>
-<li>还是很想去freewheel这样，看有没有机会去感受一下大一点的数据，也去感受一下所谓的外企的氛围</li>
-<li>或者去ai公司去搞后端。。</li>
-<li>或者其他的方向</li>
-</ul>
-<p>按照计划，按部就班的来，准备好一些tips，对于面试部分准备充分一些。。</p>
-<p>把面试当做学习，做好总结和归纳。。</p>
-<p>没有什么是一定可以获得的，也不要太多幻想以后的事情，做好现在的事情，学习更多的东西就可以了，其他的都不受控制。。</p>
-<p>能给个offer就可以了。。</p>
-<hr>
-<p>本身工作的事情：</p>
-<ul>
-<li>总结一下，运维上的一些事情，关于tracker部分的一些工作，</li>
-<li>复习以及本身工作方面，平衡好。。。</li>
-</ul>
-<p>做好正念，把心思放到做的每一件事情上，不要让心思各种摇摆，导致杂念丛生。。</p>
 
           
         

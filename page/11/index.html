@@ -249,6 +249,196 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="url">Pprof for investigated memory leaks</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">
+                2019-09-02
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-20T14:59:15+08:00">
+                2019-09-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/02/pprof-for-investigated-memory-leaks/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>memory pressure</strong>issues materialize are:</p>
+<ul>
+<li>Too many allocations, incorrect data representation</li>
+<li>Heavy usage of reflection or strings</li>
+<li>Using globals</li>
+<li>Orphaned, never-ending goroutines</li>
+</ul>
+<p>利用golang实现blockchain</p>
+<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
+<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
+<p>Go has several built in profiles for us to use in common cases:</p>
+<ul>
+<li>goroutine — stack traces of all current goroutines</li>
+<li>heap — a sampling of memory allocations of live objects</li>
+<li>allocs — a sampling of all past memory allocations</li>
+<li>threadcreate — stack traces that led to the creation of new OS threads</li>
+<li>block — stack traces that led to blocking on synchronization primitives</li>
+<li>mutex — stack traces of holders of contended mutexes</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
+<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
+</ul>
+<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
+<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -889,175 +1079,6 @@
 <p>when we delete the database called postgres, this should result in the automatic garbage collection of the namespace “postgres-namespace”.</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">kubectl get database postgres -oyaml | grep uid</span><br></pre></td></tr></table></figure>
 <p>通过ownerRefrence去关联不同scope之间的resouce，但始终都有一个uid来关联</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/08/26/migrate-rest-to-http-2/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/08/26/migrate-rest-to-http-2/" itemprop="url">migrate rest to http/2</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-26T11:06:33+08:00">
-                2019-08-26
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-05T14:34:01+08:00">
-                2019-09-05
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/rest/" itemprop="url" rel="index">
-                    <span itemprop="name">rest</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/08/26/migrate-rest-to-http-2/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/08/26/migrate-rest-to-http-2/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://blog.usejournal.com/migrating-your-rest-apis-to-http-2-why-and-how-8caee7d798fb" target="_blank" rel="noopener">原文链接</a></p>
-<p>HTTP/1.x traditionally used newline-delimited text to transfer data. It is slower, larger, and more error-prone compared to binary</p>
-<p><img src="http://ww3.sinaimg.cn/large/006y8mN6ly1g6cwpn5uszj30rk0nu0vc.jpg" alt="different"></p>
-<p>HTTP/2 breaks down the HTTP protocol communication into an exchange of binary-encoded frames, which are then mapped to messages that belong to a particular stream, all of which are multiplexed within a single TCP connection.</p>
-<p>header compression HPACK</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> EmbeddedServletContainerCustomizer <span class="title">tomcatCustomizer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (container) -&gt; &#123;</span><br><span class="line">        <span class="keyword">if</span> (container <span class="keyword">instanceof</span> TomcatEmbeddedServletContainerFactory) &#123;</span><br><span class="line">            ((TomcatEmbeddedServletContainerFactory) container)</span><br><span class="line">                    .addConnectorCustomizers((connector) -&gt; &#123;</span><br><span class="line">                connector.addUpgradeProtocol(<span class="keyword">new</span> Http2Protocol());</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         

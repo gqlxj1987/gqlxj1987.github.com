@@ -249,6 +249,179 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/08/Almighty-pause-container/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/09/08/Almighty-pause-container/" itemprop="url">Almighty pause container</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-08T15:30:05+08:00">
+                2019-09-08
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-08T15:49:47+08:00">
+                2019-09-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/docker/" itemprop="url" rel="index">
+                    <span itemprop="name">docker</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/08/Almighty-pause-container/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/08/Almighty-pause-container/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://www.ianlewis.org/en/almighty-pause-container" target="_blank" rel="noopener">原文链接</a></p>
+<p>Kubernetes provides a clean abstraction called pods for just this use case. It hides the complexity of Docker flags and the need to babysit the containers, shared volumes, and the like. It also hides differences between container runtimes</p>
+<p>In Kubernetes, the pause container serves as the “parent container” for all of the containers in your pod. The pause container has two core responsibilities. First, it serves as the basis of Linux namespace sharing in the pod. And second, with PID (process ID) namespace sharing enabled, it serves as PID 1 for each pod and reaps zombie processes.</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name pause -p 8080:80 gcr.io/google_containers/pause-amd64:3.0</span></span><br><span class="line"></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name nginx -v `<span class="built_in">pwd</span>`/nginx.conf:/etc/nginx/nginx.conf --net=container:pause --ipc=container:pause --pid=container:pause nginx</span></span><br><span class="line"></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name ghost --net=container:pause --ipc=container:pause --pid=container:pause ghost</span></span><br></pre></td></tr></table></figure>
+<p><img src="https://storage.googleapis.com/static.ianlewis.org/prod/img/767/pause_container.png" alt="pause container"></p>
+<p>Zombie processes are processes that have stopped running but their process table entry still exists because the parent process hasn’t retrieved it via the <code>wait</code> syscall. Technically each process that terminates is a zombie for a very short period of time but they could live for longer.</p>
+<p>Longer lived zombie processes occur when parent processes don’t call the <code>wait</code> syscall after the child process has finished</p>
+<p>但并不是所有的container部分都可以被指定为PID为1的角色</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sigdown</span><span class="params">(<span class="keyword">int</span> signo)</span> </span>&#123;</span><br><span class="line">  psignal(signo, <span class="string">"Shutting down, got signal"</span>);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sigreap</span><span class="params">(<span class="keyword">int</span> signo)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (waitpid(<span class="number">-1</span>, <span class="literal">NULL</span>, WNOHANG) &gt; <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (getpid() != <span class="number">1</span>)</span><br><span class="line">    <span class="comment">/* Not an error because pause sees use outside of infra containers. */</span></span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Warning: pause should be the first process\n"</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGINT, &amp;(struct sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGTERM, &amp;(struct sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGCHLD, &amp;(struct sigaction)&#123;.sa_handler = sigreap,</span><br><span class="line">                                             .sa_flags = SA_NOCLDSTOP&#125;,</span><br><span class="line">                <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (;;)</span><br><span class="line">    pause();</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Error: infinite loop terminated\n"</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">42</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If PID namespace sharing is not enabled then each container in a Kubernetes pod will have its own PID 1 and each one will need to reap zombie processes itself.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/06/basic-jit-compiler/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -898,196 +1071,6 @@
 <li>eBPF support to instrument kernel and user space activities</li>
 <li>oversampling and percentile metrics to capture bursts</li>
 </ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="url">Pprof for investigated memory leaks</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">
-                2019-09-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-20T14:59:15+08:00">
-                2019-09-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/09/02/pprof-for-investigated-memory-leaks/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192" target="_blank" rel="noopener">原文链接</a></p>
-<p><strong>memory pressure</strong>issues materialize are:</p>
-<ul>
-<li>Too many allocations, incorrect data representation</li>
-<li>Heavy usage of reflection or strings</li>
-<li>Using globals</li>
-<li>Orphaned, never-ending goroutines</li>
-</ul>
-<p>利用golang实现blockchain</p>
-<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
-<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
-<p>Go has several built in profiles for us to use in common cases:</p>
-<ul>
-<li>goroutine — stack traces of all current goroutines</li>
-<li>heap — a sampling of memory allocations of live objects</li>
-<li>allocs — a sampling of all past memory allocations</li>
-<li>threadcreate — stack traces that led to the creation of new OS threads</li>
-<li>block — stack traces that led to blocking on synchronization primitives</li>
-<li>mutex — stack traces of holders of contended mutexes</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
-<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
-</ul>
-<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
-<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
 
           
         

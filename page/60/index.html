@@ -249,6 +249,192 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/29/order-schedule/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/29/order-schedule/" itemprop="url">外卖的订单分配策略</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-29T16:19:43+08:00">
+                2018-06-29
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-06-29T19:15:21+08:00">
+                2018-06-29
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/schedule/" itemprop="url" rel="index">
+                    <span itemprop="name">schedule</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/06/29/order-schedule/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/29/order-schedule/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://tech.meituan.com/O2O_Intelligent_distribution.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>系统首先通过优化设定配送费以及预计送达时间来调整订单结构；在接收订单之后，考虑骑手位置、在途订单情况、骑手能力、商家出餐、交付难度、天气、地理路况、未来单量等因素，在正确的时间将订单分配给最合适的骑手，并在骑手执行过程中随时预判订单超时情况并动态触发改派操作，实现订单和骑手的动态最优匹配；同时，系统派单后，为骑手提示该商家的预计出餐时间和合理的配送线路，并通过语音方式和骑手实现高效交互；在骑手送完订单后，系统根据订单需求预测和运力分布情况，告知骑手不同商圈的运力需求情况，实现闲时的运力调度。</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/2.png" alt="基础架构"></p>
+<p>如何从实际问题中去建模</p>
+<p>一个决策优化问题的数学模型，一般包括三个要素：</p>
+<ul>
+<li>决策变量</li>
+<li>优化目标</li>
+<li>约束条件</li>
+</ul>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/3.png" alt="决策变量"></p>
+<p>变量说明：</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/4.png" alt="定义"></p>
+<p>优化目标：</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/5.png" alt="目标"></p>
+<p>约束条件:</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/6.png" alt="约束条件"></p>
+<p>运筹优化领域中的马尔可夫决策过程描述的就是这样的一类在不确定、信息不完备环境下的序贯决策优化问题。</p>
+<p>优化方面，一是问题特征分析，</p>
+<p>二是跨学科结合，把订单分配问题转换为图论中的二分图匹配问题来解决。常用的一个方法是先对订单进行打包，将可以由一个人完成的多个订单组成一个任务，再使用二分图匹配算法（匈牙利算法、KM 算法）来解决</p>
+<p>即时配送的强不确定性部分，一是延迟调度策略，即在某些场景订单可以不被指派出去，在不影响订单超时的情况下，延迟做出决策；二是系统自动改派策略，即订单即便已经派给了骑手，后台的智能算法仍然会实时评估各个骑手的位置、订单情况，并帮助骑手进行分析，判断是否存在超时风险</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/12.png" alt="仿真架构"></p>
+<p>线下仿真架构</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/29/scrum-gets-wrong/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -900,172 +1086,6 @@
 <p>无向图G有N个结点，它的边上带有正的权重值，过路最短问题</p>
 <p>迪杰斯特拉，最短路径问题</p>
 <p>当阅读一个题目并且开始尝试解决它时，首先看一下它的限制。 如果要求在多项式时间内解决，那么该问题就很可能要用DP来解。遇到这种情况， 最重要的就是找到问题的“状态”和“状态转移方程”。(状态不是随便定义的， 一般定义完状态，你要找到当前状态是如何从前面的状态得到的， 即找到状态转移方程)如果看起来是个DP问题，但你却无法定义出状态， 那么试着将问题规约到一个已知的DP问题(正如“高级”一节中的例子一样)。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/26/worldcup-graphQL/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/26/worldcup-graphQL/" itemprop="url">WorldCup graphQL</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-26T15:17:11+08:00">
-                2018-06-26
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-27T16:39:37+08:00">
-                2018-06-27
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphQL/" itemprop="url" rel="index">
-                    <span itemprop="name">graphQL</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/26/worldcup-graphQL/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/26/worldcup-graphQL/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.freecodecamp.org/building-the-2018-world-cup-graphql-api-fab40ccecb9e" target="_blank" rel="noopener">原文链接</a></p>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*zfRcG-bR_cMXR8cF" alt="sql struct"></p>
-<figure class="highlight"><table><tr><td class="code"><pre><span class="line">query &#123;</span><br><span class="line">  players(name:”Lionel Messi”) &#123;</span><br><span class="line">    name</span><br><span class="line">    dob</span><br><span class="line">    allGoals</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         

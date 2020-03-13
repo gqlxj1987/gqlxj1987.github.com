@@ -249,6 +249,181 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/08/05/bulletproof-code-in-go/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/08/05/bulletproof-code-in-go/" itemprop="url">Bulletproof code in go</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-05T19:42:08+08:00">
+                2019-08-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-08T23:47:56+08:00">
+                2019-09-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/08/05/bulletproof-code-in-go/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/08/05/bulletproof-code-in-go/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/free-code-camp/how-to-write-bulletproof-code-in-go-a-workflow-for-servers-that-cant-fail-10a14a765f22" target="_blank" rel="noopener">原文链接</a></p>
+<p>The task: building a server that really isn’t allowed to fail, a project where the cost of error is extraordinarily high</p>
+<p>TDD is a great methodology that works well for some, but by itself it still isn’t enough. Even worse, TDD instills false confidence in code and may make developers lazy when considering paranoid edge cases. </p>
+<p>No part of our confidence in our code can result from a manual QA process. Humans make mistakes. Human attention to detail deteriorates after doing the same mind-numbing task a hundred times in a row.</p>
+<p>Tests must be fast. Blazingly fast.</p>
+<p>If  a test suite takes more than a few seconds to run, developers are  likely going to become lazy, pushing code without running it.</p>
+<p>Dealing gracefully with errors in runtime is a cornerstone for bulletproof code.</p>
+<p>Complexity is the worst enemy of bulletproof code. One of the best ways to deal with complexity is <em>divide and conquer</em> — split the problem into smaller problems and solve each one separately.</p>
+<p>面向接口编程，protobuf部分</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> spec</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> ...</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> _ = Describe(<span class="string">"Sanity"</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		node services.Node</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	BeforeEach(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		node = services.NewNode()</span><br><span class="line">		node.Start()</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	AfterEach(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		node.Stop()</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	It(<span class="string">"should show balances with GET /api/balance"</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		resp, err := http.Get(<span class="string">"http://localhost:8080/api/balance?from=user1"</span>)</span><br><span class="line">		Expect(err).ToNot(HaveOccurred())</span><br><span class="line">		Expect(resp.StatusCode).To(Equal(http.StatusOK))</span><br><span class="line">		Expect(ResponseBodyAsString(resp)).To(Equal(<span class="string">"0"</span>))</span><br><span class="line">	&#125;)</span><br><span class="line">  </span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p><a href="https://golang.org/pkg/sync/#Map" target="_blank" rel="noopener"><code>sync.Map</code></a></p>
+<p><a href="https://github.com/orbs-network/go-scaffold" target="_blank" rel="noopener">Scafford started project</a>包含各种测试目录部分，利用它来新建相关的project</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/08/02/future-of-distributed-data-systems/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -922,173 +1097,6 @@
 <p>A widely employed strategy for building new versions of software is the <a href="https://www.martinfowler.com/bliki/StranglerApplication.html?source=post_page---------------------------" target="_blank" rel="noopener">strangler pattern</a><br>where you progressively migrate and deploy functionality from one version of a software to the next one, all the while keeping the<br>structure of the events same</p>
 <h3 id="Event-ful_pitfalls">Event-ful pitfalls</h3><p>The most important problem is one of tracking business workflows. Since systems do not collborate with each other but rather with events, it becomes difficult to track what the status of any business process is. Long pipelines like order processing become very difficult to track and manage. Answering “define the complete process of order fulfilment” can have you running all over the engineering department!</p>
 <p>The other, lesser problem is around error handling. If one system suffers from an outage and loses some messages, there is no<br>straightforward way to re-generate/replay them. The publisher gives no guarantee that it can re-publish them. Persistent messaging system like Kafka help to a certain extent, but guaranteeing their uptime and resilience, even more than the core services, becomes a mission critical problem for the whole company</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/15/akka-cluster-k8s/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/07/15/akka-cluster-k8s/" itemprop="url">Akka Cluster & K8s</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-15T11:59:50+08:00">
-                2019-07-15
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index">
-                    <span itemprop="name">akka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/07/15/akka-cluster-k8s/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/15/akka-cluster-k8s/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://www.slideshare.net/JontheBeach/cloud-native-akka-kubernetes-the-holy-grail-to-elasticity" target="_blank" rel="noopener">slide</a></p>
-<p>需要有seed node部分，master/worker的结构</p>
-<p>http vs remote actor messaging</p>
-<p>remote actor message performance 更好？</p>
 
           
         

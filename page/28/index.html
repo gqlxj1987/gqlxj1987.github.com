@@ -249,6 +249,182 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/14/event-bus-in-go/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/14/event-bus-in-go/" itemprop="url">Event bus in go</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-14T10:43:17+08:00">
+                2019-03-14
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/14/event-bus-in-go/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/14/event-bus-in-go/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://levelup.gitconnected.com/lets-write-a-simple-event-bus-in-go-79b9480d8997" target="_blank" rel="noopener">原文链接</a></p>
+<p>The traditional approach to implementing an event bus involves using callbacks. Subscribers usually implement an interface and then the event bus propagates data via the interface.</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> DataEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">   Data <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">   Topic <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DataChannel is a channel which can accept an DataEvent</span></span><br><span class="line"><span class="keyword">type</span> DataChannel <span class="keyword">chan</span> DataEvent</span><br><span class="line"><span class="comment">// DataChannelSlice is a slice of DataChannels</span></span><br><span class="line"><span class="keyword">type</span> DataChannelSlice [] DataChannel</span><br></pre></td></tr></table></figure>
+<p>关键的数据结构</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// EventBus stores the information about subscribers interested for // a particular topic</span></span><br><span class="line"><span class="keyword">type</span> EventBus <span class="keyword">struct</span> &#123;</span><br><span class="line">   subscribers <span class="keyword">map</span>[<span class="keyword">string</span>]DataChannelSlice</span><br><span class="line">   rm sync.RWMutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>publisher</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(eb *EventBus)</span><span class="title">Publish</span><span class="params">(topic <span class="keyword">string</span>, data <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">   eb.rm.RLock()</span><br><span class="line">   <span class="keyword">if</span> chans, found := eb.subscribers[topic]; found &#123;</span><br><span class="line">      <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(data DataEvent, dataChannelSlices DataChannelSlice)</span></span> &#123;</span><br><span class="line">         <span class="keyword">for</span> _, ch := <span class="keyword">range</span> dataChannelSlices &#123;</span><br><span class="line">            ch &lt;- data</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;(DataEvent&#123;Data: data, Topic:topic&#125;, chans)</span><br><span class="line">   &#125;</span><br><span class="line">   eb.rm.RUnlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代替callback？</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ch1 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch2 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch3 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line"></span><br><span class="line">	eb.Subscribe(<span class="string">"topic1"</span>, ch1)</span><br><span class="line">	eb.Subscribe(<span class="string">"topic2"</span>, ch2)</span><br><span class="line">	eb.Subscribe(<span class="string">"topic2"</span>, ch3)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">"topic1"</span>, <span class="string">"Hi topic 1"</span>)</span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">"topic2"</span>, <span class="string">"Welcome to topic 2"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch1:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">"ch1"</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch2:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">"ch2"</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch3:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">"ch3"</span>, d)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从代码看来，subscribe部分，也只是接受数据，后面可以统一定义操作？再做一层</p>
+<blockquote>
+<p><em>I’ve used a slice to store all the subscribers for a topic. This is used to simplifying the article. This need to be replaced with a</em> <strong>SET</strong> <em>so no duplicate entries present in the list</em></p>
+</blockquote>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/knative/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -889,173 +1065,6 @@
 <figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">ReactDOM.render(</span><br><span class="line">  &lt;div&gt;</span><br><span class="line">    &lt;App text=<span class="string">"Hello World"</span> /&gt;</span><br><span class="line">    &lt;App text=<span class="string">"How are you doing?"</span> /&gt;</span><br><span class="line">  &lt;<span class="regexp">/div&gt;,</span></span><br><span class="line"><span class="regexp">  document.getElementById('app')</span></span><br><span class="line"><span class="regexp">);</span></span><br></pre></td></tr></table></figure>
 <p>React allows each control to specify its own data store, called <strong>state</strong>.</p>
 <p>首先是组件的思想，然后有组件的话，必然会涉及到状态</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/10/javascript-callback/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/10/javascript-callback/" itemprop="url">Javascript Callback</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-10T14:42:48+08:00">
-                2019-03-10
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/javascript/" itemprop="url" rel="index">
-                    <span itemprop="name">javascript</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/10/javascript-callback/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/10/javascript-callback/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://codeburst.io/javascript-what-the-heck-is-a-callback-aba4da2deced" target="_blank" rel="noopener">原文链接</a></p>
-<p><strong>Simply put:</strong> <em>A callback is a function that is to be executed</em> <strong>after</strong> <em>another function has finished executing — hence the name ‘call back’.</em></p>
-<p><strong>More complexly put:</strong> <em>In JavaScript, functions are objects. Because of this, functions can take functions as arguments, and can be returned by other functions. Functions that do this are called</em> <strong>higher-order functions</strong>. Any function that is passed as an argument is called a<em> <em>*callback function</em></em>.</p>
-<p><a href="https://codeburst.io/build-a-simple-twitter-bot-with-node-js-in-just-38-lines-of-code-ed92db9eb078" target="_blank" rel="noopener">twitter bot code</a></p>
 
           
         
