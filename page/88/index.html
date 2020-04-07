@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/20/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/07/redis-pool-timeout/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/20/one-week/" itemprop="url">海边的曼彻斯特</a></h1>
+                <a class="post-title-link" href="/2017/05/07/redis-pool-timeout/" itemprop="url">Redis connection pool timeout</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-20T22:27:38+08:00">
-                2017-02-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T16:29:06+08:00">
+                2017-05-07
               </time>
             
 
@@ -296,8 +296,192 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-20T23:39:40+08:00">
-                2017-02-20
+              <time title="更新于" itemprop="dateModified" datetime="2017-06-20T23:59:33+08:00">
+                2017-06-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/05/07/redis-pool-timeout/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/07/redis-pool-timeout/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>在jinwu的运行过程中，出现过，在取redis中的数值时</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br></pre></td></tr></table></figure>
+<p>在将poolsize升至500后，有时会出现这样的错误：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">win id error ERR max number of clients reached</span><br><span class="line">response id error ERR max number of clients reached</span><br></pre></td></tr></table></figure>
+<p>出现这样的问题，可能是因为：</p>
+<blockquote>
+<ul>
+<li>Redis is busy doing some expensive work (unlikely)</li>
+<li>you use PubSub or Multi and don’t close it correctly (multi.Close() when multi is not needed any more) so connection is not returned to the pool</li>
+</ul>
+</blockquote>
+<p>猜测的原因，是因为并发数太大，导致redis部分的pool connection没有及时释放。</p>
+<p>注意到redis连接option中这样的一个参数：</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Options <span class="keyword">struct</span> &#123;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The maximum number of socket connections.</span></span><br><span class="line">	<span class="comment">// Default is 10 connections.</span></span><br><span class="line">	PoolSize <span class="keyword">int</span></span><br><span class="line">	<span class="comment">// Specifies amount of time client waits for connection if all</span></span><br><span class="line">	<span class="comment">// connections are busy before returning an error.</span></span><br><span class="line">	<span class="comment">// Default is 1 seconds.</span></span><br><span class="line">	PoolTimeout time.Duration</span><br><span class="line">	<span class="comment">// Specifies amount of time after which client closes idle</span></span><br><span class="line">	<span class="comment">// connections. Should be less than server's timeout.</span></span><br><span class="line">	<span class="comment">// Default is to not close idle connections.</span></span><br><span class="line">	IdleTimeout time.Duration</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意到poolTimeout这样的参数，1s的timeout的设置，在高并发的情况，可能有些connection来不及返回，这样导致获取不到connection,这样就会出现timeout的情况</p>
+<p>于是，针对现有的情况，做了以下处理</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">Cluster = redis.NewClusterClient(&amp;redis.ClusterOptions&#123;</span><br><span class="line">        Addrs:        addresses,</span><br><span class="line">        PoolSize:     <span class="number">1000</span>,</span><br><span class="line">        PoolTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        IdleTimeout:  <span class="number">10</span> * time.Minute,</span><br><span class="line">        ReadTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        WriteTimeout: <span class="number">1</span> * time.Minute,</span><br><span class="line">        <span class="comment">// Password: password,</span></span><br><span class="line">    &#125;)</span><br></pre></td></tr></table></figure>
+<p>将pooltimeout以及相关的timeout设置地稍微大一些，是不是可以避免这样因为高并发引起的timeout的bug？</p>
+<p>当然，这样的情况，主要是针对接口不是那么实时，不需要在1s以内返回这样的接口</p>
+<p>解决思路参考：</p>
+<p><a href="https://github.com/go-redis/redis/issues/195" target="_blank" rel="noopener">connection pool timeout</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/07/one-week/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/05/07/one-week/" itemprop="url">空帆船</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T11:04:12+08:00">
+                2017-05-07
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-07T11:31:34+08:00">
+                2017-05-07
               </time>
             
           </span>
@@ -333,8 +517,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/20/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/20/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/05/07/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/07/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,49 +548,48 @@
       
         
           
-            <p>逃避可耻但有用，但有的时候，不愿意逃避，也不愿意走出来</p>
-<p>一切都会好起来，很多时候并不适用于现实生活</p>
+            <p>我迎着风</p>
+<p>金山银山 繁华云烟 温柔之夜</p>
+<p>我什么也不带走</p>
+<p>我爱这艰难又拼尽了全力的每一天</p>
+<hr>
 <p>本周完成：</p>
 <ul>
-<li><p>parse部分，完成100%上线</p>
+<li><p>修复redis高并发下的bug，主要是一些pool参数的一些设置问题</p>
 </li>
-<li><p>相关的数据需求部分整理</p>
+<li><p>代码部分的重构，加入git父子模块部分</p>
 </li>
-<li><p>相关日志部分，加入按照hourly部分的redis key</p>
-</li>
-<li><p>进行相关在线数据的获取</p>
+<li><p>监控部分开始整理，针对在线数据部分</p>
 </li>
 </ul>
-<p>未完成：</p>
+<p>本周未完成：</p>
 <ul>
-<li><p>相关数据获取的及时性和快捷性考虑</p>
+<li><p>监控文档部分未完成</p>
 </li>
-<li><p>后续OKR部分</p>
+<li><p>关于代码重构部分</p>
 </li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>关于kafka consumer performance 的一些测试想法？通过增加partition来扩大并行度？</p>
+<li><p>代码重构部分，看能否提取一些公共库出来</p>
 </li>
-<li><p>golang chan pipeline部分去做些concurrent programing部分？</p>
+<li><p>关于uuid的重复部分，取rand部分</p>
+</li>
+<li><p>redis的pool参数设置问题</p>
+</li>
+<li><p>关于seelog部分的按照分钟来取</p>
 </li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li>关于取数据的及时性和快捷性考虑</li>
+<li><p>监控的文档部分的整理</p>
+</li>
+<li><p>在线数据部分整理维度，相关数据进行整合</p>
+</li>
 </ul>
-<ul>
-<li>梳理在线以及离线数据处理范围，尤其是离线部分，关于数据报告部分，可以开始进行整理需求</li>
-</ul>
-<ul>
-<li>OKR部分的确认</li>
-</ul>
-<ul>
-<li>考虑日志的归一化问题</li>
-</ul>
-<p>开始写一些技术文章部分，不错的开始。。后续继续</p>
-<p>后面，关于架构部分，看没有机会落成一些实际的项目部分</p>
-<p>之前想开源的部分，也要慢慢补上。。</p>
+<p>一年过去了。。重新慢慢回到轨道上。。</p>
+<p>锻炼，吉他，文章，读书部分，强制性地去调整状态，不要想那么多，该是什么样就是什么样</p>
+<p>forever young~</p>
 
           
         
@@ -455,7 +638,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/15/google-spanner/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/02/designing-data-intensive-applications/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -474,7 +657,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/15/google-spanner/" itemprop="url">Google Spanner</a></h1>
+                <a class="post-title-link" href="/2017/05/02/designing-data-intensive-applications/" itemprop="url">Designing-Data-Intensive-Applications</a></h1>
         
 
         <div class="post-meta">
@@ -486,8 +669,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-15T23:28:51+08:00">
-                2017-02-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-02T18:41:07+08:00">
+                2017-05-02
               </time>
             
 
@@ -502,8 +685,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-28T10:08:58+08:00">
-                2017-02-28
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-08T19:48:09+08:00">
+                2017-05-08
               </time>
             
           </span>
@@ -521,8 +704,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/spanner/" itemprop="url" rel="index">
-                    <span itemprop="name">spanner</span>
+                  <a href="/categories/data-intensive/" itemprop="url" rel="index">
+                    <span itemprop="name">data-intensive</span>
                   </a>
                 </span>
 
@@ -539,8 +722,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/15/google-spanner/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/15/google-spanner/" itemprop="commentCount"></span>
+                <a href="/2017/05/02/designing-data-intensive-applications/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/02/designing-data-intensive-applications/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -570,36 +753,30 @@
       
         
           
-            <p><a href="https://research.google.com/archive/spanner.html" target="_blank" rel="noopener">Spanner: Google’s Globally-Distributed Database</a></p>
-<h2 id="Agenda:">Agenda:</h2><ul>
-<li><p>Overview</p>
-</li>
-<li><p>Property</p>
-</li>
-<li><p>Implements</p>
-</li>
+            <p>原文参考：</p>
+<p><a href="http://tech.marksblogg.com/designing-data-intensive-applications-review.html?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_79" target="_blank" rel="noopener">A Review of “Designing Data-Intensive Applications”</a></p>
+<h3 id="Foundations_of_Data_Systems">Foundations of Data Systems</h3><p>In a section of describing performance the concepts of percentiles, outliers, latency and response times are introduced to help quantify performance.</p>
+<p>Approaches to interacting with data are discussed with SQL and MapReduce receiving the most attention</p>
+<p>Big-O notation is introduced to explain computational complexity of algorithms</p>
+<p>Append-only systems, b-trees, bloom filters, hash maps, sorted string tables, log-structured merge-trees are all brought up. </p>
+<p>Storage system implementation details such as how to handle deleting records, crash recovery, partially-written records and concurrency control are covered as well. It’s also explained how the above play a role in systems such as Google’s Bigtable, HBase, Cassandra and Elasticsearch to name a few.</p>
+<p>Page 88 onward does a good job of contrasting OLTP and OLAP systems and uses this as a segue into data warehousing. </p>
+<p>Data cubes, ETL, column-oriented storage, star- and snowflake schemas, fact and dimension tables, sort orderings and aggregation are all discussed. Teradata, Vertica, SAP HANA and ParAccel, Redshift and Hadoop are mentioned as systems incorporating these concepts into their offerings</p>
+<p>data flow:<br>REST, RPC, microservices, streams and message brokers are explained and implementations such as TIBCO, IBM WebSphere, webMethods, RabbitMQ, ActiveMQ, HornetQ, NATS and Kafka are referenced.</p>
+<h3 id="Distributed_Data">Distributed Data</h3><p>multiple machines problems:<br>Single-leader, multi-leader and leaderless replication, synchronous and asynchronous replication, fault tolerance, node outages, leadership elections, replication logs, consistency, monotonic reads, consistent prefix reads and replication lag are all discussed</p>
+<p>partitioning data in order to achieve scalability:<br>shards in MongoDB, Elasticsearch and SolrCloud, regions in HBase, tablets in BigTable, vnodes in Cassandra and Riak and vBuckets in Couchbase.</p>
+<p>transaction:<br>ACID, weak isolation levels, dirty reads and writes, materialising conflicts, locks and MVCC.</p>
+<p>problems about distributed systems:<br>Network partitions, unreliable clocks, process pauses and mitigating garbage collection issues</p>
+<p>consistency and consensus:<br>The CAP theorem, linearisability, serialisability, quorums, ordering guarantees, coordinator failure, exactly-once message processing among many other topics</p>
+<h3 id="Derived_Data">Derived Data</h3><p>data flow engines such as Spark, Tez and Flink.</p>
+<p>batch processing against stream processing: “offline” data vs “online” data</p>
+<p>stream processing:<br>Producers, consumers, brokers, logs, offsets, topics, partitions, replaying, immutability, windowing methods, joins and fault tolerance</p>
+<h3 id="the_future_of_data">the future of data</h3><ul>
+<li>The second topic is migration of data between systems becoming as easy as the following would go a long way to make data systems act in a more unix pipe-like fashion.</li>
 </ul>
-<h3 id="Spanner">Spanner</h3><h4 id="Spanner的优势">Spanner的优势</h4><p>分布式多版本的数据库</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> mysql | elasticsearch</span></span><br></pre></td></tr></table></figure>
 <ul>
-<li><p>支持ACID</p>
-</li>
-<li><p>类sql query</p>
-</li>
-<li><p>Schematized table</p>
-</li>
-<li><p>半关系型</p>
-</li>
-</ul>
-<p>这里好像提到NewSql，相对于关系型以及NoSql</p>
-<ul>
-<li><p>针对读事务的无锁机制</p>
-</li>
-<li><p>额外的一致性模型</p>
-</li>
-<li><p>支持副本以及2PC</p>
-</li>
-<li><p>实时性部分？TrueTime，全局time部分？</p>
-</li>
+<li>on databases that check themselves for failure and auto-heal.</li>
 </ul>
 
           
@@ -649,7 +826,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/12/handling-1-million-requests-with-go/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/04/27/golang-memory/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -668,7 +845,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/12/handling-1-million-requests-with-go/" itemprop="url">使用go处理一百万请求</a></h1>
+                <a class="post-title-link" href="/2017/04/27/golang-memory/" itemprop="url">Golang 内存管理初探</a></h1>
         
 
         <div class="post-meta">
@@ -680,8 +857,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-12T17:50:12+08:00">
-                2017-02-12
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-27T00:03:01+08:00">
+                2017-04-27
               </time>
             
 
@@ -696,8 +873,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-13T00:33:49+08:00">
-                2017-02-13
+              <time title="更新于" itemprop="dateModified" datetime="2017-04-27T00:13:46+08:00">
+                2017-04-27
               </time>
             
           </span>
@@ -733,8 +910,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/12/handling-1-million-requests-with-go/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/12/handling-1-million-requests-with-go/" itemprop="commentCount"></span>
+                <a href="/2017/04/27/golang-memory/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/27/golang-memory/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -764,57 +941,21 @@
       
         
           
-            <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="noopener">原文链接</a></p>
-<p>Agenda:</p>
+            <p><a href="https://mp.weixin.qq.com/s/LXj5rrtmxB7NyQbOg9N5wA" target="_blank" rel="noopener">golang内存管理(上篇)</a></p>
+<p>tcmalloc的介绍</p>
+<p>一个Goroutine部分，分为G,M,P三个部分组成</p>
 <ul>
-<li><p>The Problem</p>
+<li><p>G Goroutine执行的上下文环境</p>
 </li>
-<li><p>The Solution</p>
+<li><p>M 操作系统线程</p>
 </li>
-<li><p>Conclusion</p>
+<li><p>P Processer. 调度器</p>
 </li>
 </ul>
-<h4 id="Problem">Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
-<p>先期采用worker-tier的方式</p>
-<ul>
-<li><p>Sidekiq</p>
-</li>
-<li><p>Resque</p>
-</li>
-<li><p>DelayedJob</p>
-</li>
-<li><p>Elasticbeanstalk Worker Tier</p>
-</li>
-<li><p>RabbitMQ</p>
-</li>
-<li><p>and so on…</p>
-</li>
-</ul>
-<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
-<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
-<h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Go through each payload and queue items individually to be posted to S3</span><br><span class="line">for _, payload := range content.Payloads &#123;</span><br><span class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
-<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
-<blockquote>
-<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
-</blockquote>
-<p>相关的数据结构为：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">type Worker struct &#123;</span><br><span class="line">	WorkerPool  chan chan Job</span><br><span class="line">	JobChannel  chan Job</span><br><span class="line">	quit    	chan bool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
-<p>关键的代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">for &#123;</span><br><span class="line">		select &#123;</span><br><span class="line">		case job := &lt;-JobQueue:</span><br><span class="line">			// a job request has been received</span><br><span class="line">			go func(job Job) &#123;</span><br><span class="line">				// try to obtain a worker job channel that is available.</span><br><span class="line">				// this will block until a worker is idle</span><br><span class="line">				jobChannel := &lt;-d.WorkerPool</span><br><span class="line"></span><br><span class="line">				// dispatch the job to the worker job channel</span><br><span class="line">				jobChannel &lt;- job</span><br><span class="line">			&#125;(job)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
-<p>此处为dispatcher操作</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Start method starts the run loop for the worker, listening for a quit channel in</span><br><span class="line">// case we need to stop it</span><br><span class="line">func (w Worker) Start() &#123;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		for &#123;</span><br><span class="line">			// register the current worker into the worker queue.</span><br><span class="line">			w.WorkerPool &lt;- w.JobChannel</span><br><span class="line"></span><br><span class="line">			select &#123;</span><br><span class="line">			case job := &lt;-w.JobChannel:</span><br><span class="line">				// we have received a work request.</span><br><span class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</span><br><span class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">			case &lt;-w.quit:</span><br><span class="line">				// we have received a signal to stop</span><br><span class="line">				return</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>此处为worker内部的操作</p>
-<p>带来的效果是，服务器数量从100台drop到20台。</p>
-<h4 id="Conclusion">Conclusion</h4><blockquote>
-<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
-</blockquote>
-<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
-<blockquote>
-<p>There is always the right tool for the job</p>
-</blockquote>
+<h4 id="逃逸分析">逃逸分析</h4><figure class="highlight golang"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> ()</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> *<span class="title">int</span></span> &#123;  </span><br><span class="line">  <span class="keyword">var</span> x <span class="keyword">int</span></span><br><span class="line">  <span class="keyword">return</span> &amp;x</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">bar</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">  x := <span class="built_in">new</span>(<span class="keyword">int</span>)</span><br><span class="line">  *x = <span class="number">1</span></span><br><span class="line">  <span class="keyword">return</span> *x</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>关于执行的命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> go run -gcflags <span class="string">'-m -l'</span> escape.go</span></span><br><span class="line">./escape.go:6: moved to heap: x</span><br><span class="line">./escape.go:7: &amp;x escape to heap</span><br><span class="line">./escape.go:11: bar new(int) does not escape</span><br></pre></td></tr></table></figure>
+<p>注意上面的代码，foo()的x是分配到堆上，而bar()中的x是分配到栈上</p>
 
           
         
@@ -863,7 +1004,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/12/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/04/24/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -882,7 +1023,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/12/one-week/" itemprop="url">逃避虽然可耻但有用</a></h1>
+                <a class="post-title-link" href="/2017/04/24/one-week/" itemprop="url">回归初心</a></h1>
         
 
         <div class="post-meta">
@@ -894,8 +1035,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-12T16:03:27+08:00">
-                2017-02-12
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-24T22:34:03+08:00">
+                2017-04-24
               </time>
             
 
@@ -910,8 +1051,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-12T16:32:06+08:00">
-                2017-02-12
+              <time title="更新于" itemprop="dateModified" datetime="2017-04-24T23:37:55+08:00">
+                2017-04-24
               </time>
             
           </span>
@@ -947,8 +1088,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/12/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/12/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/04/24/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/24/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -978,230 +1119,38 @@
       
         
           
-            <p>单纯、平等、坦诚，作为处世的原则</p>
-<p>安稳、沁入人心</p>
-<p>本周工作：</p>
+            <p>听惯了网易云音乐，感觉太过重看中些评论，其实，有时候，只是想静静地听听音乐，回归豆瓣音乐，就是安静地听听音乐，其实挺好。。</p>
+<p>本周完成：</p>
 <ul>
-<li><p>上传的流量的切换至线上，已上60%，目前看起来还好</p>
+<li><p>完成bidder数据部分的整合</p>
 </li>
-<li><p>尝试进行hindsight的安装</p>
-</li>
-<li><p>收入抓取以及相关数据的修复</p>
-</li>
-<li><p>初步的OKR，自定义一部分</p>
+<li><p>重构代码</p>
 </li>
 </ul>
-<p>本周未完成：</p>
+<p>未完成：</p>
 <ul>
-<li>相关文档的整理</li>
-</ul>
-<ul>
-<li>关于arpu值部分的一些bug的修复</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>OKR的确认</li>
-</ul>
-<ul>
-<li>文档开始补全</li>
-</ul>
-<ul>
-<li>渠道监控部分代码的交接以及一些bug的修复</li>
-</ul>
-<ul>
-<li>上传部分上至100%，进行观察</li>
+<li><p>hawkeye相关数据的整理，关于数据部分的缺失</p>
+</li>
+<li><p>关于invalid connection错误的处理？</p>
+</li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>lua_sanbox部分的一些知识</p>
+<li><p>关于redis定义的部分，注意关于空值的一些处理，尽量不要使用空值的key去取数据</p>
 </li>
-<li><p>hindsight部分的一些考量</p>
+<li><p>关于goroutines的使用方面，主要是内存和CPU部分的使用</p>
 </li>
 </ul>
-<p>开始尝试写一些技术性的文章，来进行相关的总结，从读后感开始，再结合自己实际的项目经验</p>
-<p>关于之前开源的部分，也要慢慢捡起来，开源的目标不变</p>
-<p>其他日程上的工作也要按部就班地进行</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/09/hindsight/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/02/09/hindsight/" itemprop="url">hindsight</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-09T15:12:49+08:00">
-                2017-02-09
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-09T16:28:01+08:00">
-                2017-02-09
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/log/" itemprop="url" rel="index">
-                    <span itemprop="name">log</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/02/09/hindsight/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/09/hindsight/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://github.com/mozilla-services/hindsight" target="_blank" rel="noopener">hindsight</a> 作为hekad部分的替代者，成为日志处理部分的新宠</p>
-<p>Agenda:</p>
+<p>下周计划：</p>
 <ul>
-<li><p>项目起因</p>
+<li><p>关于hawkeye数据部分的整理</p>
 </li>
-<li><p>install guide</p>
-</li>
-<li><p>use tips</p>
-</li>
-<li><p>performance</p>
+<li><p>关于bidder数据以及文档的整理</p>
 </li>
 </ul>
-<h4 id="项目起因">项目起因</h4><p><a href="https://github.com/mozilla-services/heka" target="_blank" rel="noopener">heka</a> 作为使用golang编写，进行相关的日志处理，相比较logstash来说，相关的cpu利用率部分有所降低。同时，相对于logstash来说，支持多种插件(插件采用lua或者go编写)。</p>
-<h5 id="heka_vs_logstash">heka vs logstash</h5><p>在实际使用过程中，cpu的使用率部分，从400%降至100%左右</p>
-<p>logstash部分，采用gork正则的方式来过滤相关的信息</p>
-<p>heka部分，亦采用正则，辅之以lua脚本的方式</p>
-<p>门槛方面，logstash门槛较低，正则匹配较为简单；heka，需要加入插件部分的支持，同时需要lua脚本的支持</p>
-<h5 id="heka_vs_hindsight">heka vs hindsight</h5><p>hindsight利用<a href="https://github.com/mozilla-services/lua_sandbox" target="_blank" rel="noopener">lua sanbox</a>部分，再辅以<a href="https://github.com/mozilla-services/lua_sandbox_extensions" target="_blank" rel="noopener">lua_sandbox_extensions</a>来支持各种对日志的处理要求</p>
+<p>这次由于懒的问题，导致断档比较严重，后续不要这样子了。。。</p>
+<p>关于锻炼，还有学吉他部分，要慢慢恢复起来。。</p>
+<p>船到桥头自然直。。。</p>
 
           
         
@@ -1241,7 +1190,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/87/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/87/">87</a><span class="page-number current">88</span><a class="page-number" href="/page/89/">89</a><span class="space">&hellip;</span><a class="page-number" href="/page/108/">108</a><a class="extend next" rel="next" href="/page/89/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/87/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/87/">87</a><span class="page-number current">88</span><a class="page-number" href="/page/89/">89</a><span class="space">&hellip;</span><a class="page-number" href="/page/111/">111</a><a class="extend next" rel="next" href="/page/89/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

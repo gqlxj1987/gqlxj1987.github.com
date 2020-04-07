@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/31/failure-microservice/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/mson-better-than-json/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/01/31/failure-microservice/" itemprop="url">Designing a Microservices Architecture for Failure</a></h1>
+                <a class="post-title-link" href="/2018/03/20/mson-better-than-json/" itemprop="url">mson 让json序列化更快</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">
-                2018-01-31
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T10:19:07+08:00">
+                2018-03-20
               </time>
             
 
@@ -296,8 +296,346 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-01-31T16:05:17+08:00">
-                2018-01-31
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:45:22+08:00">
+                2018-03-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/mson/" itemprop="url" rel="index">
+                    <span itemprop="name">mson</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/03/20/mson-better-than-json/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/mson-better-than-json/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://tech.meituan.com/MSON.html?utm_source=tuicool&amp;utm_medium=referral" target="_blank" rel="noopener">原文链接</a></p>
+<p>可以发现Gson序列化占用了大部分的执行时间，从图2可以更直观地看到Gson.fromJson占用了61%的执行时间。分析Gson的源码可以发现，它在序列化时大量使用了反射，每一个field，每一个get、set都需要用反射，由此带来了性能问题。</p>
+<h4 id="减少反射">减少反射</h4><p>采用JSONObject的方式来做序列化，</p>
+<h4 id="简单且性能好的">简单且性能好的</h4><p>采用AnnotationProcessor(注解处理器)的方式，找到有JsonType注解的bean来处理，</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(fullClassName);</span><br><span class="line">ClassModel classModel = <span class="keyword">new</span> ClassModel().setModifier(<span class="string">"public final"</span>).setClassName(simpleClassName);</span><br><span class="line">......</span><br><span class="line">JavaFile javaFile = <span class="keyword">new</span> JavaFile();</span><br><span class="line">javaFile.setPackageModel(<span class="keyword">new</span> PackageModel().setPackageName(packageName))</span><br><span class="line">        .setImportModel(<span class="keyword">new</span> ImportModel()</span><br><span class="line">                .addImport(elementClassName)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonObject"</span>)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.IJsonArray"</span>)</span><br><span class="line">                .addImport(<span class="string">"com.meituan.android.MSON.exceptions.JsonParseException"</span>)</span><br><span class="line">                .addImports(extension.getImportList())</span><br><span class="line">        ).setClassModel(classModel);</span><br><span class="line"></span><br><span class="line">List&lt;? extends Element&gt; enclosedElements = element.getEnclosedElements();</span><br><span class="line"><span class="keyword">for</span> (Element e : enclosedElements) &#123;</span><br><span class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123;</span><br><span class="line">        processFieldElement(e, extension, toJsonMethodBlock, fromJsonMethodBlock);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">try</span> (Writer writer = sourceFile.openWriter()) &#123;</span><br><span class="line">    writer.write(javaFile.toSourceString());</span><br><span class="line">    writer.flush();</span><br><span class="line">    writer.close();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="继续优化">继续优化</h4><p>当JSON数据量比较大时用JSONObject处理会比较慢，究其原因是JSONObject会一次性将字符串读进来解析成一个map，这样会有比较大的内存浪费和频繁内存创建。经过调研Gson内部的实现细节，发现Gson底层有流式的解析器而且可以按需解析，可以做到匹配上的字段才去解析。根据这个发现我们将我们IJSONObject和IJsonArray换成了Gson底层的流解析来进一步优化我们的速度</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Friend object = <span class="keyword">new</span> Friend();</span><br><span class="line">reader.beginObject();</span><br><span class="line"><span class="keyword">while</span> (reader.hasNext()) &#123;</span><br><span class="line">    String field = reader.nextName();</span><br><span class="line">    <span class="keyword">if</span> (<span class="string">"id"</span>.equals(field)) &#123;</span><br><span class="line">        object.id = reader.nextInt();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="string">"name"</span>.equals(field)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (reader.peek() == JsonToken.NULL) &#123;</span><br><span class="line">            reader.nextNull();</span><br><span class="line">            object.name = <span class="keyword">null</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            object.name = reader.nextString();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        reader.skipValue();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">reader.endObject();</span><br></pre></td></tr></table></figure>
+<h4 id="兼容性">兼容性</h4><p>兼容性主要体现在能支持的数据类型上，目前MSON支持了基础数据类型，包装类型、枚举、数组、List、Set、Map、SparseArray以及各种嵌套类型（比如：<code>Map&lt;String, Map&lt;String, List&lt;String[]&gt;&gt;&gt;</code>）</p>
+<h4 id="结论上">结论上</h4><p>兼容性上，mson最好</p>
+<p>性能上，mson也较少耗时，Gson和fastjson的耗时相当</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/20/math-tips/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/03/20/math-tips/" itemprop="url">数学小tips</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-20T09:59:42+08:00">
+                2018-03-20
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-20T10:18:17+08:00">
+                2018-03-20
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/math/" itemprop="url" rel="index">
+                    <span itemprop="name">math</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/03/20/math-tips/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/20/math-tips/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://zh.wikipedia.org/wiki/链式法则" target="_blank" rel="noopener">链式法则</a></p>
+<p>设<em>f</em>和<em>g</em>为两个关于<em>x</em>可导函数，则有下面的公式:<br>$$<br>(f\circ g)’(x)=f’(g(x))g’(x)<br>$$<br>考虑函数<em>z</em> = <em>f</em>(<em>x</em>, <em>y</em>)，其中<em>x</em> = <em>g</em>(<em>t</em>)，<em>y</em> = <em>h</em>(<em>t</em>)，<em>g</em>(<em>t</em>)和<em>h</em>(<em>t</em>)是可微函数<br>$$<br>\frac{dz}{dx} = \frac{\partial z}{\partial x} \frac{\partial x}{\partial t} + \frac{\partial z}{\partial y} \frac{\partial y}{\partial t}<br>$$<br>这个公式是作为梯度下降算法的基本参照</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/19/microservice-guide/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/03/19/microservice-guide/" itemprop="url">微服务的入门</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-19T19:43:28+08:00">
+                2018-03-19
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-19T20:01:56+08:00">
+                2018-03-19
               </time>
             
           </span>
@@ -333,8 +671,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/01/31/failure-microservice/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/31/failure-microservice/" itemprop="commentCount"></span>
+                <a href="/2018/03/19/microservice-guide/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/19/microservice-guide/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,30 +702,30 @@
       
         
           
-            <p><a href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/" target="_blank" rel="noopener">原文链接</a></p>
-<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
-<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
-<p>服务降解</p>
-<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
-<h4 id="健康检查和负载平衡">健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
-<h4 id="Self-healing">Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
-<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
-<h4 id="failover_caching">failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
-<h4 id="retry_logic">retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
-<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
-<h4 id="Rate_Limiters_and_Load_Shedders">Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
-<h4 id="Fail_Fast_and_Independently">Fail Fast and Independently</h4><p>bulkhead pattern</p>
-<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success / fail statistics of operations.</p>
-<h4 id="Bulkheads">Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
-<h4 id="Circuit_Breaks">Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
-<h4 id="Testing_for_Failures">Testing for Failures</h4><p>ChaosMonkey for test</p>
-<h3 id="Key_Takeways">Key Takeways</h3><ul>
-<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
-<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
-<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
-<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
-<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
+            <p><a href="https://mp.weixin.qq.com/s/8Oq6TBDKe1zWwtlvkWfWPQ" target="_blank" rel="noopener">原文链接1</a></p>
+<p><a href="http://www.infoq.com/cn/articles/micro-service-technology-stack?utm_campaign=CodeTengu&amp;utm_medium=email&amp;utm_source=CodeTengu_117" target="_blank" rel="noopener">原文链接2</a></p>
+<p>文章一：</p>
+<ul>
+<li>spring boot + dubbo</li>
+<li>docker</li>
+<li>jenkins</li>
+<li>关于发布服务和引用服务，如何使用</li>
 </ul>
+<p>文章二：</p>
+<p>微服务2.0：容器，PaaS，Cloud Native，gRPC，ServiceMesh，Serverless</p>
+<p><img src="https://s3.amazonaws.com/infoq.content.live.0/articles/micro-service-technology-stack/zh/resources/3581-1518281425958.png" alt="微服务基础架构"></p>
+<p><img src="https://s3.amazonaws.com/infoq.content.live.0/articles/micro-service-technology-stack/zh/resources/2852-1518281425019.png" alt="微服务的体系结构"></p>
+<p>同时，Spring也支持Swagger契约编程模型，</p>
+<p>Motan，gRPC</p>
+<p>Spring Cloud体系的话，使用Eureka，同时，Consul也不错</p>
+<p>基于nginx/openresty的Kong的服务网关</p>
+<p>配置中心的Apollo</p>
+<p>OpenTSDB，做Metrics的监控，Argus配合使用，</p>
+<p>InfulxDB以及Grafana，</p>
+<p>服务容错类型：</p>
+<p>Hystrix，封装组件，进行容错，？(<strong>如何使用?</strong>)</p>
+<p>kafka之上的，hermes加入了企业的治理能力，</p>
+<p>针对分布式访问数据层部分，MyCAT，分表中间件，</p>
 
           
         
@@ -436,7 +774,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/30/pytorch-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/19/clusterFs/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -455,7 +793,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/01/30/pytorch-intro/" itemprop="url">Pytorch Introduction</a></h1>
+                <a class="post-title-link" href="/2018/03/19/clusterFs/" itemprop="url">ClusterFS纠错码设计</a></h1>
         
 
         <div class="post-meta">
@@ -467,8 +805,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T16:06:51+08:00">
-                2018-01-30
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-19T18:39:20+08:00">
+                2018-03-19
               </time>
             
 
@@ -483,8 +821,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-01-30T16:11:03+08:00">
-                2018-01-30
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-19T19:39:40+08:00">
+                2018-03-19
               </time>
             
           </span>
@@ -502,8 +840,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/pytorch/" itemprop="url" rel="index">
-                    <span itemprop="name">pytorch</span>
+                  <a href="/categories/clusterfs/" itemprop="url" rel="index">
+                    <span itemprop="name">clusterfs</span>
                   </a>
                 </span>
 
@@ -520,8 +858,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/01/30/pytorch-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/pytorch-intro/" itemprop="commentCount"></span>
+                <a href="/2018/03/19/clusterFs/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/19/clusterFs/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -551,9 +889,17 @@
       
         
           
-            <p><a href="http://pytorch.org/2018/01/19/a-year-in.html" target="_blank" rel="noopener">英文链接</a></p>
-<p><a href="https://medium.com/@drumrick/2017-%E5%9B%9E%E9%A1%A7%E6%96%87%E6%91%98%E8%A6%81%E7%B3%BB%E5%88%97%E4%BA%8C-pytorch-dff8dcb12bc" target="_blank" rel="noopener">中文链接</a></p>
-<p>我自己是覺得目前 PyTorch 的 ecosystem 還是不如 TensorFlow / Keras 完整，但是在 NLP 相關研究上的使用相對於其他研究或是其他框架是有比較多的趨勢。</p>
+            <p><a href="http://www.taocloudx.com/index.php?a=shows&amp;catid=4&amp;id=104" target="_blank" rel="noopener">原文链接</a></p>
+<p>副本以及纠错码的方式，副本读写效率高，但浪费空间，</p>
+<p>EC纠错码，Erasure Code，使用RS(Reed-Solomon)码算法对原始数据进行编码，在原始数据中加入redundancy，之后将编码文件分片存储到volume中的相应bricks中</p>
+<p>RS(Reed-Solomon)码有两个参数n和m，记为RS(n,m)，n代表原始数据块个数，m代表校验块个数</p>
+<p>Glusterfs文件系统模块化的通过各种Translator(一种强大的文件系统扩展机制)链接起来实现各种功能，各Translator在需要运行时通过动态库的方式加载。其中Cluster translator 是Glusterfs实现存储功能的核心，实现了DHT、AFR、EC等重要功能。</p>
+<p><strong>Usable size = Brick size * (#Bricks - Redundancy)</strong></p>
+<p><strong>0&lt; redundancy&lt;#Bricks /2</strong></p>
+<p>计算方式：</p>
+<p>其中，#Bricks表示每个Dispersed Set中的brick总数，例如：</p>
+<p>1）3 bricks，创建Dispersed Type为1*(2+1)，存储磁盘空间利用率66.7%；</p>
+<p>2）10bricks，创建Dispersed Type为2*(4+1)的卷，存储磁盘空间利用率为80%。</p>
 
           
         
@@ -602,7 +948,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/30/Netflix-flux/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/03/12/golang-interface/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -621,7 +967,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/01/30/Netflix-flux/" itemprop="url">Flux-A New Approach to System Intuition</a></h1>
+                <a class="post-title-link" href="/2018/03/12/golang-interface/" itemprop="url">Golang Interface</a></h1>
         
 
         <div class="post-meta">
@@ -633,8 +979,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T14:47:03+08:00">
-                2018-01-30
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-12T11:33:59+08:00">
+                2018-03-12
               </time>
             
 
@@ -649,8 +995,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-03-08T15:43:48+08:00">
-                2018-03-08
+              <time title="更新于" itemprop="dateModified" datetime="2018-03-12T12:02:03+08:00">
+                2018-03-12
               </time>
             
           </span>
@@ -668,8 +1014,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/flux/" itemprop="url" rel="index">
-                    <span itemprop="name">flux</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -686,8 +1032,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/01/30/Netflix-flux/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/Netflix-flux/" itemprop="commentCount"></span>
+                <a href="/2018/03/12/golang-interface/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/03/12/golang-interface/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -717,402 +1063,16 @@
       
         
           
-            <p><a href="https://medium.com/netflix-techblog/flux-a-new-approach-to-system-intuition-cf428b7316ec" target="_blank" rel="noopener">Flux:A New Approach to System Intuition</a></p>
-<p>Target:</p>
-<p>understand in real time what effect a variable is having on a subset of request traffic during a Chaos Experiment</p>
-<p>We require a tool that can give us this holistic understanding of traffic as it flows through our complex, distributed system</p>
-<p>requirements:</p>
+            <p>在面向对象的编程中，a protocal or interface is a common means for unrelated objects to communicate with each other</p>
+<p>why do we use interfaces?</p>
 <ul>
-<li>Realtime data</li>
-<li>Data on the volume, latency, and health of requests</li>
-<li>Insight into traffic at network edge</li>
-<li>The ability to drill into IPC traffic</li>
-<li>Dependency information about the microservices as requests travel through the system</li>
+<li>writing generic algorithms</li>
+<li>hiding implementation details</li>
+<li>providing interception points</li>
 </ul>
-<p>Pain Suit: As a microservice experiences failure, the corresponding electrodes cause a painful sensation.</p>
-<p>主要是针对流量监控部分？</p>
-<p>traffic failover?</p>
-<p>控制流量流向，</p>
-<p>The inter-region traffic from victim to savior increases while the savior region scales up. At that point, we switch DNS to point to the savior region. For about 10 seconds you see traffic to the victim region die down as DNS propagates. At this point, about 56 seconds in, nearly all of the victim region’s traffic is now pointing to the savior region</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/cnn/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/01/26/cnn/" itemprop="url">CNN架构</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T16:26:27+08:00">
-                2018-01-26
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T17:09:05+08:00">
-                2018-01-26
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/CNN/" itemprop="url" rel="index">
-                    <span itemprop="name">CNN</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/01/26/cnn/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/cnn/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://yq.aliyun.com/articles/363898?spm=5176.100239.bloghomeflow.64.243cef011nwfHp" target="_blank" rel="noopener">一文读懂最近流行的CNN架构</a></p>
-<ul>
-<li><p><strong>为什么CNN模型战胜了传统的计算机视觉方法?</strong></p>
-<p>图像分类的传统流程涉及两个模块：</p>
-<ul>
-<li><p>特征提取    </p>
-<p>从原始像素中提取更高级的特征，常用的传统特征报告GIST,HOG,SIFT,LBP等</p>
-<p>​</p>
-</li>
-<li><p>分类</p>
-<p>常用的分类模型有SVM,LR,随机森林及决策树</p>
-</li>
-</ul>
-</li>
-</ul>
-<p>​    流程的一大问题是：特征提取不能根据图像和其他标签进行调整。传统的流程比较好的方法是，使用多种特征提取器，然后组合他们得到一种更好的特征</p>
-<p>​    深度学习背后的哲学，没有建立硬编码的特征提取器。它将特征提取和分类两个模块集成一个系统，通过识别图像的特征来进行提取并基于有标签数据进行分类。这样的集成系统就是多层感知机，即有多层神经元密集连接而成的神经网络</p>
-<p>​    CNN模型中的两个特点：<strong>神经元间的权重共享和卷积层之间的稀疏连接</strong></p>
-<ul>
-<li><p><strong>为了理解CNN背后的设计哲学，你可能会问：其目标是什么？</strong></p>
-<p>准确度和计算量</p>
-</li>
-</ul>
-<ul>
-<li><p><strong>AlexNet</strong></p>
-<p>AlexNet采用ReLU激活函数，而不像传统神经网络早期所采用的Tanh或Sigmoid激活函数，<code>f(x)=max(0, x)</code></p>
-<p>优势是，训练速度更快，不会出现梯度消失的问题</p>
-<p>另一个特点是，其通过在每个全连接层后面加上Dropout层减少了模型的过拟合问题。Dropout层以一定的概率随机的关闭当前层中神经元激活值</p>
-</li>
-</ul>
-<ul>
-<li><p><strong>VGG16</strong></p>
-<p>VGG16相比AlexNet的一个改进是采用连续的几个3x3的卷积代替AlexNet中的较大卷积核(11x11, 5x5)</p>
-</li>
-</ul>
-<p>​    对于给定的感受野（与输出有关的输入图片的局部大小），采用堆积的小卷积核是优于采用大的卷积核，因为多层非线性层可以增加网络深度来保证学习更复杂的模式，而且代价还比较小（参数更少）。</p>
-<p>​    VGG-D，使用了一种块结构: 多次重复使用同一大小的卷积核来提取更复杂和更具有表达性的特征</p>
-<ul>
-<li><strong>GoogLeNet/Inception</strong></li>
-</ul>
-<p>​    基于这样的理念：在深度网络中大部分的激活值是不必要的（为0），或者由于相关性是冗余。因为，最高效的深度网络架构应该是激活值之间是稀疏连接，这意味着512个输出特征图是没有必要与所有的512输入特征图相连</p>
-<p>​    设计了一种称为inception的模块，使用密集结构来近似一个稀疏的CNN。另一个特点是，使用了一中瓶颈层（实际上就是1x1卷积）来降低计算量</p>
-<p>​    另一个特殊设计是最后的卷积层后使用全局均值池化层替换全连接层。所谓全局池化就是在整个2D特征图上取均值</p>
-<ul>
-<li><strong>ResNet</strong></li>
-</ul>
-<p>​    从前面可以看到，随着网络深度增加，网络的准确度应该同步增加，当然要注意过拟合问题。但是网络深度增加的一个问题在于这些增加的层是参数更新的信号，因为梯度是从后向前传播的，增加网络深度后，比较靠前的层梯度会很小。</p>
-<p>​    这意味着这些层基本上学习停滞了，这就是梯度消失问题。深度网络的第二个问题在于训练，当网络更深时意味着参数空间更大，优化问题变得更难，因此简单地去增加网络深度反而出现更高的训练误差。</p>
-<p>​    引入所谓的学习残差的概念，</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/01/26/select-limit/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/01/26/select-limit/" itemprop="url">毫秒级实时排序</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-26T15:53:26+08:00">
-                2018-01-26
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-01-26T15:58:54+08:00">
-                2018-01-26
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/sort/" itemprop="url" rel="index">
-                    <span itemprop="name">sort</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/01/26/select-limit/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/26/select-limit/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://yq.aliyun.com/articles/378962?spm=a2c4e.11153940.bloghomeflow.105.FrxURS" target="_blank" rel="noopener">实践：几十亿条数据分布在几十个节点上的毫秒级实时排序方法</a></p>
-<p><code>select a from tb order by a limit 100, 10;</code></p>
-<p><code>对分布在几十个节点上的上亿条数据要求1秒内排序。</code></p>
-
+<p>interface need runtime checks</p>
+<p>The bigger the interface, the weaker the abstraction</p>
+<h4 id="abstract_data_type">abstract data type</h4>
           
         
       
@@ -1151,7 +1111,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/77/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/77/">77</a><span class="page-number current">78</span><a class="page-number" href="/page/79/">79</a><span class="space">&hellip;</span><a class="page-number" href="/page/108/">108</a><a class="extend next" rel="next" href="/page/79/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/77/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/77/">77</a><span class="page-number current">78</span><a class="page-number" href="/page/79/">79</a><span class="space">&hellip;</span><a class="page-number" href="/page/111/">111</a><a class="extend next" rel="next" href="/page/79/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

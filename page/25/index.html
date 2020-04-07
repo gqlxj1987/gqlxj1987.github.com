@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/21/AutoML-and-Neural-Architecture-Search/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/05/14/bandit-algo/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/21/AutoML-and-Neural-Architecture-Search/" itemprop="url">AutoML and Neural Architecture Search</a></h1>
+                <a class="post-title-link" href="/2019/05/14/bandit-algo/" itemprop="url">Bandit Algo</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-21T23:55:48+08:00">
-                2019-03-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-14T10:24:21+08:00">
+                2019-05-14
               </time>
             
 
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/automl/" itemprop="url" rel="index">
-                    <span itemprop="name">automl</span>
+                  <a href="/categories/algo/" itemprop="url" rel="index">
+                    <span itemprop="name">algo</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/21/AutoML-and-Neural-Architecture-Search/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/21/AutoML-and-Neural-Architecture-Search/" itemprop="commentCount"></span>
+                <a href="/2019/05/14/bandit-algo/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/05/14/bandit-algo/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,10 +364,35 @@
       
         
           
-            <p><a href="https://towardsdatascience.com/everything-you-need-to-know-about-automl-and-neural-architecture-search-8db1863682bf" target="_blank" rel="noopener">原文链接</a></p>
-<p>NAS is an algorithm that <em>searches</em> for the best <em>neural network architecture</em>.(Neural Architecture Search)</p>
-<p>In the NAS algorithm, a controller Recurrent Neural Network (RNN) samples these building blocks, putting them together to create some kind of end-to-end architecture.</p>
-<p>the search space itself is quite limited. NAS is designed to build architectures that are very similar in style to the current state-of-the-art.(重复性)</p>
+            <p><a href="https://zhuanlan.zhihu.com/p/21388070" target="_blank" rel="noopener">原文链接</a></p>
+<blockquote>
+<p>一个赌徒，要去摇老虎机，走进赌场一看，一排老虎机，外表一模一样，但是每个老虎机吐钱的概率可不一样，他不知道每个老虎机吐钱的概率分布是什么，那么想最大化收益该怎么整？这就是多臂赌博机问题(Multi-armed bandit problem, K-armed bandit problem, MAB)。</p>
+<p>怎么解决这个问题呢？求菩萨？拜赌神？都不好使，最好的办法是去试一试，而这个试一试也不是盲目地试，而是有策略地试，越快越好，这些策略就是bandit算法。</p>
+</blockquote>
+<p>累计遗憾</p>
+<p>Thompson sampling算法</p>
+<blockquote>
+<p>假设每个臂是否产生收益，其背后有一个概率分布，产生收益的概率为p</p>
+<p>我们不断地试验，去估计出一个置信度较高的<em>概率p的概率分布</em>就能近似解决这个问题了。</p>
+<p>怎么能估计概率p的概率分布呢？ 答案是假设概率p的概率分布符合beta(wins, lose)分布，它有两个参数: wins, lose。</p>
+<p>每个臂都维护一个beta分布的参数。每次试验后，选中一个臂，摇一下，有收益则该臂的wins增加1，否则该臂的lose增加1。</p>
+<p>每次选择臂的方式是：用每个臂现有的beta分布产生一个随机数b，选择所有臂产生的随机数中最大的那个臂去摇。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">choice = numpy.argmax(pymc.rbeta(<span class="number">1</span> + self.wins, <span class="number">1</span> + self.trials - self.wins))</span><br></pre></td></tr></table></figure>
+<p>UCB，UCB算法全称是Upper Confidence Bound(置信区间上界)</p>
+<blockquote>
+<p>先对每一个臂都试一遍</p>
+<p>之后，每次选择以下值最大的那个臂</p>
+<p>其中加号前面是这个臂到目前的收益均值，后面的叫做bonus，本质上是均值的标准差，t是目前的试验次数，Tjt是这个臂被试次数。</p>
+<p>这个公式反映：均值越大，标准差越小，被选中的概率会越来越大，起到了exploit的作用；同时哪些被选次数较少的臂也会得到试验机会，起到了explore的作用。</p>
+</blockquote>
+<p>Epsilon-Greedy算法，类似模拟退火</p>
+<blockquote>
+<p>选一个(0,1)之间较小的数epsilon</p>
+<p>每次以概率epsilon（产生一个[0,1]之间的随机数，比epsilon小）做一件事：所有臂中随机选一个。否则，选择截止当前，平均收益最大的那个臂。</p>
+<p>是不是简单粗暴？epsilon的值可以控制对Exploit和Explore的偏好程度。越接近0，越保守，只想花钱不想挣钱</p>
+</blockquote>
+<p>推荐系统的冷启动，可以采用bandit算法来解决一部分</p>
 
           
         
@@ -416,7 +441,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/programming-models-for-the-event-driven-architecture/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/05/10/leaf-id-generate/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -435,7 +460,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/20/programming-models-for-the-event-driven-architecture/" itemprop="url">Programming Models for the Event-driven architecture</a></h1>
+                <a class="post-title-link" href="/2019/05/10/leaf-id-generate/" itemprop="url">leaf ID生成器</a></h1>
         
 
         <div class="post-meta">
@@ -447,8 +472,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T20:40:09+08:00">
-                2019-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-10T23:48:54+08:00">
+                2019-05-10
               </time>
             
 
@@ -500,8 +525,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/20/programming-models-for-the-event-driven-architecture/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/programming-models-for-the-event-driven-architecture/" itemprop="commentCount"></span>
+                <a href="/2019/05/10/leaf-id-generate/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/05/10/leaf-id-generate/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -531,387 +556,19 @@
       
         
           
-            <p><a href="https://www.confluent.io/blog/journey-to-event-driven-part-2-programming-models-event-driven-architecture" target="_blank" rel="noopener">原文链接</a></p>
-<p>Distributed object (RPC sync), service-oriented architecture (SOA), <a href="https://en.wikipedia.org/wiki/Enterprise_service_bus" target="_blank" rel="noopener">enterprise service bus</a> (ESB), <a href="https://en.wikipedia.org/wiki/Event-driven_architecture" target="_blank" rel="noopener">event-driven architecture</a> (EDA), <a href="https://en.wikipedia.org/wiki/Reactive_programming" target="_blank" rel="noopener">reactive programming</a> to <a href="https://en.wikipedia.org/wiki/Microservices" target="_blank" rel="noopener">microservices</a> and now FaaS have each built on the learnings of the previous.</p>
-<p>####Event-driven reactive system</p>
-<p>The Reactive Manifesto has influenced many frameworks and platforms, including <a href="https://akka.io/" target="_blank" rel="noopener">Akka</a> (an <a href="https://en.wikipedia.org/wiki/Actor_model" target="_blank" rel="noopener">actor-based library circa 1973</a>), <a href="https://vertx.io/" target="_blank" rel="noopener">Vert.x</a> (reactive microservices) and <a href="http://www.lagomframework.com/" target="_blank" rel="noopener">Lagom</a> (an opinionated, reactive microservice framework)</p>
-<p>The Akka scaling mechanism uses a <a href="https://developer.lightbend.com/blog/2017-05-17-atotm-clustering-and-remoting/" target="_blank" rel="noopener">cluster</a> service which pools actors from remote nodes that join as cluster members. Inactive actors are persisted to disk to minimize idle resource requirements</p>
-<p>Persistent actors will store their set of events to a journal (log)</p>
-<p>关于akka的持久化部分</p>
-<p>reactive以响应为主，RxJava这种，akka这种</p>
-<h4 id="Event-driven_stream_system">Event-driven stream system</h4><p>Stream processor patterns enable <a href="https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/kstream/KStream.html#filter-org.apache.kafka.streams.kstream.Predicate-" target="_blank" rel="noopener">filtering</a>, projections, <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#joining" target="_blank" rel="noopener">joins</a>, <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#streams-developer-guide-dsl-aggregating" target="_blank" rel="noopener">aggregations</a>, materialized views and other <a href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html" target="_blank" rel="noopener">streaming functionality</a>. </p>
-<p>A proven approach is to capture domain knowledge as events using <a href="http://A proven approach is to capture domain knowledge as events using Domain Driven Design (DDD" target="_blank" rel="noopener">domain-driven design</a> and event storming. This approach works well because the events centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the systems functions.)(DDD) and event storming. This approach works well because the events-centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the system’s functions</p>
-<p>Stream processors can also be used to materialize tables from the stream of events to enable a view of the data (e.g., how much money was in my account at time X). The term is called <a href="https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/" target="_blank" rel="noopener">turning the database inside out</a></p>
-<p>Unlike a traditional database, the platform scales horizontally to thousands of processors, observe real-time events, replay streams on demand to perform historical processing and catch up with the live, data-in-motion view.</p>
-<p>A traditional OLTP system uses a two-phase commit to move money from a debit account to a credit account. It is very simple but presents scalability challenges. In the event-driven world, we’d build a scalable model where the event streams flow between processors. By the end of the flow, the payment is transacted. (通过分拆processor达到transacted的特点)</p>
-<h4 id="scaling_mechanism">scaling mechanism</h4><p>通过partition来达到scaling的目的</p>
-<h4 id="Comparing_persistence_models">Comparing persistence models</h4><p>CQRS的意思？</p>
-<p>持久化，通过event log的方式</p>
-<p>With stream processing, <a href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying" target="_blank" rel="noopener">the log</a> stores the truth for the entity; it is organized as a stream. The log (stream) also stores every version of the entity.</p>
-<p>The event streaming platform provides the means of storing data as a stream and streaming events at scale. In order to facilitate this functionality the underlying protocol needs to ensure qualities such as offline status, different consumer rates, high throughput, low latency and elasticity (amongst others). The <a href="https://docs.confluent.io/5.0.1/clients/javadocs/org/apache/kafka/clients/consumer/KafkaConsumer.html" target="_blank" rel="noopener">consumer model</a> is one which exposes the protocol to the developer; this means the<br>consumer will have the opportunity to ACK, NACK message receipt and interact with the correctness of accepting a message payload.</p>
-<p>We also hear about backpressure being a concern to control event throughput. I would question if this is actually a requirement or<br>marketing speak. Brokered systems like Kafka provide huge buffers (the default in Kafka is two weeks) which negate the need for explicit flow control for the vast majority of use cases. In the very few that remain you can easily build backpressure as a control plane detail; it would be developed using stream processors that analyze throughput of events and apply rate limiting events to the relevant producers.(由于提供buffer的问题，backpressure基本不需要考虑)</p>
-<p>However, for event-sourcing, things get more complex; the ability to rebuild application state on demand needs a dedicated framework and process control to ensure point-in-time or snapshot state is correctly rebuilt. You cannot simply start replaying events from an offset and expect the downstream aggregates to be deterministically reproduced as they were previously. (关于恢复的困难性)</p>
-<p>All of the <a href="https://www.confluent.io/blog/apache-kafka-tested/" target="_blank" rel="noopener">trust and resilience</a> is based upon the event streaming platform’s <a href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/" target="_blank" rel="noopener">correctness</a> and guarantees of working with the commit log.(面向commit log部分)</p>
-<p>以数据为中心</p>
-<p>By storing only the events and never the commands, we have a wealth of capability that not only allows the system to be refined, extended and proven but also supports evolutionary change.</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/concurrency-in-go-vs-erlang/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/20/concurrency-in-go-vs-erlang/" itemprop="url">Concurrency in go vs erlang</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T19:49:09+08:00">
-                2019-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/concurrency/" itemprop="url" rel="index">
-                    <span itemprop="name">concurrency</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/20/concurrency-in-go-vs-erlang/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/concurrency-in-go-vs-erlang/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://dev.to/pieohpah/concurrency-in-go-vs-erlang-595a" target="_blank" rel="noopener">原文链接</a></p>
-<p>A process’s mailbox is akin to Go’s channel, but it is not shared. It’s a private data buffer for that particular process to go through, one by one, synchronously. When a process sends something to another process’s mailbox, that thing gets stored there until that process can make use of it.</p>
-<p>In imperative programming (in Go’s case, structured, which is imperative), you mostly program to change some states, and thus you have to care about <em>WHEN</em> each line of code gets run (<code>A</code> changes state <code>X</code>, then <code>B</code> reads <code>X</code> is consequentially different from <code>B</code> reads <code>X</code>, then <code>A</code> changes <code>X</code>)</p>
-<p>In declarative programming, one expresses the logic without caring about control flow because each expression / function does not have side effects aka changing the state outside of itself.</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/20/actor-vs-goroutine/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/03/20/actor-vs-goroutine/" itemprop="url">actor vs goroutine</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-20T09:58:17+08:00">
-                2019-03-20
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/concurrency/" itemprop="url" rel="index">
-                    <span itemprop="name">concurrency</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/20/actor-vs-goroutine/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/20/actor-vs-goroutine/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>参考<a href="https://stackoverflow.com/questions/22621514/is-scalas-actors-similar-to-gos-coroutines" target="_blank" rel="noopener">stackoverflow1</a></p>
-<p>CSP模型：Communicating Sequential Processes(formal language for describing patterns of interaction in concurrent systems)</p>
-<p>processes share a “channel”</p>
-<p>at this time they are limited to the current runtime and cannot be distributed, even between two runtimes on the same physical box</p>
-<p>CSP does not support fault tolerance in a meaningful way, so you as the developer have to figure out how to handle failure that can occur on both sides of channels, and such logic ends up getting strewn about all over the application</p>
-<p>CSP强调通信，channel可以被多个生产者和消费者共享，但是消息是否被消费了？unbuffered?</p>
-<p>actor: involve entities that have their own mailbox.  They are asynchronous by nature, and have location transparency that spans runtimes and machines</p>
-<p>也有共享的机制，通过eventbus部分？</p>
-<p>Actors have another very nice feature - fault tolerance.  By organizing actors into a supervision hierarchy per the OTP specification devised inErlang, you can build a domain of failure into your application.</p>
-<p>Actors are also a concurrency paradigm, where the actor can have mutable state inside of it and a guarantee of no multithreaded access to the state, unless the developer building an actor-based system accidentally introduces it, for example by registering the Actor as a listener for a callback, or going asynchronous inside the actor via Futures.(actor的状态不变性)</p>
-<p><strong>The only similarity (aside the nitpicking) is they both have to do with concurrency and message passing. But that is where the similarity ends.</strong></p>
-<p>Actors help things to be “worry free distributed”</p>
-<p>Where a “worry free” piece is usually associated with terms such as: <code>fault tolerance</code>, <code>resiliency</code>, <code>availability</code>, etc.. </p>
-<p>Goroutines help to reason about concurrency sequentially</p>
-<p>参考<a href="https://www.quora.com/How-are-Akka-actors-different-from-Go-channels-How-are-two-related-to-each-other" target="_blank" rel="noopener">quora1</a></p>
-<p>Go has a <em>select</em> statement for choosing between alternatives (the CSP <em>choice</em>) which may include channels, timers or simply skipping on to the next thing. This allows what one might call “waiting faster” by picking up from whichever channel is available first. But remember that whilst a goroutine is waiting on the channels (CSP calls them guards) in a <em>select</em>, it consumes no CPU and very little memory.</p>
-<p>Akka implements a fixed kind  network (of variable topology) in CSP terms. One feature of this kind of network is that there is no explicit flow control because no write rendezvous is ever needed on an infinite buffer. The model is fully asynchronous.</p>
-<p>downsides to the actor model</p>
+            <p><a href="https://tech.meituan.com/2019/03/07/open-source-project-leaf.html" target="_blank" rel="noopener">原文链接</a></p>
+<p><img src="https://p1.meituan.net/travelcube/210ca1564c70b228ed46f3b33c9bb9b161120.png" alt="architecture"></p>
+<p>用户通过Round-robin的方式调用Leaf Server的各个服务</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">+<span class="comment">-------------+--------------+------+-----+-------------------+-----------------------------+</span></span><br><span class="line">| Field       | Type         | Null | Key | Default           | Extra                       |</span><br><span class="line">+<span class="comment">-------------+--------------+------+-----+-------------------+-----------------------------+</span></span><br><span class="line">| biz_tag     | varchar(128) | NO   | PRI |                   |                             |</span><br><span class="line">| max_id      | bigint(20)   | NO   |     | 1                 |                             |</span><br><span class="line">| step        | int(11)      | NO   |     | NULL              |                             |</span><br><span class="line">| desc        | varchar(256) | YES  |     | NULL              |                             |</span><br><span class="line">| update_time | timestamp    | NO   |     | CURRENT_TIMESTAMP | on <span class="keyword">update</span> <span class="keyword">CURRENT_TIMESTAMP</span> |</span><br><span class="line">+<span class="comment">-------------+--------------+------+-----+-------------------+-----------------------------+</span></span><br></pre></td></tr></table></figure>
+<p>出现的问题：</p>
 <ul>
-<li>There are cases where flow control is needed. Although these can be implemented in Akka using handshake dialogues, the code gets messy and it’s not efficient any more</li>
-<li>There is no ability of an actor to <em>refuse</em> to communicate. When a message arrives, it has to be processed or, perhaps, put into a buffer to be dealt with later. 消息ignore机制</li>
-<li>Akka places full reliance on the infinite input buffers never running out of memory - but this is not guaranteed.</li>
+<li>更新db，耗时尖刺</li>
+<li>db本身，主从切换什么的</li>
 </ul>
-<p>downside to the csp:</p>
-<ul>
-<li>Any network of goroutines that has some mutual dependency may deadlock. The developer must be aware of this and code so that deadlock is eliminated; this involves identifying mutual dependencies and altering them in some way (there are several well-known techniques, the easiest of these being to use a pure client-server pattern, which is known to be deadlock-free).</li>
-</ul>
-<p>The main difference is that a message exchange is synchronous in CSP (i.e. a “touch point” of the execution of two processes where they hand over the message) whereas it is completely decoupled in the Actor model, with message delivery being unconfirmed to the sender and taking an arbitrary amount of time</p>
+<h3 id="双buffer优化">双buffer优化</h3><p><img src="https://p1.meituan.net/travelcube/64a44ac6db45e4b7b88b10c85a76614a52159.png" alt="archi2"></p>
+<p>leaf snowflake部分</p>
+<p>我们平常讲的完全自己生成ID</p>
+<p><img src="https://p0.meituan.net/travelcube/96034f8fa0f2cb14c21844a4fa12f50441574.png" alt="snowflake"></p>
 
           
         
@@ -960,7 +617,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/19/completionStage-and-compltetableFuture/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/05/06/new-room-not-to-be-good/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -979,7 +636,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/19/completionStage-and-compltetableFuture/" itemprop="url">CompletionStage and CompltetableFuture</a></h1>
+                <a class="post-title-link" href="/2019/05/06/new-room-not-to-be-good/" itemprop="url">搬家随想</a></h1>
         
 
         <div class="post-meta">
@@ -991,8 +648,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-19T18:24:51+08:00">
-                2019-03-19
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-06T09:59:58+08:00">
+                2019-05-06
               </time>
             
 
@@ -1026,8 +683,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
+                  <a href="/categories/life/" itemprop="url" rel="index">
+                    <span itemprop="name">life</span>
                   </a>
                 </span>
 
@@ -1044,8 +701,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/03/19/completionStage-and-compltetableFuture/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/03/19/completionStage-and-compltetableFuture/" itemprop="commentCount"></span>
+                <a href="/2019/05/06/new-room-not-to-be-good/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/05/06/new-room-not-to-be-good/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1075,13 +732,366 @@
       
         
           
-            <p><a href="http://millross-consultants.com/completion-stage-future-introduction.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>CompletionStage pipelines</p>
-<p>CompletableFuture implements the CompletionStage interface.</p>
-<p>A convenient example of this is the thenApply method, which is analogous to map on the streaming API (or on the Optional class, for example).</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// We'll allow a 2-sized thread pool for async execution, rather than using the fork/join pool for asynchronous</span></span><br><span class="line"><span class="comment">// value generation</span></span><br><span class="line"><span class="keyword">final</span> Executor executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">demoThenApply</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">1</span>), executor) </span><br><span class="line">        .thenApply(i -&gt; i + <span class="number">3</span>);</span><br><span class="line">    assertThat(future.get(), is(<span class="number">4</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> value)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> delayedValueSupplier(value, <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> value, <span class="keyword">final</span> <span class="keyword">int</span> delayMs)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> () -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(delayMs);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Problem while waiting to return value"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>pipeline</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">demoMultiStagePipeline</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="comment">// We'll use one future to specify how long a subsequent future will take</span></span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">3</span>), executor)</span><br><span class="line">        .thenApply(i -&gt; &#123;</span><br><span class="line">            System.out.println(<span class="string">"First future completed, "</span> + i);</span><br><span class="line">            <span class="keyword">return</span> i + <span class="number">1</span>;</span><br><span class="line">        &#125;)</span><br><span class="line">        .thenCompose(i -&gt; CompletableFuture</span><br><span class="line">            .supplyAsync(delayedValueSupplier(i + <span class="number">2</span>, i * <span class="number">100</span>), executor));</span><br><span class="line">    assertThat(future.get(), is(<span class="number">6</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+            <p>换了新的房子，自己的问题暴露地更彻底，顽固，坚持己见，对他人隐瞒一些东西。。。</p>
+<p>还连累他人跟着自己一起受苦，何必。。。</p>
+<p>自己这样子，能够给别人带来幸福吗？打上一个大大的问号。。。哎。。。</p>
+<p>不管怎么样，都要进行下去，努力地提升自己，努力做好自己能够做的，其他的交给命运吧。。</p>
+<p>锻炼上，继续保持</p>
+<p>新的时间安排要尽快出炉，按照计划来做，不让自己荒废下去。。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/05/05/akka-best-practices/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/05/05/akka-best-practices/" itemprop="url">akka best practices</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-05T10:36:42+08:00">
+                2019-05-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index">
+                    <span itemprop="name">akka</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/05/05/akka-best-practices/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/05/05/akka-best-practices/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://harrylaou.com/scala/akka/bestpractices/" target="_blank" rel="noopener">原文链接</a></p>
+<ul>
+<li>Don’t share mutable state among actors</li>
+<li>Do not close on the sender</li>
+<li>Do not close over an actor’s context</li>
+<li>Do not use the scheduler with the Runnable trait</li>
+<li>Actors do not stop automatically when no longer referenced, every Actor that is created must also explicitly be destroyed. The only simplification is that stopping a parent Actor will also recursively stop all the child Actors that this parent has created.</li>
+<li>It is always preferable to communicate with other Actors using their ActorRef instead of relying upon ActorSelection. Exceptions are<ul>
+<li>sending messages using the <em>At-Least-Once Delivery</em> facility<ul>
+<li>initiating first contact with a remote system</li>
+<li>In all other cases ActorRefs can be provided during Actor creation or initialization, passing them from parent to child or introducing Actors by sending their ActorRefs to other Actors within messages.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Messages can be any kind of object but have to be immutable</li>
+<li>Always prefer tell for performance, and only ask if you must.</li>
+<li>To complete the future with an exception you need send a Failure message to the sender. This is not done automatically when an actor throws an exception while processing a message.</li>
+<li>Set the number of thread in the pool to match your cores</li>
+</ul>
+<p>关于actor的close部分？</p>
+<p>关于mutable state的定义部分</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/04/25/much-to-think/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/04/25/much-to-think/" itemprop="url">想太多</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-04-25T09:57:45+08:00">
+                2019-04-25
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/心理/" itemprop="url" rel="index">
+                    <span itemprop="name">心理</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/04/25/much-to-think/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/04/25/much-to-think/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>是我想太多。。。</p>
+<p>大家都有压力，关键在于怎么去缓解，出了事情，在于如何去解决它，而不是在那里自怨自艾，然后突然压力很大，想哭。。。</p>
+<p>不用太计较得失，提升自己才是关键，其他的都是浮云，给予必要的宽慰就可以了，做到自己能做的就行，其他的就不是自己能够控制的了</p>
+<p>生活在于取舍，你需要什么东西，必然需要舍弃些什么，不可能你拥有所有</p>
+<p>我命由天不由我，无为就行。。不用想太多。。</p>
+<p>作为老年人，看积极面多一些，已经做好了孑然一身的打算，也就无所谓年轻人那样子了，谨记</p>
 
           
         
@@ -1121,7 +1131,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/24/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/24/">24</a><span class="page-number current">25</span><a class="page-number" href="/page/26/">26</a><span class="space">&hellip;</span><a class="page-number" href="/page/108/">108</a><a class="extend next" rel="next" href="/page/26/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/24/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/24/">24</a><span class="page-number current">25</span><a class="page-number" href="/page/26/">26</a><span class="space">&hellip;</span><a class="page-number" href="/page/111/">111</a><a class="extend next" rel="next" href="/page/26/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
