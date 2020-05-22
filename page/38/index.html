@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/01/28/service-mesh-envoy/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/13/ai-projects-learn/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/01/28/service-mesh-envoy/" itemprop="url">Service Mesh Envoy</a></h1>
+                <a class="post-title-link" href="/2019/02/13/ai-projects-learn/" itemprop="url">AI projects learn</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-01-28T19:56:24+08:00">
-                2019-01-28
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-13T14:16:12+08:00">
+                2019-02-13
               </time>
             
 
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/service-mesh/" itemprop="url" rel="index">
-                    <span itemprop="name">service mesh</span>
+                  <a href="/categories/AI/" itemprop="url" rel="index">
+                    <span itemprop="name">AI</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/01/28/service-mesh-envoy/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/01/28/service-mesh-envoy/" itemprop="commentCount"></span>
+                <a href="/2019/02/13/ai-projects-learn/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/13/ai-projects-learn/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,561 +364,24 @@
       
         
           
-            <p><a href="https://hackernoon.com/service-mesh-with-envoy-101-e6b2131ee30b" target="_blank" rel="noopener">原文链接</a></p>
-<p>Service Mesh is the communication layer in your microservice setup. 请求代理layer</p>
-<p>When you talk about “Service Mesh”, you will definitely hear the term “Sidecar”, a “Sidecar” is a proxy which is available for each instance of your service, each “Sidecar” takes care of one instance of one service.</p>
-<p>以sidecar的方式来实现sevice mesh？统一的proxy做不到的话，由sidecar来实现？</p>
-<h4 id="What_does_a_Service_Mesh_provide?">What does a Service Mesh provide?</h4><ol>
-<li>Service Discovery</li>
-<li>Observability (metrics)</li>
-<li>Rate Limiting</li>
-<li>Circuit Breaking</li>
-<li>Traffic Shifting</li>
-<li>Load Balancing</li>
-<li>Authentication and Authorisation</li>
-<li>Distributed Tracing</li>
-</ol>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*YGqNp9rNZqsYg2sZ71UkYQ.png" alt="envoy sidecar"></p>
-<p>在pod和service部分进行改变</p>
-<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">servicea</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  replicas:</span> <span class="number">2</span></span><br><span class="line"><span class="attr">  template:</span></span><br><span class="line"><span class="attr">    metadata:</span></span><br><span class="line"><span class="attr">      labels:</span></span><br><span class="line"><span class="attr">        app:</span> <span class="string">servicea</span></span><br><span class="line"><span class="attr">    spec:</span></span><br><span class="line"><span class="attr">      containers:</span></span><br><span class="line"><span class="attr">      - name:</span> <span class="string">servicea</span></span><br><span class="line"><span class="attr">        image:</span> <span class="string">dnivra26/servicea:0.6</span></span><br><span class="line"><span class="attr">        ports:</span></span><br><span class="line"><span class="attr">        - containerPort:</span> <span class="number">8081</span></span><br><span class="line"><span class="attr">          name:</span> <span class="string">svc-port</span></span><br><span class="line"><span class="attr">          protocol:</span> <span class="string">TCP</span></span><br><span class="line"><span class="attr">      - name:</span> <span class="string">envoy</span></span><br><span class="line"><span class="attr">        image:</span> <span class="string">envoyproxy/envoy:latest</span></span><br><span class="line"><span class="attr">        ports:</span></span><br><span class="line"><span class="attr">          - containerPort:</span> <span class="number">9901</span></span><br><span class="line"><span class="attr">            protocol:</span> <span class="string">TCP</span></span><br><span class="line"><span class="attr">            name:</span> <span class="string">envoy-admin</span></span><br><span class="line"><span class="attr">          - containerPort:</span> <span class="number">8786</span></span><br><span class="line"><span class="attr">            protocol:</span> <span class="string">TCP</span></span><br><span class="line"><span class="attr">            name:</span> <span class="string">envoy-web</span></span><br><span class="line"><span class="attr">        volumeMounts:</span></span><br><span class="line"><span class="attr">          - name:</span> <span class="string">envoy-config-volume</span></span><br><span class="line"><span class="attr">            mountPath:</span> <span class="string">/etc/envoy-config/</span></span><br><span class="line"><span class="attr">        command:</span> <span class="string">["/usr/local/bin/envoy"]</span></span><br><span class="line"><span class="attr">        args:</span> <span class="string">["-c",</span> <span class="string">"/etc/envoy-config/config.yaml"</span><span class="string">,</span> <span class="string">"--v2-config-only"</span><span class="string">,</span> <span class="string">"-l"</span><span class="string">,</span> <span class="string">"info"</span><span class="string">,"--service-cluster","servicea","--service-node","servicea",</span> <span class="string">"--log-format"</span><span class="string">,</span> <span class="string">"[METADATA][%Y-%m-%d %T.%e][%t][%l][%n] %v"</span><span class="string">]</span></span><br><span class="line"><span class="attr">      volumes:</span></span><br><span class="line"><span class="attr">        - name:</span> <span class="string">envoy-config-volume</span></span><br><span class="line"><span class="attr">          configMap:</span></span><br><span class="line"><span class="attr">            name:</span> <span class="string">sidecar-config</span></span><br><span class="line"><span class="attr">            items:</span></span><br><span class="line"><span class="attr">              - key:</span> <span class="string">envoy-config</span></span><br><span class="line"><span class="attr">                path:</span> <span class="string">config.yaml</span></span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/01/24/kafka-exactly-one/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/01/24/kafka-exactly-one/" itemprop="url">kafka exactly one</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-01-24T19:01:23+08:00">
-                2019-01-24
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/01/24/kafka-exactly-one/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/01/24/kafka-exactly-one/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://dzone.com/articles/interpreting-kafkas-exactly-once-semantics" target="_blank" rel="noopener">原文链接</a></p>
+            <p><a href="https://medium.com/predict/what-i-have-learned-after-several-ai-projects-131e345ac5cd" target="_blank" rel="noopener">原文链接</a></p>
+<p>Before jumping into the AI bandwagon, please ask yourself these three questions:</p>
 <ul>
-<li><strong>At Most Once Delivery:</strong> It guarantees that a particular message can either be delivered once or not at all. There can be a loss of messages but a message can never be delivered more than once.</li>
-<li><strong>At Least Once Delivery</strong>: It guarantees that a particular message will always be delivered. It can be delivered multiple times but there will never be any messages lost.</li>
-<li><strong>Exactly Once Delivery</strong>: It guarantees that all messages will always be delivered exactly once. Exactly once does not mean that there will be no failures or no retries. These are inevitable. The important thing is that the retries succeed. In other words, the result should be the same, whether it has been successfully processed exactly once or not.</li>
+<li>Is your task data driven?</li>
+<li>Do you have suitable and sufficient data to support an AI-driven solution?</li>
+<li>Do you have an understanding of how AI works?</li>
 </ul>
-<p>采用事务的二步提交方式？</p>
-<p><img src="https://dzone.com/storage/temp/10934601-figure-4-transactions-across-partition.png" alt="transaction"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/01/23/data-traffic-in-airflow/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/01/23/data-traffic-in-airflow/" itemprop="url">data traffic control in apache airflow</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-01-23T20:15:36+08:00">
-                2019-01-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/airflow/" itemprop="url" rel="index">
-                    <span itemprop="name">airflow</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/01/23/data-traffic-in-airflow/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/01/23/data-traffic-in-airflow/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/leboncoin-engineering-blog/data-traffic-control-with-apache-airflow-ab8fd3fc8638" target="_blank" rel="noopener">原文链接</a></p>
-<ul>
-<li>Scale our data pipelines to process workloads of up to several terabytes a day efficiently</li>
-<li>Adapt to the platform’s technological and organisational shift to a micro-service architecture</li>
-<li>Quickly detect failures and inconsistencies in the many data processes run each day/hour</li>
-<li>Respond to internal or external faults without impacting the quality, conformity, and availability of actionable information to our business users</li>
-</ul>
-<p>It provides:</p>
-<ul>
-<li><strong>Retry mechanisms</strong> to ensure that each and every anomaly can be detected, and automatically or manually healed over time (with as little human intervention as possible)</li>
-<li>Priority aware work <strong>queue management</strong>, ensuring that the most important tasks are run first and complete as soon as possible</li>
-<li><strong>Resource pooling</strong> system to ensure that, in a high concurrency environment, thresholds can be set to avoid overloading input or output systems</li>
-<li><strong>Backfill</strong> capabilities to identify “missing” past runs, and automatically re-create and run them</li>
-<li>Full history of <strong>metrics and statistics</strong> to view the evolution of each task performance over time, and even assess data-delivery SLAs over time</li>
-<li>An <strong>horizontally scalable</strong> set of alternatives to the way tasks are dispatched and run on a distributed infrastructure</li>
-<li>A centralized, secure place to store and view <strong>logs and configuration parameters</strong> for all task runs</li>
-</ul>
-<p>A <strong>central database</strong> that stores all stateful information</p>
-<p>Airflow proposes several executor out of the box, from the simplest to the most full-featured:</p>
-<ul>
-<li><strong><code>SequentialExecutor</code></strong>: a very basic, single task at a time, executor that is also the default one. You do <strong>NOT</strong> want to use this one for anything but unit testing</li>
-<li><strong><code>LocalExecutor</code></strong>: also very basic, it runs the tasks on the same host as the scheduler, and is quite simple to set-up. It’s the best candidate for small, non-distributed deployments, and development environments, but won’t scale horizontally</li>
-<li><strong><code>CeleryExecutor</code></strong>: here we are beginning to scale out over a distributed cluster of Celery workers to cope with a large sized task set. Still quite easy to set-up and use, it’s the recommended setup for production</li>
-<li><strong><code>MesosExecutor</code></strong>: if you’re one of the cool kids, and have an existing <a href="http://mesos.apache.org/" target="_blank" rel="noopener">Mesos</a>infrastructure, surely your will want to leverage as a destination for your task executions</li>
-<li><strong><code>KubernetesExecutor</code></strong>: if you’re an even cooler kid, support for <a href="https://kubernetes.io/" target="_blank" rel="noopener">Kubernetes</a>has been <a href="https://airflow.incubator.apache.org/kubernetes.html" target="_blank" rel="noopener">added in version 1.10.0</a></li>
-</ul>
-<p>不支持：</p>
-<p><strong>No dynamic execution —</strong> The graph built by Airflow is built ahead of the actual execution. Airflow has a dynamic DAG generation system, which can rely on external parameters (configuration, or even Airflow variables), to alter the workflow’s graph. We use this pattern a lot, but it’s not possible to alter the shape of the workflow at runtime (for instance, spawn a variable number of tasks depending on the output of an upstream task)</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/01/23/clean-architecture-on-golang/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/01/23/clean-architecture-on-golang/" itemprop="url">clean architecture on golang</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-01-23T19:53:59+08:00">
-                2019-01-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/01/23/clean-architecture-on-golang/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/01/23/clean-architecture-on-golang/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://hackernoon.com/golang-clean-archithecture-efd6d7c43047" target="_blank" rel="noopener">原文链接</a></p>
-<p>As we know the constraint before designing the Clean Architecture are :</p>
+<p><em>Try to avoid tasks with too many variables and potential outcomes.</em></p>
+<p>关于目标的制定上</p>
+<p><strong>My recommendation is to always spend time defining the goal. What are you trying to achieve and why?</strong></p>
+<p>it is mandatory that your “AI solution has built-in feedback loops so that predictions and outputs from the AI can be corrected by those employees overseeing operations.</p>
+<p>For your AI needs, three basic options have emerged:</p>
 <ol>
-<li>Independent of Frameworks. The architecture does not depend on the existence of some library of feature laden software. This allows you to use such frameworks as tools, rather than having to cram your system into their limited constraints.</li>
-<li>Testable. The business rules can be tested without the UI, Database, Web Server, or any other external element.</li>
-<li>Independent of UI. The UI can change easily, without changing the rest of the system. A Web UI could be replaced with a console UI, for example, without changing the business rules.</li>
-<li>Independent of Database. You can swap out Oracle or SQL Server, for Mongo, BigTable, CouchDB, or something else. Your business rules are not bound to the database.</li>
-<li>Independent of any external agency. In fact your business rules simply don’t know anything at all about the outside world.</li>
+<li>Use an AI-aaS solution such as Amazon AI (Rekognition), Google Cloud Vision or IBM Watson. They offer a narrow range of AI functions, mostly enabled via APIs for text and image recognition.</li>
+<li>Collaborate with third-party applied AI companies that specialize in a broader and more customized range of vertical AI services.</li>
+<li>Create your own machine learning system from scratch, using your own team and data. This is the most complicated option and is primarily for multinational companies or/and organizations where AI is essential to their core value and revenue.</li>
 </ol>
-<p>service部分的单测写法</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> usecase_test</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/bxcodec/faker"</span></span><br><span class="line">	models <span class="string">"github.com/bxcodec/go-clean-arch/article"</span></span><br><span class="line">	<span class="string">"github.com/bxcodec/go-clean-arch/article/repository/mocks"</span></span><br><span class="line">	ucase <span class="string">"github.com/bxcodec/go-clean-arch/article/usecase"</span></span><br><span class="line">	<span class="string">"github.com/stretchr/testify/assert"</span></span><br><span class="line">	<span class="string">"github.com/stretchr/testify/mock"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestFetch</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	mockArticleRepo := <span class="built_in">new</span>(mocks.ArticleRepository)</span><br><span class="line">	<span class="keyword">var</span> mockArticle models.Article</span><br><span class="line">	err := faker.FakeData(&amp;mockArticle)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line"></span><br><span class="line">	mockListArtilce := <span class="built_in">make</span>([]*models.Article, <span class="number">0</span>)</span><br><span class="line">	mockListArtilce = <span class="built_in">append</span>(mockListArtilce, &amp;mockArticle)</span><br><span class="line">	mockArticleRepo.On(<span class="string">"Fetch"</span>, mock.AnythingOfType(<span class="string">"string"</span>), mock.AnythingOfType(<span class="string">"int64"</span>)).Return(mockListArtilce, <span class="literal">nil</span>)</span><br><span class="line">	u := ucase.NewArticleUsecase(mockArticleRepo)</span><br><span class="line">	num := <span class="keyword">int64</span>(<span class="number">1</span>)</span><br><span class="line">	cursor := <span class="string">"12"</span></span><br><span class="line">	list, nextCursor, err := u.Fetch(cursor, num)</span><br><span class="line">	cursorExpected := strconv.Itoa(<span class="keyword">int</span>(mockArticle.ID))</span><br><span class="line">	assert.Equal(t, cursorExpected, nextCursor)</span><br><span class="line">	assert.NotEmpty(t, nextCursor)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Len(t, list, <span class="built_in">len</span>(mockListArtilce))</span><br><span class="line"></span><br><span class="line">	mockArticleRepo.AssertCalled(t, <span class="string">"Fetch"</span>, mock.AnythingOfType(<span class="string">"string"</span>), mock.AnythingOfType(<span class="string">"int64"</span>))</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>controller端的单测写法</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestGetByID</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">     <span class="keyword">var</span> mockArticle models.Article </span><br><span class="line">     err := faker.FakeData(&amp;mockArticle) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     mockUCase := <span class="built_in">new</span>(mocks.ArticleUsecase) </span><br><span class="line">     num := <span class="keyword">int</span>(mockArticle.ID) </span><br><span class="line">     mockUCase.On(“GetByID”, <span class="keyword">int64</span>(num)).Return(&amp;mockArticle, <span class="literal">nil</span>) </span><br><span class="line">     e := echo.New() </span><br><span class="line">     req, err := http.NewRequest(echo.GET, “/article/” +  </span><br><span class="line">                 strconv.Itoa(<span class="keyword">int</span>(num)), strings.NewReader(“”)) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     rec := httptest.NewRecorder() </span><br><span class="line">     c := e.NewContext(req, rec) </span><br><span class="line">     c.SetPath(“article/:id”) </span><br><span class="line">     c.SetParamNames(“id”) </span><br><span class="line">     c.SetParamValues(strconv.Itoa(num)) </span><br><span class="line">     handler:= articleHttp.ArticleHandler&#123;</span><br><span class="line">                AUsecase: mockUCase,</span><br><span class="line">                Helper: httpHelper.HttpHelper&#123;&#125;</span><br><span class="line">     &#125; </span><br><span class="line">     handler.GetByID(c) </span><br><span class="line">     assert.Equal(t, http.StatusOK, rec.Code) </span><br><span class="line">     mockUCase.AssertCalled(t, “GetByID”, <span class="keyword">int64</span>(num))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从第三方的经验中去学习，</p>
 
           
         
@@ -967,7 +430,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/01/23/dockerise-scala-and-akka/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/13/tdd-change-developer-life/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -986,7 +449,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/01/23/dockerise-scala-and-akka/" itemprop="url">dockerise scala and akka</a></h1>
+                <a class="post-title-link" href="/2019/02/13/tdd-change-developer-life/" itemprop="url">TDD change developer life</a></h1>
         
 
         <div class="post-meta">
@@ -998,8 +461,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-01-23T19:41:03+08:00">
-                2019-01-23
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-13T11:29:04+08:00">
+                2019-02-13
               </time>
             
 
@@ -1033,8 +496,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index">
-                    <span itemprop="name">akka</span>
+                  <a href="/categories/TDD/" itemprop="url" rel="index">
+                    <span itemprop="name">TDD</span>
                   </a>
                 </span>
 
@@ -1051,8 +514,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/01/23/dockerise-scala-and-akka/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/01/23/dockerise-scala-and-akka/" itemprop="commentCount"></span>
+                <a href="/2019/02/13/tdd-change-developer-life/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/13/tdd-change-developer-life/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1082,12 +545,555 @@
       
         
           
-            <p><a href="https://medium.freecodecamp.org/how-to-dockerise-a-scala-and-akka-http-application-the-easy-way-23310fc880fa" target="_blank" rel="noopener">原文链接</a></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">sbt docker:stage</span></span><br></pre></td></tr></table></figure>
-<p>在build.sbt中去配置</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">packageName in Docker := &quot;dockerised-akka-http&quot;</span><br></pre></td></tr></table></figure>
-<p>一个思路是在编译脚本中，去做</p>
-<p>是不是有一个直接在maven插件中去做？而不用单独写dockerfile？</p>
+            <p><a href="https://medium.com/@raphaelyoshiga/why-tdd-will-change-your-developer-life-b0bf234e15ac" target="_blank" rel="noopener">原文链接</a></p>
+<p>Test-driven development is a great technique to add to your tool belt, it will help you by:</p>
+<ul>
+<li>Giving you confidence so you can refactor</li>
+<li>Improving your design towards SOLID — Forcing the code to be designed in a testable manner.</li>
+<li>Develop faster over the long run.</li>
+<li>Give you an easy way to retest the application in a matter of seconds.</li>
+<li>Minimise YAGNI (You aren’t gonna need it) — As developers have clear goals to know when the task is done.</li>
+<li>Maintenance costs reduced.</li>
+</ul>
+<p>关于重构的时候，先去做TDD，很有好处</p>
+<p>TDD rules:</p>
+<ul>
+<li>You shall not write production code other than to pass a failing test</li>
+<li>You shall not write more of the production code than necessary to pass that failing test.</li>
+<li>You shall not write more of the test than to make it fail for the right reason.</li>
+</ul>
+<p>TDD works greatly when you have a domain, something you know the input and what is the expected output.</p>
+<p>针对领域编程部分，TDD效果很好</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/12/etcd-raft/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/02/12/etcd-raft/" itemprop="url">etcd raft实现</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-12T11:38:38+08:00">
+                2019-02-12
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/raft/" itemprop="url" rel="index">
+                    <span itemprop="name">raft</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/02/12/etcd-raft/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/12/etcd-raft/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://jiajunhuang.com/articles/2018_11_22-etcd_source_code_analysis_raft.md.html" target="_blank" rel="noopener">原文链接</a></p>
+<p>raft整体的含义</p>
+<ul>
+<li>Raft集群中，每个server只有三种状态：leader，follower，candidate（选举）。</li>
+<li>follower不会主动发送消息，只会接受和响应消息。</li>
+<li>leader处理所有的客户端请求，如果follower接收到客户端的请求，则转发给leader。</li>
+<li>candidate是选举状态。</li>
+</ul>
+<p>Raft主要是有三点：</p>
+<ul>
+<li>Leader Election: raft集群里是主从的，leader来进行所有操作，follower不会主动向集群内的其他节点发起请求。</li>
+<li>Log Replication: leader处理来自客户端的请求，leader把自己的日志发向follower做复制</li>
+<li>Safety: 只有含有最新的日志的节点可以成为leader，如果收到投票请求时，发现对方的日志没有自己的新，那么久投否决票。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="comment">// 略略略，准备 rd</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> maybe buffer the config propose if there exists one (the way</span></span><br><span class="line">    <span class="comment">// described in raft dissertation)</span></span><br><span class="line">    <span class="comment">// Currently it is dropped in Step silently.</span></span><br><span class="line">    <span class="keyword">case</span> pm := &lt;-propc: <span class="comment">// proposal 是有结果的消息，应该是用来等待是否成功处理的</span></span><br><span class="line">        m := pm.m</span><br><span class="line">        m.From = r.id</span><br><span class="line">        err := r.Step(m) <span class="comment">// 注意，Step 是一个函数，这个函数用来处理消息。但是不同的身份有不同的Step实现，点进去看一下default里的代码，就调用了。参见 raft.go-&gt;becomeFollower, raft.go-&gt;becomeCandidate等等里的stepXXX函数</span></span><br><span class="line">        <span class="keyword">if</span> pm.result != <span class="literal">nil</span> &#123;</span><br><span class="line">            pm.result &lt;- err</span><br><span class="line">            <span class="built_in">close</span>(pm.result)</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="keyword">case</span> m := &lt;-n.recvc: <span class="comment">// 收到消息，这里的消息应该是不等待结果的</span></span><br><span class="line">        <span class="comment">// filter out response message from unknown From.</span></span><br><span class="line">        <span class="keyword">if</span> pr := r.getProgress(m.From); pr != <span class="literal">nil</span> || !IsResponseMsg(m.Type) &#123;</span><br><span class="line">            r.Step(m)</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="keyword">case</span> cc := &lt;-n.confc: <span class="comment">// 配置变更</span></span><br><span class="line">        <span class="comment">// 略略略</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-n.tickc: <span class="comment">// 心跳和选举的timeout，参见doc.go</span></span><br><span class="line">        r.tick()</span><br><span class="line">    <span class="keyword">case</span> readyc &lt;- rd: <span class="comment">// Ready是各种准备好的变更</span></span><br><span class="line">        <span class="comment">// 略略略</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-advancec: <span class="comment">// 这个是用来确认Ready已经处理完的</span></span><br><span class="line">        <span class="comment">// 略略略</span></span><br><span class="line">    <span class="keyword">case</span> c := &lt;-n.status: <span class="comment">// <span class="doctag">TODO:</span> 好像也是状态变更？？？</span></span><br><span class="line">        c &lt;- getStatus(r)</span><br><span class="line">    <span class="keyword">case</span> &lt;-n.stop: <span class="comment">// 那就是stop咯</span></span><br><span class="line">        <span class="built_in">close</span>(n.done)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>大致的几个分支部分</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/12/httpclient/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/02/12/httpclient/" itemprop="url">http client</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-12T11:10:00+08:00">
+                2019-02-12
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/http/" itemprop="url" rel="index">
+                    <span itemprop="name">http</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/02/12/httpclient/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/12/httpclient/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://segmentfault.com/a/1190000010771138" target="_blank" rel="noopener">原文链接</a></p>
+<p>keepAliveStrategy部分</p>
+<p>默认的话，是从response里头读timeout参数的，没有读到则设置为-1，这个代表无穷，这样设置是有点问题了</p>
+<p>https会报read time out</p>
+<p><strong>如果头部信息Keep-Alive在响应中不存在，HttpClient假设连接无限期的保持活动。然而许多现实中的HTTP服务器配置了在特定不活动周期之后丢掉持久连接来保存系统资源，往往这是不通知客户端的。</strong></p>
+<p>Connection eviction policy</p>
+<blockquote>
+<p>一个经典的阻塞 I/O 模型的主要缺点是网络套接字仅当 I/O 操作阻塞时才可以响应 I/O 事件。当一个连接被释放返回管理器时，它可以被保持活动状态而却不能监控套接字的状态和响应任何 I/O 事件。如果连接在服务器端关闭，那么客户端连接也不能去侦测连接状态中的变化和关闭本端的套接字去作出适当响应。</p>
+</blockquote>
+<p>唯一可行的而不涉及到每个对空闲连接的套接字模型线程解决方案，是使用专用的监控线程来收回因为长时间不活动而被认为是过期的连接。监控线程可以周期地调用 ClientConnectionManager#closeExpiredConnections()方法来关闭所有过期的连接，从连接池中收回关闭的连接。它也可以选择性调用ClientConnectionManager#closeIdleConnections()方法来关闭所有已经空 闲超过给定时间周期的连接</p>
+<p>ConnTimeToLive</p>
+<p>http连接池connection的存活时间</p>
+<blockquote>
+<p>默认构造的话，timeToLive是-1，如果默认是-1的话，则不失效</p>
+</blockquote>
+<p>当getKeepAliveDuration为-1以及connTimeToLive为-1的时候，closeExpiredConnections方法其实是没有用的，查看debug日志会出现</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">o.a.http.impl.client.DefaultHttpClient <span class="number">509</span> : Connection can be kept alive indefinitely</span><br></pre></td></tr></table></figure>
+<p>当getKeepAliveDuration不为-1的话，假设是5s,则日志可能是这样的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">o.a.http.impl.execchain.MainClientExec <span class="number">285</span> : Connection can be kept alive <span class="keyword">for</span> <span class="number">5000</span> MILLISECONDS</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/02/11/cnab/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/02/11/cnab/" itemprop="url">CNAB - Packagaging for Applications with Multiple Toolchains</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-11T21:11:30+08:00">
+                2019-02-11
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
+                2019-07-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/package/" itemprop="url" rel="index">
+                    <span itemprop="name">package</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/02/11/cnab/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/02/11/cnab/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://speakerdeck.com/garethr/cnab-packagaging-for-applications-with-multiple-toolchains" target="_blank" rel="noopener">原文链接</a></p>
+<p>关于一个内容，讲spec部分</p>
+<p>It’s not tool specific, It’s about compatibility between tools</p>
+<p><img src="/Users/gqlxj1987/bitbucket/gqlxj1987/source/images/image-20190222152143905.png" alt="image-20190222152143905"></p>
+<p>A executable entry point responsible for translating action requests(install, upgrade…) to a sequence tasks</p>
+<p>使用docker-app命令</p>
 
           
         
@@ -1127,7 +1133,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/37/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><span class="page-number current">38</span><a class="page-number" href="/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/page/111/">111</a><a class="extend next" rel="next" href="/page/39/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/37/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><span class="page-number current">38</span><a class="page-number" href="/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/page/113/">113</a><a class="extend next" rel="next" href="/page/39/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
