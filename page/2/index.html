@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/29/naiad-timely-dataflow/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/08/10/sql-parse/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/29/naiad-timely-dataflow/" itemprop="url">Naiad timely dataflow</a></h1>
+                <a class="post-title-link" href="/2020/08/10/sql-parse/" itemprop="url">SQL Parse In ClickHouse</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-29T16:56:45+08:00">
-                2020-06-29
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-10T00:10:34+08:00">
+                2020-08-10
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-07-06T14:13:43+08:00">
-                2020-07-06
+              <time title="更新于" itemprop="dateModified" datetime="2020-08-10T00:14:50+08:00">
+                2020-08-10
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/data/" itemprop="url" rel="index">
-                    <span itemprop="name">data</span>
+                  <a href="/categories/sql/" itemprop="url" rel="index">
+                    <span itemprop="name">sql</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/29/naiad-timely-dataflow/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/29/naiad-timely-dataflow/" itemprop="commentCount"></span>
+                <a href="/2020/08/10/sql-parse/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/08/10/sql-parse/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,26 +364,20 @@
       
         
           
-            <p><a href="https://dl.acm.org/doi/pdf/10.1145/2517349.2522738" target="_blank" rel="noopener">原文链接</a></p>
-<p>This model enriches dataflow computation with timestamps that represent logical points in the computation and provide the basis for an efficient, lightweight coordination mechanism</p>
-<p>However, no existing system satisfies all three requirements: </p>
-<ul>
-<li>stream processors can produce low-latency results for non-iterative algorithms</li>
-<li>batch systems can iterate synchronously at the expense of latency</li>
-<li>trigger-based approaches support iteration with only weak consistency guarantees</li>
-</ul>
+            <p><a href="https://bohutang.me/2020/07/25/clickhouse-and-friends-parser/" target="_blank" rel="noopener">原文链接</a></p>
+<p>首先经过token进行切词，然后通过ast node来进行组织</p>
+<p>可以发现，ast parser 的时候，预先构造好状态空间，比如 select 的状态空间:</p>
 <ol>
-<li>structured loops allowing feedback in the dataflow</li>
-<li>stateful dataflow vertices capable of consuming and producing records without global coordination, and</li>
-<li>notifications for vertices once they have received all records for a given round of input or loop iteration.</li>
+<li>expression list</li>
+<li>from tables</li>
+<li>where</li>
+<li>group by</li>
+<li>with …</li>
+<li>order by</li>
+<li>limit</li>
 </ol>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg99rlfftkj30c607gaaq.jpg" alt="image-20200629170545369" style="zoom:50%;"></p>
-<p>利用loops context来解决问题？</p>
-<p>Loop Context in the above graph is a cycle with an ingress(I) and an egress(E) node along with a feedback (F) node.</p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg9a3g5gd9j30eq06sjrw.jpg" alt="img" style="zoom:67%;"></p>
-<p>Dataflow graphs use logical timestamps [3]. These logical timestamps contain epoch and loop counter. They are used to track the computation, loop number of the input data.</p>
-<p>逻辑时间戳代替实际的时间戳，这样就不存在过去时间的事件，</p>
-<p>错误处理，恢复起来，比较缓慢</p>
+<p>在一个状态空间內，还可以根据 parse 返回的 bool 判断是否继续进入子状态空间，一直递归解析出整个 ast。</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">bool</span> ParserSelectQuery::parseImpl(Pos &amp; pos, ASTPtr &amp; node, Expected &amp; expected)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">auto</span> select_query = <span class="built_in">std</span>::make_shared&lt;ASTSelectQuery&gt;();</span><br><span class="line">    node = select_query;</span><br><span class="line"></span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_select</span><span class="params">(<span class="string">"SELECT"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_distinct</span><span class="params">(<span class="string">"DISTINCT"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_from</span><span class="params">(<span class="string">"FROM"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_prewhere</span><span class="params">(<span class="string">"PREWHERE"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_where</span><span class="params">(<span class="string">"WHERE"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_group_by</span><span class="params">(<span class="string">"GROUP BY"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_with</span><span class="params">(<span class="string">"WITH"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_totals</span><span class="params">(<span class="string">"TOTALS"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_having</span><span class="params">(<span class="string">"HAVING"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_order_by</span><span class="params">(<span class="string">"ORDER BY"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_limit</span><span class="params">(<span class="string">"LIMIT"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_settings</span><span class="params">(<span class="string">"SETTINGS"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_by</span><span class="params">(<span class="string">"BY"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_rollup</span><span class="params">(<span class="string">"ROLLUP"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_cube</span><span class="params">(<span class="string">"CUBE"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_top</span><span class="params">(<span class="string">"TOP"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_with_ties</span><span class="params">(<span class="string">"WITH TIES"</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserKeyword <span class="title">s_offset</span><span class="params">(<span class="string">"OFFSET"</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">ParserNotEmptyExpressionList <span class="title">exp_list</span><span class="params">(<span class="literal">false</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserNotEmptyExpressionList <span class="title">exp_list_for_with_clause</span><span class="params">(<span class="literal">false</span>)</span></span>;</span><br><span class="line">    <span class="function">ParserNotEmptyExpressionList <span class="title">exp_list_for_select_clause</span><span class="params">(<span class="literal">true</span>)</span></span>;  </span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -432,7 +426,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/28/byte-char-in-heapdump/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/08/09/tcp-reset-attack/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -451,7 +445,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/28/byte-char-in-heapdump/" itemprop="url">byte/char in heapdump</a></h1>
+                <a class="post-title-link" href="/2020/08/09/tcp-reset-attack/" itemprop="url">Tcp Reset Attack Intro</a></h1>
         
 
         <div class="post-meta">
@@ -463,8 +457,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-28T18:19:29+08:00">
-                2020-06-28
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-09T15:13:49+08:00">
+                2020-08-09
               </time>
             
 
@@ -479,8 +473,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-28T20:03:15+08:00">
-                2020-06-28
+              <time title="更新于" itemprop="dateModified" datetime="2020-08-10T00:08:21+08:00">
+                2020-08-10
               </time>
             
           </span>
@@ -498,8 +492,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index">
-                    <span itemprop="name">jvm</span>
+                  <a href="/categories/tcp/" itemprop="url" rel="index">
+                    <span itemprop="name">tcp</span>
                   </a>
                 </span>
 
@@ -516,8 +510,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/28/byte-char-in-heapdump/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/28/byte-char-in-heapdump/" itemprop="commentCount"></span>
+                <a href="/2020/08/09/tcp-reset-attack/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/08/09/tcp-reset-attack/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -547,16 +541,20 @@
       
         
           
-            <p><a href="https://mp.weixin.qq.com/s/INwH70DwwU6lfS4bJUijtA" target="_blank" rel="noopener">原文链接</a></p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg86bpa429j317i06wtee.jpg" alt="image-20200628182112859"></p>
-<p>发现VisualVM还是可以通过到处文件的方式查看数组内容的：</p>
-<ol>
-<li>选择byte[] 对象，然后打开该对象的Preview面板</li>
-<li>将byte[] 内容保存到文件</li>
-<li>选择二进制文件格式</li>
-<li>为所欲为</li>
-</ol>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cut -b 1-100 a.bin</span></span><br></pre></td></tr></table></figure>
+            <p><a href="https://robertheaton.com/2020/04/27/how-does-a-tcp-reset-attack-work/" target="_blank" rel="noopener">原文链接</a></p>
+<p>The attack is believed to be a key component of China’s Great Firewall, used by the Chinese government to censor the internet inside China. </p>
+<p>the GFW may sometimes also want to allow a connection to be made, but to then kill it halfway through.</p>
+<p>against long-lived connections</p>
+<p>针对IPSec，针对ip级别的auth</p>
+<p>虽然有TLS，但是基于tcp的协议，依然无效</p>
+<p>Reconstructing segments into a stream requires care, because the internet is not reliable.重新组织tcp包</p>
+<p>A successful TCP reset attack therefore requires a believable sequence number. </p>
+<p>原理还是插入一个包，导致整个链路失效</p>
+<p><a href="https://blog.csdn.net/dog250/article/details/6896949" target="_blank" rel="noopener">udp协议intro1</a></p>
+<p>UDP的连接是单向的，在调用connect的时候并不会产生任何通信流量，它只是在内核协议栈中绑定了一对五元组而已，该五元组是：UDP协议/源IP/源端口/目的IP/目的端口</p>
+<p>UDP-端口复用的IP协议</p>
+<p>UDP双方每次以512字节定长包通信</p>
+<p>多点通讯</p>
 
           
         
@@ -605,7 +603,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/16/container-images-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/08/03/data-event-in-shopee/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -624,7 +622,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/16/container-images-intro/" itemprop="url">Container Images 介绍</a></h1>
+                <a class="post-title-link" href="/2020/08/03/data-event-in-shopee/" itemprop="url">Data Event in shopee</a></h1>
         
 
         <div class="post-meta">
@@ -636,8 +634,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-16T15:26:54+08:00">
-                2020-06-16
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-03T10:16:29+08:00">
+                2020-08-03
               </time>
             
 
@@ -652,8 +650,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-22T21:34:49+08:00">
-                2020-06-22
+              <time title="更新于" itemprop="dateModified" datetime="2020-08-09T15:07:01+08:00">
+                2020-08-09
               </time>
             
           </span>
@@ -671,8 +669,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/docker/" itemprop="url" rel="index">
-                    <span itemprop="name">docker</span>
+                  <a href="/categories/database/" itemprop="url" rel="index">
+                    <span itemprop="name">database</span>
                   </a>
                 </span>
 
@@ -689,8 +687,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/16/container-images-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/16/container-images-intro/" itemprop="commentCount"></span>
+                <a href="/2020/08/03/data-event-in-shopee/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/08/03/data-event-in-shopee/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -720,42 +718,14 @@
       
         
           
-            <p><a href="https://blog.k8s.li/Exploring-container-image.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>目前 OCI 主要有三个规范：运行时规范 <a href="https://github.com/opencontainers/runtime-spec" target="_blank" rel="noopener">runtime-spec</a> ，镜像规范 <a href="https://www.github.com/opencontainers/image-spec" target="_blank" rel="noopener">image-spec</a> 以及不常见的镜像仓库规范 <a href="https://github.com/opencontainers/distribution-spec" target="_blank" rel="noopener">distribution-spec</a></p>
-<ul>
-<li>操作标准化：容器的标准化操作包括使用标准容器创建、启动、停止容器，使用标准文件系统工具复制和创建容器快照，使用标准化网络工具进行下载和上传。</li>
-<li>内容无关：内容无关指不管针对的具体容器内容是什么，容器标准操作执行后都能产生同样的效果。如容器可以用同样的方式上传、启动，不管是PHP应用还是MySQL数据库服务。</li>
-<li>基础设施无关：无论是个人的笔记本电脑还是AWS S3，亦或是OpenStack，或者其它基础设施，都应该对支持容器的各项操作。</li>
-<li>为自动化量身定制：制定容器统一标准，是的操作内容无关化、平台无关化的根本目的之一，就是为了可以使容器操作全平台自动化。</li>
-<li>工业级交付：制定容器标准一大目标，就是使软件分发可以达到工业级交付成为现实</li>
-</ul>
-<h4 id="image-spec">image-spec</h4><ul>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/manifest.md" target="_blank" rel="noopener">Image Manifest</a> - a document describing the components that make up a container image</li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/image-index.md" target="_blank" rel="noopener">Image Index</a> - an annotated index of image manifests</li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/image-layout.md" target="_blank" rel="noopener">Image Layout</a> - a filesystem layout representing the contents of an image</li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/layer.md" target="_blank" rel="noopener">Filesystem Layer</a> - a changeset that describes a container’s filesystem</li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/config.md" target="_blank" rel="noopener">Image Configuration</a> - a document determining layer ordering and configuration of the image suitable for translation into a <a href="https://github.com/opencontainers/runtime-spec" target="_blank" rel="noopener">runtime bundle</a></li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/conversion.md" target="_blank" rel="noopener">Conversion</a> - a document describing how this translation should occur</li>
-<li><a href="https://github.com/opencontainers/image-spec/blob/master/descriptor.md" target="_blank" rel="noopener">Descriptor</a> - a reference that describes the type, metadata and content address of referenced content</li>
-</ul>
-<p>layer: 以 layer （镜像层）保存的文件系统，每个 layer 保存了和上层之间变化的部分，layer 应该保存哪些文件，怎么表示增加、修改和删除的文件等</p>
-<p>docker inspect <image_id> 得到image config</image_id></p>
-<p>manifest文件，指明跨平台的基础支持，</p>
-<p>使用项目默认的 Dockerfile 进行构建的话，镜像大小接近 500MB 😂，而经过一些的优化，将所有的 RUN 指令合并为一条，最终构建出来的镜像大小为 30MB，合并RUN有利于减小镜像大小</p>
-<p>docker 在 1.10 以后，只有 <code>RUN、COPY 和 ADD</code> 指令会创建层，其他指令会创建临时的中间镜像，但是不会直接增加构建的镜像大小了。</p>
-<p><code>;</code>和<code>&amp;&amp;</code> 二者有本质的区别，比如 COMMAND 1;COMMAND 2 ，当 COMMAND 1 运行失败时会继续运行 COMMAND2 ，并不会退出。而 COMMAND 1&amp;&amp; COMMAND 2，时 COMMAND 1 运行成功时才接着运行 COMMAND 2 ，COMMAND 1 运行失败会退出。</p>
-<p>docker build 构建镜像的流程大概就是：</p>
-<ul>
-<li>执行 <code>docker build -t &lt;imageName:Tag&gt; .</code>，可以使用 <code>-f</code>参数来指定 Dockerfile 文件；</li>
-<li>docker 客户端会将构建命令后面指定的路径(<code>.</code>)下的所有文件打包成一个 tar 包，发送给 Docker 服务端;</li>
-<li>docker 服务端收到客户端发送的 tar 包，然后解压，接下来根据 Dockerfile 里面的指令进行镜像的分层构建；</li>
-<li>docker 下载 FROM 语句中指定的基础镜像，然后将基础镜像的 layer 联合挂载为一层，并在上面创建一个空目录；</li>
-<li>接着启动一个临时的容器并在 chroot 中启动一个 bash，运行 <code>RUN</code> 语句中的命令：<code>RUN: chroot . /bin/bash -c &quot;apt get update……&quot;</code>；</li>
-<li>一条 <code>RUN</code> 命令结束后，会把上层目录压缩，形成新镜像中的新的一层；</li>
-<li>如果 Dockerfile 中包含其它命令，就以之前构建的层次为基础，从第二步开始重复创建新层，直到完成所有语句后退出；</li>
-<li>构建完成之后为该镜像打上 tag；</li>
-</ul>
-<p>因为在 Dockerfile 中的 ADD 指令 src 文件如果是个 tar 包，在构建的时候 docker 会帮我们把 tar 包解开到指定目录，使用 copy 指令则不会解开 tar 包。另外一点区别就是 ADD 指令是添加一个文件，这个文件可以是构建上下文环境中的文件，也可以是个 URL，而 COPY 则只能添加构建上下文中的文件，所谓的构建上下文就是我们构建镜像的时候最后一个参数啦。</p>
+            <p><a href="https://static001.geekbang.org/con/40/pdf/4109523403/file/%E6%9E%97%E9%94%8B-Shopee%E6%95%B0%E6%8D%AE%E4%BA%8B%E4%BB%B6%E4%B8%AD%E5%BF%83%E7%9A%84%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0.pdf" target="_blank" rel="noopener">原文链接</a></p>
+<p>There are only two hard things in Computer Science: Cache validation and naming things</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"command"</span>:<span class="string">"update"</span>,</span><br><span class="line">    <span class="attr">"table"</span>:<span class="string">"test_db.test_tab"</span>,</span><br><span class="line">    <span class="attr">"timestamp"</span>:<span class="number">1347876077</span>,</span><br><span class="line">    <span class="attr">"fieldnum"</span>:<span class="number">3</span>,</span><br><span class="line">    <span class="attr">"newrow"</span>:&#123;</span><br><span class="line">        <span class="attr">"0"</span>:<span class="string">"30020"</span>,</span><br><span class="line">        <span class="attr">"1"</span>:<span class="string">"username1"</span>,</span><br><span class="line">        <span class="attr">"2"</span>:<span class="string">"0"</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"oldrow"</span>:&#123;</span><br><span class="line">        <span class="attr">"0"</span>:<span class="string">"30020"</span>,</span><br><span class="line">        <span class="attr">"1"</span>:<span class="string">"username2"</span>,</span><br><span class="line">        <span class="attr">"2"</span>:<span class="string">"16"</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>采用zk作为元数据的存储</p>
+<p>mysql binlog -&gt;gds -&gt; GDS Kafka -&gt; Consumer-&gt; kafka queue -&gt; Executor -&gt; other db/redis</p>
+<p>每个库一个队列</p>
+<p>controller + zookeeper来管理，前者用来调度，后者用来存储元数据信息</p>
+<p>利用goroutine来进行并发，同时，根据key来分发，也有一定顺序性</p>
 
           
         
@@ -804,7 +774,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/16/AB-test-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/24/k8s-improve-in-bytes/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -823,7 +793,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/16/AB-test-intro/" itemprop="url">AB test是否可靠</a></h1>
+                <a class="post-title-link" href="/2020/07/24/k8s-improve-in-bytes/" itemprop="url">k8s improve in byteDance</a></h1>
         
 
         <div class="post-meta">
@@ -835,8 +805,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-16T10:29:06+08:00">
-                2020-06-16
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-24T10:24:12+08:00">
+                2020-07-24
               </time>
             
 
@@ -851,8 +821,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-16T10:51:12+08:00">
-                2020-06-16
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-30T17:41:58+08:00">
+                2020-07-30
               </time>
             
           </span>
@@ -870,8 +840,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/AB/" itemprop="url" rel="index">
-                    <span itemprop="name">AB</span>
+                  <a href="/categories/k8s/" itemprop="url" rel="index">
+                    <span itemprop="name">k8s</span>
                   </a>
                 </span>
 
@@ -888,8 +858,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/16/AB-test-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/16/AB-test-intro/" itemprop="commentCount"></span>
+                <a href="/2020/07/24/k8s-improve-in-bytes/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/24/k8s-improve-in-bytes/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -919,29 +889,10 @@
       
         
           
-            <p><a href="https://uxren.cn/?p=58841" target="_blank" rel="noopener">原文链接</a></p>
-<p>AB测试来自医学的双盲实验，在双盲测试中：</p>
-<ol>
-<li>病人随机被分成两组，在不知情的情况下，分别服用安慰剂跟测试用药</li>
-<li>经过一段时间后，再来比较两组病人的表现是否有显著差异。</li>
-</ol>
-<h4 id="单层实验">单层实验</h4><p>单层实验的模式是：</p>
-<ol>
-<li>把所有的用户放在一起，有相互独立的用户标识（比如cid，uid，cookis等）</li>
-<li>以某种分流的方法（比如随机），给每个实验组，分配一定的用户。</li>
-<li>每个实验分到的用户正交</li>
-</ol>
-<p>遇到的问题：</p>
-<ol>
-<li>扩展性差，只能同时支持少量实验。但是以数据驱动的业务，需要极快的创新速度，大量的创新需要被测试，会严重delay业务。</li>
-<li>如果在单层同时进行多个实验，实验之间不是独立事件，并行的时候，同一个策略，只能进行一个实验，如果多个并行支持，无法实现。不同策略之间也有影响。</li>
-<li>流量饥饿问题：假设我们整体用户要做5个实验，如果前2个实验占据了大部分的流量，后面的3个实验就有很少的流量可以供使用，甚至没有流量可用。</li>
-<li>流量偏置问题：假设上游的实验把所有的年轻人都获取了，下游的实验，没有年轻人的样本。导致有偏差。</li>
-</ol>
-<h4 id="多层重叠实验">多层重叠实验</h4><p><a href="https://www.csdn.net/article/2015-01-09/2823499" target="_blank" rel="noopener">论文地址</a></p>
-<p>核心思路：将参数划分到N个子集，每个子集都关联一个实验层，每个请求会被N个实验处理（每层一个实验），每个实验都只能修改自己层相关联的参数（在参数子集中的参数），并且同一个参数不能出现在多个层中。</p>
-<p>谷歌在每一层共享一个对照组，被多个实验共享。如果对照组比实验组大很多，系数就可以用10.5，而不是16.（不用取2N，取N）?</p>
-<p><img src="https://uxren.cn/wp-content/uploads/2018/02/abtest-intro-toutiao-06.png" alt="intro toutiao" style="zoom: 50%;"></p>
+            <p><a href="https://www.infoq.cn/article/mu-1bFHNmrdd0kybgPXx" target="_blank" rel="noopener">原文链接</a></p>
+<p><a href="https://static001.geekbang.org/con/40/pdf/3095110934/file/%E6%B1%9F%E5%B8%86-%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8%E5%AE%B9%E5%99%A8%E5%8C%96%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5.pdf" target="_blank" rel="noopener">pdf</a></p>
+<p>SysProbe，基于eBPF的系统监控</p>
+<p>CFS调度，基于CPU Qos的调度</p>
 
           
         
@@ -990,7 +941,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/15/data-validation-for-machine-learning/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/16/typical-100-serverless-like-aws/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -1009,7 +960,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/15/data-validation-for-machine-learning/" itemprop="url">Data validation for machine learning</a></h1>
+                <a class="post-title-link" href="/2020/07/16/typical-100-serverless-like-aws/" itemprop="url">Typical 100% serverless like aws</a></h1>
         
 
         <div class="post-meta">
@@ -1021,8 +972,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-15T19:53:53+08:00">
-                2020-06-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-16T16:04:49+08:00">
+                2020-07-16
               </time>
             
 
@@ -1037,8 +988,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T21:26:08+08:00">
-                2020-06-15
+              <time title="更新于" itemprop="dateModified" datetime="2020-08-09T15:06:56+08:00">
+                2020-08-09
               </time>
             
           </span>
@@ -1056,8 +1007,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index">
-                    <span itemprop="name">ML</span>
+                  <a href="/categories/serverless/" itemprop="url" rel="index">
+                    <span itemprop="name">serverless</span>
                   </a>
                 </span>
 
@@ -1074,8 +1025,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/15/data-validation-for-machine-learning/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/15/data-validation-for-machine-learning/" itemprop="commentCount"></span>
+                <a href="/2020/07/16/typical-100-serverless-like-aws/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/16/typical-100-serverless-like-aws/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1105,14 +1056,10 @@
       
         
           
-            <p><a href="https://blog.acolyer.org/2019/06/05/data-validation-for-machine-learning/" target="_blank" rel="noopener">原文链接</a></p>
-<p>The data validation stage has three main components: </p>
-<ul>
-<li>the <em>data analyzer</em> computes statistics over the new data batch</li>
-<li>the <em>data validator</em> checks properties of the data against a schema</li>
-<li>the <em>model unit tester</em> looks for errors in the training code using synthetic data (schema-led fuzzing)</li>
-</ul>
-<p>detecting skew</p>
+            <p><a href="https://medium.com/serverless-transformation/what-a-typical-100-serverless-architecture-looks-like-in-aws-40f252cd0ecb" target="_blank" rel="noopener">原文链接</a></p>
+<p>communicating in an event-driven manner</p>
+<p>aws eventBridge</p>
+<p>state machine部分</p>
 
           
         
@@ -1152,7 +1099,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/117/">117</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

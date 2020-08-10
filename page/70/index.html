@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/29/golang-race/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/17/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/06/29/golang-race/" itemprop="url">golang race</a></h1>
+                <a class="post-title-link" href="/2018/07/17/one-week/" itemprop="url">我不是药神</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-29T10:01:30+08:00">
-                2018-06-29
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-17T08:09:46+08:00">
+                2018-07-17
               </time>
             
 
@@ -296,704 +296,7 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-29T10:08:23+08:00">
-                2018-06-29
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/29/golang-race/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/29/golang-race/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://www.cnblogs.com/yjf512/p/5144211.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>由于golang中的go是非常方便的，加上函数又非常容易隐藏go</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"math/rand"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    start := time.Now()</span><br><span class="line">    <span class="keyword">var</span> t *time.Timer</span><br><span class="line">    t = time.AfterFunc(randomDuration(), <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        fmt.Println(time.Now().Sub(start))</span><br><span class="line">        t.Reset(randomDuration())</span><br><span class="line">    &#125;)</span><br><span class="line">    time.Sleep(<span class="number">5</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">randomDuration</span><span class="params">()</span> <span class="title">time</span>.<span class="title">Duration</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> time.Duration(rand.Int63n(<span class="number">1e9</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>time.AfterFunc是会另外启动一个goroutine来进行计时和执行func()。 由于func中有对t(Timer)进行操作(t.Reset)，而主goroutine也有对t进行操作(t=time.After)。 这个时候，其实有可能会造成两个goroutine对同一个变量进行竞争的情况</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">runtime  <span class="keyword">go</span> run -race race1.<span class="keyword">go</span></span><br><span class="line">a is  <span class="number">3</span></span><br><span class="line">==================</span><br><span class="line">WARNING: DATA RACE</span><br><span class="line">Write by goroutine <span class="number">5</span>:</span><br><span class="line">  main.<span class="keyword">func</span>·<span class="number">001</span>()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">11</span> +<span class="number">0x3a</span></span><br><span class="line"></span><br><span class="line">Previous write by main goroutine:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">13</span> +<span class="number">0xe7</span></span><br><span class="line"></span><br><span class="line">Goroutine <span class="number">5</span> (running) created at:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">12</span> +<span class="number">0xd7</span></span><br><span class="line">==================</span><br><span class="line">Found <span class="number">1</span> data race(s)</span><br><span class="line">exit status <span class="number">66</span></span><br></pre></td></tr></table></figure>
-<p>通过race的参数，检测相关参数的竞争问题</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/28/golang-tips/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/28/golang-tips/" itemprop="url">golang 机制了解</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-28T17:04:28+08:00">
-                2018-06-28
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-28T18:14:21+08:00">
-                2018-06-28
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/28/golang-tips/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/28/golang-tips/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/04.0.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>go语言初始化过程</p>
-<p>这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，却在不同线程有多份不同的副本。每个goroutine去访问g时，都是对应到自己线程的这一份副本。针对goroutine部分，</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">CLD                // convention is D is always left cleared</span><br><span class="line">CALL    runtime·check(SB) //检测像int8,int16,float等是否是预期的大小，检测cas操作是否正常</span><br><span class="line">MOVL    16(SP), AX        // copy argc</span><br><span class="line">MOVL    AX, 0(SP)</span><br><span class="line">MOVQ    24(SP), AX        // copy argv</span><br><span class="line">MOVQ    AX, 8(SP)</span><br><span class="line">CALL    runtime·args(SB)    //将argc,argv设置到static全局变量中了</span><br><span class="line">CALL    runtime·osinit(SB)    //osinit做的事情就是设置runtime.ncpu，不同平台实现方式不一样</span><br><span class="line">CALL    runtime·hashinit(SB)    //使用读/dev/urandom的方式从内核获得随机数种子</span><br><span class="line">CALL    runtime·schedinit(SB)    //内存管理初始化，根据GOMAXPROCS设置使用的procs等等</span><br></pre></td></tr></table></figure>
-<p>go关键字的调用协议：先将参数进栈，再被调函数指针和参数字节数进栈，接着调用runtime.newproc函数。所以这里其实就是新开个goroutine执行runtime.main</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">找到一个等待运行的g</span><br><span class="line">如果g是锁定到某个M的，则让那个M运行</span><br><span class="line">否则，调用execute函数让g在当前的M中运行</span><br></pre></td></tr></table></figure>
-<p><img src="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true" alt="goroutine状态图"></p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">M</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        sched.lock.Lock()    <span class="comment">//互斥地从就绪G队列中取一个g出来运行</span></span><br><span class="line">        <span class="keyword">if</span> sched.allg &gt; <span class="number">0</span> &#123;</span><br><span class="line">            g := sched.allg[<span class="number">0</span>]</span><br><span class="line">            sched.allg = sched.allg[<span class="number">1</span>:]</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">            g.Run()        <span class="comment">//运行它</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>退出goroutine</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">exitsyscall</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(allm) &gt;= GOMAXPROCS &#123;</span><br><span class="line">        sched.lock.Lock()</span><br><span class="line">        sched.allg = <span class="built_in">append</span>(sched.allg, g)    <span class="comment">//把g放回到队列中</span></span><br><span class="line">        sched.lock.Unlock()</span><br><span class="line">        time.Sleep()    <span class="comment">//这个M不再干活</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>内存管理</p>
-<p>在多线程方面，很自然的做法就是每条线程都有自己的本地的内存，然后有一个全局的分配链，当某个线程中内存不足后就向全局分配链中申请内存。这样就避免了多线程同时访问共享变量时的加锁。 在避免内存碎片方面，大块内存直接按页为单位分配，小块内存会切成各种不同的固定大小的块，申请做任意字节内存时会向上取整到最接近的块，将整块分配给申请者以避免随意切割。</p>
-<p>分配器的数据结构包括:</p>
-<ul>
-<li>FixAlloc: 固定大小(128kB)的对象的空闲链分配器,被分配器用于管理存储</li>
-<li>MHeap: 分配堆,按页的粒度进行管理(4kB)，用于直接分配较大(&gt;32kB)的内存空间</li>
-<li>MSpan: 一些由MHeap管理的页</li>
-<li>MCentral: 对于给定尺寸类别的共享的free list</li>
-<li>MCache: 用于小对象的每M一个的cache</li>
-</ul>
-<p>我们可以将Go语言的内存管理看成一个两级的内存管理结构，MHeap和MCache。</p>
-<p>非阻塞io</p>
-<p>底层非阻塞io是如何实现的呢？简单地说，所有文件描述符都被设置成非阻塞的，某个goroutine进行io操作，读或者写文件描述符，如果此刻io还没准备好，则这个goroutine会被放到系统的等待队列中，这个goroutine失去了运行权，但并不是真正的整个系统“阻塞”于系统调用。</p>
-<p>后台还有一个poller会不停地进行poll，所有的文件描述符都被添加到了这个poller中的，当某个时刻一个文件描述符准备好了，poller就会唤醒之前因它而阻塞的goroutine，于是goroutine重新运行起来</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/27/Dynamic-Programming/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/27/Dynamic-Programming/" itemprop="url">Dynamic Programming</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-27T16:47:58+08:00">
-                2018-06-27
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-27T20:16:37+08:00">
-                2018-06-27
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/dp/" itemprop="url" rel="index">
-                    <span itemprop="name">dp</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/27/Dynamic-Programming/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/27/Dynamic-Programming/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://www.hawstein.com/posts/dp-novice-to-advanced.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>动态规划中，状态和状态转移方程</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Set Min[i] equal to Infinity for all of i</span><br><span class="line">Min[0] = 0</span><br><span class="line"></span><br><span class="line">For i = 1 to S</span><br><span class="line">For j = 0 to N-1</span><br><span class="line">	if (Vj&lt;=i AND Min[i-Vj]+1]&lt;Min[i])</span><br><span class="line">Then Min[i] = Min[i-Vj] + 1</span><br><span class="line"></span><br><span class="line">Output Min[S]</span><br></pre></td></tr></table></figure>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">upper_bound</span><span class="params">(arr []<span class="keyword">int</span>, s, e, key <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> arr[e] &lt; key &#123;</span><br><span class="line">		<span class="keyword">return</span> e + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	mid := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> s &lt; e &#123;</span><br><span class="line">		mid = s + (e-s)/<span class="number">2</span></span><br><span class="line">		<span class="keyword">if</span> arr[mid] &lt; key &#123;</span><br><span class="line">			s = mid + <span class="number">1</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			e = mid</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">lengthOfLIS</span><span class="params">(nums []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(nums) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	end := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">0</span>)</span><br><span class="line">	end = <span class="built_in">append</span>(end, nums[<span class="number">0</span>])</span><br><span class="line">	l := <span class="number">1</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt; <span class="built_in">len</span>(nums); i++ &#123;</span><br><span class="line">		pos := upper_bound(end, <span class="number">0</span>, <span class="built_in">len</span>(end)<span class="number">-1</span>, nums[i])</span><br><span class="line">		<span class="keyword">if</span> pos &gt; <span class="built_in">len</span>(end)<span class="number">-1</span> &#123;</span><br><span class="line">			end = <span class="built_in">append</span>(end, nums[i])</span><br><span class="line">			l++</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			end[pos] = nums[i]</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> l</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>二维的DP问题</p>
-<p>状态S[i][j]表示我们走到(i, j)这个格子时，最多能收集到多少个苹果。那么， 状态转移方程如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">S[i][j]=A[i][j] + max(S[i-1][j], if i&gt;0 ; S[i][j-1], if j&gt;0)</span><br></pre></td></tr></table></figure>
-<p>其中i代表行，j代表列，下标均从0开始；A[i][j]代表格子(i, j)处的苹果数量。</p>
-<p>带额外条件的DP问题</p>
-<p>无向图G有N个结点，它的边上带有正的权重值，过路最短问题</p>
-<p>迪杰斯特拉，最短路径问题</p>
-<p>当阅读一个题目并且开始尝试解决它时，首先看一下它的限制。 如果要求在多项式时间内解决，那么该问题就很可能要用DP来解。遇到这种情况， 最重要的就是找到问题的“状态”和“状态转移方程”。(状态不是随便定义的， 一般定义完状态，你要找到当前状态是如何从前面的状态得到的， 即找到状态转移方程)如果看起来是个DP问题，但你却无法定义出状态， 那么试着将问题规约到一个已知的DP问题(正如“高级”一节中的例子一样)。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/26/worldcup-graphQL/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/26/worldcup-graphQL/" itemprop="url">WorldCup graphQL</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-26T15:17:11+08:00">
-                2018-06-26
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-06-27T16:39:37+08:00">
-                2018-06-27
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphQL/" itemprop="url" rel="index">
-                    <span itemprop="name">graphQL</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/06/26/worldcup-graphQL/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/26/worldcup-graphQL/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.freecodecamp.org/building-the-2018-world-cup-graphql-api-fab40ccecb9e" target="_blank" rel="noopener">原文链接</a></p>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*zfRcG-bR_cMXR8cF" alt="sql struct"></p>
-<figure class="highlight"><table><tr><td class="code"><pre><span class="line">query &#123;</span><br><span class="line">  players(name:”Lionel Messi”) &#123;</span><br><span class="line">    name</span><br><span class="line">    dob</span><br><span class="line">    allGoals</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/25/one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/06/25/one-week/" itemprop="url">动物庄园</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-25T23:13:37+08:00">
-                2018-06-25
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T21:59:36+08:00">
+              <time title="更新于" itemprop="dateModified" datetime="2018-09-16T21:57:49+08:00">
                 2018-09-16
               </time>
             
@@ -1030,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2018/06/25/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/06/25/one-week/" itemprop="commentCount"></span>
+                <a href="/2018/07/17/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/17/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1061,29 +364,773 @@
       
         
           
-            <p>目光从猪移到人，再从人移到猪，又重新从猪移到人，要分清哪张脸是猪的，哪张脸是人的，已经不可能了</p>
-<p>历史仿佛是在重演，民主，or，专制。。。</p>
+            <p>世界上只有一种病，那就是穷病。。。</p>
+<p>身处绝境的病人和悲伤的家人，哪怕有一点点的希望，也会迫不及待地抓住。</p>
+<p>死亡也是不平等的。。</p>
 <hr>
-<p>本周:</p>
+<p>本周工作：</p>
 <ul>
-<li>修改简历，投递相关</li>
-<li>运营广告相关</li>
+<li>上游接入部分</li>
+<li>关于es部分的修复，加入bulkprocessor部分，缓冲rejection error</li>
+<li>一些监控的梳理</li>
 </ul>
-<p>下周：</p>
+<p>本周所得：</p>
 <ul>
-<li>关于callback补写的机制的梳理</li>
-<li>关于一些文档的整理</li>
+<li>关于elasticsearch的bulkprocessor部分的一些知识</li>
 </ul>
-<p>一件大事，终于是结束了，算是交了差，其实，还是有点门不当户不对吧，要求太高，还是很难达到。。慢慢看吧。。</p>
-<p>徐建的事情，算是告一段落？又出现了波折。。希望最后能行吧。。。总感觉，经过这次事情后，对于说的话，或多或少，有点不信任感。。。哎。。心太累。。。</p>
-<p>找工作的事情，也在同步进行，是换成大公司的一个业务型人员，还是说想去做一些基础性的平台和方向，看能不能做一些基础数据平台上的事情，不要想着你回济南什么的，要想着未来三年，你想做什么，就去做什么。。加油。。</p>
-<p>锻炼和健身方面，要慢慢捡起来，包括深蹲什么的。。</p>
-<p>心态要放静，事情要一件件地解决，也不是一口气吃成一个大胖子，心静，平和。。</p>
-<p>每天一道到两道题的习惯，继续保持，坚持地不错，后续就是锻炼部分，慢慢恢复。。</p>
-<p>加油，已经有当acer的觉悟了，也就不所谓了。。</p>
-<hr>
-<p>看来，是大公司的业务型做不成了。。哎。。也不知道自己这个决定是否正确。。只能自己加油了。。</p>
-<p>做好每一步，按照计划去学习。。</p>
+<p>下周工作：</p>
+<ul>
+<li>k8s的一些入门以及使用</li>
+<li>spring boot的重新拣回来。。</li>
+</ul>
+<p>最终的offer确定下来，也算是有人收留吧。找工作的事情，也算是告一段落了，整个历程方面，还是要写一写，总结一下。后面就是交接的事情，一步步来吧。。</p>
+<p>事情算是定下来，心也要慢慢静下来，最近一段时间内，心不静，没有达成相应的目标，事情上也拖拉了一些，这些都要检讨一下，开始慢慢恢复和整理其中。。。</p>
+<p>同居的生活上，还是按部就班地进行，不过，是不是时间安排上，有点问题，每个周末部分，以及每天晚上的时候，没有投入足够多的时间去学习，这点要检讨一下。。。还有就是，关于相处的方式上，还是有点捉摸不定，有时候，会有点烦躁。。。可能感觉自己还是不够放松吧。。总感觉没有照顾好别人，别人有理由，有条件去享受和追求更好的，而我。。。呵呵。。。也就这样吧。。。尽力而行，也没有太多可以给予的，反正最坏的打算也做了。。。</p>
+<p>锻炼身体上，开始要保持节奏和频度，不能三天打鱼两天晒网了，将跑步恢复起来。。</p>
+<p>加油，不管是物质上，还是精神上，找到有所缓解的方式的，找到自己心安的方式。。。</p>
+<p>修禅，修心。。。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/16/lxd/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/16/lxd/" itemprop="url">LXD tips</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-16T10:29:38+08:00">
+                2018-07-16
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-16T10:34:12+08:00">
+                2018-07-16
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/16/lxd/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/16/lxd/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://linuxcontainers.org/lxd/introduction/" target="_blank" rel="noopener">原文链接</a></p>
+<p>The core of LXD is a privileged daemon which exposes a REST API over a local unix socket as well as over the network (if enabled).</p>
+<p>Clients, such as the command line tool provided with LXD itself then do everything through that REST API. It means that whether you’re talking to your local host or a remote server, everything works the same way.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/15/TSDB-from-Scratch/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/15/TSDB-from-Scratch/" itemprop="url">TSDB from Scratch</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-15T16:55:37+08:00">
+                2018-07-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-17T15:22:06+08:00">
+                2018-07-17
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/TSDB/" itemprop="url" rel="index">
+                    <span itemprop="name">TSDB</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/15/TSDB-from-Scratch/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/15/TSDB-from-Scratch/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://fabxc.org/tsdb/" target="_blank" rel="noopener">原文链接</a></p>
+<h3 id="Time_series_data">Time series data</h3><p>Each data point is a tuple of a timestamp and a value</p>
+<p>A 64 bit float turns out to be a good representation for counter as well as gauge values, so we go with that. (时间戳？)</p>
+<p>定义好相应的label部分</p>
+<h3 id="Vertical_and_Horizontal">Vertical and Horizontal</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">series</span><br><span class="line">  ^   </span><br><span class="line">  │   . . . . . . . . . . . . . . . . .   . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │     . . . . . . . . . . . . . . . . . . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │         . . . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . . .   . . . .   </span><br><span class="line">  │     . . . . . . . . . .   . . . . . . . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │           . . .   . . . . . . . . .   . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │         . . . . . . . . .       . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . .   . . . . </span><br><span class="line">  v</span><br><span class="line">    &lt;-------------------- time ---------------------&gt;</span><br></pre></td></tr></table></figure>
+<p>关于写放大的问题？</p>
+<p>解决方案:</p>
+<ul>
+<li>Writes are now batched, samples are stored sequentially</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> tree ./data</span></span><br><span class="line">./data</span><br><span class="line">├── b-000001</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   ├── 000001</span><br><span class="line">│   │   ├── 000002</span><br><span class="line">│   │   └── 000003</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000004</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000005</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">└── b-000006</span><br><span class="line">    ├── meta.json</span><br><span class="line">    └── wal</span><br><span class="line">        ├── 000001</span><br><span class="line">        ├── 000002</span><br><span class="line">        └── 000003</span><br></pre></td></tr></table></figure>
+<p>Queried data can be rather aggressively cached in memory, yet under memory pressure the pages will be evicted. If the machine has unused memory, Prometheus will now happily cache the entire database, yet will immediately return it once another application needs it.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/15/golang-distributed-data-store/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/15/golang-distributed-data-store/" itemprop="url">Golang Distributed Data Store</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-15T15:45:07+08:00">
+                2018-07-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-15T16:37:04+08:00">
+                2018-07-15
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/15/golang-distributed-data-store/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/15/golang-distributed-data-store/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://fosdem.org/2018/schedule/event/datastore/attachments/slides/2618/export/events/attachments/datastore/slides/2618/designing_distributed_datastore_in_go_timbala.pdf" target="_blank" rel="noopener">原文链接</a></p>
+<h2 id="Timbala">Timbala</h2><p>“A distributed system is a model in which components located on networked computers communicate and coordinate their actions by passing messages.”</p>
+<p>Requirements:</p>
+<ul>
+<li>Sharding</li>
+<li>Replication</li>
+<li>High availability and throughputfor data ingestion</li>
+</ul>
+<p>OpenTSDB</p>
+<p>分成多个里程碑</p>
+<ul>
+<li>单节点，可存，可查</li>
+<li>多节点的shared, replication部分，以及手动方式的rebalance</li>
+<li>anti-entropy?</li>
+<li>研究性的，numa,data/cache locally, SSDs, 等等</li>
+</ul>
+<p>最终集中在几点：</p>
+<ul>
+<li>Coordination     <ul>
+<li>keep coordination to a minimum</li>
+<li>avoid coordination bottlenecks</li>
+</ul>
+</li>
+<li>Indexing      <ul>
+<li>each node knows what data is</li>
+<li>Consistent view; knows where each piece of data should reside</li>
+</ul>
+</li>
+<li>On-disk storage format         <ul>
+<li>Log-structured merge </li>
+<li>LevelDB </li>
+<li>RocksDB</li>
+<li>LMDB </li>
+<li>B-trees and b-tries (bitwise trie structure) for indexes </li>
+<li>Locality-preserving hashes</li>
+</ul>
+</li>
+<li>Cluster membership     <ul>
+<li>node in cluster</li>
+<li>could be static动态更好？</li>
+<li>node dead to stop use</li>
+</ul>
+</li>
+<li>Data placement (replication/sharding)            <ul>
+<li>Consistent hashing, </li>
+<li>1/n of data should be displaced/relocated when a single node fails, partition key</li>
+</ul>
+</li>
+<li>Failure modes</li>
+</ul>
+<p>hashicorp’s memberlist</p>
+<p>Consistent hashing:</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Hash</span><span class="params">(key <span class="keyword">uint64</span>, numBuckets <span class="keyword">int</span>)</span> <span class="title">int32</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> b <span class="keyword">int64</span> = <span class="number">-1</span></span><br><span class="line">    <span class="keyword">var</span> j <span class="keyword">int64</span></span><br><span class="line">    <span class="keyword">for</span> j &lt; <span class="keyword">int64</span>(numBuckets) &#123;</span><br><span class="line">        b = j</span><br><span class="line">        key = key*<span class="number">2862933555777941757</span> + <span class="number">1</span></span><br><span class="line">        j = <span class="keyword">int64</span>(<span class="keyword">float64</span>(b+<span class="number">1</span>) * (<span class="keyword">float64</span>(<span class="keyword">int64</span>(<span class="number">1</span>)&lt;&lt;<span class="number">31</span>) / <span class="keyword">float64</span>((key&gt;&gt;<span class="number">33</span>)+<span class="number">1</span>)))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">int32</span>(b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的测试挺有意思</p>
+<ul>
+<li><p>Unit tests</p>
+<ul>
+<li><p>data distributed tests 涉及到分配的平均性</p>
+</li>
+<li><p>data displacement tests 迁移的测试</p>
+</li>
+<li>data displacement failure 迁移失败的处理</li>
+<li>jump hash gotcha 进入cluster，所有nodes的jump hash算法的调整</li>
+</ul>
+</li>
+<li><p>Acceptance tests</p>
+</li>
+<li><p>Integration tests</p>
+</li>
+<li><p>Benchmarking</p>
+</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/07/10/Terratest/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/07/10/Terratest/" itemprop="url">Terratest</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-10T11:00:51+08:00">
+                2018-07-10
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-07-10T11:21:47+08:00">
+                2018-07-10
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/10/Terratest/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/07/10/Terratest/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://blog.gruntwork.io/open-sourcing-terratest-a-swiss-army-knife-for-testing-infrastructure-code-5d883336fcd5" target="_blank" rel="noopener">原文链接</a></p>
+<p>基于infrastructure代码的自动化测试部分，针对基础框架部分</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestWebServer</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">  terraformOptions := &amp;terraform.Options &#123;</span><br><span class="line">    <span class="comment">// The path to where your Terraform code is located</span></span><br><span class="line">    TerraformDir: <span class="string">"../web-server"</span>,</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// At the end of the test, run `terraform destroy`</span></span><br><span class="line">  <span class="keyword">defer</span> terraform.Destroy(t, terraformOptions)</span><br><span class="line">  <span class="comment">// Run `terraform init` and `terraform apply`</span></span><br><span class="line">  terraform.InitAndApply(t, terraformOptions)</span><br><span class="line">  <span class="comment">// Run `terraform output` to get the value of an output variable</span></span><br><span class="line">  url := terraform.Output(t, terraformOptions, <span class="string">"url"</span>)</span><br><span class="line">  <span class="comment">// Verify that we get back a 200 OK with the expected text. It</span></span><br><span class="line">  <span class="comment">// takes ~1 min for the Instance to boot, so retry a few times.</span></span><br><span class="line">  status := <span class="number">200</span></span><br><span class="line">  text := <span class="string">"Hello, World"</span></span><br><span class="line">  retries := <span class="number">15</span></span><br><span class="line">  sleep := <span class="number">5</span> * time.Second</span><br><span class="line">  http_helper.HttpGetWithRetry(t, url, status, text, retries, sleep)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -1123,7 +1170,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/69/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/69/">69</a><span class="page-number current">70</span><a class="page-number" href="/page/71/">71</a><span class="space">&hellip;</span><a class="page-number" href="/page/117/">117</a><a class="extend next" rel="next" href="/page/71/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/69/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/69/">69</a><span class="page-number current">70</span><a class="page-number" href="/page/71/">71</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/71/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

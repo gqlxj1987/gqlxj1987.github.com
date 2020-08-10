@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/linux-default-4k/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/30/sql-where-in-clause-multiple-columns/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/09/linux-default-4k/" itemprop="url">Linux default 4k page size</a></h1>
+                <a class="post-title-link" href="/2020/06/30/sql-where-in-clause-multiple-columns/" itemprop="url">Sql where in clause multiple columns</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T00:07:33+08:00">
-                2020-06-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-30T20:22:56+08:00">
+                2020-06-30
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T00:11:37+08:00">
-                2020-06-09
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-30T20:33:00+08:00">
+                2020-06-30
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index">
-                    <span itemprop="name">linux</span>
+                  <a href="/categories/sql/" itemprop="url" rel="index">
+                    <span itemprop="name">sql</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/09/linux-default-4k/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/linux-default-4k/" itemprop="commentCount"></span>
+                <a href="/2020/06/30/sql-where-in-clause-multiple-columns/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/30/sql-where-in-clause-multiple-columns/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,535 +364,520 @@
       
         
           
-            <p><a href="https://draveness.me/whys-the-design-linux-default-page/" target="_blank" rel="noopener">原文链接</a></p>
+            <p><a href="https://stackoverflow.com/questions/1136380/sql-where-in-clause-multiple-columns" target="_blank" rel="noopener">原文链接</a></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> *</span><br><span class="line"><span class="keyword">from</span> table1</span><br><span class="line"><span class="keyword">WHERE</span>  (CM_PLAN_ID,Individual_ID)</span><br><span class="line"><span class="keyword">IN</span></span><br><span class="line">(</span><br><span class="line"> <span class="keyword">Select</span> CM_PLAN_ID, Individual_ID</span><br><span class="line"> <span class="keyword">From</span> CRM_VCM_CURRENT_LEAD_STATUS</span><br><span class="line"> <span class="keyword">Where</span> Lead_Key = :_Lead_Key</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>要实现上面的in multiple columns的话</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> table1 <span class="keyword">LEFT</span> <span class="keyword">JOIN</span> </span><br><span class="line">(</span><br><span class="line">   <span class="keyword">Select</span> CM_PLAN_ID, Individual_ID</span><br><span class="line">   <span class="keyword">From</span> CRM_VCM_CURRENT_LEAD_STATUS</span><br><span class="line">   <span class="keyword">Where</span> Lead_Key = :_Lead_Key</span><br><span class="line">) table2</span><br><span class="line"><span class="keyword">ON</span> </span><br><span class="line">   table1.CM_PLAN_ID=table2.CM_PLAN_ID</span><br><span class="line">   <span class="keyword">AND</span> table1.Individual=table2.Individual</span><br><span class="line"><span class="keyword">WHERE</span> table2.CM_PLAN_ID <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="literal">NULL</span></span><br><span class="line"></span><br><span class="line">有<span class="keyword">distinct</span>的问题</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> *</span><br><span class="line"><span class="keyword">FROM</span> table1</span><br><span class="line"><span class="keyword">WHERE</span> <span class="keyword">EXISTS</span> (<span class="keyword">SELECT</span> *</span><br><span class="line">              <span class="keyword">FROM</span> table2</span><br><span class="line">              <span class="keyword">WHERE</span> Lead_Key = @Lead_Key</span><br><span class="line">                        <span class="keyword">AND</span> table1.CM_PLAN_ID = table2.CM_PLAN_ID</span><br><span class="line">                        <span class="keyword">AND</span> table1.Individual_ID = table2.Individual_ID)</span><br></pre></td></tr></table></figure>
+<p>o(n^2)的性能</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggalcppn04j312i0oejwj.jpg" alt="image-20200630203218139" style="zoom:50%;"></p>
+<p>two lines is best…</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/30/materialize-intro/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/06/30/materialize-intro/" itemprop="url">Materialize Intro</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-30T15:03:45+08:00">
+                2020-06-30
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-30T15:04:26+08:00">
+                2020-06-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/streaming/" itemprop="url" rel="index">
+                    <span itemprop="name">streaming</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/06/30/materialize-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/30/materialize-intro/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/MaterializeInc/materialize" target="_blank" rel="noopener">原文链接</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/30/Overlapping-Experiment-Infrastructure/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/06/30/Overlapping-Experiment-Infrastructure/" itemprop="url">Overlapping Experiment Infrastructure</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-30T14:54:04+08:00">
+                2020-06-30
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-30T14:57:50+08:00">
+                2020-06-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/A-B/" itemprop="url" rel="index">
+                    <span itemprop="name">A/B</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/06/30/Overlapping-Experiment-Infrastructure/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/30/Overlapping-Experiment-Infrastructure/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/lambdaji/DarwinAccelerator" target="_blank" rel="noopener">原repo</a></p>
+<p><img src="/Users/gqlxj1987/Library/Application Support/typora-user-images/image-20200630145736732.png" alt="image-20200630145736732" style="zoom:50%;"></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/30/ringbuffer/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/06/30/ringbuffer/" itemprop="url">RingBuffer</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-30T14:33:13+08:00">
+                2020-06-30
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-30T14:51:50+08:00">
+                2020-06-30
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/ringbuffer/" itemprop="url" rel="index">
+                    <span itemprop="name">ringbuffer</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/06/30/ringbuffer/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/30/ringbuffer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/smallnest/ringbuffer" target="_blank" rel="noopener">原repo</a></p>
+<p>定义read pointer/write pointer部分</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> RingBuffer <span class="keyword">struct</span> &#123;</span><br><span class="line">	buf    []<span class="keyword">byte</span></span><br><span class="line">	size   <span class="keyword">int</span></span><br><span class="line">	r      <span class="keyword">int</span> <span class="comment">// next position to read</span></span><br><span class="line">	w      <span class="keyword">int</span> <span class="comment">// next position to write</span></span><br><span class="line">	isFull <span class="keyword">bool</span></span><br><span class="line">	mu     sync.Mutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>read部分：</p>
 <ul>
-<li>过小的页面大小会带来较大的页表项增加寻址时 TLB（Translation lookaside buffer）的查找速度和额外开销；</li>
-<li>过大的页面大小会浪费内存空间，造成内存碎片，降低内存的利用率；</li>
+<li>Read reads up to len(p) bytes into p. It returns the number of bytes read (0 &lt;= n &lt;= len(p)) and any error encountered. Even if Read returns n &lt; len(p), it may use all of p as scratch space during the call. If some data is available but not len(p) bytes, Read conventionally returns what is available instead of waiting for more.</li>
+<li>When Read encounters an error or end-of-file condition after successfully reading n &gt; 0 bytes, it returns the number of bytes read. It may return the (non-nil) error from the same call or return the error (and n == 0) from a subsequent call.</li>
+<li>Callers should always process the n &gt; 0 bytes returned before considering the error err. Doing so correctly handles I/O errors that happen after reading some bytes and also both of the allowed EOF behaviors</li>
 </ul>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gflc0nvjiej315u0qu77f.jpg" alt="image-20200609001012495" style="zoom: 33%;"></p>
-<p>太小，会增加更多层数，不仅会增加内存访问的额外开销，还会增加每个进程中页表项占用的内存大小</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/25/one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/05/25/one-week/" itemprop="url">欣喜</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-25T10:46:14+08:00">
-                2020-05-25
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-26T09:02:32+08:00">
-                2020-05-26
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2020/05/25/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/25/one-week/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>看到她生气，居然还有点欣喜的念头，居然希望她更多地爆发，希望她能早日忍受不了我这样的烂人，哈哈</p>
-<p>虽然这种想法是有些不对，但实际上，确实有些破罐子破摔了。。</p>
-<p>听到天津新移民的故事，再看看自己，应该是哪儿都去不了，哪儿都回不去。。。自己本来也不应该奢求，本该是躺平摆烂的，怎么会有这样的奢望。。。</p>
-<p>那就做好自己孤独一个人的打算，没有什么大不了，只是可能会有些对不起她了，陪我这样的烂人虚度几年时光了。。</p>
-<hr>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/23/zk-SNARKs/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/05/23/zk-SNARKs/" itemprop="url">zk-SNARKs intro</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-23T16:43:17+08:00">
-                2020-05-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-23T17:09:15+08:00">
-                2020-05-23
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/securtiy/" itemprop="url" rel="index">
-                    <span itemprop="name">securtiy</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2020/05/23/zk-SNARKs/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/23/zk-SNARKs/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://github.com/KevinSmall/zk-SNARKs-Explainer/blob/master/translations/zh-TW/README.md" target="_blank" rel="noopener">原文链接</a></p>
-<p>ZKP</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> bool <span class="title">C</span><span class="params">(x, w)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (hash(w) == x)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>Generator</p>
-<p>Verifier</p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gf2hewi5lmj30lg0pojyc.jpg" alt="image-20200523165109854" style="zoom:25%;"></p>
-<p>Prover</p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gf2hfnbqzmj30kk0os7b3.jpg" alt="image-20200523165155951" style="zoom:25%;"></p>
-<p>验证者首先给出pk，然后证明者通过x,pk,w生成证明，最后，再由证明+x+vk，判断是否ok</p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gf2hk7vwabj30nw0pk7c8.jpg" alt="image-20200523165618677" style="zoom:25%;"></p>
-<p>由于pk,vk由验证者自己生成，每次都不一样，所以就算直接拿到证明，也无法获取w</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/23/k8s-operator/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/05/23/k8s-operator/" itemprop="url">k8s operator intro</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-23T16:14:03+08:00">
-                2020-05-23
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-23T16:42:49+08:00">
-                2020-05-23
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2020/05/23/k8s-operator/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/23/k8s-operator/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://github.com/cnych/opdemo" target="_blank" rel="noopener">原文链接</a></p>
-<h4 id="Operator_Framework">Operator Framework</h4><ul>
-<li>Operator SDK: 无需了解复杂的 Kubernetes API 特性，即可让你根据你自己的专业知识构建一个 Operator 应用。</li>
-<li>Operator Lifecycle Manager OLM: 帮助你安装、更新和管理跨集群的运行中的所有 Operator（以及他们的相关服务）</li>
-</ul>
-<p>Operator SDK 提供以下工作流来开发一个新的 Operator：</p>
+<p>write部分：</p>
 <ul>
-<li>使用 SDK 创建一个新的 Operator 项目</li>
-<li>通过添加自定义资源（CRD）定义新的资源 API</li>
-<li>指定使用 SDK API 来 watch 的资源</li>
-<li>定义 Operator 的协调（reconcile）逻辑</li>
-<li>使用 Operator SDK 构建并生成 Operator 部署清单文件</li>
+<li>Write writes len(p) bytes from p to the underlying buf.It returns the number of bytes written from p (0 &lt;= n &lt;= len(p)) and any error encountered that caused the write to stop early.Write returns a non-nil error if it returns n &lt; len(p).</li>
+<li>Write must not modify the slice data, even temporarily.</li>
 </ul>
-<p>将协调的逻辑，分发到每个系统自己？</p>
-<p>3，4合并在一起，通过reconcile去判断</p>
-<p>整体上就是实现reconcile/new deploy/new service方法就可以了</p>
-<p>针对一个基本的CRD就够了，后面就是本身的业务逻辑</p>
 
           
         
@@ -941,7 +926,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/23/flink-cep-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/29/naiad-timely-dataflow/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -960,7 +945,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/23/flink-cep-intro/" itemprop="url">Flink cep intro</a></h1>
+                <a class="post-title-link" href="/2020/06/29/naiad-timely-dataflow/" itemprop="url">Naiad timely dataflow</a></h1>
         
 
         <div class="post-meta">
@@ -972,8 +957,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-23T10:31:09+08:00">
-                2020-05-23
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-29T16:56:45+08:00">
+                2020-06-29
               </time>
             
 
@@ -988,8 +973,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-23T11:03:15+08:00">
-                2020-05-23
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-06T14:13:43+08:00">
+                2020-07-06
               </time>
             
           </span>
@@ -1007,8 +992,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/flink/" itemprop="url" rel="index">
-                    <span itemprop="name">flink</span>
+                  <a href="/categories/data/" itemprop="url" rel="index">
+                    <span itemprop="name">data</span>
                   </a>
                 </span>
 
@@ -1025,8 +1010,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/23/flink-cep-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/23/flink-cep-intro/" itemprop="commentCount"></span>
+                <a href="/2020/06/29/naiad-timely-dataflow/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/29/naiad-timely-dataflow/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1056,8 +1041,26 @@
       
         
           
-            <p><a href="https://ci.apache.org/projects/flink/flink-docs-stable/dev/libs/cep.html" target="_blank" rel="noopener">原文链接</a></p>
-<p>主要是在于模式匹配(scala?)</p>
+            <p><a href="https://dl.acm.org/doi/pdf/10.1145/2517349.2522738" target="_blank" rel="noopener">原文链接</a></p>
+<p>This model enriches dataflow computation with timestamps that represent logical points in the computation and provide the basis for an efficient, lightweight coordination mechanism</p>
+<p>However, no existing system satisfies all three requirements: </p>
+<ul>
+<li>stream processors can produce low-latency results for non-iterative algorithms</li>
+<li>batch systems can iterate synchronously at the expense of latency</li>
+<li>trigger-based approaches support iteration with only weak consistency guarantees</li>
+</ul>
+<ol>
+<li>structured loops allowing feedback in the dataflow</li>
+<li>stateful dataflow vertices capable of consuming and producing records without global coordination, and</li>
+<li>notifications for vertices once they have received all records for a given round of input or loop iteration.</li>
+</ol>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg99rlfftkj30c607gaaq.jpg" alt="image-20200629170545369" style="zoom:50%;"></p>
+<p>利用loops context来解决问题？</p>
+<p>Loop Context in the above graph is a cycle with an ingress(I) and an egress(E) node along with a feedback (F) node.</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg9a3g5gd9j30eq06sjrw.jpg" alt="img" style="zoom:67%;"></p>
+<p>Dataflow graphs use logical timestamps [3]. These logical timestamps contain epoch and loop counter. They are used to track the computation, loop number of the input data.</p>
+<p>逻辑时间戳代替实际的时间戳，这样就不存在过去时间的事件，</p>
+<p>错误处理，恢复起来，比较缓慢</p>
 
           
         
@@ -1097,7 +1100,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/117/">117</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

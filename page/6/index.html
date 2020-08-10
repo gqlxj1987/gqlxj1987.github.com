@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/19/caffeine-cache/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/15/flink-kafka-source-sink/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/19/caffeine-cache/" itemprop="url">Caffeine cache</a></h1>
+                <a class="post-title-link" href="/2020/06/15/flink-kafka-source-sink/" itemprop="url">Flink kafka source & sink intro</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-19T10:29:09+08:00">
-                2020-05-19
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-15T14:15:59+08:00">
+                2020-06-15
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-19T16:14:26+08:00">
-                2020-05-19
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T17:07:13+08:00">
+                2020-06-15
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/cache/" itemprop="url" rel="index">
-                    <span itemprop="name">cache</span>
+                  <a href="/categories/flink/" itemprop="url" rel="index">
+                    <span itemprop="name">flink</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/19/caffeine-cache/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/19/caffeine-cache/" itemprop="commentCount"></span>
+                <a href="/2020/06/15/flink-kafka-source-sink/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/15/flink-kafka-source-sink/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,28 +364,48 @@
       
         
           
-            <p><a href="https://juejin.im/post/5ce11d436fb9a07ec63ae4bc" target="_blank" rel="noopener">原文链接</a></p>
-<ol>
-<li>愿意消耗一些内存空间来提升速度</li>
-<li>预料到某些键会被多次查询</li>
-<li>缓存中存放的数据总量不会超出内存容量</li>
-</ol>
-<p>Caffeine提供三类驱逐策略：</p>
-<ol>
-<li>基于大小（size-based）</li>
-<li>基于时间（time-based）</li>
-<li>基于引用（reference-based）</li>
-</ol>
-<p><a href="https://medium.com/outbrain-engineering/oh-my-guava-we-are-moving-to-caffeine-99387819fdbb" target="_blank" rel="noopener">原文链接1</a></p>
-<p>who is the author of <a href="https://code.google.com/p/concurrentlinkedhashmap" target="_blank" rel="noopener">ConcurrentLinkedHashMap</a> on which Guava cache is based.</p>
-<p>guava out</p>
-<ul>
-<li>guava sync operation</li>
-<li>non-blocking without aware</li>
+            <p><a href="https://developer.aliyun.com/article/752226" target="_blank" rel="noopener">原文链接</a></p>
+<h4 id="Source解析">Source解析</h4><ul>
+<li><p>SourceStreamTask 中的 performDefaultAction() </p>
+</li>
+<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">sourceThread.start();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>LegacySourceFunctionThread 的 run 方法</p>
+</li>
+<li><p>headOperator.run</p>
+</li>
+<li><p>StreamSource 中的 run 方法</p>
+</li>
+<li><p>userFunction.run(ctx)</p>
+</li>
+<li><p>FlinkKafkaConsumerBase.run</p>
+</li>
+<li><p>kafkaFetcher.runFetchLoop()</p>
+</li>
+<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">consumerThread.start();</span><br></pre></td></tr></table></figure>
+</li>
+<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">KafkaConsumer.poll</span><br></pre></td></tr></table></figure>
+</li>
 </ul>
-<p>Caffeine uses both a Least Recently Used (LRU) eviction policy and a frequency-based admission policy relying on CountMin sketch. It has a better hit rate than LRU for many workloads.</p>
-<p>使用ring buffers的方式，The ring buffer approach avoids allocation, is bounded (lossy), and cheaper to operate against.</p>
-<p> Caffeine uses ring buffers to record &amp; replay events, whereas Guava uses <code>ConcurrentLinkedQueue</code>. </p>
+<p>消费kafka最重要的是offset的管理</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> OffsetCommitMode &#123;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Completely disable offset committing. */</span></span><br><span class="line">   DISABLED,</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Commit offsets back to Kafka only when checkpoints are completed. */</span></span><br><span class="line">   ON_CHECKPOINTS,</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Commit offsets periodically back to Kafka, using the auto commit functionality of internal Kafka clients. */</span></span><br><span class="line">   KAFKA_PERIODIC;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Determine the offset commit mode using several configuration values.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableAutoCommit whether or not auto committing is enabled in the provided Kafka properties.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableCommitOnCheckpoint whether or not committing on checkpoints is enabled.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableCheckpointing whether or not checkpoint is enabled for the consumer.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> the offset commit mode to use, based on the configuration values.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> OffsetCommitMode <span class="title">fromConfiguration</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableAutoCommit,</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableCommitOnCheckpoint,</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableCheckpointing)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> (enableCheckpointing) &#123;</span><br><span class="line">      <span class="comment">// if checkpointing is enabled, the mode depends only on whether committing on checkpoints is enabled</span></span><br><span class="line">      <span class="keyword">return</span> (enableCommitOnCheckpoint) ? OffsetCommitMode.ON_CHECKPOINTS : OffsetCommitMode.DISABLED;</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// else, the mode depends only on whether auto committing is enabled in the provided Kafka properties</span></span><br><span class="line">      <span class="keyword">return</span> (enableAutoCommit) ? OffsetCommitMode.KAFKA_PERIODIC : OffsetCommitMode.DISABLED;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>kafka 官方文档中，提到当 enable.auto.commit=false 时候需要手动提交 offset，也就是需要调用 consumer.commitSync(); 方法提交。</p>
+<p>但是在 flink 中，非 checkpoint 模式下，不会调用 consumer.commitSync();， 一旦关闭自动提交，意味着 kafka 不知道当前的 consumer group 每次消费到了哪。</p>
+<p>有checkpoint的情况</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Make sure that auto commit is disabled when our offset commit mode is ON_CHECKPOINTS.</span></span><br><span class="line"><span class="comment"> * This overwrites whatever setting the user configured in the properties.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> properties - Kafka configuration properties to be adjusted</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> offsetCommitMode offset commit mode</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">adjustAutoCommitConfig</span><span class="params">(Properties properties, OffsetCommitMode offsetCommitMode)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> (offsetCommitMode == OffsetCommitMode.ON_CHECKPOINTS || offsetCommitMode == OffsetCommitMode.DISABLED) &#123;</span><br><span class="line">      properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, <span class="string">"false"</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关闭自动提交</p>
+<p>消费模式</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> StartupMode &#123;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from committed offsets in ZK / Kafka brokers of a specific consumer group (default). */</span></span><br><span class="line">   GROUP_OFFSETS(KafkaTopicPartitionStateSentinel.GROUP_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from the earliest offset possible. */</span></span><br><span class="line">   EARLIEST(KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from the latest offset. */</span></span><br><span class="line">   LATEST(KafkaTopicPartitionStateSentinel.LATEST_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Start from user-supplied timestamp for each partition.</span></span><br><span class="line"><span class="comment">    * Since this mode will have specific offsets to start with, we do not need a sentinel value;</span></span><br><span class="line"><span class="comment">    * using Long.MIN_VALUE as a placeholder.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   TIMESTAMP(Long.MIN_VALUE),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Start from user-supplied specific offsets for each partition.</span></span><br><span class="line"><span class="comment">    * Since this mode will have specific offsets to start with, we do not need a sentinel value;</span></span><br><span class="line"><span class="comment">    * using Long.MIN_VALUE as a placeholder.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   SPECIFIC_OFFSETS(Long.MIN_VALUE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>默认为 GROUP_OFFSETS，表示根据上一次 group id 提交的 offset 位置开始消费</p>
+<p>在 state 里面需要存储的是成功消费的最后一条数据的 offset，但是通过 position 这个方法返回的是下一次应该消费的起始 offset，所以需要减1</p>
+<h4 id="Sink_解析">Sink 解析</h4><ul>
+<li>StreamSink.processElement</li>
+<li>FlinkKafkaProducer.invoke</li>
+<li>at_least_once/exactly_once，FlinkKafkaProducer.snapshotState</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> FlinkKafkaProducer.<span class="function">KafkaTransactionState <span class="title">beginTransaction</span><span class="params">()</span> <span class="keyword">throws</span> FlinkKafkaException </span>&#123;</span><br><span class="line">   <span class="keyword">switch</span> (semantic) &#123;</span><br><span class="line">      <span class="keyword">case</span> EXACTLY_ONCE:</span><br><span class="line">         FlinkKafkaInternalProducer&lt;<span class="keyword">byte</span>[], <span class="keyword">byte</span>[]&gt; producer = createTransactionalProducer();</span><br><span class="line">         producer.beginTransaction();</span><br><span class="line">         <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(producer.getTransactionalId(), producer);</span><br><span class="line">      <span class="keyword">case</span> AT_LEAST_ONCE:</span><br><span class="line">      <span class="keyword">case</span> NONE:</span><br><span class="line">         <span class="comment">// Do not create new producer on each beginTransaction() if it is not necessary</span></span><br><span class="line">         <span class="keyword">final</span> FlinkKafkaProducer.KafkaTransactionState currentTransaction = currentTransaction();</span><br><span class="line">         <span class="keyword">if</span> (currentTransaction != <span class="keyword">null</span> &amp;&amp; currentTransaction.producer != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(currentTransaction.producer);</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(initNonTransactionalProducer(<span class="keyword">true</span>));</span><br><span class="line">      <span class="keyword">default</span>:</span><br><span class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException(<span class="string">"Not implemented semantic"</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>开启事务</p>
 
           
         
@@ -434,7 +454,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/13/cloak/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/scalable-and-cloud-native-tuning-system/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -453,7 +473,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/13/cloak/" itemprop="url">Cloak</a></h1>
+                <a class="post-title-link" href="/2020/06/09/scalable-and-cloud-native-tuning-system/" itemprop="url">Scalable and Cloud-native hyperparameter tuning system</a></h1>
         
 
         <div class="post-meta">
@@ -465,8 +485,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-13T20:24:51+08:00">
-                2020-05-13
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T16:24:31+08:00">
+                2020-06-09
               </time>
             
 
@@ -481,8 +501,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-13T20:25:59+08:00">
-                2020-05-13
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T21:26:20+08:00">
+                2020-06-15
               </time>
             
           </span>
@@ -500,8 +520,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/architecture/" itemprop="url" rel="index">
-                    <span itemprop="name">architecture</span>
+                  <a href="/categories/ML/" itemprop="url" rel="index">
+                    <span itemprop="name">ML</span>
                   </a>
                 </span>
 
@@ -518,8 +538,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/13/cloak/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/13/cloak/" itemprop="commentCount"></span>
+                <a href="/2020/06/09/scalable-and-cloud-native-tuning-system/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/scalable-and-cloud-native-tuning-system/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -549,9 +569,8 @@
       
         
           
-            <p><a href="https://github.com/cbeuw/Cloak" target="_blank" rel="noopener">原repo</a></p>
-<p>Cloak is a universal pluggable transport that cryptographically obfuscates proxy traffic as legitimate HTTPS traffic, disguises the proxy server as a normal web server, multiplexes traffic through a fixed amount of TCP connections and provides multi-user usage control.</p>
-<p>作为统一的网关</p>
+            <p><a href="https://arxiv.org/pdf/2006.02085.pdf" target="_blank" rel="noopener">原文链接</a></p>
+<p>主要是katib的介绍</p>
 
           
         
@@ -600,7 +619,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/13/daojishi/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/serverless-inferencing-on-k8s/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -619,7 +638,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/13/daojishi/" itemprop="url">倒计时</a></h1>
+                <a class="post-title-link" href="/2020/06/09/serverless-inferencing-on-k8s/" itemprop="url">Serverless inferencing on k8s</a></h1>
         
 
         <div class="post-meta">
@@ -631,8 +650,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-13T00:44:41+08:00">
-                2020-05-13
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T15:59:29+08:00">
+                2020-06-09
               </time>
             
 
@@ -647,8 +666,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-19T10:20:10+08:00">
-                2020-05-19
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T16:22:48+08:00">
+                2020-06-09
               </time>
             
           </span>
@@ -666,8 +685,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/生活/" itemprop="url" rel="index">
-                    <span itemprop="name">生活</span>
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index">
+                    <span itemprop="name">kubernetes</span>
                   </a>
                 </span>
 
@@ -684,8 +703,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/13/daojishi/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/13/daojishi/" itemprop="commentCount"></span>
+                <a href="/2020/06/09/serverless-inferencing-on-k8s/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/serverless-inferencing-on-k8s/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -715,14 +734,20 @@
       
         
           
-            <p>又一次把人家弄哭了，可能是自己可笑的执着吧，可笑的原则，但没有这些原则，感觉自己什么都不是，只是个工具人。。。</p>
-<p>还是奢求的太多，自己期望的太高，自己这样的人，就应该孤独终老。。。</p>
-<p>进入倒计时，应该是是进入了吧，自己这可笑的相处方式，可笑的原则，别扭的人，别扭的活着，还是自己一个人吧，别拖累别人了。。。</p>
-<p>做好自己可以做的，就行了。。。</p>
-<p>只是长痛与短痛的区别，应该还是别连累别人了，跟自己这样别扭的一个人在一起，对不起了。。。</p>
-<p>重新把自己装进笼子里，不要挣扎了，你就是个套中人，就这样坦然面对吧。。。</p>
-<p>不要做白日梦了，既然人家的梦里，你和你的家人都是这样子的，也无所谓了。。。</p>
-<p>做好自己应该做的就行。。。</p>
+            <p><a href="http://gaocegege.com/Blog/kubernetes/kfserving" target="_blank" rel="noopener">原文链接</a></p>
+<p>Seldon core</p>
+<ul>
+<li>Model</li>
+<li>Router</li>
+<li>Combiner</li>
+<li>Transformer</li>
+<li>Output_Transformer</li>
+</ul>
+<p>Router 是一个路由组件，但是除了路由功能之外，其还接受来自各个路由的节点的 reward feedback（激励反馈），支持实现多臂老虎机的逻辑</p>
+<p>Combiner 是一个跟 Router 类似的组件，区别在于它不是路由到某个节点，而是将其下所有的节点的输出进行结合，输出一个结合后的唯一的返回</p>
+<p>Transformer 和 Output_Transformer 是类似的组件，负责做输入与输出的转换，可以理解为是预处理和后处理的过程。</p>
+<p>用户会通过 POST 调用 /api/v1.0/predictions 来访问这一推理图。请求会首先到达 Engine。Engine 会根据推理图的拓扑序，依次访问不同的组件。在这一例子中，首先调用 Transformer 提供的 /transform-input 接口，进行特征转换，随后调用 Router 选择出最优的模型实例。随后，将 Transformer 处理后的 Response 作为 Request 转发给最优模型，最后得到输出，并且发回给用户</p>
+<p><a href="https://github.com/SeldonIO/seldon-core" target="_blank" rel="noopener">repo地址</a></p>
 
           
         
@@ -771,7 +796,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/12/anchor/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/typescript-intro/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -790,7 +815,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/12/anchor/" itemprop="url">锚点</a></h1>
+                <a class="post-title-link" href="/2020/06/09/typescript-intro/" itemprop="url">Typescript intro</a></h1>
         
 
         <div class="post-meta">
@@ -802,8 +827,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-12T15:15:09+08:00">
-                2020-05-12
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T15:40:37+08:00">
+                2020-06-09
               </time>
             
 
@@ -818,8 +843,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-14T11:00:19+08:00">
-                2020-05-14
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T15:59:01+08:00">
+                2020-06-09
               </time>
             
           </span>
@@ -837,8 +862,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/ts/" itemprop="url" rel="index">
+                    <span itemprop="name">ts</span>
                   </a>
                 </span>
 
@@ -855,8 +880,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/12/anchor/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/12/anchor/" itemprop="commentCount"></span>
+                <a href="/2020/06/09/typescript-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/typescript-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -886,14 +911,17 @@
       
         
           
-            <p>也是摸鱼，摸完了一部小说，所谓的锚点，其实也是总结</p>
-<p>要时不时地去总结，自己不好的地方，自己前进的方向，自己的迷茫，自己的无知。。。</p>
-<p>如果没有总结，没有锚点，自己都不知道会飘到何处，飘往何方。。</p>
-<p>做好时间管理，做好自律，时时总结。。。</p>
-<p>每隔一段时间，要学习新的内容和知识。。。督促自己。。。</p>
-<p>直面人生，直面死亡，不是那么可怕，逃避始终解决不了问题。。。</p>
-<p>不要做白日梦，退回原地。。。</p>
-<p>有的事情不要拖延。。。</p>
+            <p>interface仅包含数据</p>
+<p>class 包含数据和方法</p>
+<p>interface有父类的含义？</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> tsc ext5.ts</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> node ext5.js</span></span><br></pre></td></tr></table></figure>
+<p>通过编译，进一步降低js的门槛，同时，也提前避免了解释型语言错误</p>
+<p>any类型</p>
+<p>void</p>
+<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> unusable: <span class="built_in">void</span> = <span class="literal">undefined</span>;</span><br><span class="line">unusable = <span class="literal">null</span>; <span class="comment">// OK if `--strictNullChecks` is not given</span></span><br></pre></td></tr></table></figure>
+<p>never类型</p>
+<p>The <code>never</code> type represents the type of values that never occur. The <code>never</code> type is a subtype of, and assignable to, every type; however, <em>no</em> type is a subtype of, or assignable to, <code>never</code> (except <code>never</code> itself). </p>
+<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> someValue: <span class="built_in">any</span> = <span class="string">"this is a string"</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> strLength: <span class="built_in">number</span> = (&lt;<span class="built_in">string</span>&gt;someValue).length;</span><br><span class="line"><span class="keyword">let</span> strLength: <span class="built_in">number</span> = (someValue <span class="keyword">as</span> <span class="built_in">string</span>).length;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -942,7 +970,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/04/ele-transaction-system/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/linux-default-4k/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -961,7 +989,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/05/04/ele-transaction-system/" itemprop="url">ELE transaction system</a></h1>
+                <a class="post-title-link" href="/2020/06/09/linux-default-4k/" itemprop="url">Linux default 4k page size</a></h1>
         
 
         <div class="post-meta">
@@ -973,8 +1001,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-04T16:50:28+08:00">
-                2020-05-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T00:07:33+08:00">
+                2020-06-09
               </time>
             
 
@@ -989,8 +1017,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-05-04T18:02:23+08:00">
-                2020-05-04
+              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T00:11:37+08:00">
+                2020-06-09
               </time>
             
           </span>
@@ -1008,8 +1036,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/architecture/" itemprop="url" rel="index">
-                    <span itemprop="name">architecture</span>
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
                   </a>
                 </span>
 
@@ -1026,8 +1054,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/05/04/ele-transaction-system/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/04/ele-transaction-system/" itemprop="commentCount"></span>
+                <a href="/2020/06/09/linux-default-4k/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/linux-default-4k/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1057,15 +1085,13 @@
       
         
           
-            <p><a href="https://mp.weixin.qq.com/s/mtPQLSONUCWOC2HDPRwXNQ" target="_blank" rel="noopener">原文链接</a></p>
-<p>DDL成本问题，</p>
-<p><strong>两维 Sharding</strong> ，两个维度都是 <strong>120 个分片</strong>，但是可以通过三种方式路由(用户 ID、商户ID、订单ID)，写入优先保证用户维度成功。由于资源的原因，用户和商户分片是交错混合部署的。</p>
-<p>几条原则：</p>
-<p>1、<strong>订单不对外直接暴露自身状态，而是以事件的方式对外暴露。</strong>因为状态是一个描述，而事件则代表了一个动作，同时可以将订单状态细节和接入方解耦。</p>
-<p>2、<strong>消息广播仅用于广播事件，而不用于数据同步，如消费者需要更多的数据则反查订单数据接口，时间戳包含事件产生时间和发送时间(时间是后来加上的)。</strong></p>
-<p>3、<strong>消费者</strong>在消费消息时应当保证自身的幂等性，同时应当让自己在消费时无状态。如果一定要顺序消费，那么自行通过Redis等方案实现。</p>
-<p>4、<strong>消费者接入时， Topic 和 Queue 需要按照一定命名规范，同时， Queue 的最大积压深度为 10k ，超过则舍弃</strong></p>
-<p>RabbitMQ 死进队列的特性(即消息设置一个过期时间，等过期时间到了就可以从队列中舍弃或挪到另外的地方)</p>
+            <p><a href="https://draveness.me/whys-the-design-linux-default-page/" target="_blank" rel="noopener">原文链接</a></p>
+<ul>
+<li>过小的页面大小会带来较大的页表项增加寻址时 TLB（Translation lookaside buffer）的查找速度和额外开销；</li>
+<li>过大的页面大小会浪费内存空间，造成内存碎片，降低内存的利用率；</li>
+</ul>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gflc0nvjiej315u0qu77f.jpg" alt="image-20200609001012495" style="zoom: 33%;"></p>
+<p>太小，会增加更多层数，不仅会增加内存访问的额外开销，还会增加每个进程中页表项占用的内存大小</p>
 
           
         
@@ -1105,7 +1131,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/117/">117</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 

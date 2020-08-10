@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/15/jetcache-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/14/WiscKey-intro/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/15/jetcache-intro/" itemprop="url">Jetcache intro</a></h1>
+                <a class="post-title-link" href="/2020/07/14/WiscKey-intro/" itemprop="url">WiscKey intro</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-15T19:14:42+08:00">
-                2020-06-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-14T20:31:10+08:00">
+                2020-07-14
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T19:51:23+08:00">
-                2020-06-15
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-15T11:08:48+08:00">
+                2020-07-15
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/cache/" itemprop="url" rel="index">
-                    <span itemprop="name">cache</span>
+                  <a href="/categories/wisckey/" itemprop="url" rel="index">
+                    <span itemprop="name">wisckey</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/15/jetcache-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/15/jetcache-intro/" itemprop="commentCount"></span>
+                <a href="/2020/07/14/WiscKey-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/14/WiscKey-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,18 +364,54 @@
       
         
           
-            <p><a href="https://github.com/alibaba/jetcache" target="_blank" rel="noopener">原repo</a></p>
-<p>The annotation in JetCache supports native TTL, two level caching, and distributed automatically refreshment, also you can operate <code>Cache</code> instance by hand code. Presently There are four implements: <code>RedisCache</code>, <code>TairCache</code>(not open source on github), <code>CaffeineCache</code> (in memory), a simple <code>LinkedHashMapCache</code> (in memory).</p>
-<p>所谓的two level caching？</p>
-<p>主要是在multiLevelCache中？</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">result.future().thenRun(() -&gt; &#123;</span><br><span class="line">            CachePutAllEvent event = <span class="keyword">new</span> CachePutAllEvent(<span class="keyword">this</span>, System.currentTimeMillis() - t, map, result);</span><br><span class="line">            notify(event);</span><br><span class="line">        &#125;);</span><br></pre></td></tr></table></figure>
-<p>采用event的方式，来进行多线程消费？</p>
-<p>后续的monitor代码</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CacheResult状态</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">notify</span><span class="params">(CacheEvent e)</span> </span>&#123;</span><br><span class="line">        List&lt;CacheMonitor&gt; monitors = config().getMonitors();</span><br><span class="line">        <span class="keyword">for</span> (CacheMonitor m : monitors) &#123;</span><br><span class="line">            m.afterOperation(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>定义innerMap interface</p>
-<p>然后每一种cache自己去实现这一部分，独有的部分</p>
-<p>开启另一个线程去refresh</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">RefreshTask refreshTask = taskMap.computeIfAbsent(taskId, tid -&gt; &#123;</span><br><span class="line">               logger.debug(<span class="string">"add refresh task. interval=&#123;&#125;,  key=&#123;&#125;"</span>, refreshMillis , key);</span><br><span class="line">               RefreshTask task = <span class="keyword">new</span> RefreshTask(taskId, key, loader);</span><br><span class="line">               task.lastAccessTime = System.currentTimeMillis();</span><br><span class="line">               ScheduledFuture&lt;?&gt; future = JetCacheExecutor.heavyIOExecutor().scheduleWithFixedDelay(</span><br><span class="line">                       task, refreshMillis, refreshMillis, TimeUnit.MILLISECONDS);</span><br><span class="line">               task.future = future;</span><br><span class="line">               <span class="keyword">return</span> task;</span><br><span class="line">           &#125;);</span><br></pre></td></tr></table></figure>
+            <p><a href="https://www.scienjus.com/wisckey/" target="_blank" rel="noopener">原文链接</a></p>
+<p>基于 LSM 树（Log-Structured Merge-Trees）的键值存储已经广泛应用，其特点是保持了数据的顺序写入和存储，利用磁盘的顺序 IO 得到了很高的性能（在 HDD 上尤其显著）。但是同一份数据会在生命周期中写入多次，随之带来高额的写放大。</p>
+<p>以 LevelDB 为例，数据写入的整个流程为：</p>
+<ol>
+<li>数据首先会被写入 memtable 和 WAL</li>
+<li>当 memtable 达到上限后，会转换为 immutable memtable，之后持久化到 L0（称为 flush），L0 中每个文件都是一个持久化的 immutable memtable，多个文件间可以有相互重叠的 Key</li>
+<li>当 L0 中的文件达到一定数量时，便会和 L1 中的文件进行合并（称为 compaction）</li>
+<li>自 L1 开始所有文件都不会再有相互重叠的 Key，并且每个文件都会按照 Key 的顺序存储。每一层通常是上一层大小的 10 倍，当一层的大小超过限制时，就会挑选一部分文件合并到下一层</li>
+</ol>
+<p>这样，就存在读放大和写放大的问题</p>
+<p>WiscKey 的核心思想是将数据中的 Key 和 Value 分离，只在 LSM-Tree 中有序存储 Key，而将 Value 存放在单独的 Log 中。这样带来了两点好处：</p>
+<ol>
+<li>当 LSM-Tree 进行 compaction 时，只会对 Key 进行排序和重写，不会影响到没有改变的 Value，也就显著降低了写放大</li>
+<li>将 Value 分离后，LSM-Tree 本身会大幅减小，所以对应磁盘中的层级会更少，可以减少查询时从磁盘读取的次数，并且可以更好的利用缓存的效果</li>
+</ol>
+<p>####实现</p>
+<p>在 LSM-Tree 的基础上，WiscKey 引入了一个额外的存储用于存储分离出的值，称为 Value Log。整体的读写路径为：</p>
+<ol>
+<li>当用户添加一个 KV 时，WiscKey 会先将 Value 写入到 Value-Log 中（顺序写），然后将 Key 和 Value 在 Value Log 中的地址写入 LSM-Tree</li>
+<li>当用户删除一个 Key 时，仅在 LSM-Tree 中删除 Key 的记录，之后通过 GC 清理掉 Value Log 中的数据</li>
+<li>当用户查询一个 Key 时，会先从 LSM-Tree 中查询到 Value 的地址，再根据地址将 Value 真正从 Value-Log 中读取出来（随机读）</li>
+</ol>
+<p>范围查询的问题：</p>
+<p>WiscKey 内部会有一个 32 线程的线程池，当用户使用迭代器迭代一行时，迭代器会预先取出多个 Key，并放入到一个队列中，线程池会从队列中读取 Key 并行的查找对应的 Value。通过pre-fetch的功能，减少下一次读取，</p>
+<p>GC的问题</p>
+<p>通过维护一个 Value Log 的有效区间（由 head 和 tail 两个地址组成），通过不断地搬运有效数据来达到淘汰无效数据。整个流程为：</p>
+<ol>
+<li>对于 Value-Log 中的每个值，需要额外存储 Key，为了方便从 LSM-Tree 中进行反查（相对 Value，Key 会比较小，所以写入放大不会增加太多）</li>
+<li>从 tail 的位置读取 KV，通过 Key 在 LSM-Tree 中查询 Value 是否还在被引用</li>
+<li>如果 Value 还在被引用，则将 Value 写入到 head，并将新的 Value 地址写回 LSM-Tree 中</li>
+<li>如果 Value 已经没有被引用，则跳过这行数据，接着读取下一个 KV</li>
+<li>当已经确认数据写入 head 之后，就可以将 tail 之后的数据都删除掉了</li>
+</ol>
+<p>LRU的一个变种，感觉上，从tail进行遍历，发现有使用就放入head，同时更新LSM-Tree中value的地址</p>
+<p><em>因为需要重新写入一次 Value，并且需要将 Key 回填到 LSM-Tree 中，所以这个 GC 策略会造成额外的写放大。并且即使不做 GC，也只会影响到空间放大（删除的数据没有真正清理），所以感觉可以配置一些策略：</em></p>
+<ol>
+<li><em>根据磁盘负载和 LSM-Tree 的负载计算，仅在低峰期执行</em></li>
+<li><em>计算每一段数据中被删除的比例有多少，当空洞变得比较大的时候才触发 GC</em></li>
+</ol>
+<p>利用write buffer进行批量写入</p>
+<p>value-log作为WAL，减少WAL的写放大</p>
+<p>####Titan的实现</p>
+<p>和 WiscKey 的主要区别在于：Titan 在 flush/compaction 时才开始分离键值，并且用于存储分离后 Value 的文件（BlobFile）会按照 Key 的顺序存储，而不是写入的顺序（其实在这个阶段，已经没有写入顺序了)</p>
+<p>GC调优：</p>
+<ul>
+<li>通过需要合并的blobFile，不断产生新的blobFile来进行，不用写入一条完整的value log</li>
+<li>由 LSM-Tree 的 compaction 触发，compaction 时，如果遍历到的值已经是一个 BlobIndex（代表值已经写入了某个 BlobFile），依旧将其读出来重新写入新的 BlobFile，也就是说每次 compaction 都会生成一批与新的 SST 完全对应的 BlobFile</li>
+</ul>
 
           
         
@@ -424,7 +460,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/15/flink-kafka-source-sink/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/10/io-uring-hands-on/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -443,7 +479,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/15/flink-kafka-source-sink/" itemprop="url">Flink kafka source & sink intro</a></h1>
+                <a class="post-title-link" href="/2020/07/10/io-uring-hands-on/" itemprop="url">Io_uring Hands-on</a></h1>
         
 
         <div class="post-meta">
@@ -455,8 +491,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-15T14:15:59+08:00">
-                2020-06-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-10T14:29:20+08:00">
+                2020-07-10
               </time>
             
 
@@ -471,8 +507,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T17:07:13+08:00">
-                2020-06-15
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-10T14:30:02+08:00">
+                2020-07-10
               </time>
             
           </span>
@@ -490,8 +526,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/flink/" itemprop="url" rel="index">
-                    <span itemprop="name">flink</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -508,8 +544,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/15/flink-kafka-source-sink/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/15/flink-kafka-source-sink/" itemprop="commentCount"></span>
+                <a href="/2020/07/10/io-uring-hands-on/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/10/io-uring-hands-on/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -539,48 +575,7 @@
       
         
           
-            <p><a href="https://developer.aliyun.com/article/752226" target="_blank" rel="noopener">原文链接</a></p>
-<h4 id="Source解析">Source解析</h4><ul>
-<li><p>SourceStreamTask 中的 performDefaultAction() </p>
-</li>
-<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">sourceThread.start();</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>LegacySourceFunctionThread 的 run 方法</p>
-</li>
-<li><p>headOperator.run</p>
-</li>
-<li><p>StreamSource 中的 run 方法</p>
-</li>
-<li><p>userFunction.run(ctx)</p>
-</li>
-<li><p>FlinkKafkaConsumerBase.run</p>
-</li>
-<li><p>kafkaFetcher.runFetchLoop()</p>
-</li>
-<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">consumerThread.start();</span><br></pre></td></tr></table></figure>
-</li>
-<li><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">KafkaConsumer.poll</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>消费kafka最重要的是offset的管理</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> OffsetCommitMode &#123;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Completely disable offset committing. */</span></span><br><span class="line">   DISABLED,</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Commit offsets back to Kafka only when checkpoints are completed. */</span></span><br><span class="line">   ON_CHECKPOINTS,</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Commit offsets periodically back to Kafka, using the auto commit functionality of internal Kafka clients. */</span></span><br><span class="line">   KAFKA_PERIODIC;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Determine the offset commit mode using several configuration values.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableAutoCommit whether or not auto committing is enabled in the provided Kafka properties.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableCommitOnCheckpoint whether or not committing on checkpoints is enabled.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> enableCheckpointing whether or not checkpoint is enabled for the consumer.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> the offset commit mode to use, based on the configuration values.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> OffsetCommitMode <span class="title">fromConfiguration</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableAutoCommit,</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableCommitOnCheckpoint,</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">boolean</span> enableCheckpointing)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> (enableCheckpointing) &#123;</span><br><span class="line">      <span class="comment">// if checkpointing is enabled, the mode depends only on whether committing on checkpoints is enabled</span></span><br><span class="line">      <span class="keyword">return</span> (enableCommitOnCheckpoint) ? OffsetCommitMode.ON_CHECKPOINTS : OffsetCommitMode.DISABLED;</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// else, the mode depends only on whether auto committing is enabled in the provided Kafka properties</span></span><br><span class="line">      <span class="keyword">return</span> (enableAutoCommit) ? OffsetCommitMode.KAFKA_PERIODIC : OffsetCommitMode.DISABLED;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>kafka 官方文档中，提到当 enable.auto.commit=false 时候需要手动提交 offset，也就是需要调用 consumer.commitSync(); 方法提交。</p>
-<p>但是在 flink 中，非 checkpoint 模式下，不会调用 consumer.commitSync();， 一旦关闭自动提交，意味着 kafka 不知道当前的 consumer group 每次消费到了哪。</p>
-<p>有checkpoint的情况</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Make sure that auto commit is disabled when our offset commit mode is ON_CHECKPOINTS.</span></span><br><span class="line"><span class="comment"> * This overwrites whatever setting the user configured in the properties.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> properties - Kafka configuration properties to be adjusted</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> offsetCommitMode offset commit mode</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">adjustAutoCommitConfig</span><span class="params">(Properties properties, OffsetCommitMode offsetCommitMode)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> (offsetCommitMode == OffsetCommitMode.ON_CHECKPOINTS || offsetCommitMode == OffsetCommitMode.DISABLED) &#123;</span><br><span class="line">      properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, <span class="string">"false"</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>关闭自动提交</p>
-<p>消费模式</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> StartupMode &#123;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from committed offsets in ZK / Kafka brokers of a specific consumer group (default). */</span></span><br><span class="line">   GROUP_OFFSETS(KafkaTopicPartitionStateSentinel.GROUP_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from the earliest offset possible. */</span></span><br><span class="line">   EARLIEST(KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** Start from the latest offset. */</span></span><br><span class="line">   LATEST(KafkaTopicPartitionStateSentinel.LATEST_OFFSET),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Start from user-supplied timestamp for each partition.</span></span><br><span class="line"><span class="comment">    * Since this mode will have specific offsets to start with, we do not need a sentinel value;</span></span><br><span class="line"><span class="comment">    * using Long.MIN_VALUE as a placeholder.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   TIMESTAMP(Long.MIN_VALUE),</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Start from user-supplied specific offsets for each partition.</span></span><br><span class="line"><span class="comment">    * Since this mode will have specific offsets to start with, we do not need a sentinel value;</span></span><br><span class="line"><span class="comment">    * using Long.MIN_VALUE as a placeholder.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   SPECIFIC_OFFSETS(Long.MIN_VALUE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>默认为 GROUP_OFFSETS，表示根据上一次 group id 提交的 offset 位置开始消费</p>
-<p>在 state 里面需要存储的是成功消费的最后一条数据的 offset，但是通过 position 这个方法返回的是下一次应该消费的起始 offset，所以需要减1</p>
-<h4 id="Sink_解析">Sink 解析</h4><ul>
-<li>StreamSink.processElement</li>
-<li>FlinkKafkaProducer.invoke</li>
-<li>at_least_once/exactly_once，FlinkKafkaProducer.snapshotState</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> FlinkKafkaProducer.<span class="function">KafkaTransactionState <span class="title">beginTransaction</span><span class="params">()</span> <span class="keyword">throws</span> FlinkKafkaException </span>&#123;</span><br><span class="line">   <span class="keyword">switch</span> (semantic) &#123;</span><br><span class="line">      <span class="keyword">case</span> EXACTLY_ONCE:</span><br><span class="line">         FlinkKafkaInternalProducer&lt;<span class="keyword">byte</span>[], <span class="keyword">byte</span>[]&gt; producer = createTransactionalProducer();</span><br><span class="line">         producer.beginTransaction();</span><br><span class="line">         <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(producer.getTransactionalId(), producer);</span><br><span class="line">      <span class="keyword">case</span> AT_LEAST_ONCE:</span><br><span class="line">      <span class="keyword">case</span> NONE:</span><br><span class="line">         <span class="comment">// Do not create new producer on each beginTransaction() if it is not necessary</span></span><br><span class="line">         <span class="keyword">final</span> FlinkKafkaProducer.KafkaTransactionState currentTransaction = currentTransaction();</span><br><span class="line">         <span class="keyword">if</span> (currentTransaction != <span class="keyword">null</span> &amp;&amp; currentTransaction.producer != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(currentTransaction.producer);</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> <span class="keyword">new</span> FlinkKafkaProducer.KafkaTransactionState(initNonTransactionalProducer(<span class="keyword">true</span>));</span><br><span class="line">      <span class="keyword">default</span>:</span><br><span class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException(<span class="string">"Not implemented semantic"</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>开启事务</p>
+            <p><a href="https://developers.mattermost.com/blog/hands-on-iouring-go/" target="_blank" rel="noopener">原文链接</a></p>
 
           
         
@@ -629,7 +624,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/scalable-and-cloud-native-tuning-system/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/10/ormb-intro/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -648,7 +643,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/09/scalable-and-cloud-native-tuning-system/" itemprop="url">Scalable and Cloud-native hyperparameter tuning system</a></h1>
+                <a class="post-title-link" href="/2020/07/10/ormb-intro/" itemprop="url">Ormb Intro</a></h1>
         
 
         <div class="post-meta">
@@ -660,8 +655,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T16:24:31+08:00">
-                2020-06-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-10T10:32:53+08:00">
+                2020-07-10
               </time>
             
 
@@ -676,8 +671,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-15T21:26:20+08:00">
-                2020-06-15
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-10T10:56:20+08:00">
+                2020-07-10
               </time>
             
           </span>
@@ -713,8 +708,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/09/scalable-and-cloud-native-tuning-system/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/scalable-and-cloud-native-tuning-system/" itemprop="commentCount"></span>
+                <a href="/2020/07/10/ormb-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/10/ormb-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -744,185 +739,19 @@
       
         
           
-            <p><a href="https://arxiv.org/pdf/2006.02085.pdf" target="_blank" rel="noopener">原文链接</a></p>
-<p>主要是katib的介绍</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/serverless-inferencing-on-k8s/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/06/09/serverless-inferencing-on-k8s/" itemprop="url">Serverless inferencing on k8s</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T15:59:29+08:00">
-                2020-06-09
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T16:22:48+08:00">
-                2020-06-09
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2020/06/09/serverless-inferencing-on-k8s/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/serverless-inferencing-on-k8s/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://gaocegege.com/Blog/kubernetes/kfserving" target="_blank" rel="noopener">原文链接</a></p>
-<p>Seldon core</p>
+            <p><a href="https://mp.weixin.qq.com/s/TzdSQJCqJOGL4PofkrLymw" target="_blank" rel="noopener">原文链接</a></p>
+<p>ormb（OCI-Based Registry for ML/DL Model Bundle）能帮助企业像管理容器镜像一样管理机器学习模型</p>
+<p>实现<strong>将模型和模型的元数据利用已有镜像仓库进行分发</strong></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/oWGtVtbdE1JAkVNxlLdRaXCdtXffic8FyPcTLpKFibT5ic86tjKrNdiaCsyKbyO5q9KicrpMM6EsVaia79fWqYk5JRibA/640?wx_fmt=png&amp;tp=webp&amp;wxfrom=5&amp;wx_lazy=1&amp;wx_co=1" alt="img" style="zoom:33%;"></p>
+<p>带来的几个问题：</p>
 <ul>
-<li>Model</li>
-<li>Router</li>
-<li>Combiner</li>
-<li>Transformer</li>
-<li>Output_Transformer</li>
+<li><p>元数据部分的定义？</p>
+</li>
+<li><p>分层部分是否可用？</p>
+</li>
 </ul>
-<p>Router 是一个路由组件，但是除了路由功能之外，其还接受来自各个路由的节点的 reward feedback（激励反馈），支持实现多臂老虎机的逻辑</p>
-<p>Combiner 是一个跟 Router 类似的组件，区别在于它不是路由到某个节点，而是将其下所有的节点的输出进行结合，输出一个结合后的唯一的返回</p>
-<p>Transformer 和 Output_Transformer 是类似的组件，负责做输入与输出的转换，可以理解为是预处理和后处理的过程。</p>
-<p>用户会通过 POST 调用 /api/v1.0/predictions 来访问这一推理图。请求会首先到达 Engine。Engine 会根据推理图的拓扑序，依次访问不同的组件。在这一例子中，首先调用 Transformer 提供的 /transform-input 接口，进行特征转换，随后调用 Router 选择出最优的模型实例。随后，将 Transformer 处理后的 Response 作为 Request 转发给最优模型，最后得到输出，并且发回给用户</p>
-<p><a href="https://github.com/SeldonIO/seldon-core" target="_blank" rel="noopener">repo地址</a></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/oWGtVtbdE1JAkVNxlLdRaXCdtXffic8FybNhmekgAibm9icdtMstXCa4BG15Pvu56IcFeeanJrOlqFTCibaxiaZdQ3w/640?wx_fmt=png&amp;tp=webp&amp;wxfrom=5&amp;wx_lazy=1&amp;wx_co=1" alt="img" style="zoom:33%;"></p>
+<p>暂没有分层</p>
 
           
         
@@ -971,7 +800,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/06/09/typescript-intro/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/07/bytable-intro/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -990,7 +819,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/06/09/typescript-intro/" itemprop="url">Typescript intro</a></h1>
+                <a class="post-title-link" href="/2020/07/07/bytable-intro/" itemprop="url">Bytable Intro</a></h1>
         
 
         <div class="post-meta">
@@ -1002,8 +831,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-09T15:40:37+08:00">
-                2020-06-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-07T10:21:22+08:00">
+                2020-07-07
               </time>
             
 
@@ -1018,8 +847,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-06-09T15:59:01+08:00">
-                2020-06-09
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-07T10:54:10+08:00">
+                2020-07-07
               </time>
             
           </span>
@@ -1037,8 +866,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/ts/" itemprop="url" rel="index">
-                    <span itemprop="name">ts</span>
+                  <a href="/categories/storage/" itemprop="url" rel="index">
+                    <span itemprop="name">storage</span>
                   </a>
                 </span>
 
@@ -1055,8 +884,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/06/09/typescript-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/06/09/typescript-intro/" itemprop="commentCount"></span>
+                <a href="/2020/07/07/bytable-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/07/bytable-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1086,17 +915,196 @@
       
         
           
-            <p>interface仅包含数据</p>
-<p>class 包含数据和方法</p>
-<p>interface有父类的含义？</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> tsc ext5.ts</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> node ext5.js</span></span><br></pre></td></tr></table></figure>
-<p>通过编译，进一步降低js的门槛，同时，也提前避免了解释型语言错误</p>
-<p>any类型</p>
-<p>void</p>
-<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> unusable: <span class="built_in">void</span> = <span class="literal">undefined</span>;</span><br><span class="line">unusable = <span class="literal">null</span>; <span class="comment">// OK if `--strictNullChecks` is not given</span></span><br></pre></td></tr></table></figure>
-<p>never类型</p>
-<p>The <code>never</code> type represents the type of values that never occur. The <code>never</code> type is a subtype of, and assignable to, every type; however, <em>no</em> type is a subtype of, or assignable to, <code>never</code> (except <code>never</code> itself). </p>
-<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> someValue: <span class="built_in">any</span> = <span class="string">"this is a string"</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> strLength: <span class="built_in">number</span> = (&lt;<span class="built_in">string</span>&gt;someValue).length;</span><br><span class="line"><span class="keyword">let</span> strLength: <span class="built_in">number</span> = (someValue <span class="keyword">as</span> <span class="built_in">string</span>).length;</span><br></pre></td></tr></table></figure>
+            <p><a href="https://mp.weixin.qq.com/s/oV5F_K2mmE_kK77uEZSjLg" target="_blank" rel="noopener">原文链接</a></p>
+<p>我们团队最初使用 Bigtable 的开源实现 HBase 为搜索业务提供服务。在全网链接关系的实时更新需求下需要提供足够高的可用性和足够低的延时，由于其数据量极其庞大所以会创建极多的数据分片，集群的整体尾延时和可用性会随着数据分片实例数的增多而成指数级别的恶化</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggi7kgknv3j313k0po7mr.jpg" alt="image-20200707103956031" style="zoom:50%;"></p>
+<p>master/placement driver/tablet server</p>
+<p>当前市面上大部分系统比如 MySQL, MongoDB, TiDB, CockroachDB 等，在写日志时都会写入复制日志和引擎日志两份日志，在 HDD 盘的场景下往往会造成分别写入两份日志时写流量放大一倍并且使磁头频繁发生摇摆，制约写入性能。为此，研发了一套 WAL 存储引擎，进行多组复制日志的合并，实现了仅一次的日志写入，不会造成 HDD 盘磁头摇摆，不进行 Compaction 时也可以打满 HDD 盘的写入带宽。</p>
+<p>我们为每一个 SST 在 Flush 和 Compaction 的过程中手工生成一个 BloomFilter 存储在其 TableProperty 中，并关闭了内置的 BloomFilter 以节省空间。</p>
+<p>针对热点写入优化，RocksDB MemTable，写入时仅写入队列中实现了 O(1) 复杂度的在线写入，靠后台线程池将数据并发的写入实际的 SkipList 中，在读取的时候使用 ReadIndex 的机制进行等待</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/07/06/fiber-intro/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/07/06/fiber-intro/" itemprop="url">Fiber Intro</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-06T11:33:34+08:00">
+                2020-07-06
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-07-06T14:15:55+08:00">
+                2020-07-06
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/分布式/" itemprop="url" rel="index">
+                    <span itemprop="name">分布式</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/07/06/fiber-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/07/06/fiber-intro/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://uber.github.io/fiber/" target="_blank" rel="noopener">原文链接</a></p>
+<ul>
+<li>错误处理的缺失</li>
+<li>高性能</li>
+<li>框架性的支撑</li>
+</ul>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggh3rthfcdj311a0o8jxt.jpg" alt="image-20200706114300532" style="zoom: 50%;"></p>
+<p>api layer , backend layer, cluster layer</p>
+<p>The <strong>API layer</strong> provides basic building blocks for Fiber like processes, queues, pools and managers.</p>
+<p>job-backend processes</p>
+<p>The code that runs inside the container is self-contained.</p>
+<p>cluster node同fiber master之间的交互？</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggh4c4in7dj30ui0t2jwb.jpg" alt="image-20200706120233540" style="zoom:33%;"></p>
+<p>master节点部分存在task queue和result queue，分发到cluster node进行task，获得result放入result queue中</p>
+<p>在cluster node中，有多个ring node，</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggh7sbvxf7j30ju0igmzs.jpg" alt="image-20200706140153511" style="zoom:33%;"></p>
+<p>The entry associated with that task is then removed from the pending table. 通过pending table进行中转</p>
+<p>当发现有错误的时候，Then the parent pool puts the pending task from the pending table back into the task queue if the previously failed process has a pending task. </p>
+<p>如何实现基于不同机器，不同进程之间的通信？</p>
+<p><a href="https://github.com/uber/fiber" target="_blank" rel="noopener">repo地址</a></p>
 
           
         
@@ -1136,7 +1144,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/117/">117</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
