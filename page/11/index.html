@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/03/go-vs-rust/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/05/04/go-memory-increase/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/04/03/go-vs-rust/" itemprop="url">go to rust</a></h1>
+                <a class="post-title-link" href="/2020/05/04/go-memory-increase/" itemprop="url">Go Memory Increase</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-03T14:44:51+08:00">
-                2020-04-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-04T16:39:24+08:00">
+                2020-05-04
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-04-03T15:25:32+08:00">
-                2020-04-03
+              <time title="更新于" itemprop="dateModified" datetime="2020-05-04T16:50:18+08:00">
+                2020-05-04
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/rust/" itemprop="url" rel="index">
-                    <span itemprop="name">rust</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/04/03/go-vs-rust/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/03/go-vs-rust/" itemprop="commentCount"></span>
+                <a href="/2020/05/04/go-memory-increase/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/05/04/go-memory-increase/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,26 +364,16 @@
       
         
           
-            <p><a href="https://blog.discordapp.com/why-discord-is-switching-from-go-to-rust-a190bbca2b1f" target="_blank" rel="noopener">原文链接</a></p>
-<p>performance:</p>
-<ul>
-<li>data structures</li>
-<li>scale</li>
-<li>access patterns</li>
-<li>architecture of the service.</li>
-</ul>
-<p>Each Read State has several counters that need to be updated atomically and often reset to 0. </p>
-<p>GC问题</p>
-<p>After digging through the Go source code, we learned that Go will force a garbage collection run every <a href="https://github.com/golang/go/blob/895b7c85addfffe19b66d8ca71c31799d6e55990/src/runtime/proc.go#L4481-L4486" target="_blank" rel="noopener">2 minutes at minimum</a>. if garbage collection has not run for 2 minutes, regardless of heap growth, go will still force a garbage collection.</p>
-<blockquote>
-<p>Rust is blazingly fast and memory-efficient: <strong>with no runtime or garbage collector</strong>, it can power performance-critical services, run on embedded devices, and easily integrate with other languages.</p>
-</blockquote>
-<p>It enforces memory rules at compile time, making it virtually impossible to have runtime memory bugs.</p>
-<p>The Rust performance optimizations included:</p>
+            <p><a href="https://v2ex.com/t/666257#reply0" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>Runtime</strong> Go 1.12 significantly improves the performance of sweeping when a large fraction of the heap remains live. This reduces allocation latency immediately following a garbage collection.</p>
+<p>(中间省略 2 段不太相关的内容) On Linux, the runtime now uses MADV_FREE to release unused memory. This is more efficient but may result in higher reported RSS. The kernel will reclaim the unused data when it is needed.</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">char</span> *p = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">int</span> MB = <span class="number">1024</span> * <span class="number">1024</span>;</span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        p = <span class="built_in">malloc</span>(<span class="number">100</span> * MB);</span><br><span class="line">        <span class="built_in">memset</span>(p, <span class="number">0</span>, <span class="number">100</span> * MB);</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">3261164 xxx     20   0 52.375g 0.035t  36524 S 579.1 66.0  16711:10 [打码]       </span><br><span class="line">2321665 xxx     20   0 16.358g 0.016t 569088 S  38.4  1.5   1128:45 ./test</span><br></pre></td></tr></table></figure>
 <ol>
-<li>Changing to a BTreeMap instead of a HashMap in the LRU cache to optimize memory usage.</li>
-<li>Swapping out the initial metrics library for one that used modern Rust concurrency.</li>
-<li>Reducing the number of memory copies we were doing.</li>
+<li>Go 1.12 升级能降低内存分配的延迟，但会导致进程 RSS 变高</li>
+<li>因为 Go 1.12 用 MADV_FREE，会让内核延迟回收内存</li>
+<li>通过在页表中做标记的方式，延迟内存的分配和回收，可以提高内存管理的效率</li>
+<li>可以通过气球来让 OS/Hypervisor 挤占内存，另作他用</li>
 </ol>
 
           
@@ -433,7 +423,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/03/k8s-log-sidecar/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/15/java-performance-master/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -452,7 +442,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/04/03/k8s-log-sidecar/" itemprop="url">k8s log sidecar</a></h1>
+                <a class="post-title-link" href="/2020/04/15/java-performance-master/" itemprop="url">Java performance master</a></h1>
         
 
         <div class="post-meta">
@@ -464,8 +454,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-03T13:51:33+08:00">
-                2020-04-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-15T20:16:55+08:00">
+                2020-04-15
               </time>
             
 
@@ -480,8 +470,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-04-03T13:59:21+08:00">
-                2020-04-03
+              <time title="更新于" itemprop="dateModified" datetime="2020-04-15T23:23:33+08:00">
+                2020-04-15
               </time>
             
           </span>
@@ -499,8 +489,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index">
-                    <span itemprop="name">k8s</span>
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
                   </a>
                 </span>
 
@@ -517,8 +507,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/04/03/k8s-log-sidecar/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/03/k8s-log-sidecar/" itemprop="commentCount"></span>
+                <a href="/2020/04/15/java-performance-master/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/15/java-performance-master/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -548,10 +538,15 @@
       
         
           
-            <p><a href="https://www.jianshu.com/p/72f34de4dd35" target="_blank" rel="noopener">原文链接</a></p>
-<p><img src="https://tva1.sinaimg.cn/large/00831rSTly1gdgj9obagij313c0biwhr.jpg" alt="image-20200403135234339"></p>
-<p>Logtail模式，基于daemonSet方式</p>
-<p><img src="https://tva1.sinaimg.cn/large/00831rSTly1gdgjdb3t3xj31240k8476.jpg" alt="image-20200403135606497"></p>
+            <p><a href="https://static.rainfocus.com/oracle/oow19/sess/1552650100966001S0k9/PF/mastering-java-profiling_1568788110931001LbFJ.pdf" target="_blank" rel="noopener">原文链接</a></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Thread.getAllStatckTraces()</span><br></pre></td></tr></table></figure>
+<p>有关jvm的safepoint部分</p>
+<p>主要是socket部分，关于buffer的读取？</p>
+<p>使用AsyncGetCallTrace</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">AsyncGetCallTrace(ASGCT_CallTrace *trace,</span><br><span class="line">									jint depth,</span><br><span class="line">									<span class="keyword">void</span>* ucontext)</span><br></pre></td></tr></table></figure>
+<p>Perf Event</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> perf record –F 1009 java ...</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> perf report</span></span><br><span class="line"></span><br><span class="line">4.70% java [kernel.kallsyms] [k] clear_page_c</span><br><span class="line">2.10% java libpthread-2.17.so [.] pthread_cond_wait</span><br><span class="line">1.97% java libjvm.so [.] Unsafe_Park</span><br><span class="line">1.40% java libjvm.so [.] Parker::park</span><br><span class="line">1.31% java [kernel.kallsyms] [k] try_to_wake_up</span><br><span class="line">1.31% java perf-18762.map [.] 0x00007f8510e9e757</span><br><span class="line">1.21% java perf-18762.map [.] 0x00007f8510e9e89e</span><br><span class="line">1.17% java perf-18762.map [.] 0x00007f8510e9cc17</span><br></pre></td></tr></table></figure>
+<p>Perf + FlameGraph</p>
 
           
         
@@ -600,7 +595,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/03/30/2019-conclusion/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/06/golang-locks/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -619,7 +614,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/03/30/2019-conclusion/" itemprop="url">2019总结</a></h1>
+                <a class="post-title-link" href="/2020/04/06/golang-locks/" itemprop="url">Golang locks</a></h1>
         
 
         <div class="post-meta">
@@ -631,8 +626,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-03-30T14:31:52+08:00">
-                2020-03-30
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-06T17:48:24+08:00">
+                2020-04-06
               </time>
             
 
@@ -647,7 +642,7 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-04-09T16:37:09+08:00">
+              <time title="更新于" itemprop="dateModified" datetime="2020-04-09T10:13:36+08:00">
                 2020-04-09
               </time>
             
@@ -666,8 +661,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -684,8 +679,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/03/30/2019-conclusion/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/03/30/2019-conclusion/" itemprop="commentCount"></span>
+                <a href="/2020/04/06/golang-locks/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/06/golang-locks/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -715,9 +710,8 @@
       
         
           
-            <p>谁能想到2020年的开年是这样子，也是拖了将近3个月，才开始这份迟来的总结</p>
-<p>就像这份总结一样，自己的2019在瞎忙和拖延中度过去了，周记也没写几篇，只是一些长吁短叹，翻了一圈，都是一些无病呻吟，苦笑。。。</p>
-<p>有的时候，也算是冥冥中注定一样，如果没有这次泰国旅行，</p>
+            <p><a href="https://www.infoq.com/presentations/go-locks/#downloadPdf/" target="_blank" rel="noopener">原文链接</a></p>
+<p>Everything about locks, the lock implementation and performance is specific to the hardware, the instruction set, the operating system, and the specific language implementation</p>
 
           
         
@@ -766,7 +760,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/03/30/social-distance/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/06/rudr-intro/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -785,7 +779,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2020/03/30/social-distance/" itemprop="url">保持距离</a></h1>
+                <a class="post-title-link" href="/2020/04/06/rudr-intro/" itemprop="url">Rudr Intro</a></h1>
         
 
         <div class="post-meta">
@@ -797,8 +791,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-03-30T10:32:28+08:00">
-                2020-03-30
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-06T15:38:21+08:00">
+                2020-04-06
               </time>
             
 
@@ -813,183 +807,7 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2020-03-30T11:28:15+08:00">
-                2020-03-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2020/03/30/social-distance/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/03/30/social-distance/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>保持自我，放弃自以为是，做好自己能做的，不要一切都强加在自己头上</p>
-<p>做成同居室友这样，还挺轻松的</p>
-<p>也算是一种平等吧，不要强求太多，各自做好自己应该做的事情就好了，这也算相处的一种方式。</p>
-<p>不要把自己的意愿强加到别人身上，不要自己自以为是</p>
-<p>不要搞一大堆到自己身上，然后又心累啥的，都是自己讨的</p>
-<hr>
-<p>收拾好自己，首先照顾好自己，才是关心他人</p>
-<p>做好自己可以做的，保持距离，让自己的生活自律、充实</p>
-<hr>
-<p>相处上，尽量以提供建议的方式来进行，不要自己强行干涉，不要自以为是</p>
-<p>用新的方式去相处，保持一定的距离感</p>
-<hr>
-<p>收拾好自己，做好自己就可以了</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/03/29/a-python-interpreter-written-in-python/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/03/29/a-python-interpreter-written-in-python/" itemprop="url">a python interpreter written in python</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-03-29T23:45:26+08:00">
-                2020-03-29
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2020-04-06T14:53:16+08:00">
+              <time title="更新于" itemprop="dateModified" datetime="2020-04-06T17:46:26+08:00">
                 2020-04-06
               </time>
             
@@ -1008,8 +826,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index">
-                    <span itemprop="name">python</span>
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index">
+                    <span itemprop="name">kubernetes</span>
                   </a>
                 </span>
 
@@ -1026,8 +844,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2020/03/29/a-python-interpreter-written-in-python/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/03/29/a-python-interpreter-written-in-python/" itemprop="commentCount"></span>
+                <a href="/2020/04/06/rudr-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/06/rudr-intro/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1057,32 +875,203 @@
       
         
           
-            <p><a href="https://qingyunha.github.io/taotao/" target="_blank" rel="noopener">原文链接</a></p>
-<p>词法分析，语法解析和编译</p>
-<p>Byterun</p>
-<p>Python解释器是一个<em>字节码解释器</em>：它的输入是一些命令集合称作<em>字节码</em>。当你写Python代码时，词法分析器，语法解析器和编译器生成code object让解释器去操作。每个code object都包含一个要被执行的指令集合 — 它就是字节码 — 另外还有一些解释器需要的信息。字节码是Python代码的一个<em>中间层表示</em>：它以一种解释器可以理解的方式来表示源代码。这和汇编语言作为C语言和机器语言的中间表示很类似。</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">what_to_execute = &#123;</span><br><span class="line">    &quot;instructions&quot;: [(&quot;LOAD_VALUE&quot;, 0),  # the first number</span><br><span class="line">                     (&quot;LOAD_VALUE&quot;, 1),  # the second number</span><br><span class="line">                     (&quot;ADD_TWO_VALUES&quot;, None),</span><br><span class="line">                     (&quot;PRINT_ANSWER&quot;, None)],</span><br><span class="line">    &quot;numbers&quot;: [7, 5] &#125;</span><br></pre></td></tr></table></figure>
-<p>对于指令集的解释器</p>
-<p>Python的动态方法查找</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">execute</span><span class="params">(self, what_to_execute)</span>:</span></span><br><span class="line">        instructions = what_to_execute[<span class="string">"instructions"</span>]</span><br><span class="line">        <span class="keyword">for</span> each_step <span class="keyword">in</span> instructions:</span><br><span class="line">            instruction, argument = each_step</span><br><span class="line">            argument = self.parse_argument(instruction, argument, what_to_execute)</span><br><span class="line">            bytecode_method = getattr(self, instruction)</span><br><span class="line">            <span class="keyword">if</span> argument <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">                bytecode_method()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                bytecode_method(argument)</span><br></pre></td></tr></table></figure>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">&gt;</span><span class="bash">&gt;&gt; dis.dis(cond)</span></span><br><span class="line">  2           0 LOAD_CONST               1 (3)</span><br><span class="line">              3 STORE_FAST               0 (x)</span><br><span class="line"></span><br><span class="line">  3           6 LOAD_FAST                0 (x)</span><br><span class="line">              9 LOAD_CONST               2 (5)</span><br><span class="line">             12 COMPARE_OP               0 (&lt;)</span><br><span class="line">             15 POP_JUMP_IF_FALSE       22</span><br><span class="line"></span><br><span class="line">  4          18 LOAD_CONST               3 ('yes')</span><br><span class="line">             21 RETURN_VALUE</span><br><span class="line"></span><br><span class="line">  6     &gt;&gt;   22 LOAD_CONST               4 ('no')</span><br><span class="line">             25 RETURN_VALUE</span><br><span class="line">             26 LOAD_CONST               0 (None)</span><br><span class="line">             29 RETURN_VALUE</span><br></pre></td></tr></table></figure>
-<p>采用python的dis模块，反编译代码部分</p>
-<p>我们已经知道了Python虚拟机是一个栈机器。它能顺序执行指令，在指令间跳转，压入或弹出栈值</p>
-<p>每个frame只有一个code object与之关联，而一个code object可以很多frame。调用栈中的每个frame都有它自己的数据栈和块栈。</p>
-<p>Python真的很少依赖于每个frame有一个数据栈这个特性。在Python中几乎所有的操作都会清空数据栈，所以所有的frame公用一个数据栈是没问题的？</p>
-<p>Byterun中有四种对象。</p>
+            <p><a href="https://github.com/oam-dev/rudr" target="_blank" rel="noopener">repo地址</a></p>
+<p>Kubernetes API resources focused on container infrastructure rather than the applications per se. </p>
+<p><img src="https://github.com/oam-dev/rudr/raw/master/docs/media/rudr-how-it-works.png" alt="rudr infra"></p>
+<h4 id="Component_Schematic">Component Schematic</h4><p>The key parts of a component schematic include:</p>
 <ul>
-<li><code>VirtualMachine</code>类，它管理高层结构，frame调用栈，指令到操作的映射。这是一个比前面<code>Inteprter</code>对象更复杂的版本。</li>
-<li><code>Frame</code>类，每个<code>Frame</code>类都有一个code object，并且管理者其他一些必要的状态信息，全局和局部命名空间，指向调用它的frame的指针和最后执行的字节码指令。</li>
-<li><code>Function</code>类，它被用来代替真正的Python函数。回想一下，调用函数时会创建一个新的frame。我们自己实现<code>Function</code>，所以我们控制新frame的创建。</li>
-<li><code>Block</code>类，它只是包装了代码块的3个属性。（代码块的细节不是解释器的核心，我们不会花时间在它身上，把它列在这里，是因为Byterun需要它。）</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/component-schematic.md#metadata" target="_blank" rel="noopener">Metadata</a>: Information about the component.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/component-schematic.md#workload-type" target="_blank" rel="noopener">Workload type</a>: Descriptor of the component’s runtime profile. 根据应用的特点进行区分</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/component-schematic.md#parameters" target="_blank" rel="noopener">Parameters</a>: (Optional). Configuration options of the component.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/component-schematic.md#containers" target="_blank" rel="noopener">Containers</a>: Runnable pieces of code used by the component and their resource requirements.</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VirtualMachineError</span><span class="params">(Exception)</span>:</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VirtualMachine</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.frames = []   <span class="comment"># The call stack of frames.</span></span><br><span class="line">        self.frame = <span class="keyword">None</span>  <span class="comment"># The current frame.</span></span><br><span class="line">        self.return_value = <span class="keyword">None</span></span><br><span class="line">        self.last_exception = <span class="keyword">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run_code</span><span class="params">(self, code, global_names=None, local_names=None)</span>:</span></span><br><span class="line">        <span class="string">""" An entry point to execute code using the virtual machine."""</span></span><br><span class="line">        frame = self.make_frame(code, global_names=global_names, </span><br><span class="line">                                local_names=local_names)</span><br><span class="line">        self.run_frame(frame)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse_byte_and_args</span><span class="params">(self)</span>:</span></span><br><span class="line">        f = self.frame</span><br><span class="line">        opoffset = f.last_instruction</span><br><span class="line">        byteCode = f.code_obj.co_code[opoffset]</span><br><span class="line">        f.last_instruction += <span class="number">1</span></span><br><span class="line">        byte_name = dis.opname[byteCode]</span><br><span class="line">        <span class="keyword">if</span> byteCode &gt;= dis.HAVE_ARGUMENT:</span><br><span class="line">            <span class="comment"># index into the bytecode</span></span><br><span class="line">            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+<span class="number">2</span>]  </span><br><span class="line">            f.last_instruction += <span class="number">2</span>   <span class="comment"># advance the instruction pointer</span></span><br><span class="line">            arg_val = arg[<span class="number">0</span>] + (arg[<span class="number">1</span>] * <span class="number">256</span>)</span><br><span class="line">            <span class="keyword">if</span> byteCode <span class="keyword">in</span> dis.hasconst:   <span class="comment"># Look up a constant</span></span><br><span class="line">                arg = f.code_obj.co_consts[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.hasname:  <span class="comment"># Look up a name</span></span><br><span class="line">                arg = f.code_obj.co_names[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.haslocal: <span class="comment"># Look up a local name</span></span><br><span class="line">                arg = f.code_obj.co_varnames[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.hasjrel:  <span class="comment"># Calculate a relative jump</span></span><br><span class="line">                arg = f.last_instruction + arg_val</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                arg = arg_val</span><br><span class="line">            argument = [arg]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            argument = []</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> byte_name, argument</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Frame</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, code_obj, global_names, local_names, prev_frame)</span>:</span></span><br><span class="line">        self.code_obj = code_obj</span><br><span class="line">        self.global_names = global_names</span><br><span class="line">        self.local_names = local_names</span><br><span class="line">        self.prev_frame = prev_frame</span><br><span class="line">        self.stack = []</span><br><span class="line">        <span class="keyword">if</span> prev_frame:</span><br><span class="line">            self.builtin_names = prev_frame.builtin_names</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.builtin_names = local_names[<span class="string">'__builtins__'</span>]</span><br><span class="line">            <span class="keyword">if</span> hasattr(self.builtin_names, <span class="string">'__dict__'</span>):</span><br><span class="line">                self.builtin_names = self.builtin_names.__dict__</span><br><span class="line"></span><br><span class="line">        self.last_instruction = <span class="number">0</span></span><br><span class="line">        self.block_stack = []</span><br></pre></td></tr></table></figure>
-<p>Function部分，重要的是当调用函数时 — <code>__call__</code>方法被调用 — 它创建一个新的<code>Frame</code>并运行它。</p>
-<p><code>parse_byte_and_args</code>,以一个字节码为输入，先检查它是否有参数，如果有，就解析它的参数。这个方法同时也更新frame的<code>last_instruction</code>属性，它指向最后执行的指令。一条没有参数的指令只有一个字节长度，而有参数的字节有3个字节长。参数的意义依赖于指令是什么。比如，前面说过，指令<code>POP_JUMP_IF_FALSE</code>,它的参数指的是跳转目标。<code>BUILD_LIST</code>, 它的参数是列表的个数。<code>LOAD_CONST</code>,它的参数是常量的索引。</p>
-<p>我们会为每一个字节码名字定义一个方法，然后用<code>getattr</code>来查找。通过dispatcher来进行分发相应的规则</p>
-<p>Block部分，一个块被用于某种控制流，特别是异常处理和循环。它负责保证当操作完成后数据栈处于正确的状态。</p>
-<p>动态类型带来的问题，就是很多情况下无法进行优化</p>
+<h4 id="Application_Configuration">Application Configuration</h4><p>The key parts of an application configuration include:</p>
+<ul>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/application-configuration.md#metadata" target="_blank" rel="noopener">Metadata</a>: Information about the installed application configuration.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/application-configuration.md#variables" target="_blank" rel="noopener">Variables</a>: (Optional). Variables for common parameter values across multiple components.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/application-configuration.md#components" target="_blank" rel="noopener">Components</a>: The constituent microservices of the application and their runtime configuration.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/application-configuration.md#traits" target="_blank" rel="noopener">Traits</a>: (Optional). A list of traits to enable for a given component.</li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/application-configuration.md#scopes" target="_blank" rel="noopener">Scopes</a>: (Optional). A list of scopes to apply to a given component. 对外暴露的一些状态？</li>
+</ul>
+<p>A trait represents a piece of add-on functionality that attaches to a component workload, such as traffic routing rules or auto-scaling policies. 类似于sidecar? 一些标准的sidecar这样子？</p>
+<h4 id="Traits">Traits</h4><p>Rudr supports the following traits:</p>
+<ul>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/traits.md#manual-scaler-trait" target="_blank" rel="noopener">Manual Scaler</a></li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/traits.md#autoscaler-trait" target="_blank" rel="noopener">Autoscaler</a></li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/traits.md#ingress-trait" target="_blank" rel="noopener">Ingress</a></li>
+<li><a href="https://github.com/oam-dev/rudr/blob/master/docs/concepts/traits.md#volume-mounter-trait" target="_blank" rel="noopener">Volume Mounter</a></li>
+</ul>
+<h4 id="Scopes">Scopes</h4><p>应用对外提供的一些check操作的暴露，现在是基本的health部分，包含多种health的参数，如rate，timeout等</p>
+<p>定义了应用的CRD部分，值得参考</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2020/04/03/simple-netty-tcp-server/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/04/03/simple-netty-tcp-server/" itemprop="url">Simple Netty Tcp Server</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-03T16:33:35+08:00">
+                2020-04-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2020-04-03T17:32:18+08:00">
+                2020-04-03
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty/" itemprop="url" rel="index">
+                    <span itemprop="name">netty</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/04/03/simple-netty-tcp-server/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2020/04/03/simple-netty-tcp-server/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/@ashertoqeer/netty-simple-tcp-server-51fa8537fad5" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>Channel Pipeline</strong> API to build chain of handlers</p>
+<p>To perform read and write, Netty provides you <strong>Channel Handlers</strong>, inbound &amp; outbound. When there is something to read, <strong>Channel Inbound Handlers</strong> are invoked and when there is something to write, <strong>Channel Outbound Handlers</strong> are invoked.</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SimpleNettyServerBootstrap</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">start</span><span class="params">(<span class="keyword">int</span> port)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        Utils.log(<span class="string">"Starting server at: "</span> + port);</span><br><span class="line">        EventLoopGroup bossGroup = <span class="keyword">new</span> NioEventLoopGroup(); <span class="comment">// (1)</span></span><br><span class="line">        EventLoopGroup workerGroup = <span class="keyword">new</span> NioEventLoopGroup();<span class="comment">// (2)</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ServerBootstrap b = <span class="keyword">new</span> ServerBootstrap();<span class="comment">// (3)</span></span><br><span class="line">            b.group(bossGroup, workerGroup) <span class="comment">// (4)</span></span><br><span class="line">                    .channel(NioServerSocketChannel.class)<span class="comment">// (5)</span></span><br><span class="line">                    .childHandler(<span class="keyword">new</span> SimpleTCPChannelInitializer())<span class="comment">// (6)</span></span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="keyword">true</span>);<span class="comment">// (7)</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">// Bind and start to accept incoming connections.</span></span><br><span class="line">            ChannelFuture f = b.bind(port).sync();<span class="comment">// (8)</span></span><br><span class="line">            <span class="keyword">if</span>(f.isSuccess()) Utils.log(<span class="string">"Server started successfully"</span>); <span class="comment">// (9)</span></span><br><span class="line">            f.channel().closeFuture().sync(); <span class="comment">// (10)</span></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            Utils.log(<span class="string">"Stopping server"</span>);</span><br><span class="line">            workerGroup.shutdownGracefully();<span class="comment">// (11)</span></span><br><span class="line">            bossGroup.shutdownGracefully();<span class="comment">// (12)</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleTCPChannelHandler</span> <span class="keyword">extends</span> <span class="title">SimpleChannelInboundHandler</span>&lt;<span class="title">String</span>&gt; </span>&#123;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> </span>&#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), <span class="string">"Channel Active"</span>);</span><br><span class="line"> &#125;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">channelRead0</span><span class="params">(ChannelHandlerContext ctx, String s)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), s);<span class="comment">// (1)</span></span><br><span class="line">   ctx.channel().writeAndFlush(<span class="string">"Thanks\n"</span>); <span class="comment">// (2)</span></span><br><span class="line"> &#125;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelInactive</span><span class="params">(ChannelHandlerContext ctx)</span> </span>&#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), <span class="string">"Channel Inactive"</span>);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Tcp非全双工的，You can’t directly send or receive objects over TCP channel. You have to convert from bytes to object while reading and from objects to bytes  while writing?</p>
 
           
         
@@ -1122,7 +1111,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/10/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/page/120/">120</a><a class="extend next" rel="next" href="/page/12/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/10/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/page/121/">121</a><a class="extend next" rel="next" href="/page/12/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
