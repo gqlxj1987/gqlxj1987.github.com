@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/02/servicecomb-pack/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/06/Using-CompletableFuture/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/07/02/servicecomb-pack/" itemprop="url">Servicecomb Pack</a></h1>
+                <a class="post-title-link" href="/2019/09/06/Using-CompletableFuture/" itemprop="url">Using CompletableFuture</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-02T20:37:52+08:00">
-                2019-07-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-06T16:46:28+08:00">
+                2019-09-06
               </time>
             
 
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-06T17:33:26+08:00">
+                2019-09-06
               </time>
             
           </span>
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/servicecomb/" itemprop="url" rel="index">
-                    <span itemprop="name">servicecomb</span>
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
                   </a>
                 </span>
 
@@ -333,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/07/02/servicecomb-pack/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/02/servicecomb-pack/" itemprop="commentCount"></span>
+                <a href="/2019/09/06/Using-CompletableFuture/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/06/Using-CompletableFuture/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -364,17 +364,369 @@
       
         
           
-            <p><a href="https://github.com/apache/servicecomb-pack" target="_blank" rel="noopener">原repo</a></p>
-<p>微服务应用的数据最终一致性解决方案</p>
-<p><img src="http://ww1.sinaimg.cn/large/006tNc79ly1g4mgp1ltm9j30mp07y3yi.jpg" alt="servicecomb-pack"></p>
-<ul>
-<li>高可用：支持高可用的集群模式部署。</li>
-<li>高可靠：所有的关键事务事件都持久化存储在数据库中。</li>
-<li>高性能：事务事件是通过高性能gRPC来上报的，且事务的请求和响应消息都是通过Kyro进行序列化和反序列化。</li>
-<li>低侵入：仅需2-3个注解和编写对应的补偿方法即可引入分布式事务。</li>
-<li>部署简单：支持通过容器（Docker）进行快速部署和交付。</li>
-<li>补偿机制灵活：支持前向恢复（重试）及后向恢复（补偿）功能。</li>
-<li>扩展简单：基于Pack架构很容实现多种协调协议，目前支持TCC、Saga协议，未来还可以添加其他协议支持。</li>
+            <p><a href="https://dzone.com/articles/20-examples-of-using-javas-completablefuture" target="_blank" rel="noopener">原文链接</a></p>
+<p>This post revisits Java 8’s <code>CompletionStage</code> API and specifically its implementation in the standard Java library <code>CompletableFuture</code>.</p>
+<p>It represents a stage of a certain computation which can be done either synchronously or asynchronously.</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">runAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;Void&gt; cf = CompletableFuture.runAsync(() -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">    &#125;);</span><br><span class="line">    assertFalse(cf.isDone());</span><br><span class="line">    sleepEnough();</span><br><span class="line">    assertTrue(cf.isDone());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关于sleepEnough？</p>
+<p>By default (when no <code>Executor</code> is specified), asynchronous execution uses the common <code>ForkJoinPool</code> implementation, which uses <a href="https://docs.oracle.com/javase/9/docs/api/java/lang/Thread.html#setDaemon-boolean-" target="_blank" rel="noopener">daemon</a> threads to execute the <code>Runnable</code> task. Note that this is specific to <code>CompletableFuture</code>. Other <code>CompletionStage</code> implementations can override the default behavior.</p>
+<p>use executors</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> ExecutorService executor = Executors.newFixedThreadPool(<span class="number">3</span>, <span class="keyword">new</span> ThreadFactory() &#123;</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">1</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Thread <span class="title">newThread</span><span class="params">(Runnable runnable)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Thread(runnable, <span class="string">"custom-executor-"</span> + count++);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenApplyAsyncWithExecutorExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(<span class="string">"message"</span>).thenApplyAsync(s -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().getName().startsWith(<span class="string">"custom-executor-"</span>));</span><br><span class="line">        assertFalse(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">        <span class="keyword">return</span> s.toUpperCase();</span><br><span class="line">    &#125;, executor);</span><br><span class="line">    assertNull(cf.getNow(<span class="keyword">null</span>));</span><br><span class="line">    assertEquals(<span class="string">"MESSAGE"</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>thenApply return value</p>
+<p>thenAccept do not need to return a value</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">applyToEitherExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf1 = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s));</span><br><span class="line">    CompletableFuture&lt;String&gt; cf2 = cf1.applyToEither(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">            s -&gt; s + <span class="string">" from applyToEither"</span>);</span><br><span class="line">    assertTrue(cf2.join().endsWith(<span class="string">" from applyToEither"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenAcceptBothExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    StringBuilder result = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">    CompletableFuture.completedFuture(original).thenApply(String::toUpperCase).thenAcceptBoth(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApply(String::toLowerCase),</span><br><span class="line">            (s1, s2) -&gt; result.append(s1 + s2));</span><br><span class="line">    assertEquals(<span class="string">"MESSAGEmessage"</span>, result.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenCombineAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s))</span><br><span class="line">            .thenCombine(CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">                    (s1, s2) -&gt; s1 + s2);</span><br><span class="line">    assertEquals(<span class="string">"MESSAGEmessage"</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// sync</span></span><br><span class="line">CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()])).whenComplete((v, th) -&gt; &#123;</span><br><span class="line">        futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">        result.append(<span class="string">"done"</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// async</span></span><br><span class="line">CompletableFuture&lt;Void&gt; allOf = CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()]))</span><br><span class="line">            .whenComplete((v, th) -&gt; &#123;</span><br><span class="line">                futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">                result.append(<span class="string">"done"</span>);</span><br><span class="line">            &#125;);</span><br><span class="line"> allOf.join();</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/05/java-types-intro/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/09/05/java-types-intro/" itemprop="url">java类型系统介绍</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-05T14:51:25+08:00">
+                2019-09-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-05T15:27:47+08:00">
+                2019-09-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/05/java-types-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/05/java-types-intro/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://mp.weixin.qq.com/s/sU_SQ6GU65BstkyR1t2PiA" target="_blank" rel="noopener">原文链接</a></p>
+<p>首先是对参数化多态的扩展，支持给泛型变量添加边界，即：<code>&lt;T extends X&gt;</code>等，这样可以表示更加精确的类型约束，而不仅仅是 forall；不仅如此，Java 还支持 F-bounded，即类型变量可以出现在自己的上边界中：<code>&lt;T extends F&lt;T&gt;&gt;</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    Comparable&lt;String&gt; a = min(<span class="string">"cat"</span>, <span class="string">"dog"</span>);</span><br><span class="line">    Comparable&lt;Integer&gt; b = min(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">    String str = Fmin(<span class="string">"cat"</span>, <span class="string">"dog"</span>);</span><br><span class="line">    Integer i = Fmin(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;S extends Comparable&gt; <span class="function">S <span class="title">min</span><span class="params">(S a, S b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;T extends Comparable&lt;T&gt;&gt; <span class="function">T <span class="title">Fmin</span><span class="params">(T a, T b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意 Fmin 方法的 <code>&lt;T extends Comparable&lt;T&gt;&gt;</code>，如果Comparable 不能包含 T，即像 min 方法那样，就会丢失接口 Comparable compareTo 方法的参数类型 (变成 Object)，你会收到一个编译器的警告，说你绕过了编译检查直接使用了 raw type（参数化类型擦除后的类型）；详情可参考 F-bounded quantification</p>
+<p>引入了 wildcards，<code>List&lt;? extends Integer&gt;</code> 就是 <code>List&lt;? extends Number&gt;</code> 的子类 （详情参考Wildcards and Subtyping)</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">typeof: (Γ, e) -&gt; t</span><br></pre></td></tr></table></figure>
+<p>大写希腊字母  Γ 用于表示当前上下文（typing context, aka typing environment），它就是一个类型绑定关系的  Map，保存了项的类型（即：e 到 t），e 为表达式的 AST（抽象语法树），t 为类型（具体实现时也是一类特殊的 AST  节点），typeof 在数学上的写法为：<code>Γ ├ e: t</code> 读作：在类型上下文 Γ 下，e 的类型为 t；符号 ‘├’ 在数学上是推导，推断的意思，它在这是一种三元关系即：HasType(Γ, e, t)。</p>
+<p>所以只要在当前上下文下，语法项有具体类型，则类型检查就通过，如果无法返回其类型，那么就报错了，也就是我们常常看到的编译不过。</p>
+<p>类型是什么呢？有两种不同的角度，一种是计算的角度（程序员的角度）或者称 Church 的角度，另一种是逻辑的角度，或者叫 Curry 的角度；前者根据所计算的值的性质来对项（语法项）进行分类，你可以把类型比作集合；后者就是对程序行为进行证明的推理工具，所以类型理论常常和证明理论扯上关系。</p>
+<p>####类型系统</p>
+<p>Lambda 演算可以看做是一门微小的函数式编程语言，它的语法构造非常简单，只有变量，函数(aka 抽象)，和函数应用（调用）：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;expr&gt; ::= &lt;name&gt; | &lt;function&gt; | &lt;application&gt;</span><br><span class="line">&lt;function&gt; ::= λ&lt;name&gt;.&lt;body&gt;</span><br><span class="line">&lt;body&gt; ::= &lt;expr&gt;</span><br><span class="line">&lt;application&gt; ::= (&lt;expr&gt; &lt;expr&gt;)</span><br></pre></td></tr></table></figure>
+<p>主要是利用函数部分，利用函数式编程中的，一切皆函数</p>
+<h4 id="STLC_(Simply_Typed_Lambda_calculus)">STLC (Simply Typed Lambda calculus)</h4><p>就是在无类型的 Lambda 演算基础上添加了类型，其语法结构（BNF）：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">types:</span><br><span class="line">τ ::= α        base type</span><br><span class="line">    | τ → τ&apos;   function type</span><br><span class="line"></span><br><span class="line">terms:</span><br><span class="line">e ::= e : τ    annotated term type τ</span><br><span class="line">    | x        variable</span><br><span class="line">    | (e e&apos;)   application</span><br><span class="line">    | λx.e     lambda abstraction</span><br></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/03/system-performance-telemetry/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/09/03/system-performance-telemetry/" itemprop="url">System performance telemetry</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-03T10:25:42+08:00">
+                2019-09-03
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-03T10:34:44+08:00">
+                2019-09-03
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/system/" itemprop="url" rel="index">
+                    <span itemprop="name">system</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/03/system-performance-telemetry/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/03/system-performance-telemetry/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://github.com/twitter/rezolus" target="_blank" rel="noopener">原文repo</a></p>
+<p>rezolus</p>
+<p>Currently, Rezolus collects telemetry from traditional sources (procfs, sysfs), the perf_events subsystem, and from eBPF</p>
+<h3 id="Features">Features</h3><ul>
+<li>traditional telemetry sources (procfs, sysfs, …)</li>
+<li>perf_events support for hardware performance counters</li>
+<li>eBPF support to instrument kernel and user space activities</li>
+<li>oversampling and percentile metrics to capture bursts</li>
 </ul>
 
           
@@ -424,7 +776,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/02/rest-vs-grpc/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -443,7 +795,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/07/02/rest-vs-grpc/" itemprop="url">Rest vs GRPC</a></h1>
+                <a class="post-title-link" href="/2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="url">Pprof for investigated memory leaks</a></h1>
         
 
         <div class="post-meta">
@@ -455,8 +807,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-02T19:59:55+08:00">
-                2019-07-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">
+                2019-09-02
               </time>
             
 
@@ -471,180 +823,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/GPRC/" itemprop="url" rel="index">
-                    <span itemprop="name">GPRC</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/07/02/rest-vs-grpc/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/02/rest-vs-grpc/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://blog.maddevs.io/go-rest-or-grpc-5eace88499bd" target="_blank" rel="noopener">原文链接</a></p>
-<p>When you use swagger, there is a big temptation not to support the documentation, because it is often an additional problem. When you use gRPC, it will not happen, this improved tool makes the developer’s life easier because it is impossible to write the code without a proto file and without sharing to development teams. 代码与文档部分</p>
-<p><strong>gRPC</strong> is primarily an RPC framework and it refers to UpdateBalance, GetClient methods.</p>
-<p><strong>REST</strong> is about resources such a GET /users, POST /users and etc.</p>
-<p>grpc-gateway，同时支持grpc和rest部分</p>
-<figure class="highlight protobuf"><table><tr><td class="code"><pre><span class="line">syntax = &quot;proto3&quot;;</span><br><span class="line"></span><br><span class="line">import &quot;google/api/annotations.proto&quot;;</span><br><span class="line"></span><br><span class="line">package helloworld;</span><br><span class="line"></span><br><span class="line">service Greeter &#123;</span><br><span class="line">	rpc SayHello (HelloRequest) returns (HelloReply) &#123;</span><br><span class="line">		option(google.api.http) = &#123;</span><br><span class="line">			get: &quot;/api/hello/&#123;name&#125;&quot;,</span><br><span class="line">		&#125;;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message HelloRequest &#123;</span><br><span class="line">	string name = 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message HelloReply &#123;</span><br><span class="line">	string message = 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="string">TARGET=helloworld</span></span><br><span class="line"></span><br><span class="line"><span class="attr">all:</span> <span class="string">clean</span> <span class="string">build</span></span><br><span class="line"></span><br><span class="line"><span class="attr">clean:</span></span><br><span class="line">	<span class="string">rm</span> <span class="bullet">-rf</span> <span class="string">$(TARGET)</span></span><br><span class="line"></span><br><span class="line"><span class="attr">build:</span></span><br><span class="line">	<span class="string">go</span> <span class="string">build</span> <span class="bullet">-o</span> <span class="string">$(TARGET)</span> <span class="string">main.go</span></span><br><span class="line"></span><br><span class="line"><span class="attr">proto:</span></span><br><span class="line">	<span class="string">protoc</span> <span class="bullet">-I/usr/local/include</span> <span class="bullet">-I.</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">--go_out=plugins=grpc:.</span> <span class="string">\</span></span><br><span class="line">		<span class="string">pb/hello.proto</span></span><br><span class="line">	<span class="string">protoc</span> <span class="bullet">-I/usr/local/include</span> <span class="bullet">-I.</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">--grpc-gateway_out=logtostderr=true:.</span> <span class="string">\</span></span><br><span class="line">		<span class="string">pb/hello.proto</span></span><br><span class="line">	<span class="string">protoc</span> <span class="bullet">-I/usr/local/include</span> <span class="bullet">-I.</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">-I$&#123;GOPATH&#125;/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis</span> <span class="string">\</span></span><br><span class="line">		<span class="bullet">--swagger_out=logtostderr=true:.</span> <span class="string">\</span></span><br><span class="line"><span class="string">pb/hello.proto</span></span><br></pre></td></tr></table></figure>
-<p>Now there is a small problem — our server will listen two TCP sockets. One is to ensure the operation of the gRPC mechanisms, and the second is to ensure REST. In addition, the gateway will be released as an intermediary, converting the JSON HTTP REST representation into gRPC on the proto files. ?</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Greeter)</span> <span class="title">startGRPC</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	lis, err := net.Listen(<span class="string">"tcp"</span>, <span class="string">"localhost:8080"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	grpcServer := grpc.NewServer()</span><br><span class="line">	pb.RegisterGreeterServer(grpcServer, g)</span><br><span class="line">	grpcServer.Serve(lis)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Greeter)</span> <span class="title">startREST</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line">	ctx, cancel := context.WithCancel(ctx)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	mux := runtime.NewServeMux()</span><br><span class="line">	opts := []grpc.DialOption&#123;grpc.WithInsecure()&#125;</span><br><span class="line">	err := pb.RegisterGreeterHandlerFromEndpoint(ctx, mux, <span class="string">":8080"</span>, opts)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> http.ListenAndServe(<span class="string">":8090"</span>, mux)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/02/filter-logic-in-go/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/07/02/filter-logic-in-go/" itemprop="url">Filtering Logic in Go</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-02T19:05:20+08:00">
-                2019-07-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-20T14:59:15+08:00">
+                2019-09-20
               </time>
             
           </span>
@@ -680,8 +860,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/07/02/filter-logic-in-go/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/02/filter-logic-in-go/" itemprop="commentCount"></span>
+                <a href="/2019/09/02/pprof-for-investigated-memory-leaks/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -711,11 +891,33 @@
       
         
           
-            <p><a href="https://medium.com/@zach_johnson/a-simple-implementation-of-filtering-logic-in-go-f45a24413aaf" target="_blank" rel="noopener">原文链接</a></p>
-<p>The simplest solution may be to do filtering in-line, looping through your set of records and discarding whatever records don’t match your business requirements</p>
-<p>Choosing a filtering library comes at cost though — libraries have to be type-agnostic and thus will generally be using reflect under the hood to do type assertions which is not ideal for performance. 关于filtering库的一个实现思路</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Filter is a filter function applied to a single record.</span></span><br><span class="line"><span class="keyword">type</span> Filter <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">string</span>)</span> <span class="title">bool</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// <span class="title">FilterBulk</span> <span class="title">is</span> <span class="title">a</span> <span class="title">bulk</span> <span class="title">filter</span> <span class="title">function</span> <span class="title">applied</span> <span class="title">to</span> <span class="title">an</span> <span class="title">entire</span> <span class="title">slice</span> <span class="title">of</span> <span class="title">records</span>.</span></span><br><span class="line"><span class="function"><span class="title">type</span> <span class="title">FilterBulk</span> <span class="title">func</span><span class="params">([]<span class="keyword">string</span>)</span> []<span class="title">string</span></span></span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ApplyFilters applies a set of filters to a record list.</span></span><br><span class="line"><span class="comment">// Each record will be checked against each filter.</span></span><br><span class="line"><span class="comment">// The filters are applied in the order they are passed in.</span></span><br><span class="line"><span class="function">func <span class="title">ApplyFilters</span><span class="params">(records []string, filters ...Filter)</span> []string </span>&#123;</span><br><span class="line">    <span class="comment">// Make sure there are actually filters to be applied.</span></span><br><span class="line">    <span class="function"><span class="keyword">if</span> <span class="title">len</span><span class="params">(filters)</span> </span>== <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> records</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    filteredRecords := make([]string, <span class="number">0</span>, len(records))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Range over the records and apply all the filters to each record.</span></span><br><span class="line">    <span class="comment">// If the record passes all the filters, add it to the final slice.</span></span><br><span class="line">    <span class="keyword">for</span> _, r := range records &#123;</span><br><span class="line">        keep := <span class="keyword">true</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, f := range filters &#123;</span><br><span class="line">            <span class="keyword">if</span> !f(r) &#123;</span><br><span class="line">                keep = <span class="keyword">false</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> keep &#123;</span><br><span class="line">            filteredRecords = append(filteredRecords, r)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> filteredRecords</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ApplyBulkFilters applies a set of filters to the entire slice of records.</span></span><br><span class="line"><span class="comment">// Used when each record filter requires knowledge of the other records, e.g. de-duping.</span></span><br><span class="line"><span class="function">func <span class="title">ApplyBulkFilters</span><span class="params">(records []string, filters ...FilterBulk)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> _, f := range filters &#123;</span><br><span class="line">        records = f(records)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> records</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> filters = map[<span class="keyword">int</span>]FilterSet&#123; </span><br><span class="line">    <span class="number">1</span>: FilterForAnimals, </span><br><span class="line">    <span class="number">2</span>: FilterForIDs, </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// FilterForAnimals applies a set of filters removing any non-animals.</span></span><br><span class="line"><span class="function">func <span class="title">FilterForAnimals</span><span class="params">(records []string)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ApplyBulkFilters(</span><br><span class="line">        ApplyFilters(records,</span><br><span class="line">            FilterMagicalCreatures,</span><br><span class="line">            FilterStringLength,</span><br><span class="line">            FilterInts,</span><br><span class="line">            FilterWords,</span><br><span class="line">        ),</span><br><span class="line">        FilterDuplicates,</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// FilterForIDs applies a set of filters removing any non-IDs.</span></span><br><span class="line"><span class="function">func <span class="title">FilterForIDs</span><span class="params">(records []string)</span> []string </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ApplyBulkFilters(</span><br><span class="line">        ApplyFilters(records,</span><br><span class="line">            FilterIDs,</span><br><span class="line">        ),</span><br><span class="line">        FilterDuplicates,</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+            <p><a href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192" target="_blank" rel="noopener">原文链接</a></p>
+<p><strong>memory pressure</strong>issues materialize are:</p>
+<ul>
+<li>Too many allocations, incorrect data representation</li>
+<li>Heavy usage of reflection or strings</li>
+<li>Using globals</li>
+<li>Orphaned, never-ending goroutines</li>
+</ul>
+<p>利用golang实现blockchain</p>
+<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
+<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
+<p>Go has several built in profiles for us to use in common cases:</p>
+<ul>
+<li>goroutine — stack traces of all current goroutines</li>
+<li>heap — a sampling of memory allocations of live objects</li>
+<li>allocs — a sampling of all past memory allocations</li>
+<li>threadcreate — stack traces that led to the creation of new OS threads</li>
+<li>block — stack traces that led to blocking on synchronization primitives</li>
+<li>mutex — stack traces of holders of contended mutexes</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
+<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
+</ul>
+<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
+<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
 
           
         
@@ -764,7 +966,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/02/one-week/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -783,7 +985,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/07/02/one-week/" itemprop="url">克服懒</a></h1>
+                <a class="post-title-link" href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" itemprop="url">Jvm profiler for tracing distributed jvm applications</a></h1>
         
 
         <div class="post-meta">
@@ -795,8 +997,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-02T09:57:11+08:00">
-                2019-07-02
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T20:04:00+08:00">
+                2019-09-02
               </time>
             
 
@@ -811,8 +1013,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
+              <time title="更新于" itemprop="dateModified" datetime="2019-09-02T22:35:45+08:00">
+                2019-09-02
               </time>
             
           </span>
@@ -830,8 +1032,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index">
-                    <span itemprop="name">weekly</span>
+                  <a href="/categories/jvm/" itemprop="url" rel="index">
+                    <span itemprop="name">jvm</span>
                   </a>
                 </span>
 
@@ -848,8 +1050,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/07/02/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/02/one-week/" itemprop="commentCount"></span>
+                <a href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -879,179 +1081,24 @@
       
         
           
-            <p>最近太懒了，都懒得思考了，懒得去反省自身的处境，所以，才会有现在这么窘迫的境况。。。算是对自己的惩罚吧。。</p>
-<p>希望没什么事情吧，双方的心理上，都没有做好准备，哎。。。每次都做好了措施，我这样的不良，也不配。。。</p>
-<p>关于时间上的安排方面，最近的进度上，自从感觉搬过来之后，就有些懈怠了，找到地方去学习，找到让自己心安的办法。。。</p>
-<p>锻炼的自律保持的不错，但其他方面就太差了。。。放任自流，你在逃避什么。。。</p>
-<p>与其羡慕别人，不如一步一步地做好自己，努力过好每一天。。。</p>
-<p>给予自己能够给予的东西，至于结果如何，无所谓了。。。</p>
-<hr>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/07/01/rest-to-grpc/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/07/01/rest-to-grpc/" itemprop="url">Rest to Grpc</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-01T18:14:39+08:00">
-                2019-07-01
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-07-30T00:16:47+08:00">
-                2019-07-30
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/gRPC/" itemprop="url" rel="index">
-                    <span itemprop="name">gRPC</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/07/01/rest-to-grpc/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/07/01/rest-to-grpc/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://www.infoq.cn/article/ye16SG5IdQi-vsIhs43E" target="_blank" rel="noopener">原文链接</a></p>
-<p>通过 protoc 编译器生成的代码可以确保客户端发送或服务器端接收到的数据是遵循规范的，这样非常有助于调试。我记得有两次我开发的服务因为格式没有经过验证而生成了错误的JSON 数据，这些问题只会在用户界面上表现出来。要想找出问题的根源，我们只能调试前端 JavaScript 代码，而这对于一个不太熟悉 JavaScript 框架的后端开发人员来说这并不容易！</p>
-<p>gRPC的调试，不方便</p>
+            <p><a href="https://eng.uber.com/jvm-profiler/" target="_blank" rel="noopener">原文链接</a></p>
+<p>While Spark makes data technology more accessible, right-sizing the resources allocated to Spark applications<br>and optimizing the operational efficiency of our data infrastructure requires more fine-grained insights about these systems, namely their resource usage patterns.</p>
+<p>Our existing tools could only monitor server-level metrics and did not gauge metrics for individual applications. We needed a solution that could collect metrics for each process and correlate them across processes for each application. Additionally, we do not know when these processes will launch and how long they will take. To be able to collect metrics in this environment,<br>the profiler needs to be launched automatically with each process.</p>
+<h4 id="What_does_the_JVM_Profiler_do?">What does the JVM Profiler do?</h4><p>The JVM Profiler is composed of three  key features that make it easier to collect performance and resource  usage metrics, and then serve these metrics (e.g. Apache Kafka) to other  systems for further analysis:</p>
+<ul>
+<li><strong>A java agent</strong>:  By incorporating a Java agent into our profiler, users can collect  various metrics (e.g. CPU/memory usage) and stack traces for JVM  processes in a distributed way. </li>
+<li><strong>Advanced profiling capabilities</strong>:  Our JVM Profiler allows us to trace arbitrary Java methods and  arguments in the user code without making any actual code changes. This  feature can be used to trace HDFS NameNode RPC call latency for Spark  applications and identify slow method calls. It can also trace the HDFS  file paths each Spark application reads or writes to identify hot files  for further optimization.</li>
+<li><strong>Data analytics reporting</strong>:  At Uber, we use the profiler to report metrics to Kafka topics and  Apache Hive tables, making data analytics faster and easier.</li>
+</ul>
+<h4 id="Typical_use_cases">Typical use cases</h4><ul>
+<li><strong>Right-size executor:</strong> We use  memory metrics from the JVM Profiler to track actual memory usage for  each executor so we can set the proper value for the Spark  “executor-memory” argument.</li>
+<li><strong>Monitor HDFS NameNode RPC latency:</strong> We profile methods on the class <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB</em>  in a Spark application and identify long latencies on NameNode calls.  We monitor more than 50 thousand Spark applications each day with  several billions of such RPC calls.</li>
+<li><strong>Monitor driver dropped events:</strong> We profile methods like <em>org.apache.spark.scheduler.LiveListenerBus.onDropEvent</em> to trace situations during which the Spark driver event queue becomes too long and drops events.</li>
+<li><strong>Trace data lineage:</strong> We profile file path arguments on the method <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.getBlockLocations</em> and <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.addBlock</em> to trace what files are read and written by the Spark application.</li>
+</ul>
+<p><a href="github.com/uber-common/jvm-profiler">repo地址</a></p>
+<p>入口函数为Agent.java</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">Agent</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AgentImpl agentImpl = <span class="keyword">new</span> AgentImpl();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Agent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">agentmain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        premain(args, instrumentation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">premain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"Java Agent "</span> + AgentImpl.VERSION + <span class="string">" premain args: "</span> + args);</span><br><span class="line"></span><br><span class="line">        Arguments arguments = Arguments.parseArgs(args);</span><br><span class="line">        arguments.runConfigProvider();</span><br><span class="line">        agentImpl.run(arguments, instrumentation, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
           
         
@@ -1091,7 +1138,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/121/">121</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/126/">126</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1113,7 +1160,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
   <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
 
   

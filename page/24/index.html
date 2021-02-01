@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/06/Using-CompletableFuture/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/12/05/jvm-handle-method-overloading-and-overriding/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/09/06/Using-CompletableFuture/" itemprop="url">Using CompletableFuture</a></h1>
+                <a class="post-title-link" href="/2019/12/05/jvm-handle-method-overloading-and-overriding/" itemprop="url">Jvm Handle Method overloading and overriding</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-06T16:46:28+08:00">
-                2019-09-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-12-05T12:14:59+08:00">
+                2019-12-05
               </time>
             
 
@@ -296,725 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-06T17:33:26+08:00">
-                2019-09-06
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/09/06/Using-CompletableFuture/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/06/Using-CompletableFuture/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://dzone.com/articles/20-examples-of-using-javas-completablefuture" target="_blank" rel="noopener">原文链接</a></p>
-<p>This post revisits Java 8’s <code>CompletionStage</code> API and specifically its implementation in the standard Java library <code>CompletableFuture</code>.</p>
-<p>It represents a stage of a certain computation which can be done either synchronously or asynchronously.</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">runAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;Void&gt; cf = CompletableFuture.runAsync(() -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">    &#125;);</span><br><span class="line">    assertFalse(cf.isDone());</span><br><span class="line">    sleepEnough();</span><br><span class="line">    assertTrue(cf.isDone());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>关于sleepEnough？</p>
-<p>By default (when no <code>Executor</code> is specified), asynchronous execution uses the common <code>ForkJoinPool</code> implementation, which uses <a href="https://docs.oracle.com/javase/9/docs/api/java/lang/Thread.html#setDaemon-boolean-" target="_blank" rel="noopener">daemon</a> threads to execute the <code>Runnable</code> task. Note that this is specific to <code>CompletableFuture</code>. Other <code>CompletionStage</code> implementations can override the default behavior.</p>
-<p>use executors</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> ExecutorService executor = Executors.newFixedThreadPool(<span class="number">3</span>, <span class="keyword">new</span> ThreadFactory() &#123;</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">1</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Thread <span class="title">newThread</span><span class="params">(Runnable runnable)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Thread(runnable, <span class="string">"custom-executor-"</span> + count++);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenApplyAsyncWithExecutorExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(<span class="string">"message"</span>).thenApplyAsync(s -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().getName().startsWith(<span class="string">"custom-executor-"</span>));</span><br><span class="line">        assertFalse(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">        <span class="keyword">return</span> s.toUpperCase();</span><br><span class="line">    &#125;, executor);</span><br><span class="line">    assertNull(cf.getNow(<span class="keyword">null</span>));</span><br><span class="line">    assertEquals(<span class="string">"MESSAGE"</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>thenApply return value</p>
-<p>thenAccept do not need to return a value</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">applyToEitherExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf1 = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s));</span><br><span class="line">    CompletableFuture&lt;String&gt; cf2 = cf1.applyToEither(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">            s -&gt; s + <span class="string">" from applyToEither"</span>);</span><br><span class="line">    assertTrue(cf2.join().endsWith(<span class="string">" from applyToEither"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenAcceptBothExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    StringBuilder result = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">    CompletableFuture.completedFuture(original).thenApply(String::toUpperCase).thenAcceptBoth(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApply(String::toLowerCase),</span><br><span class="line">            (s1, s2) -&gt; result.append(s1 + s2));</span><br><span class="line">    assertEquals(<span class="string">"MESSAGEmessage"</span>, result.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenCombineAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">"Message"</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s))</span><br><span class="line">            .thenCombine(CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">                    (s1, s2) -&gt; s1 + s2);</span><br><span class="line">    assertEquals(<span class="string">"MESSAGEmessage"</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// sync</span></span><br><span class="line">CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()])).whenComplete((v, th) -&gt; &#123;</span><br><span class="line">        futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">        result.append(<span class="string">"done"</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// async</span></span><br><span class="line">CompletableFuture&lt;Void&gt; allOf = CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()]))</span><br><span class="line">            .whenComplete((v, th) -&gt; &#123;</span><br><span class="line">                futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">                result.append(<span class="string">"done"</span>);</span><br><span class="line">            &#125;);</span><br><span class="line"> allOf.join();</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/05/java-types-intro/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/05/java-types-intro/" itemprop="url">java类型系统介绍</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-05T14:51:25+08:00">
-                2019-09-05
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-05T15:27:47+08:00">
-                2019-09-05
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/09/05/java-types-intro/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/05/java-types-intro/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://mp.weixin.qq.com/s/sU_SQ6GU65BstkyR1t2PiA" target="_blank" rel="noopener">原文链接</a></p>
-<p>首先是对参数化多态的扩展，支持给泛型变量添加边界，即：<code>&lt;T extends X&gt;</code>等，这样可以表示更加精确的类型约束，而不仅仅是 forall；不仅如此，Java 还支持 F-bounded，即类型变量可以出现在自己的上边界中：<code>&lt;T extends F&lt;T&gt;&gt;</code></p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    Comparable&lt;String&gt; a = min(<span class="string">"cat"</span>, <span class="string">"dog"</span>);</span><br><span class="line">    Comparable&lt;Integer&gt; b = min(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">    String str = Fmin(<span class="string">"cat"</span>, <span class="string">"dog"</span>);</span><br><span class="line">    Integer i = Fmin(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;S extends Comparable&gt; <span class="function">S <span class="title">min</span><span class="params">(S a, S b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;T extends Comparable&lt;T&gt;&gt; <span class="function">T <span class="title">Fmin</span><span class="params">(T a, T b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>注意 Fmin 方法的 <code>&lt;T extends Comparable&lt;T&gt;&gt;</code>，如果Comparable 不能包含 T，即像 min 方法那样，就会丢失接口 Comparable compareTo 方法的参数类型 (变成 Object)，你会收到一个编译器的警告，说你绕过了编译检查直接使用了 raw type（参数化类型擦除后的类型）；详情可参考 F-bounded quantification</p>
-<p>引入了 wildcards，<code>List&lt;? extends Integer&gt;</code> 就是 <code>List&lt;? extends Number&gt;</code> 的子类 （详情参考Wildcards and Subtyping)</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">typeof: (Γ, e) -&gt; t</span><br></pre></td></tr></table></figure>
-<p>大写希腊字母  Γ 用于表示当前上下文（typing context, aka typing environment），它就是一个类型绑定关系的  Map，保存了项的类型（即：e 到 t），e 为表达式的 AST（抽象语法树），t 为类型（具体实现时也是一类特殊的 AST  节点），typeof 在数学上的写法为：<code>Γ ├ e: t</code> 读作：在类型上下文 Γ 下，e 的类型为 t；符号 ‘├’ 在数学上是推导，推断的意思，它在这是一种三元关系即：HasType(Γ, e, t)。</p>
-<p>所以只要在当前上下文下，语法项有具体类型，则类型检查就通过，如果无法返回其类型，那么就报错了，也就是我们常常看到的编译不过。</p>
-<p>类型是什么呢？有两种不同的角度，一种是计算的角度（程序员的角度）或者称 Church 的角度，另一种是逻辑的角度，或者叫 Curry 的角度；前者根据所计算的值的性质来对项（语法项）进行分类，你可以把类型比作集合；后者就是对程序行为进行证明的推理工具，所以类型理论常常和证明理论扯上关系。</p>
-<p>####类型系统</p>
-<p>Lambda 演算可以看做是一门微小的函数式编程语言，它的语法构造非常简单，只有变量，函数(aka 抽象)，和函数应用（调用）：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;expr&gt; ::= &lt;name&gt; | &lt;function&gt; | &lt;application&gt;</span><br><span class="line">&lt;function&gt; ::= λ&lt;name&gt;.&lt;body&gt;</span><br><span class="line">&lt;body&gt; ::= &lt;expr&gt;</span><br><span class="line">&lt;application&gt; ::= (&lt;expr&gt; &lt;expr&gt;)</span><br></pre></td></tr></table></figure>
-<p>主要是利用函数部分，利用函数式编程中的，一切皆函数</p>
-<h4 id="STLC_(Simply_Typed_Lambda_calculus)">STLC (Simply Typed Lambda calculus)</h4><p>就是在无类型的 Lambda 演算基础上添加了类型，其语法结构（BNF）：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">types:</span><br><span class="line">τ ::= α        base type</span><br><span class="line">    | τ → τ&apos;   function type</span><br><span class="line"></span><br><span class="line">terms:</span><br><span class="line">e ::= e : τ    annotated term type τ</span><br><span class="line">    | x        variable</span><br><span class="line">    | (e e&apos;)   application</span><br><span class="line">    | λx.e     lambda abstraction</span><br></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/03/system-performance-telemetry/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/03/system-performance-telemetry/" itemprop="url">System performance telemetry</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-03T10:25:42+08:00">
-                2019-09-03
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-03T10:34:44+08:00">
-                2019-09-03
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/09/03/system-performance-telemetry/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/03/system-performance-telemetry/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://github.com/twitter/rezolus" target="_blank" rel="noopener">原文repo</a></p>
-<p>rezolus</p>
-<p>Currently, Rezolus collects telemetry from traditional sources (procfs, sysfs), the perf_events subsystem, and from eBPF</p>
-<h3 id="Features">Features</h3><ul>
-<li>traditional telemetry sources (procfs, sysfs, …)</li>
-<li>perf_events support for hardware performance counters</li>
-<li>eBPF support to instrument kernel and user space activities</li>
-<li>oversampling and percentile metrics to capture bursts</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="url">Pprof for investigated memory leaks</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">
-                2019-09-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-20T14:59:15+08:00">
-                2019-09-20
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/09/02/pprof-for-investigated-memory-leaks/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/pprof-for-investigated-memory-leaks/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192" target="_blank" rel="noopener">原文链接</a></p>
-<p><strong>memory pressure</strong>issues materialize are:</p>
-<ul>
-<li>Too many allocations, incorrect data representation</li>
-<li>Heavy usage of reflection or strings</li>
-<li>Using globals</li>
-<li>Orphaned, never-ending goroutines</li>
-</ul>
-<p>利用golang实现blockchain</p>
-<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
-<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
-<p>Go has several built in profiles for us to use in common cases:</p>
-<ul>
-<li>goroutine — stack traces of all current goroutines</li>
-<li>heap — a sampling of memory allocations of live objects</li>
-<li>allocs — a sampling of all past memory allocations</li>
-<li>threadcreate — stack traces that led to the creation of new OS threads</li>
-<li>block — stack traces that led to blocking on synchronization primitives</li>
-<li>mutex — stack traces of holders of contended mutexes</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
-<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
-</ul>
-<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
-<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" itemprop="url">Jvm profiler for tracing distributed jvm applications</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-02T20:04:00+08:00">
-                2019-09-02
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2019-09-02T22:35:45+08:00">
-                2019-09-02
+              <time title="更新于" itemprop="dateModified" datetime="2019-12-08T13:58:59+08:00">
+                2019-12-08
               </time>
             
           </span>
@@ -1050,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" itemprop="commentCount"></span>
+                <a href="/2019/12/05/jvm-handle-method-overloading-and-overriding/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/12/05/jvm-handle-method-overloading-and-overriding/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1081,24 +364,711 @@
       
         
           
-            <p><a href="https://eng.uber.com/jvm-profiler/" target="_blank" rel="noopener">原文链接</a></p>
-<p>While Spark makes data technology more accessible, right-sizing the resources allocated to Spark applications<br>and optimizing the operational efficiency of our data infrastructure requires more fine-grained insights about these systems, namely their resource usage patterns.</p>
-<p>Our existing tools could only monitor server-level metrics and did not gauge metrics for individual applications. We needed a solution that could collect metrics for each process and correlate them across processes for each application. Additionally, we do not know when these processes will launch and how long they will take. To be able to collect metrics in this environment,<br>the profiler needs to be launched automatically with each process.</p>
-<h4 id="What_does_the_JVM_Profiler_do?">What does the JVM Profiler do?</h4><p>The JVM Profiler is composed of three  key features that make it easier to collect performance and resource  usage metrics, and then serve these metrics (e.g. Apache Kafka) to other  systems for further analysis:</p>
+            <p><a href="https://medium.com/programmingmitra-com/how-does-jvm-handle-method-overloading-and-overriding-internally-967abde52107" target="_blank" rel="noopener">原文链接</a></p>
+<p>We know that overloaded methods are not called polymorphic and get  resolved at compile time and this is why sometime method overloading is  also known as <strong>compile time polymorphism or early/static binding</strong>.</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">javap -verbose OverridingInternalExample</span><br></pre></td></tr></table></figure>
+<p><img src="https://miro.medium.com/max/2610/0*I5BCjfKMXIxHwEhm.png" alt="programe bytecode"></p>
+<p>Bytecode for<code>anyMammal.speak()</code> and<code>humanMammal.speak()</code> are the same (<code>invokevirtual #4 // Method org/programming/mitra/exercises/OverridingInternalExample$Mammal.speak:()V</code> ) because according to compiler both methods are called on<code>Mammal</code> reference. </p>
+<p>JVM uses the<code>invokevirtual</code> instruction to invoke Java equivalent of the C++ virtual methods.</p>
+<blockquote>
+<p><em>The Java virtual machine does not mandate any particular internal structure for objects 4.</em></p>
+</blockquote>
+<p>根据vstable来算，</p>
+<p>There is only one<code>vtable</code> per class means it is unique and same for all objects of a class similar to <code>Class</code> object. </p>
+<p>Now instead of creating new entries for these methods with updated  references. JVM will modify the references to the already present  methods on the same index where they were present earlier and will keep  the same method names.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/12/05/java-stream-api/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/12/05/java-stream-api/" itemprop="url">Java Stream Api</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-12-05T11:52:18+08:00">
+                2019-12-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-12-05T12:12:34+08:00">
+                2019-12-05
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/12/05/java-stream-api/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/12/05/java-stream-api/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7" target="_blank" rel="noopener">原文链接</a></p>
+<blockquote>
+<p>While using <strong>Imperative Programming</strong>, the developer uses the language constructs to write both <strong>what to do and how to do</strong>. Whereas while using <strong>Declarative Programming</strong>, developer has to focus only on defining <strong>what to do</strong> and the language or the framework takes care of the <strong>how to do</strong> part. Hence in Declarative Programming, the code is concise and less error-prone.</p>
+</blockquote>
 <ul>
-<li><strong>A java agent</strong>:  By incorporating a Java agent into our profiler, users can collect  various metrics (e.g. CPU/memory usage) and stack traces for JVM  processes in a distributed way. </li>
-<li><strong>Advanced profiling capabilities</strong>:  Our JVM Profiler allows us to trace arbitrary Java methods and  arguments in the user code without making any actual code changes. This  feature can be used to trace HDFS NameNode RPC call latency for Spark  applications and identify slow method calls. It can also trace the HDFS  file paths each Spark application reads or writes to identify hot files  for further optimization.</li>
-<li><strong>Data analytics reporting</strong>:  At Uber, we use the profiler to report metrics to Kafka topics and  Apache Hive tables, making data analytics faster and easier.</li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#0b4d" target="_blank" rel="noopener">Transforming</a></li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#f596" target="_blank" rel="noopener">Filtering</a></li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#4be6" target="_blank" rel="noopener">Searching</a></li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#461b" target="_blank" rel="noopener">Reordering</a></li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#78fa" target="_blank" rel="noopener">Summarizing</a></li>
+<li><a href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#59ac" target="_blank" rel="noopener">Grouping</a></li>
 </ul>
-<h4 id="Typical_use_cases">Typical use cases</h4><ul>
-<li><strong>Right-size executor:</strong> We use  memory metrics from the JVM Profiler to track actual memory usage for  each executor so we can set the proper value for the Spark  “executor-memory” argument.</li>
-<li><strong>Monitor HDFS NameNode RPC latency:</strong> We profile methods on the class <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB</em>  in a Spark application and identify long latencies on NameNode calls.  We monitor more than 50 thousand Spark applications each day with  several billions of such RPC calls.</li>
-<li><strong>Monitor driver dropped events:</strong> We profile methods like <em>org.apache.spark.scheduler.LiveListenerBus.onDropEvent</em> to trace situations during which the Spark driver event queue becomes too long and drops events.</li>
-<li><strong>Trace data lineage:</strong> We profile file path arguments on the method <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.getBlockLocations</em> and <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.addBlock</em> to trace what files are read and written by the Spark application.</li>
-</ul>
-<p><a href="github.com/uber-common/jvm-profiler">repo地址</a></p>
-<p>入口函数为Agent.java</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">Agent</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AgentImpl agentImpl = <span class="keyword">new</span> AgentImpl();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Agent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">agentmain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        premain(args, instrumentation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">premain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"Java Agent "</span> + AgentImpl.VERSION + <span class="string">" premain args: "</span> + args);</span><br><span class="line"></span><br><span class="line">        Arguments arguments = Arguments.parseArgs(args);</span><br><span class="line">        arguments.runConfigProvider();</span><br><span class="line">        agentImpl.run(arguments, instrumentation, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Unlike other operations we have seen till now, the <code>sorted</code> operation is stateful. It means that the operator will have to see all  the elements in the stream before the result of sorting can be provided  to further intermediate or terminal operator. Another example of such an operator is <code>distinct</code></p>
+</blockquote>
+<p>In <code>Stream</code> API, this is achieved using <strong>terminal operators</strong>. <code>reduce</code> and <code>collect</code> are the generic terminal operators provided for this purpose.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/11/26/hudi-intro/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/26/hudi-intro/" itemprop="url">Hudi Intro</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-11-26T11:09:59+08:00">
+                2019-11-26
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-12-08T23:44:26+08:00">
+                2019-12-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/hudi/" itemprop="url" rel="index">
+                    <span itemprop="name">hudi</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/11/26/hudi-intro/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/11/26/hudi-intro/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://eng.uber.com/hoodie/" target="_blank" rel="noopener">原文链接</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Lambda_architecture" target="_blank" rel="noopener">Lambda architecture</a> is a common data processing architecture that proposes double compute with streaming and batch layer. </p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pqv2xr3uj31120ge41i.jpg" alt="image-20191208234421238"></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/11/25/jvm-performance/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/25/jvm-performance/" itemprop="url">Jvm Performance</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-11-25T14:47:55+08:00">
+                2019-11-25
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-12-08T16:02:52+08:00">
+                2019-12-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/jvm/" itemprop="url" rel="index">
+                    <span itemprop="name">jvm</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/11/25/jvm-performance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/11/25/jvm-performance/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><a href="https://medium.com/@MaartenSmeetsNL/comparing-jvm-performance-zulu-openjdk-openjdk-oracle-jdk-graalvm-ce-48b012c9a8d" target="_blank" rel="noopener">原文链接</a></p>
+<p>My test application consisted of a reactive (non-blocking) Spring Boot  REST application and I’ve used Prometheus to poll the JVMs and Grafana  for visualization.</p>
+<p>Using docker-compose to configure a specific CPU for a process is challenging. </p>
+<p>关于measure的不确定性？</p>
+<p>My setup consisted of a docker-compose file which allowed me to easily  start 4 times a reactive Spring Boot application running on the  different JVMs. In front of the 4 JDKs I’ve put an haproxy instance to  load balance requests.</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">```shell</span><br><span class="line">docker exec -it store/oracle/serverjre:8 java -version</span><br></pre></td></tr></table></figure>
+<p>分别从CPU usage/response times/garbage collection/memory usage</p>
+<p>Zulu OpenJDK uses least memory of the compared JVMs. Zulu OpenJDK and  GraalVM are more stable in their memory usage when comparing to Oracle  JDK and OpenJDK.</p>
+<p>GraalVM allows code to be compiled to a native executable. 热执行？</p>
+<p>还有待优化，以及default parameters部分</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/11/23/qushe/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/23/qushe/" itemprop="url">取舍</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-11-23T12:42:42+08:00">
+                2019-11-23
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2019-11-23T13:18:02+08:00">
+                2019-11-23
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/11/23/qushe/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2019/11/23/qushe/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>距离上一次能够沉下心来思考，感觉已经很久了。也是很久没有静下心来，去复盘，去思考了。。。哎。。</p>
+<p>上一次分享OKR的过城中，其实提到的一个很有意思的词语，取舍。</p>
+<p>人生处处有取舍，你永远都不会有很好的生活，很好的人生。</p>
+<p>有人说过，我们大部分人的人生，是一场从负数努力往零挣扎的竞赛。其实，我们挣扎的不过就是想成为一个普通人，普通地生活，普通地工作，普通地老去，普通地去死去。</p>
+<p>所以，普通的就很好，适合自己的就很好</p>
+<p>确实，前段时间，包括工作，生活的压力，压得自己喘不过气，想着人人都能过上美满的生活，工作上的事情也能有比较好的成果出来，结果，只能是现实不断地打脸，不断地嘲讽着自己，该哭，还是该笑。。。</p>
+<p>之前有想过孑然一身，但回头想想，这又何尝不是一种逃避？当自己去指责别人没有解决问题的时候，自己又何尝想去解决问题了。。。</p>
+<p>既然是挣扎，那笑着挣扎何尝不是一种方式，尝试地去解决、处理各种问题，而不是去逃避，问题始终在那里，避是避不了的。</p>
+<p>不要因为自己去block别人，自己解决好自己的问题，尽最大的努力为别人的决定去兜底就好了，不要去奢求，也不要去强求，普通人的心态</p>
+<p>逃避可耻但有用里，逃避了30多年，最后还是需要去面对，需要去解决，至于解决的结果，尽自己最大的努力就好，顺其自然</p>
+<p>很长时间没写，何尝不是一种逃避？逃避自己需要面对的问题，逃避自己需要解决的问题，假装自己是一个刺猬，在那里自怨自艾，幻想着事情有好的进展，现在想想，有些可笑。。。事情在那里，问题在那里，不是想想就能解决的，不是逃避就能解决的。。。</p>
+<p>不用什么样的豪言壮语，只需要每天的一点一滴去改变，去学习，不要再逃避了。。。</p>
 
           
         
@@ -1138,7 +1108,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/23/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><span class="page-number current">24</span><a class="page-number" href="/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/page/121/">121</a><a class="extend next" rel="next" href="/page/25/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/23/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><span class="page-number current">24</span><a class="page-number" href="/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/page/126/">126</a><a class="extend next" rel="next" href="/page/25/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1160,7 +1130,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
   <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
 
   

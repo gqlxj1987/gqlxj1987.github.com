@@ -249,7 +249,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/12/handling-1-million-requests-with-go/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/06/18/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -268,7 +268,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/12/handling-1-million-requests-with-go/" itemprop="url">使用go处理一百万请求</a></h1>
+                <a class="post-title-link" href="/2017/06/18/one-week/" itemprop="url">重新出发</a></h1>
         
 
         <div class="post-meta">
@@ -280,8 +280,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-12T17:50:12+08:00">
-                2017-02-12
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-18T22:59:03+08:00">
+                2017-06-18
               </time>
             
 
@@ -296,222 +296,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-13T00:33:49+08:00">
-                2017-02-13
-              </time>
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/02/12/handling-1-million-requests-with-go/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/12/handling-1-million-requests-with-go/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/" target="_blank" rel="noopener">原文链接</a></p>
-<p>Agenda:</p>
-<ul>
-<li><p>The Problem</p>
-</li>
-<li><p>The Solution</p>
-</li>
-<li><p>Conclusion</p>
-</li>
-</ul>
-<h4 id="Problem">Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
-<p>先期采用worker-tier的方式</p>
-<ul>
-<li><p>Sidekiq</p>
-</li>
-<li><p>Resque</p>
-</li>
-<li><p>DelayedJob</p>
-</li>
-<li><p>Elasticbeanstalk Worker Tier</p>
-</li>
-<li><p>RabbitMQ</p>
-</li>
-<li><p>and so on…</p>
-</li>
-</ul>
-<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
-<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
-<h4 id="Solution">Solution</h4><h5 id="goroutines">goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Go through each payload and queue items individually to be posted to S3</span><br><span class="line">for _, payload := range content.Payloads &#123;</span><br><span class="line">    go payload.UploadToS3()   // &lt;----- DON&apos;T DO THIS</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
-<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
-<blockquote>
-<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
-</blockquote>
-<p>相关的数据结构为：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">type Worker struct &#123;</span><br><span class="line">	WorkerPool  chan chan Job</span><br><span class="line">	JobChannel  chan Job</span><br><span class="line">	quit    	chan bool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
-<p>关键的代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">for &#123;</span><br><span class="line">		select &#123;</span><br><span class="line">		case job := &lt;-JobQueue:</span><br><span class="line">			// a job request has been received</span><br><span class="line">			go func(job Job) &#123;</span><br><span class="line">				// try to obtain a worker job channel that is available.</span><br><span class="line">				// this will block until a worker is idle</span><br><span class="line">				jobChannel := &lt;-d.WorkerPool</span><br><span class="line"></span><br><span class="line">				// dispatch the job to the worker job channel</span><br><span class="line">				jobChannel &lt;- job</span><br><span class="line">			&#125;(job)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
-<p>此处为dispatcher操作</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Start method starts the run loop for the worker, listening for a quit channel in</span><br><span class="line">// case we need to stop it</span><br><span class="line">func (w Worker) Start() &#123;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		for &#123;</span><br><span class="line">			// register the current worker into the worker queue.</span><br><span class="line">			w.WorkerPool &lt;- w.JobChannel</span><br><span class="line"></span><br><span class="line">			select &#123;</span><br><span class="line">			case job := &lt;-w.JobChannel:</span><br><span class="line">				// we have received a work request.</span><br><span class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</span><br><span class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">			case &lt;-w.quit:</span><br><span class="line">				// we have received a signal to stop</span><br><span class="line">				return</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>此处为worker内部的操作</p>
-<p>带来的效果是，服务器数量从100台drop到20台。</p>
-<h4 id="Conclusion">Conclusion</h4><blockquote>
-<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
-</blockquote>
-<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
-<blockquote>
-<p>There is always the right tool for the job</p>
-</blockquote>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/12/one-week/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/guiquanli.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/02/12/one-week/" itemprop="url">逃避虽然可耻但有用</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-12T16:03:27+08:00">
-                2017-02-12
-              </time>
-            
-
-            
-              <span class="post-meta-divider">|</span>
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-check-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">更新于&#58;</span>
-              
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-12T16:32:06+08:00">
-                2017-02-12
+              <time title="更新于" itemprop="dateModified" datetime="2017-06-19T08:13:09+08:00">
+                2017-06-19
               </time>
             
           </span>
@@ -547,8 +333,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/12/one-week/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/12/one-week/" itemprop="commentCount"></span>
+                <a href="/2017/06/18/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/06/18/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -578,49 +364,42 @@
       
         
           
-            <p>单纯、平等、坦诚，作为处世的原则</p>
-<p>安稳、沁入人心</p>
-<p>本周工作：</p>
+            <p>与世界的不妥协，以及坚持</p>
+<p>三十而僵，经常问下自己，有没有重新学习，有没有重新去发现一些东西</p>
+<hr>
+<p>本周完成：</p>
 <ul>
-<li><p>上传的流量的切换至线上，已上60%，目前看起来还好</p>
+<li><p>切花到mongodb上的试验</p>
 </li>
-<li><p>尝试进行hindsight的安装</p>
+<li><p>新版的bidder日志的解析</p>
 </li>
-<li><p>收入抓取以及相关数据的修复</p>
-</li>
-<li><p>初步的OKR，自定义一部分</p>
+<li><p>es部分数据的自动化</p>
 </li>
 </ul>
 <p>本周未完成：</p>
 <ul>
-<li>相关文档的整理</li>
-</ul>
-<ul>
-<li>关于arpu值部分的一些bug的修复</li>
+<li><p>新版的bidder日志的加速化</p>
+</li>
+<li><p>mongodb的一部分心得</p>
+</li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li>OKR的确认</li>
-</ul>
-<ul>
-<li>文档开始补全</li>
-</ul>
-<ul>
-<li>渠道监控部分代码的交接以及一些bug的修复</li>
-</ul>
-<ul>
-<li>上传部分上至100%，进行观察</li>
+<li><p>bidder部分的一些优化</p>
+</li>
+<li><p>mongodb的完全切换</p>
+</li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>lua_sanbox部分的一些知识</p>
+<li><p>关于mongodb的一些使用方式</p>
 </li>
-<li><p>hindsight部分的一些考量</p>
+<li><p>es部分一些关于scroll api的使用方式</p>
 </li>
 </ul>
-<p>开始尝试写一些技术性的文章，来进行相关的总结，从读后感开始，再结合自己实际的项目经验</p>
-<p>关于之前开源的部分，也要慢慢捡起来，开源的目标不变</p>
-<p>其他日程上的工作也要按部就班地进行</p>
+<p>这周开始慢慢恢复keep，算是好迹象</p>
+<p>工作上的事情，按照既定的节奏以及脚步，去实现一些东西，调整一些东西，不用太关心最终会怎么样，别人会怎么看，做好自己，把自己这块都做好就行，加油</p>
+<p>书部分，以及其他总结部分，也要慢慢捡起来。。</p>
 
           
         
@@ -669,7 +448,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/09/hindsight/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/06/05/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -688,7 +467,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/09/hindsight/" itemprop="url">hindsight</a></h1>
+                <a class="post-title-link" href="/2017/06/05/one-week/" itemprop="url">Some like it Hot</a></h1>
         
 
         <div class="post-meta">
@@ -700,8 +479,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-09T15:12:49+08:00">
-                2017-02-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-05T08:03:20+08:00">
+                2017-06-05
               </time>
             
 
@@ -716,8 +495,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-09T16:28:01+08:00">
-                2017-02-09
+              <time title="更新于" itemprop="dateModified" datetime="2017-06-05T08:19:08+08:00">
+                2017-06-05
               </time>
             
           </span>
@@ -735,8 +514,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/log/" itemprop="url" rel="index">
-                    <span itemprop="name">log</span>
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
                   </a>
                 </span>
 
@@ -753,8 +532,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/09/hindsight/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/09/hindsight/" itemprop="commentCount"></span>
+                <a href="/2017/06/05/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/06/05/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -784,24 +563,43 @@
       
         
           
-            <p><a href="https://github.com/mozilla-services/hindsight" target="_blank" rel="noopener">hindsight</a> 作为hekad部分的替代者，成为日志处理部分的新宠</p>
-<p>Agenda:</p>
+            <p>有的时候，中二一点，对生活热血一点，或许才是生活的本质。。。</p>
+<p>Hey!Hey!只有我才能做好自己</p>
+<hr>
+<p>本周工作：</p>
 <ul>
-<li><p>项目起因</p>
+<li><p>关于spark任务的调整</p>
 </li>
-<li><p>install guide</p>
+<li><p>sdk数据的支持</p>
 </li>
-<li><p>use tips</p>
-</li>
-<li><p>performance</p>
+<li><p>关于es存储事件相关</p>
 </li>
 </ul>
-<h4 id="项目起因">项目起因</h4><p><a href="https://github.com/mozilla-services/heka" target="_blank" rel="noopener">heka</a> 作为使用golang编写，进行相关的日志处理，相比较logstash来说，相关的cpu利用率部分有所降低。同时，相对于logstash来说，支持多种插件(插件采用lua或者go编写)。</p>
-<h5 id="heka_vs_logstash">heka vs logstash</h5><p>在实际使用过程中，cpu的使用率部分，从400%降至100%左右</p>
-<p>logstash部分，采用gork正则的方式来过滤相关的信息</p>
-<p>heka部分，亦采用正则，辅之以lua脚本的方式</p>
-<p>门槛方面，logstash门槛较低，正则匹配较为简单；heka，需要加入插件部分的支持，同时需要lua脚本的支持</p>
-<h5 id="heka_vs_hindsight">heka vs hindsight</h5><p>hindsight利用<a href="https://github.com/mozilla-services/lua_sandbox" target="_blank" rel="noopener">lua sanbox</a>部分，再辅以<a href="https://github.com/mozilla-services/lua_sandbox_extensions" target="_blank" rel="noopener">lua_sandbox_extensions</a>来支持各种对日志的处理要求</p>
+<p>本周未完成：</p>
+<ul>
+<li><p>es bulk存储相关</p>
+</li>
+<li><p>看机器学习书籍</p>
+</li>
+<li><p>关于graphSQL部分的DSL</p>
+</li>
+</ul>
+<p>本周所得:</p>
+<ul>
+<li><p>es的一些restful api</p>
+</li>
+<li><p>hbase的一些查询</p>
+</li>
+</ul>
+<p>下周计划：</p>
+<ul>
+<li><p>事件部分的存储</p>
+</li>
+<li><p>尝试使用python Spark来跑相关的任务</p>
+</li>
+<li><p>尝试推动nginx的ip解析向其他服务扩展？</p>
+</li>
+</ul>
 
           
         
@@ -850,7 +648,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/06/the-state-of-go/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/31/one-week/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -869,7 +667,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/06/the-state-of-go/" itemprop="url">The state of Go(1.8)</a></h1>
+                <a class="post-title-link" href="/2017/05/31/one-week/" itemprop="url">就让这首歌</a></h1>
         
 
         <div class="post-meta">
@@ -881,8 +679,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-06T23:02:37+08:00">
-                2017-02-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-31T08:07:53+08:00">
+                2017-05-31
               </time>
             
 
@@ -897,8 +695,8 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-06T23:55:42+08:00">
-                2017-02-06
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-31T08:21:57+08:00">
+                2017-05-31
               </time>
             
           </span>
@@ -916,8 +714,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
                   </a>
                 </span>
 
@@ -934,8 +732,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/06/the-state-of-go/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/06/the-state-of-go/" itemprop="commentCount"></span>
+                <a href="/2017/05/31/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/31/one-week/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -965,69 +763,40 @@
       
         
           
-            <p>Changes since Go 1.7</p>
+            <p>电影终要结束，结束难免痛苦</p>
+<p>心中留下伤痕</p>
+<p>就让这首歌，萦绕在耳边</p>
+<hr>
+<p>本周完成：</p>
 <ul>
-<li><p>The Language</p>
+<li><p>nginx部分加入ip解析部分</p>
 </li>
-<li><p>The Standard Library</p>
+<li><p>相关数据维度整理完毕</p>
 </li>
-<li><p>The Runtime</p>
-</li>
-<li><p>The Tooling</p>
-</li>
-<li><p>The Community</p>
+<li><p>部分数据写入hbase</p>
 </li>
 </ul>
-<h3 id="The_Language">The Language</h3><ul>
-<li>Conversion rules</li>
-</ul>
-<p>可以针对same sequence of fields and corresponding fields with same type 进行类型强转</p>
+<p>本周未完成：</p>
 <ul>
-<li>Ports to other platforms</li>
+<li><p>验证完全依靠nginx解析ip</p>
+</li>
+<li><p>hbase写入部分的失败的原因？</p>
+</li>
 </ul>
-<p>针对大小端的32位linux系统的兼容性</p>
-<p>同时针对arm进行支持</p>
+<p>本周所得：</p>
 <ul>
-<li>Tool</li>
+<li><p>nginx部分解析geo部分，关于文件句柄数部分</p>
+</li>
+<li><p>hbase的相关原理，hbase-shell的使用</p>
+</li>
 </ul>
-<p>针对context部分的修正</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">go tool fix -diff -force=context state-of-go/tools/gofix.go</span><br></pre></td></tr></table></figure>
-<p>vet部分可以静态检查代码？</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">go vet state-of-go/tools/govet.go</span><br></pre></td></tr></table></figure>
-<p>SSA everywhere?</p>
-<h3 id="Runtime">Runtime</h3><ul>
-<li>Detection of concurrent map accesses</li>
-</ul>
-<p>关于map的并发读写问题，</p>
-<p>是指掩盖了map的并发读写的问题，还是检测map的并发读写问题？</p>
+<p>下周计划：</p>
 <ul>
-<li>bench use mutex contention profile</li>
+<li><p>nginx部分试验</p>
+</li>
+<li><p>sdk事件部分的解析？</p>
+</li>
 </ul>
-<p>关于mutex部分，wide protection and narrow protection</p>
-<ul>
-<li>GC history in tweets</li>
-</ul>
-<p>defer and cgo is faster</p>
-<h3 id="The_Standard_Library">The Standard Library</h3><ul>
-<li>sort部分</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sort.Sort(byName(p))</span><br><span class="line">sort.Sort(byAge(p))</span><br></pre></td></tr></table></figure>
-<p>原生支持按照field部分进行排序，无需定义之前len,less,swap等等操作</p>
-<p>同时也只支持sort.Slice</p>
-<ul>
-<li>plugins部分</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">go build -buildmode=plugin</span><br></pre></td></tr></table></figure>
-<p>可以编译成为.so文件，然后在第三方文件中使用，通过Lookup的方式，来寻找相关的函数以及变量</p>
-<ul>
-<li>http shutdown</li>
-</ul>
-<p>加入http.server的shutdown机制</p>
-<p>这样能够及时判断http.server是否退出？</p>
-<ul>
-<li>HTTP/2</li>
-</ul>
-<p>可以使用http.Response来推送进行？使用http.Pusher的功能？</p>
 
           
         
@@ -1076,7 +845,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/02/03/new-plan/">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/23/webAssembly/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
@@ -1095,7 +864,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/02/03/new-plan/" itemprop="url">2017新年计划</a></h1>
+                <a class="post-title-link" href="/2017/05/23/webAssembly/" itemprop="url">webAssembly</a></h1>
         
 
         <div class="post-meta">
@@ -1107,8 +876,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-02-03T14:17:53+08:00">
-                2017-02-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-23T10:21:41+08:00">
+                2017-05-23
               </time>
             
 
@@ -1123,34 +892,12 @@
               
                 <span class="post-meta-item-text">更新于&#58;</span>
               
-              <time title="更新于" itemprop="dateModified" datetime="2017-02-03T23:35:59+08:00">
-                2017-02-03
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-23T10:21:41+08:00">
+                2017-05-23
               </time>
             
           </span>
 
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index">
-                    <span itemprop="name">plan</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
           
 
           
@@ -1160,8 +907,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/02/03/new-plan/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/02/03/new-plan/" itemprop="commentCount"></span>
+                <a href="/2017/05/23/webAssembly/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/23/webAssembly/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1191,41 +938,208 @@
       
         
           
-            <p>惯例，在每年的伊始，写写自己的新年计划。回顾下自己的2016，生活上和工作，自己开始有意识地向着有趣的方向进行，尽量去体验过程，结果很多不好强求。</p>
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2017/05/23/one-week/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/05/23/one-week/" itemprop="url">月光宝盒</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-23T08:04:41+08:00">
+                2017-05-23
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-05-23T23:09:30+08:00">
+                2017-05-23
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index">
+                    <span itemprop="name">weekly</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/05/23/one-week/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/23/one-week/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>当时有一份真诚的爱情摆在我面前，我没有珍惜，等到失去的时候，我才追悔莫及，人生中最痛苦的事莫过于此。。。</p>
+<hr>
+<p>本周完成：</p>
 <ul>
-<li>工作上，继续在数据和架构上下功夫，将整个广告架构部分梳理一下，以及尝试加入跨机房的服务。语言上，继续深挖golang，成为golang的专家。争取能够升4吧。加油，努力</li>
+<li><p>在线数据整合部分整体完成</p>
+</li>
+<li><p>bidder部分，完成相关数据修复</p>
+</li>
+<li><p>bidder部分，完成依赖剥离</p>
+</li>
 </ul>
+<p>本周未完成：</p>
 <ul>
-<li>关于客户端部分，看能不能在小程序以及react app部分，有所突破，看相关的使用情况</li>
+<li><p>数据抽象的一些心得体会部分</p>
+</li>
+<li><p>gatling部分的一些调整</p>
+</li>
 </ul>
+<p>本周所得：</p>
 <ul>
-<li>blog部分，每周的总结部分，还是需要坚持下去，不过，后续需要增加技术部分的读后感，类似之前每周新技术以及已有技术的总结一样，迈向150篇的大关？</li>
+<li><p>数据抽象部分，渐入佳境</p>
+</li>
+<li><p>govendor部分，依赖部分调整</p>
+</li>
+<li><p>mock service部分的一些了解</p>
+</li>
 </ul>
+<p>下周计划：</p>
 <ul>
-<li>关于算法部分，leecode部分，刷题部分，要提上日程；同时，project 52部分，希望在新年能够坚持下去(作为blog的补充)；</li>
+<li><p>bidder日志部分进行调整以及监控</p>
+</li>
+<li><p>调整相关的数据监控部分</p>
+</li>
 </ul>
-<ul>
-<li>开源部分，希望能够找到一两个感兴趣的项目进行contribution，来提升自己的协作能力；自己之前关于gcm的部分开源，是不是也可以进行？</li>
-</ul>
-<ul>
-<li>生活上，今年的目标是成都和日本，希望能够达成吧，多加点班，赚年假。。</li>
-</ul>
-<ul>
-<li>身体锻炼上，经过一整年的习惯，现在跑步的习惯养成，其他keep部分的锻炼，或者那个每天7分钟的锻炼也要坚持下去，今年看能否报名跑次半马。</li>
-</ul>
-<ul>
-<li>感情傻瓜，新一年的感情，看能不能稳定下来，尝试稳定一个，想结束异地？虽然知道很困难，享受过程吧。。</li>
-</ul>
-<ul>
-<li>摄影和吉他部分，能够有所精进，能够把100节课程学习完，跟他人多交流摄影部分；吉他方面，坚持学习，能够把那个教程学习完成，</li>
-</ul>
-<ul>
-<li>电影和书方面，开始在豆瓣上做些记录，做好一些读书笔记，每月的3本书，以及4部好电影，写些评论来做记录。</li>
-</ul>
-<ul>
-<li>投资上，争取今年能够买套房子吧，地点方面，或许在深圳，或许在其他的地方，开拓一下投资的眼界和渠道；加油实现自己的第一个一百万的诺言；</li>
-</ul>
-<p>把时间做朋友，相关的想法去付诸行动，克服自己的拖延症。</p>
+<p>数据部分，看大数据部分如何进行存储以及处理，后续的情况</p>
+<p>还是先保证，在余下的时间内，保证自己的学习，调整自己的状态。。</p>
+<p>整理一下方向，后续这块如何进行，如何进行突破部分，看如何进行。。</p>
+<p>看书部分，写代码部分要捡起来。。。</p>
+<p>还有写blog部分。。。</p>
 
           
         
@@ -1265,7 +1179,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/101/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/101/">101</a><span class="page-number current">102</span><a class="page-number" href="/page/103/">103</a><span class="space">&hellip;</span><a class="page-number" href="/page/121/">121</a><a class="extend next" rel="next" href="/page/103/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/101/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/101/">101</a><span class="page-number current">102</span><a class="page-number" href="/page/103/">103</a><span class="space">&hellip;</span><a class="page-number" href="/page/126/">126</a><a class="extend next" rel="next" href="/page/103/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1287,7 +1201,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
   <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
 
   
