@@ -6,7 +6,7 @@
 
 
 <html class="theme-next mist use-motion" lang="zh-Hans">
-<head><meta name="generator" content="Hexo 3.8.0">
+<head><meta name="generator" content="Hexo 3.9.0">
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -138,7 +138,7 @@
 
 </head>
 
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -148,7 +148,7 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
@@ -248,20 +248,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/06/24/what-happens-when-k8s/">
 
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content>
       <meta itemprop="image" content="/images/guiquanli.png">
     </span>
 
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="DevilKing's blog">
     </span>
 
@@ -316,7 +316,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/kubernets/" itemprop="url" rel="index">
                     <span itemprop="name">kubernets</span>
                   </a>
@@ -366,11 +366,11 @@
       
         <p><a href="https://github.com/jamiehannaford/what-happens-when-k8s" target="_blank" rel="noopener">原文链接</a></p>
 <p>kubect-&gt;kube apiserver-&gt;etcd-&gt;initializer-&gt;control loops-&gt;kubelet-&gt;wrap up</p>
-<h3 id="kubect">kubect</h3><p>validation and generators -&gt; api groups and version negotiation-&gt; client auth</p>
+<h3 id="kubect"><a href="#kubect" class="headerlink" title="kubect"></a>kubect</h3><p>validation and generators -&gt; api groups and version negotiation-&gt; client auth</p>
 <p>All attempts to access or change state in the Kubernetes system goes through the API server, which in turns communicates with etcd.</p>
 <p>What’s worth pointing out before we continue is that Kubernetes uses a <em>versioned</em> API that is categorised into “API groups”. An API group is meant to categorise similar resources so that they’re easier to reason about.</p>
 <p>After kubectl generates the runtime object, it starts to <a href="https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/run.go#L580-L597" target="_blank" rel="noopener">find the appropriate API group and version</a> for it and then <a href="https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/run.go#L598" target="_blank" rel="noopener">assembles a versioned client</a> that is aware of the various REST semantics for the resource.自动发现机制？</p>
-<h3 id="kube-apiserver">kube-apiserver</h3><p>authentication-&gt; authorization-&gt;admission control</p>
+<h3 id="kube-apiserver"><a href="#kube-apiserver" class="headerlink" title="kube-apiserver"></a>kube-apiserver</h3><p>authentication-&gt; authorization-&gt;admission control</p>
 <p>As we’ve already mentioned, kube-apiserver is the primary interface that clients and system components use to persist and retrieve cluster state. To perform its function, it needs to be able to verify that the requester is who they say there are. This process is called authentication.</p>
 <p>Whilst authorization is focused on answering whether a user has permission, admission controllers intercept the request to ensure that it matches the wider expectations and rules of the cluster. </p>
 <p>Admission controllers:</p>
@@ -379,7 +379,7 @@
 <li>LimitRanger</li>
 <li>ResourceQuota</li>
 </ul>
-<h3 id="etcd">etcd</h3><p>Well, there’s a pretty complicated series of steps that happen <em>before</em> any requests are served.</p>
+<h3 id="etcd"><a href="#etcd" class="headerlink" title="etcd"></a>etcd</h3><p>Well, there’s a pretty complicated series of steps that happen <em>before</em> any requests are served.</p>
 <ol>
 <li>When the <code>kube-apiserver</code> binary is run, it <a href="https://github.com/kubernetes/kubernetes/blob/master/cmd/kube-apiserver/app/server.go#L119" target="_blank" rel="noopener">creates a server chain</a>, which allows apiserver aggregation. This is basically a way of supporting multiple apiservers (we don’t need to worry about this).</li>
 <li>When this happens, a <a href="https://github.com/kubernetes/kubernetes/blob/master/cmd/kube-apiserver/app/server.go#L149" target="_blank" rel="noopener">generic apiserver is created</a> that serves as a default implementation.</li>
@@ -397,9 +397,9 @@
 <li>Any create errors are caught and, finally, the storage provider performs a <code>get</code> call to ensure the object was actually created. It then invokes any post-create handlers and decorators if additional finalization is required.</li>
 <li>The HTTP response <a href="https://github.com/kubernetes/apiserver/blob/7001bc4df8883d4a0ec84cd4b2117655a0009b6c/pkg/endpoints/handlers/create.go#L131-L142" target="_blank" rel="noopener">is constructed</a> and sent back.</li>
 </ol>
-<h3 id="initializers">initializers</h3><p>An initializer is a controller that is associated with a resource type and performs logic on the resource before it’s made available to the outside world</p>
+<h3 id="initializers"><a href="#initializers" class="headerlink" title="initializers"></a>initializers</h3><p>An initializer is a controller that is associated with a resource type and performs logic on the resource before it’s made available to the outside world</p>
 <p><code>initializerConfiguration</code> objects allow you to declare which initializers should run for certain resource types. After creating this config, it will append <code>custom-pod-initializer</code> to every Pod’s <code>metadata.initializers.pending</code> field.</p>
-<h3 id="Control_loops">Control loops</h3><p>deployments controller-&gt; replicaSets controller-&gt; informers -&gt; scheduler</p>
+<h3 id="Control-loops"><a href="#Control-loops" class="headerlink" title="Control loops"></a>Control loops</h3><p>deployments controller-&gt; replicaSets controller-&gt; informers -&gt; scheduler</p>
 <p> When we think about it, a Deployment is really just a collection of ReplicaSets, and a ReplicaSet is a collection of Pods.</p>
 <p>This handler will be executed when our Deployment first becomes available and will start by <a href="https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/deployment_controller.go#L170" target="_blank" rel="noopener">adding the object to an internal work queue</a>.</p>
 <p>it will begin a <a href="https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/sync.go#L385" target="_blank" rel="noopener">scaling process</a> to start resolving state. It does this by rolling out (e.g. creating) a ReplicaSet resource, assigning it a label selector, and giving it the revision number of 1. label selector?</p>
@@ -408,12 +408,12 @@
 <p>An informer is a pattern that allows controllers to subscribe to storage events and easily list resources they’re interested in.</p>
 <p>Apart from providing an abstraction which is nice to work with, it also takes care of a lot of the nuts and bolts such as caching (caching is important because it reduces unnecessary kube-apiserver connections, and reduces duplicate serialization costs server- and controller-side).关于caching的含义？消息应该不能用cache才对</p>
 <p>What’s interesting is that both predicate and priority functions are extensible and can be defined by using the <code>--policy-config-file</code> flag. This introduces a degree of flexibility. 调度的灵活性</p>
-<h3 id="kubelet">kubelet</h3><p>pod sync-&gt; CRI and pause containers-&gt; cni and pod networking-&gt; inter-host networking-&gt; container startup</p>
+<h3 id="kubelet"><a href="#kubelet" class="headerlink" title="kubelet"></a>kubelet</h3><p>pod sync-&gt; CRI and pause containers-&gt; cni and pod networking-&gt; inter-host networking-&gt; container startup</p>
 <p>The kubelet is an agent that runs on every node in a Kubernetes cluster and is responsible for, among other things, managing the lifecycle of Pods.</p>
 <p>A useful way of thinking about the kubelet is again like a controller! It queries Pods from kube-apiserver every 20 seconds (this is configurable), filtering the ones whose <code>NodeName</code> <a href="https://github.com/kubernetes/kubernetes/blob/3b66adb8bc6929e1205bcb2bc32f380c39be8381/pkg/kubelet/config/apiserver.go#L34" target="_blank" rel="noopener">matches the name</a> of the node the kubelet is running on. Once it has that list, it detects new additions by comparing against its own internal cache and begins to synchronise state if any discrepencies exist. </p>
 <p>In this runtime, creating a sandbox involves creating a “pause” container. A pause container serves like a parent for all of the other containers in the Pod since it hosts a lot of the pod-level resources that workload containers will end up using. </p>
 <p>The “pause” container provides a way to host all of these namespaces and allow child containers to share them.</p>
-<h3 id="Wrap-up">Wrap-up</h3>
+<h3 id="Wrap-up"><a href="#Wrap-up" class="headerlink" title="Wrap-up"></a>Wrap-up</h3>
       
     </div>
     

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="rust,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="原文链接 fn main() &amp;#123;  let mut x: i32 = 22;  let mut v: Vec&amp;lt;&amp;amp;i32&amp;gt; = vec![];  let r: &amp;amp;mut Vec&amp;lt;&amp;amp;i32&amp;gt; = &amp;amp;mut v;  let p: &amp;amp;i32 = &amp;amp;x; // 1. `x` is borrowed here to create">
+<meta name="keywords" content="rust">
+<meta property="og:type" content="article">
+<meta property="og:title" content="borrow checker">
+<meta property="og:url" content="http://gqlxj1987.github.io/2021/02/01/rust-borrow-checker/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 fn main() &amp;#123;  let mut x: i32 = 22;  let mut v: Vec&amp;lt;&amp;amp;i32&amp;gt; = vec![];  let r: &amp;amp;mut Vec&amp;lt;&amp;amp;i32&amp;gt; = &amp;amp;mut v;  let p: &amp;amp;i32 = &amp;amp;x; // 1. `x` is borrowed here to create">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2021-02-02T03:54:25.986Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="borrow checker">
+<meta name="twitter:description" content="原文链接 fn main() &amp;#123;  let mut x: i32 = 22;  let mut v: Vec&amp;lt;&amp;amp;i32&amp;gt; = vec![];  let r: &amp;amp;mut Vec&amp;lt;&amp;amp;i32&amp;gt; = &amp;amp;mut v;  let p: &amp;amp;i32 = &amp;amp;x; // 1. `x` is borrowed here to create">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"hide","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gqlxj1987.github.io/2021/02/01/rust-borrow-checker/">
+
+
+
+
+
+  <title>borrow checker | DevilKing's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">DevilKing's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2021/02/01/rust-borrow-checker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/guiquanli.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">borrow checker</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-02-01T19:48:09+08:00">
+                2021-02-01
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于&#58;</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2021-02-02T11:54:25+08:00">
+                2021-02-02
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rust/" itemprop="url" rel="index">
+                    <span itemprop="name">rust</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2021/02/01/rust-borrow-checker/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2021/02/01/rust-borrow-checker/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="http://smallcultfollowing.com/babysteps/blog/2018/04/27/an-alias-based-formulation-of-the-borrow-checker/" target="_blank" rel="noopener">原文链接</a></p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">main</span></span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> x: <span class="built_in">i32</span> = <span class="number">22</span>;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> v: <span class="built_in">Vec</span>&lt;&amp;<span class="built_in">i32</span>&gt; = <span class="built_in">vec!</span>[];</span><br><span class="line">  <span class="keyword">let</span> r: &amp;<span class="keyword">mut</span> <span class="built_in">Vec</span>&lt;&amp;<span class="built_in">i32</span>&gt; = &amp;<span class="keyword">mut</span> v;</span><br><span class="line">  <span class="keyword">let</span> p: &amp;<span class="built_in">i32</span> = &amp;x; <span class="comment">// 1. `x` is borrowed here to create `p`</span></span><br><span class="line">  r.push(p);        <span class="comment">// 2. `p` is stored into `v`, but through `r`</span></span><br><span class="line">  x += <span class="number">1</span>;           <span class="comment">// &lt;-- Error! can't mutate `x` while borrowed</span></span><br><span class="line">  take(v);          <span class="comment">// 3. the reference to `x` is later used here</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">take</span></span>&lt;T&gt;(p: T) &#123; .. &#125;</span><br></pre></td></tr></table></figure>
+<p>if you have a mutable loan like <code>r = &amp;mut v</code>, then you can only access the value <code>v</code> through the reference <code>r</code>. Accessing <code>v</code> directly in any way – read, write, or move – would invalidate the loan. </p>
+<p>Datalog rules</p>
+<p><a href="https://crates.io/crates/differential-dataflow" target="_blank" rel="noopener">differential-dataflow</a></p>
+<p>Differential dataflow is a data-parallel programming framework designed to efficiently process large volumes of data and to quickly respond to arbitrary changes in input collections.</p>
+<p>using familiar operators like <code>map</code>, <code>filter</code>, <code>join</code>, and <code>group</code>. </p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="comment">// create a degree counting differential dataflow</span></span><br><span class="line"><span class="keyword">let</span> (<span class="keyword">mut</span> input, probe) = worker.dataflow(|scope| &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create edge input, count a few ways.</span></span><br><span class="line">    <span class="keyword">let</span> (input, edges) = scope.new_collection();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> out_degr_distr =</span><br><span class="line">    edges.map(|(src, _dst)| src)    <span class="comment">// extract source</span></span><br><span class="line">         .count();                  <span class="comment">// count occurrences of source</span></span><br><span class="line">         .map(|(_src, deg)| deg)    <span class="comment">// extract degree</span></span><br><span class="line">         .count();                  <span class="comment">// count occurrences of degree</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// show us something about the collection, notice when done.</span></span><br><span class="line">    <span class="keyword">let</span> probe =</span><br><span class="line">    out_degr_distr</span><br><span class="line">        .inspect(|x| <span class="built_in">println!</span>(<span class="string">"observed: &#123;:?&#125;"</span>, x))</span><br><span class="line">        .probe();</span><br><span class="line"></span><br><span class="line">    (input, probe)</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>subsets relationships</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">main</span></span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> x: <span class="built_in">i32</span> = <span class="number">22</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> v: <span class="built_in">Vec</span>&lt;&amp;'<span class="number">0</span> <span class="built_in">i32</span>&gt; = <span class="built_in">vec!</span>[];</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">let</span> r: &amp;'<span class="number">1</span> <span class="keyword">mut</span> <span class="built_in">Vec</span>&lt;&amp;'<span class="number">2</span> <span class="built_in">i32</span>&gt; = &amp;'<span class="number">3</span> <span class="keyword">mut</span> v;</span><br><span class="line">  <span class="comment">// requires: &amp;'3 mut Vec&lt;&amp;'0 i32&gt; &lt;: &amp;'1 mut Vec&lt;&amp;'2 i32&gt;</span></span><br><span class="line">  <span class="comment">//        =&gt; '3: '1, '0: '2, '2: '0</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">let</span> p: &amp;'<span class="number">5</span> <span class="built_in">i32</span> = &amp;'<span class="number">4</span> x;</span><br><span class="line">  <span class="comment">// requires: &amp;'4 i32 &lt;: &amp;'5 i32</span></span><br><span class="line">  <span class="comment">//        =&gt; '4: '5</span></span><br><span class="line"></span><br><span class="line">  r.push(p);</span><br><span class="line">  <span class="comment">// requires: &amp;'5 i32 &lt;: &amp;'2 i32</span></span><br><span class="line">  <span class="comment">//        =&gt; '5: '2</span></span><br><span class="line">  </span><br><span class="line">  x += <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  take::&lt;<span class="built_in">Vec</span>&lt;&amp;'<span class="number">6</span> <span class="built_in">i32</span>&gt;&gt;(v);</span><br><span class="line">  <span class="comment">// requires: Vec&lt;&amp;'0 i32&gt; &lt;: Vec&lt;&amp;'6 i32&gt;</span></span><br><span class="line">  <span class="comment">//        =&gt; '0: '6</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>base_subset概念</p>
+<p>This input is defined for each borrow expression (e.g., <code>&amp;x</code> or <code>&amp;mut v</code>) in the program. </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/rust/" rel="tag"># rust</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/02/01/2020-2021/" rel="next" title="2021计划">
+                <i class="fa fa-chevron-left"></i> 2021计划
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/02/04/Q-learnning/" rel="prev" title="Q-learning">
+                Q-learning <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div class="ds-thread" data-thread-key="2021/02/01/rust-borrow-checker/" data-title="borrow checker" data-url="http://gqlxj1987.github.io/2021/02/01/rust-borrow-checker/">
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="subtitle">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</span>
+
+  
+</div>
+<div class="copyright">
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"gqlxj2015"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>

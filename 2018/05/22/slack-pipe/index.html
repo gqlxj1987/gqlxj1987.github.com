@@ -6,7 +6,7 @@
 
 
 <html class="theme-next mist use-motion" lang="zh-Hans">
-<head><meta name="generator" content="Hexo 3.8.0">
+<head><meta name="generator" content="Hexo 3.9.0">
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -141,7 +141,7 @@
 
 </head>
 
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -151,7 +151,7 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
@@ -251,20 +251,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/05/22/slack-pipe/">
 
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content>
       <meta itemprop="image" content="/images/guiquanli.png">
     </span>
 
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="DevilKing's blog">
     </span>
 
@@ -319,7 +319,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/queue/" itemprop="url" rel="index">
                     <span itemprop="name">queue</span>
                   </a>
@@ -368,11 +368,11 @@
 
       
         <p><a href="https://slack.engineering/scaling-slacks-job-queue-687222e9d100" target="_blank" rel="noopener">原文链接</a></p>
-<h3 id="initial_job_queue_system_architecture">initial job queue system architecture</h3><p><a href="https://redis.io/commands/rpoplpush#pattern-reliable-queue" target="_blank" rel="noopener">Redis task queue</a>:</p>
+<h3 id="initial-job-queue-system-architecture"><a href="#initial-job-queue-system-architecture" class="headerlink" title="initial job queue system architecture"></a>initial job queue system architecture</h3><p><a href="https://redis.io/commands/rpoplpush#pattern-reliable-queue" target="_blank" rel="noopener">Redis task queue</a>:</p>
 <p><img src="https://cdn-images-1.medium.com/max/1600/1*xg9vacHZdbqyqbCPB9nOLQ.png" alt="redis queue"></p>
 <p>job with an identical ID</p>
 <p>Pools of worker machines poll the Redis clusters, looking for new work. When a worker finds a job in one of the queues it monitors, it moves the job from the pending queue to a list of in-flight jobs, and spawns an asynchronous task to handle it.</p>
-<h3 id="Architectural_Problems">Architectural Problems</h3><ul>
+<h3 id="Architectural-Problems"><a href="#Architectural-Problems" class="headerlink" title="Architectural Problems"></a>Architectural Problems</h3><ul>
 <li>Redis had little operational headroom, particularly with respect to memory. If we enqueued faster than we dequeued for a sustained period, we would run out of memory and be unable to dequeue jobs (because dequeuing also requires having enough memory to move the job into a processing list).</li>
 <li>Redis connections formed a complete bipartite graph — every job queue client must connect to (and therefore have correct and current information on) every Redis instance.</li>
 <li>Job workers couldn’t scale independently of Redis — adding a worker resulted in extra polling and load on Redis. This property caused a complex feedback situation where attempting to increase our execution capacity could overwhelm an already overloaded Redis instance, slowing or halting progress.</li>
@@ -387,16 +387,16 @@
 <li>Simple client semantics</li>
 <li>Minimum latency</li>
 </ul>
-<h3 id="replay_jobs_from_kafka_to_redis">replay jobs from kafka to redis</h3><p>use JQRelay to decode the JSON encoded job</p>
+<h3 id="replay-jobs-from-kafka-to-redis"><a href="#replay-jobs-from-kafka-to-redis" class="headerlink" title="replay jobs from kafka to redis"></a>replay jobs from kafka to redis</h3><p>use JQRelay to decode the JSON encoded job</p>
 <p><strong>Self-configuration:</strong> When a JQRelay instance starts up, it attempts to acquire a <a href="https://www.consul.io/" target="_blank" rel="noopener">Consul</a> lock on an key/value entry corresponding to the Kafka topic. If it gets the lock, it starts relaying jobs from all partitions of this topic. If it loses its lock, it releases all resources and restarts so that a different instance can pick up this topic. </p>
-<h3 id="load_test">load test</h3><p><strong>Failure testing</strong>: It was important to understand how different Kafka cluster failure scenarios would manifest in the application, e.g. connect failures, job enqueue failures, missing jobs, and duplicate jobs. For this, we tested our cluster against following failure scenarios:</p>
+<h3 id="load-test"><a href="#load-test" class="headerlink" title="load test"></a>load test</h3><p><strong>Failure testing</strong>: It was important to understand how different Kafka cluster failure scenarios would manifest in the application, e.g. connect failures, job enqueue failures, missing jobs, and duplicate jobs. For this, we tested our cluster against following failure scenarios:</p>
 <ol>
 <li>Hard kill and gracefully kill a broker</li>
 <li>Hard kill and gracefully kill two brokers in a single AZ</li>
 <li>Hard kill all three brokers to force Kafka to pick an unclean leader</li>
 <li>Restart the cluster</li>
 </ol>
-<h3 id="Production_Rollout">Production Rollout</h3><p>Rolling out the new system included the following steps:</p>
+<h3 id="Production-Rollout"><a href="#Production-Rollout" class="headerlink" title="Production Rollout"></a>Production Rollout</h3><p>Rolling out the new system included the following steps:</p>
 <ol>
 <li><strong>Double writes:</strong> We started by double writing jobs to both the current and new system (each job was enqueued to <em>both</em> Redis and Kakfa). JQRelay, however, operated in a “shadow” mode where it dropped all jobs after reading it from Kafka. This setup let us safely test the new enqueue path from web app to JQRelay with real production traffic.</li>
 <li><strong>Guaranteeing system correctness:</strong> To ensure the correctness of the new system, we tracked and compared the number of jobs passing through each part of the system: from the web app to Kafkagate, Kafkagate to Kafka, and finally Kafka to Redis.</li>

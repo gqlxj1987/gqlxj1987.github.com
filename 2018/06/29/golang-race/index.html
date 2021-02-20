@@ -6,7 +6,7 @@
 
 
 <html class="theme-next mist use-motion" lang="zh-Hans">
-<head><meta name="generator" content="Hexo 3.8.0">
+<head><meta name="generator" content="Hexo 3.9.0">
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -138,7 +138,7 @@
 
 </head>
 
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -148,7 +148,7 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
@@ -248,20 +248,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/06/29/golang-race/">
 
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content>
       <meta itemprop="image" content="/images/guiquanli.png">
     </span>
 
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="DevilKing's blog">
     </span>
 
@@ -316,7 +316,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/golang/" itemprop="url" rel="index">
                     <span itemprop="name">golang</span>
                   </a>
@@ -368,7 +368,7 @@
 <p>由于golang中的go是非常方便的，加上函数又非常容易隐藏go</p>
 <figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"math/rand"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    start := time.Now()</span><br><span class="line">    <span class="keyword">var</span> t *time.Timer</span><br><span class="line">    t = time.AfterFunc(randomDuration(), <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        fmt.Println(time.Now().Sub(start))</span><br><span class="line">        t.Reset(randomDuration())</span><br><span class="line">    &#125;)</span><br><span class="line">    time.Sleep(<span class="number">5</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">randomDuration</span><span class="params">()</span> <span class="title">time</span>.<span class="title">Duration</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> time.Duration(rand.Int63n(<span class="number">1e9</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>time.AfterFunc是会另外启动一个goroutine来进行计时和执行func()。 由于func中有对t(Timer)进行操作(t.Reset)，而主goroutine也有对t进行操作(t=time.After)。 这个时候，其实有可能会造成两个goroutine对同一个变量进行竞争的情况</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">runtime  <span class="keyword">go</span> run -race race1.<span class="keyword">go</span></span><br><span class="line">a is  <span class="number">3</span></span><br><span class="line">==================</span><br><span class="line">WARNING: DATA RACE</span><br><span class="line">Write by goroutine <span class="number">5</span>:</span><br><span class="line">  main.<span class="keyword">func</span>·<span class="number">001</span>()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">11</span> +<span class="number">0x3a</span></span><br><span class="line"></span><br><span class="line">Previous write by main goroutine:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">13</span> +<span class="number">0xe7</span></span><br><span class="line"></span><br><span class="line">Goroutine <span class="number">5</span> (running) created at:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">12</span> +<span class="number">0xd7</span></span><br><span class="line">==================</span><br><span class="line">Found <span class="number">1</span> data race(s)</span><br><span class="line">exit status <span class="number">66</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">runtime  <span class="keyword">go</span> run -race race1.<span class="keyword">go</span></span><br><span class="line">a is  <span class="number">3</span></span><br><span class="line">==================</span><br><span class="line">WARNING: DATA RACE</span><br><span class="line">Write by goroutine <span class="number">5</span>:</span><br><span class="line">  main<span class="function">.<span class="keyword">func</span>·001<span class="params">()</span></span></span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">11</span> +<span class="number">0x3a</span></span><br><span class="line"></span><br><span class="line">Previous write by main goroutine:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">13</span> +<span class="number">0xe7</span></span><br><span class="line"></span><br><span class="line">Goroutine <span class="number">5</span> (running) created at:</span><br><span class="line">  main.main()</span><br><span class="line">      /Users/yejianfeng/Documents/workspace/<span class="keyword">go</span>/src/runtime/race1.<span class="keyword">go</span>:<span class="number">12</span> +<span class="number">0xd7</span></span><br><span class="line">==================</span><br><span class="line">Found <span class="number">1</span> data race(s)</span><br><span class="line">exit status <span class="number">66</span></span><br></pre></td></tr></table></figure>
 <p>通过race的参数，检测相关参数的竞争问题</p>
 
       

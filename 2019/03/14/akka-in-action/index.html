@@ -6,7 +6,7 @@
 
 
 <html class="theme-next mist use-motion" lang="zh-Hans">
-<head><meta name="generator" content="Hexo 3.8.0">
+<head><meta name="generator" content="Hexo 3.9.0">
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -140,7 +140,7 @@
 
 </head>
 
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -150,7 +150,7 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
@@ -250,20 +250,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2019/03/14/akka-in-action/">
 
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content>
       <meta itemprop="image" content="/images/guiquanli.png">
     </span>
 
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="DevilKing's blog">
     </span>
 
@@ -318,7 +318,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/akka/" itemprop="url" rel="index">
                     <span itemprop="name">akka</span>
                   </a>
@@ -406,7 +406,11 @@
 </ol>
 <blockquote>
 <p>我们已经看了一些actor的功能，这能够帮我们简化问题。 actor可被props对象建立和重建，这是actor系统的一部分，而且actor之间的通信是通过actor的引用而不是直接通信。</p>
+</blockquote>
+<blockquote>
 <p>akka没有用一个流程来处理正常代码和故障恢复代码，而是用两个不同的流程； 一个用于正常逻辑，一个用于故障恢复逻辑。 正常流程用于处理正常的消息，故障恢复流程包含一个actor用来检测正常流程的actor。 这个检测actor被称作supervisor</p>
+</blockquote>
+<blockquote>
 <p>akka让父actor作为supervisor，只要这个actor创建了其他actor，它就自动变为supervisor。 supervisor不捕获异常，而是监督失败的原因并给出一些策略。 supervisor也不去尝试恢复actor或者actor的状态。 它提供如何恢复的判断，然后触发相应的策略。</p>
 </blockquote>
 <p><img src="https://withshenhui.gitbooks.io/akka-in-action-cn/content/figures/file-85_1.png" alt="db writer actor"></p>
@@ -417,6 +421,8 @@
 <p>monitor的好处</p>
 <blockquote>
 <p>monitor不一定非要是supervisor，可以是任意一个actor。 只要这个actor有被监控actor的引用，就可以通过context.watch(actorRef)实现对actorRef的监控。 当被监控actor终止时，monitor就可以收到终止消息。</p>
+</blockquote>
+<blockquote>
 <p>在这个系统中，actor之间通过actorRef连接。 每个actor知道它要发送消息的actor的actorRef。</p>
 </blockquote>
 <p>以actor为核心</p>
@@ -436,7 +442,7 @@
 <figure class="highlight scala"><table><tr><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"><span class="keyword">import</span> scala.util._</span><br><span class="line"><span class="keyword">import</span> scala.util.control.<span class="type">NonFatal</span></span><br><span class="line"><span class="keyword">import</span> scala.concurrent._</span><br><span class="line"><span class="keyword">import</span> <span class="type">ExecutionContext</span>.<span class="type">Implicits</span>.global</span><br><span class="line"><span class="keyword">val</span> futureFail = <span class="type">Future</span> &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">Exception</span>(<span class="string">"error!"</span>)&#125;</span><br><span class="line">futureFail.onComplete &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Success</span>(value) =&gt; println(value)</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Failure</span>(<span class="type">NonFatal</span>(e)) =&gt; println(e)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line">java.lang.<span class="type">Exception</span>: error!</span><br></pre></td></tr></table></figure>
 <p>futures的组合部分</p>
 <figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getWeather</span></span>(ticketInfo:<span class="type">TicketInfo</span>):<span class="type">Future</span>[<span class="type">TicketInfo</span>] = &#123;</span><br><span class="line">  <span class="keyword">val</span> futureWeatherX = callWeatherXService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futureWeatherY = callWeatherYService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futures = <span class="type">Seq</span>(futureWeatherX, futureWeatherY)</span><br><span class="line">  <span class="keyword">val</span> fastestResponse = <span class="type">Future</span>.firstCompletedOf(futures)</span><br><span class="line">  fastestResponse.map&#123; weatherResponse =&gt;</span><br><span class="line">    ticketInfo.copy(weather = weatherResponse)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="Akka构建本地以及分布式系统">Akka构建本地以及分布式系统</h4><p>分布式系统遇到的问题：</p>
+<h4 id="Akka构建本地以及分布式系统"><a href="#Akka构建本地以及分布式系统" class="headerlink" title="Akka构建本地以及分布式系统"></a>Akka构建本地以及分布式系统</h4><p>分布式系统遇到的问题：</p>
 <ul>
 <li>延迟：在合作者之间有网络意味着a，每个消息有延时，和b(TODO:不知所云)。由于拥塞导致的延时，重发的包，断断续续的连接，等等。</li>
 <li>部分失败：当系统中的某一部分总是出现、消失、重现时，知道分布式系统中所有部分是够工作是非常难于解决的问题。</li>

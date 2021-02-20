@@ -6,7 +6,7 @@
 
 
 <html class="theme-next mist use-motion" lang="zh-Hans">
-<head><meta name="generator" content="Hexo 3.8.0">
+<head><meta name="generator" content="Hexo 3.9.0">
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -138,7 +138,7 @@
 
 </head>
 
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -148,7 +148,7 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
@@ -248,20 +248,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://gqlxj1987.github.io/2018/04/17/running-keras-model-in-golang/">
 
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content>
       <meta itemprop="image" content="/images/guiquanli.png">
     </span>
 
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="DevilKing's blog">
     </span>
 
@@ -316,7 +316,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/golang/" itemprop="url" rel="index">
                     <span itemprop="name">golang</span>
                   </a>
@@ -372,14 +372,14 @@
 <li>The team aren’t necessarily data scientists working in Python and work in Go 没必要切换语言？</li>
 <li>Pushing data internally using GRPC for faster communication between micro services </li>
 </ul>
-<h3 id="Binary_Classification_in_Keras">Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></span><br><span class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">"myModel"</span>)  </span><br><span class="line"><span class="comment"># Tag the model, required for Go</span></span><br><span class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">"myTag"</span>])  </span><br><span class="line">builder.save()  </span><br><span class="line">sess.close()</span><br></pre></td></tr></table></figure>
+<h3 id="Binary-Classification-in-Keras"><a href="#Binary-Classification-in-Keras" class="headerlink" title="Binary Classification in Keras"></a>Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></span><br><span class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">"myModel"</span>)  </span><br><span class="line"><span class="comment"># Tag the model, required for Go</span></span><br><span class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">"myTag"</span>])  </span><br><span class="line">builder.save()  </span><br><span class="line">sess.close()</span><br></pre></td></tr></table></figure>
 <p>采用saveModel的方式</p>
-<h3 id="loading_and_running_the_model_in_Go">loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (  </span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    tf <span class="string">"github.com/tensorflow/tensorflow/tensorflow/go"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </span><br><span class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></span><br><span class="line">    model, err := tf.LoadSavedModel(<span class="string">"myModel"</span>, []<span class="keyword">string</span>&#123;<span class="string">"myTag"</span>&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error loading saved model: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> model.Session.Close()</span><br><span class="line"></span><br><span class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="keyword">float32</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    result, err := model.Session.Run(</span><br><span class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inputLayer_input"</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        []tf.Output&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inferenceLayer/Sigmoid"</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="literal">nil</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error running the session with input, err: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Result value: %v \n"</span>, result[<span class="number">0</span>].Value())</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="loading-and-running-the-model-in-Go"><a href="#loading-and-running-the-model-in-Go" class="headerlink" title="loading and running the model in Go"></a>loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (  </span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    tf <span class="string">"github.com/tensorflow/tensorflow/tensorflow/go"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </span><br><span class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></span><br><span class="line">    model, err := tf.LoadSavedModel(<span class="string">"myModel"</span>, []<span class="keyword">string</span>&#123;<span class="string">"myTag"</span>&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error loading saved model: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> model.Session.Close()</span><br><span class="line"></span><br><span class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="keyword">float32</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    result, err := model.Session.Run(</span><br><span class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inputLayer_input"</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        []tf.Output&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">"inferenceLayer/Sigmoid"</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="literal">nil</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error running the session with input, err: %s\n"</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Result value: %v \n"</span>, result[<span class="number">0</span>].Value())</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>The tensor we input is in the shape <code>[batch size][width][height][channels]</code>. </p>
 <p>相同版本的python代码</p>
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line">%%time</span><br><span class="line"><span class="keyword">from</span> keras.preprocessing <span class="keyword">import</span> image  </span><br><span class="line"><span class="keyword">from</span> keras.models <span class="keyword">import</span> load_model  </span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line">model = load_model(<span class="string">"model.h5"</span>)  </span><br><span class="line">img = np.zeros((<span class="number">1</span>,<span class="number">250</span>,<span class="number">250</span>,<span class="number">3</span>))  </span><br><span class="line">x = np.vstack([img]) <span class="comment"># just append to this if we have more than one image.  </span></span><br><span class="line">classes = model.predict_classes(x)  </span><br><span class="line">print(classes)</span><br></pre></td></tr></table></figure>
 <p>可以尝试比较一下相关的时间问题？</p>
-<h3 id="Performance">Performance</h3><p>Recall the model was:</p>
+<h3 id="Performance"><a href="#Performance" class="headerlink" title="Performance"></a>Performance</h3><p>Recall the model was:</p>
 <p>3x3x32 Convolutional Layer<br>3x3x32 Convolutional Layer<br>2x2 Max Pool Layer<br>64 Node Fully Connected Layer with Dropout<br>1 Sigmoid output Layer</p>
 <p><strong>For Python</strong>:</p>
 <ul>
