@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"gqlxj1987.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="原文链接 DDD的核心思想可以认为是两个：  无处不在的领域业务语言即Ubiquitous Language，这是DDD最为强大的一个工具之一 绑定的领域上下文即Bounded Context  分为不同的子领域和绑定上下文部分 通过将问题领域分割为多个子领域，复杂的问题得以简化；通过聚焦于核心领域，核心的商业价值得以最大化。每一个子领域和围绕它形成的领域专家和技术专家共同产生和维护的统一语言构成">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Domain Design">
+<meta property="og:url" content="https://gqlxj1987.github.io/2019/05/28/domain-design/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="原文链接 DDD的核心思想可以认为是两个：  无处不在的领域业务语言即Ubiquitous Language，这是DDD最为强大的一个工具之一 绑定的领域上下文即Bounded Context  分为不同的子领域和绑定上下文部分 通过将问题领域分割为多个子领域，复杂的问题得以简化；通过聚焦于核心领域，核心的商业价值得以最大化。每一个子领域和围绕它形成的领域专家和技术专家共同产生和维护的统一语言构成">
+<meta property="og:locale">
+<meta property="article:published_time" content="2019-05-28T11:37:15.000Z">
+<meta property="article:modified_time" content="2022-01-08T07:19:52.016Z">
+<meta property="article:author" content="gqlxj1987">
+<meta property="article:tag" content="DDD">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://gqlxj1987.github.io/2019/05/28/domain-design/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>Domain Design | DevilKing's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">DevilKing's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/28/domain-design/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Domain Design
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-05-28 19:37:15" itemprop="dateCreated datePublished" datetime="2019-05-28T19:37:15+08:00">2019-05-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2022-01-08 15:19:52" itemprop="dateModified" datetime="2022-01-08T15:19:52+08:00">2022-01-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DDD/" itemprop="url" rel="index"><span itemprop="name">DDD</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2019/02/23/domain-driven-development-impl/">原文链接</a></p>
+<p>DDD的核心思想可以认为是两个：</p>
+<ul>
+<li>无处不在的领域业务语言即Ubiquitous Language，这是DDD最为强大的一个工具之一</li>
+<li>绑定的领域上下文即Bounded Context</li>
+</ul>
+<p>分为不同的子领域和绑定上下文部分</p>
+<p>通过将问题领域分割为多个子领域，复杂的问题得以简化；通过聚焦于核心领域，核心的商业价值得以最大化。每一个子领域和围绕它形成的领域专家和技术专家共同产生和维护的统一语言构成了特定的绑定上下文。</p>
+<p>领域并不是组件、模块等纯软件概念</p>
+<p>我们界定绑定上下文的边界的时候，<strong>必须避免软件架构技术产生决定性的影响</strong>；因为这一方法的指导性原则是，需要倾听和修正领域模型和语言边界，而不是软件架构实现技术的边界。</p>
+<p>上下文映射关系</p>
+<ul>
+<li>伙伴式关系：两个领域之间是通过紧密写作来完成各自的领域职责；一荣俱荣一损俱损的关系，两者之间有直接而深入的耦合关系。相互关联的功能必须要通过两个团队之间的紧密合作才可能开发和集成成功。</li>
+<li>共享内核：两个领域之间共享一些基本的公用模型或者核心设施、代码等；从而两个领域的设计可以得到极大的简化；如果存在共享内核，需要尽力使得共享内核足够的小和简单。</li>
+<li>上下游关系：上游领域的改动无需通知下游，而下游的成功非常依赖于上游提供的服务。</li>
+<li>反破坏层：当上游领域和下游领域团队之间的<strong>沟通异常困难，或者下游非常难以协调上游的资源支持</strong>的时候，下游领域团队往往会需要选择构建一个针对上游领域的反破坏层；这在大公司里面非常常见。</li>
+<li>开放宿主服务：一个领域通过想其它领域提供<strong>一个开放协议的方式</strong>提供支持；新的领域如果需要和它继承，需要根据已有的协议添加适配即可。很多时候，下游的领域会将这个开发协议的提供方看做是一个难以可靠协调的上游， 并且构建反破坏层来维护自身的稳定性。</li>
+<li>已发布的公用语言：两个领域之间可以通过共享一部分领域通用语言的方式来沟通和交互。</li>
+<li>大泥球：大泥球现象在一些上了历史的老项目中非常场景，当需要和这些遗留领域打交道的时候，我们<strong>需要格外小心构建隔离边界，防止大泥球问题的蔓延</strong>。</li>
+</ul>
+<p><strong>依赖倒置原则其实从某种程度上来看打破了传统的分层架构的严谨性</strong>，但是同时又允许更大的灵活性，因为组织依赖上都要求大家尽量依赖于抽象而不是依赖于具体的实现；甚至可以认为层次的概念呗弱化的同时，软件的灵活性还得到了保证。</p>
+<p>这一架构风格原来也被称为是六边形架构；或者另外一个所谓的洋葱架构指向的也是这种风格</p>
+<p>CQRS</p>
+<p>CQRS即命令和查询职责分离的简称；这一做法要求我们任何一个方法要么负责查询，要么负责执行命令修改状态；但是永远不要将两者混合在一起。依据这种做法，<strong>传统的领域模型就不得不分为两个部分：一个子模型负责查询，另外一个则负责执行命令</strong></p>
+<p>Event Sagas用于描述<strong>长期运行、持续不断的事件处理过程</strong>；有如下三种常见的办法来描述长期运行的长时间处理过程</p>
+<ul>
+<li>将处理过程作为一个组合任务过程，用一个可以持久化的对象来记录任务执行时间、完成度信息</li>
+<li>将处理过程表述为收集各种活动交互的聚合的集合；其中一个或者多个维护整体的执行和状态信息</li>
+<li>处理过程本身设计为无状态的，但是每个处理时间的任务在处理完毕之后都增加更多信息到输出事件上，从而把进度、完成情况等信息递增地包含在事件中</li>
+</ul>
+<p>Event Sagas的方式要求我们<strong>必须拥抱最终一致性模型，并且妥善处理好超时和重试处理</strong>，尽量补偿可能出现的异常情况，甚至在情况复杂的时候尽量引入工作流来降低领域问题的复杂性。</p>
+<p><strong>领域驱动开发的核心是关于领域的行为和特征，而不是数据的获取和读取</strong>。之所以要用领域实体的概念来封装业务特征，而不是直接在数据集的基础上采用CRUD来直接实现业务规则，主要是因为系统的业务复杂度不断提高的时候，直接CRUD的方式带来了软件复杂度的急剧上升。</p>
+<p>不论怎样选择这里的角色抽象，需要始终牢记的是<strong>跨职能团队根据领域业务逻辑而统一的领域语言才是决定这些角色和实体类的职责的最重要的因素</strong>，而实际实现这些抽象的面性对象技术应该作为具体实现的支撑细节。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DDD/" rel="tag"># DDD</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/05/28/why-kafka-productive/" rel="prev" title="why kafka productive">
+      <i class="fa fa-chevron-left"></i> why kafka productive
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/05/28/spring-reactive-programing/" rel="next" title="Spring Reactive Programing">
+      Spring Reactive Programing <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">gqlxj1987</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gqlxj1987</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

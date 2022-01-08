@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"gqlxj1987.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="高性能服务架构思路 Agenda:  缓存策略的概念和实例  缓存策略的难点：不同特点的缓存数据的清理机制  分布策略的概念和实例  分布策略的难点：共享数据安全性与代码复杂度的平衡   缓存缓存策略性能问题表现：  并发数不足，也就是同时请求的客户过多，服务器的内存耗尽  处理延迟过长，CPU占用满100%   抽象资源：  时间资源：CPU和磁盘读写  空间资源：内存和网卡带宽   缓存策略，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cache Strategy">
+<meta property="og:url" content="https://gqlxj1987.github.io/2017/03/29/cache-strategy/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="高性能服务架构思路 Agenda:  缓存策略的概念和实例  缓存策略的难点：不同特点的缓存数据的清理机制  分布策略的概念和实例  分布策略的难点：共享数据安全性与代码复杂度的平衡   缓存缓存策略性能问题表现：  并发数不足，也就是同时请求的客户过多，服务器的内存耗尽  处理延迟过长，CPU占用满100%   抽象资源：  时间资源：CPU和磁盘读写  空间资源：内存和网卡带宽   缓存策略，">
+<meta property="og:locale">
+<meta property="article:published_time" content="2017-03-29T03:49:25.000Z">
+<meta property="article:modified_time" content="2022-01-08T07:19:51.943Z">
+<meta property="article:author" content="gqlxj1987">
+<meta property="article:tag" content="cache">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://gqlxj1987.github.io/2017/03/29/cache-strategy/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>Cache Strategy | DevilKing's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">DevilKing's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/29/cache-strategy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Cache Strategy
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-03-29 11:49:25" itemprop="dateCreated datePublished" datetime="2017-03-29T11:49:25+08:00">2017-03-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2022-01-08 15:19:51" itemprop="dateModified" datetime="2022-01-08T15:19:51+08:00">2022-01-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cache/" itemprop="url" rel="index"><span itemprop="name">cache</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><a target="_blank" rel="noopener" href="http://wetest.qq.com/lab/view/?id=80">高性能服务架构思路</a></p>
+<h2 id="Agenda"><a href="#Agenda" class="headerlink" title="Agenda:"></a>Agenda:</h2><ul>
+<li><p> 缓存策略的概念和实例</p>
+</li>
+<li><p>缓存策略的难点：不同特点的缓存数据的清理机制</p>
+</li>
+<li><p>分布策略的概念和实例</p>
+</li>
+<li><p>分布策略的难点：共享数据安全性与代码复杂度的平衡</p>
+</li>
+</ul>
+<h2 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h2><h3 id="缓存策略"><a href="#缓存策略" class="headerlink" title="缓存策略"></a>缓存策略</h3><p>性能问题表现：</p>
+<ul>
+<li><p>并发数不足，也就是同时请求的客户过多，服务器的内存耗尽</p>
+</li>
+<li><p>处理延迟过长，CPU占用满100%</p>
+</li>
+</ul>
+<p>抽象资源：</p>
+<ul>
+<li><p>时间资源：CPU和磁盘读写</p>
+</li>
+<li><p>空间资源：内存和网卡带宽</p>
+</li>
+</ul>
+<p>缓存策略，其实是用内存的空间，换取磁盘的读写空间</p>
+<p>网络游戏的服务端程序，所有的写操作都先去写内存中的结构，然后定期再由服务器主动写回到数据库中，这样可以把多次的写数据库操作变成一次写操作，也能节省很多写数据库的消耗。这种做法也是用空间换时间的策略。</p>
+<p>缓存的本质，除了让“已经处理过的数据，不需要重复处理”以外，还有“以快速的数据存储读写，代替较慢速的存储读写”的策略</p>
+<p>对缓存数据的编程处理，采用序列化的方式，也可以采用深拷贝的方式，</p>
+<p>一般来说，缓存的数据越解决使用时的内存结构，其转换速度就越快，在这点上，Protocol Buffer采用TLV编码，就比不上直接memcpy的一个C结构体，但是比编码成纯文本的XML或者JSON要来的更快。因为编解码的过程往往要进行复杂的查表映射，列表结构等操作</p>
+<h3 id="缓存难点-缓存清理"><a href="#缓存难点-缓存清理" class="headerlink" title="缓存难点-缓存清理"></a>缓存难点-缓存清理</h3><ul>
+<li>使用命令清理相关内存</li>
+</ul>
+<ul>
+<li>使用字段逻辑判断，根据一些特征数据，判断是否有不一致的地方，</li>
+</ul>
+<p>静态的缓存</p>
+<p>以及运行时变化的缓存数据，</p>
+<ul>
+<li><p>按照重要级来分割</p>
+</li>
+<li><p>按照使用部分分割</p>
+</li>
+</ul>
+<h2 id="分布"><a href="#分布" class="headerlink" title="分布"></a>分布</h2><h3 id="分布策略"><a href="#分布策略" class="headerlink" title="分布策略"></a>分布策略</h3><p>划分多个进程的架构，一般会有两种策略：一种是按功能来划分，比如负责网络处理的一个进程，负责数据库处理的一个进程，负责计算某个业务逻辑的一个进程。另外一种策略是每个进程都是同样的功能，只是分担不同的运算任务而已</p>
+<p>在调用多进程服务的策略上，我们也会有一定的策略选择，其中最著名的策略有三个：一个是动态负载均衡策略；一个是读写分离策略；一个是一致性哈希策略。</p>
+<p>多进程技术</p>
+<p>多线程技术，内存使用不可控，对于同一数据的使用，需要考虑复杂的”锁”问题</p>
+<p>select/epoll， 非阻塞操作，</p>
+<p>多线程和异步的例子，最著名就是Web服务器领域的Apache和Nginx的模型。Apache是多进程/多线程模型的，它会在启动的时候启动一批进程，作为进程池，当用户请求到来的时候，从进程池中分配处理进程给具体的用户请求，这样可以节省多进程/线程的创建和销毁开销，但是如果同时有大量的请求过来，还是需要消耗比较高的进程/线程切换。而Nginx则是采用epoll技术，这种非阻塞的做法，可以让一个进程同时处理大量的并发请求，而无需反复切换。对于大量的用户访问场景下，apache会存在大量的进程，而nginx则可以仅用有限的进程（比如按CPU核心数来启动），这样就会比apache节省了不少“进程切换”的消耗，所以其并发性能会更好。</p>
+<h3 id="分布式编程复杂度"><a href="#分布式编程复杂度" class="headerlink" title="分布式编程复杂度"></a>分布式编程复杂度</h3><p>多线程部分</p>
+<ul>
+<li><p>基于回调</p>
+</li>
+<li><p>基于协程</p>
+</li>
+</ul>
+<p>lamda表达式，闭包，promise手段</p>
+<ul>
+<li><p> 动态多进程fork——同质的并行任务</p>
+</li>
+<li><p> 多线程——能明确划的逻辑复杂的并行任务</p>
+</li>
+<li><p> 异步并发回调——对性能要求高，但中间会被阻塞的处理较少的并行任务</p>
+</li>
+<li><p> 协程——以同步的写法编写并发的任务，但是不合适发起复杂的动态并行操作。</p>
+</li>
+<li><p> 函数式编程——以数据流为模型的并行处理任务</p>
+</li>
+</ul>
+<p>函数式编程的语言，比如LISP或者Erlang，其核心数据结果是链表——一种可以表示任何数据结构的结构。我们可以把所有的状态，都放到链表这个数据列车中，然后让一个个函数去处理这串数据，这样同样也可以传递程序的状态。这是一种用栈来代替堆的编程思路，在多线程并发的环境下，非常的有价值。</p>
+<h3 id="分布式数据通信"><a href="#分布式数据通信" class="headerlink" title="分布式数据通信"></a>分布式数据通信</h3><p>消息队列</p>
+<h3 id="分布式缓存策略"><a href="#分布式缓存策略" class="headerlink" title="分布式缓存策略"></a>分布式缓存策略</h3><p>利用哈希表来解决缓存的数据同步</p>
+<p>我们的“表”要有能把数据在A、B两个进程间同步的能力。因此我们一般会用三种策略：租约清理、租约转发、修改广播</p>
+<ul>
+<li>租约清理</li>
+</ul>
+<ul>
+<li>租约转发</li>
+</ul>
+<p>这样无需清理，</p>
+<ul>
+<li>修改广播</li>
+</ul>
+<p>dns的缓存策略</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/cache/" rel="tag"># cache</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/03/25/one-week/" rel="prev" title="每当变幻时">
+      <i class="fa fa-chevron-left"></i> 每当变幻时
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/04/01/function-program/" rel="next" title="Function Program">
+      Function Program <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Agenda"><span class="nav-number">1.</span> <span class="nav-text">Agenda:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%93%E5%AD%98"><span class="nav-number">2.</span> <span class="nav-text">缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E7%AD%96%E7%95%A5"><span class="nav-number">2.1.</span> <span class="nav-text">缓存策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E9%9A%BE%E7%82%B9-%E7%BC%93%E5%AD%98%E6%B8%85%E7%90%86"><span class="nav-number">2.2.</span> <span class="nav-text">缓存难点-缓存清理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83"><span class="nav-number">3.</span> <span class="nav-text">分布</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E7%AD%96%E7%95%A5"><span class="nav-number">3.1.</span> <span class="nav-text">分布策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%96%E7%A8%8B%E5%A4%8D%E6%9D%82%E5%BA%A6"><span class="nav-number">3.2.</span> <span class="nav-text">分布式编程复杂度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E9%80%9A%E4%BF%A1"><span class="nav-number">3.3.</span> <span class="nav-text">分布式数据通信</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E7%AD%96%E7%95%A5"><span class="nav-number">3.4.</span> <span class="nav-text">分布式缓存策略</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">gqlxj1987</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gqlxj1987</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

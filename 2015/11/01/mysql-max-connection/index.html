@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"gqlxj1987.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="问题出现的背景字体管家的后台接口返回很慢，登录到相关机器，发现机器的负载高达28，30左右，定位为数据库的问题 定位的思路 查看数据库的慢查询语句，发现相关sdk统计的sql，执行了14s，猜测可能是相关慢查询语句阻碍了正常的查询，导致负载偏高，遂将相关的查询的入口暂时禁掉  禁掉后，重启数据库后，发现问题依旧，于是查看show proceslist;的内容，猜测，是否是由于某些大量频繁的sql的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql最大连接数">
+<meta property="og:url" content="https://gqlxj1987.github.io/2015/11/01/mysql-max-connection/index.html">
+<meta property="og:site_name" content="DevilKing&#39;s blog">
+<meta property="og:description" content="问题出现的背景字体管家的后台接口返回很慢，登录到相关机器，发现机器的负载高达28，30左右，定位为数据库的问题 定位的思路 查看数据库的慢查询语句，发现相关sdk统计的sql，执行了14s，猜测可能是相关慢查询语句阻碍了正常的查询，导致负载偏高，遂将相关的查询的入口暂时禁掉  禁掉后，重启数据库后，发现问题依旧，于是查看show proceslist;的内容，猜测，是否是由于某些大量频繁的sql的">
+<meta property="og:locale">
+<meta property="article:published_time" content="2015-11-01T10:14:20.000Z">
+<meta property="article:modified_time" content="2022-01-08T07:19:51.937Z">
+<meta property="article:author" content="gqlxj1987">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://gqlxj1987.github.io/2015/11/01/mysql-max-connection/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>mysql最大连接数 | DevilKing's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">DevilKing's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">冷灯看剑，剑上几分功名？炉香无需计苍生，纵一穿烟逝，万丈云埋，孤阳还照古陵</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2015/11/01/mysql-max-connection/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          mysql最大连接数
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2015-11-01 18:14:20" itemprop="dateCreated datePublished" datetime="2015-11-01T18:14:20+08:00">2015-11-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2022-01-08 15:19:51" itemprop="dateModified" datetime="2022-01-08T15:19:51+08:00">2022-01-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h4 id="问题出现的背景"><a href="#问题出现的背景" class="headerlink" title="问题出现的背景"></a>问题出现的背景</h4><p>字体管家的后台接口返回很慢，登录到相关机器，发现机器的负载高达28，30左右，定位为数据库的问题</p>
+<h4 id="定位的思路"><a href="#定位的思路" class="headerlink" title="定位的思路"></a>定位的思路</h4><ul>
+<li><p>查看数据库的慢查询语句，发现相关sdk统计的sql，执行了14s，猜测可能是相关慢查询语句阻碍了正常的查询，导致负载偏高，遂将相关的查询的入口暂时禁掉</p>
+</li>
+<li><p>禁掉后，重启数据库后，发现问题依旧，于是查看show proceslist;的内容，猜测，是否是由于某些大量频繁的sql的短查询导致整体的负载高。在show processlist;的过程中，发现大量的unthencated user；的请求链接</p>
+</li>
+<li><p>通过网上查询，发现，unthencation user 这种请求，可能是mysql的一个Bug，由于是针对需要进行dns反查的这种，于是，在mysql的配置文件中，增加skip-resolve-name选项，取消掉这种dns反查的设置。重启mysql后，发现现象依旧</p>
+</li>
+<li><p>通过观察，发现mysql初期的时候show processlist;还比较正常，但没多久，负载就非常高，猜测可能不是查询的问题导致的。然后，想起来这周将mysql的max-connection调成了5000，结合php使用mysql的方式，定位为该原因。将max-connection调整为1000，重启mysql后，问题解决</p>
+</li>
+</ul>
+<h4 id="问题的结论"><a href="#问题的结论" class="headerlink" title="问题的结论"></a>问题的结论</h4><p>问题的主要的点，还是在于php使用mysql的方式。由于php没有像java的那种线程池，其对数据库的访问都是以短socket的方式来进行。由于将max-connection设置为5000，由于流量的增大，php就可以不断地获取到数据库的连接，从而进行相关数据的操作。但同时的访问很多，连接不断的增多，导致mysql所需要的资源也越多，这也解释了mysql导致系统负载偏高的原因。</p>
+<p>关于最大连接数这个参数，由于php采用短socket的方式，连接-&gt;操作-&gt;释放，没有线程池的概念，所以，这块的最大连接数基本代表了1s内的数据库的请求并发数。但是，随着流量变大，请求的增多，请求所需要的连接数也会不断地增大。为了保证数据库操作的快速，迅捷，基本都会增加最大连接数这个参数，保证相关数据库操作能够快速地进行，而不是在那里等待上个数据库连接的释放。但是，增加连接数也带来了另一个问题，相关连接的资源消耗也是巨大的，包括cpu,内存，文件句柄数，网络等等。所以，最大连接数这部分也不宜太大。</p>
+<p>问题出现的原因，就是最大连接数设置的太大，导致php请求，可以无限制地获取到数据库连接，请求的增多，导致瞬间增大了当前的数据库连接数，极大地增加了mysql的资源损耗，从而导致整体系统负载非常高。</p>
+<h4 id="问题的发散"><a href="#问题的发散" class="headerlink" title="问题的发散"></a>问题的发散</h4><ul>
+<li>关于最大连接数部分，比较适合的参数大小是多少？</li>
+</ul>
+<p>以前的java由于存在连接池的概念，在应用里设置的获取的最大连接数也没超过200，对应日均2000的网站。那这块是否可以借鉴呢？</p>
+<ul>
+<li> php这种短socket的方式，固然可以快速地进行数据库的操作，但它的连接的管理方面，完全靠数据库端来进行，例如：最大连接数等。这块php有没有比较好的思路，借鉴类似java这种连接池的思路来管理这种数据库连接呢？</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2015/10/25/oneweek/" rel="prev" title="10.25一周总结">
+      <i class="fa fa-chevron-left"></i> 10.25一周总结
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2015/11/01/one-week/" rel="next" title="11.01一周总结">
+      11.01一周总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%87%BA%E7%8E%B0%E7%9A%84%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题出现的背景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9A%E4%BD%8D%E7%9A%84%E6%80%9D%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">定位的思路</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="nav-number">3.</span> <span class="nav-text">问题的结论</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E7%9A%84%E5%8F%91%E6%95%A3"><span class="nav-number">4.</span> <span class="nav-text">问题的发散</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">gqlxj1987</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gqlxj1987</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
