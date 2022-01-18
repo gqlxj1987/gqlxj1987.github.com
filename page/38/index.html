@@ -153,6 +153,82 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/01/fetching-private-go-module/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/01/fetching-private-go-module/" class="post-title-link" itemprop="url">Fetching Private Go Module</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-01 18:03:41" itemprop="dateCreated datePublished" datetime="2019-07-01T18:03:41+08:00">2019-07-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@jwenz723/fetching-private-go-modules-during-docker-build-5b76aa690280">原文链接</a></p>
+<p>These problems occur because during the docker build process the git cli does not have credentials to access any private git repositories</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># First stage: build the executable.</span></span><br><span class="line"><span class="keyword">FROM</span> golang:<span class="number">1.12</span>.<span class="number">5</span>-alpine AS builder</span><br><span class="line"></span><br><span class="line"><span class="comment"># git is required to fetch go dependencies</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --no-cache ca-certificates git</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create the user and group files that will be used in the running </span></span><br><span class="line"><span class="comment"># container to run the process as an unprivileged user.</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> mkdir /user &amp;&amp; \</span></span><br><span class="line"><span class="bash">    <span class="built_in">echo</span> <span class="string">&#x27;nobody:x:65534:65534:nobody:/:&#x27;</span> &gt; /user/passwd &amp;&amp; \</span></span><br><span class="line"><span class="bash">    <span class="built_in">echo</span> <span class="string">&#x27;nobody:x:65534:&#x27;</span> &gt; /user/group</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copy the predefined netrc file into the location that git depends on</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> ./netrc /root/.netrc</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chmod 600 /root/.netrc</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set the working directory outside $GOPATH to enable the support for modules.</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /src</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Fetch dependencies first; they are less susceptible to change on every build</span></span><br><span class="line"><span class="comment"># and will therefore be cached for speeding up the next build</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> ./go.mod ./go.sum ./</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> go mod download</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Import the code from the context.</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> . .</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Build the executable to `/app`. Mark the build as statically linked.</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> CGO_ENABLED=0 go build \</span></span><br><span class="line"><span class="bash">    -installsuffix <span class="string">&#x27;static&#x27;</span> \</span></span><br><span class="line"><span class="bash">    -o /app .</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Final stage: the running container.</span></span><br><span class="line"><span class="keyword">FROM</span> scratch AS final</span><br><span class="line"></span><br><span class="line"><span class="comment"># Import the user and group files from the first stage.</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --from=builder /user/group /user/passwd /etc/</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Import the Certificate-Authority certificates for enabling HTTPS.</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Import the compiled executable from the first stage.</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --from=builder /app /app</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Perform any further action as an unprivileged user.</span></span><br><span class="line"><span class="keyword">USER</span> nobody:nobody</span><br><span class="line"></span><br><span class="line"><span class="comment"># Run the compiled binary.</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [<span class="string">&quot;/app&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>cp ./netrc</p>
+<p>netrc文件内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">machine github.com</span><br><span class="line">login mygituser</span><br><span class="line">password 12345678901234567890</span><br><span class="line"></span><br><span class="line">machine api.github.com</span><br><span class="line">login mygituser</span><br><span class="line">password 12345678901234567890</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/06/25/goroutine-stack-size-evolve/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -518,78 +594,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/06/04/cluster-akka-in-k8s/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/06/04/cluster-akka-in-k8s/" class="post-title-link" itemprop="url">Cluster Akka in Kubernetes</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-06-04 10:22:30" itemprop="dateCreated datePublished" datetime="2019-06-04T10:22:30+08:00">2019-06-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/clustering-akka-in-kubernetes-with-statefulset-and-deployment-459c0e05f2ea">原文链接</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">akka &#123;</span><br><span class="line">  actor &#123;</span><br><span class="line">    provider = &quot;cluster&quot;</span><br><span class="line">  &#125;</span><br><span class="line">  remote &#123;</span><br><span class="line">    netty.tcp &#123;</span><br><span class="line">      hostname = 192.168.0.1         # machine IP</span><br><span class="line">      port = 32551                   # machine port</span><br><span class="line">      bind-hostname = 10.100.0.23    # container IP</span><br><span class="line">      bind-port = 2551               # container port</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="headless-service-and-dns-discovery"><a href="#headless-service-and-dns-discovery" class="headerlink" title="headless service and dns discovery"></a>headless service and dns discovery</h4><p>Statefulsets are scaled sequentially rather than in parallel. When I scale a Statefulset from one Akka node to five Akka nodes, rather than starting four more Akka nodes in parallel, it’ll start akka-1, wait for it to start successfully, then start akka-2, wait, start akka-3, … and repeat until it’s done. This is not ideal as it may take a while to start hundreds of Akka nodes.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -661,7 +665,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-count">645</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

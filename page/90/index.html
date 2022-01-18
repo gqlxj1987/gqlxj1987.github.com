@@ -153,6 +153,96 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/04/devops/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/04/devops/" class="post-title-link" itemprop="url">Devops tips</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-04 17:22:09" itemprop="dateCreated datePublished" datetime="2018-05-04T17:22:09+08:00">2018-05-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/devops/" itemprop="url" rel="index"><span itemprop="name">devops</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzIwMzg1ODcwMw==&idx=1&mid=2247487627&sn=34d437a1253bdf61857cf2ac513285ac&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_125">原文链接</a></p>
+<h4 id="单服务器组发布"><a href="#单服务器组发布" class="headerlink" title="单服务器组发布"></a>单服务器组发布</h4><p>手动发布，手动停掉-&gt; 金丝雀发布，先发一组，做流量测试</p>
+<p>滚动式发布</p>
+<ol>
+<li>滚动式发布一般先发 1 台，或者一个小比例，如 2% 服务器，主要做流量验证用，类似金丝雀 (Canary) 测试。</li>
+<li>滚动式发布需要比较复杂的发布工具和智能 LB，支持平滑的版本替换和流量拉入拉出。</li>
+<li>每次发布时，先将老版本 V1 流量从 LB 上摘除，然后清除老版本，发新版本 V2，再将 LB 流量接入新版本。这样可以尽量保证用户体验不受影响。</li>
+<li>一次滚动式发布一般由若干个发布批次组成，每批的数量一般是可以配置的（可以通过发布模板定义）。例如第一批 1 台（金丝雀），第二批 10%，第三批 50%，第四批 100%。每个批次之间留观察间隔，通过手工验证或监控反馈确保没有问题再发下一批次，所以总体上滚动式发布过程是比较缓慢的 (其中金丝雀的时间一般会比后续批次更长，比如金丝雀 10 分钟，后续间隔 2 分钟)。</li>
+<li>回退是发布的逆过程，将新版本流量从 LB 上摘除，清除新版本，发老版本，再将 LB 流量接入老版本。和发布过程一样，回退过程一般也比较慢的。</li>
+<li>滚动式发布国外术语通常叫 Rolling Update Deployment。</li>
+</ol>
+<h4 id="双服务器组发布"><a href="#双服务器组发布" class="headerlink" title="双服务器组发布"></a>双服务器组发布</h4><p>为一次发布分配两组服务器，一组运行现有的 V1 老版本，一组运行待上线的 V2 新版本，再通过 LB 切换流量方式完成发布，这就是所谓的双服务器组发布方式。</p>
+<p>蓝绿发布</p>
+<p>金丝雀发布</p>
+<p>滚动发布</p>
+<h4 id="其他发布以及测试"><a href="#其他发布以及测试" class="headerlink" title="其他发布以及测试"></a>其他发布以及测试</h4><p>影子测试</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/UicsouxJOkBdpqMAJvdAY6GFrP17hbic5SnxNNkF4ZjG97KxRkH9cHhHwVVvOB41KDVQKZVjOCJjUcYpzmDySYfw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1" alt="影子"></p>
+<ol>
+<li>目标实现老的 legacy 服务迁移升级到新的 experimental 服务。</li>
+<li>测试开始前，需要在测试环境部署一份 legacy 服务和 experimental 服务，同时将生产数据库复制两份到测试环境。同时需要将生产请求日志收集起来，一般可以通过 kafka 队列收集，然后通过类似 goreplay附录 6.8这样的工具，消费 kafka 里头的请求日志，复制回放，将请求分发到 legacy 服务和 experimental 服务，收到响应后进行比对，如果所有响应比对成功，则可以认为 legacy 服务和 experimental 服务在功能逻辑上是等价的；如果有响应比对失败，则认为两者在功能逻辑上不等价，需要修复 experimental 并重新进行影子测试，直到全部比对成功。根据系统复杂度和关键性不同，比对测试时间短的可能需要几周，长的可达半年之久。</li>
+<li>影子测试因为旁路在独立测试环境中进行，可以对生产流量完全无影响。</li>
+<li>影子测试一般适用于遗留系统的等价重构迁移，例如.net 转 Java，或者 SQLServer 数据库升级为 MySQL 数据库，且外部依赖不能太多，否则需要开发很多 mock，测试部署成本会很高，且比对测试更加复杂和不稳定。</li>
+</ol>
+<h4 id="比较"><a href="#比较" class="headerlink" title="比较"></a>比较</h4><p><img src="https://mmbiz.qpic.cn/mmbiz_png/UicsouxJOkBdpqMAJvdAY6GFrP17hbic5SAq6JtYTCQXeFC6QKUibiclw66TyQFiavQxSHbAl4ZzxTAE3bxW2pkDHhQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1" alt="比较"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/01/one-weeek/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -491,99 +581,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/23/architecture-writing/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/23/architecture-writing/" class="post-title-link" itemprop="url">Architecture文档说明</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-23 11:07:09" itemprop="dateCreated datePublished" datetime="2018-04-23T11:07:09+08:00">2018-04-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.soasme.com/techshack.weekly/verses/fa6b9146-d4de-40ec-bded-f754ee83a5cd.html">原文链接</a></p>
-<ul>
-<li>User-Case View 说一些用例，覆盖到所有的组件</li>
-<li>Logical View 在逻辑上分层</li>
-<li>Process View 物理的分布，可以谈到进程，线程，节点，集群或者时下流行的Pod</li>
-<li>Deployment View 如何部署应用</li>
-</ul>
-<p>最后是可能的安全，性能等边角问题</p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm">模板链接</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#introduction">1.   Introduction</a>     </p>
-<p>​        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Purpose">1.1 Purpose</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Scope">1.2 Scope</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Definitions,%20Acronyms%20and%20Abbreviations">1.3 Definitions, Acronyms and Abbreviations</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#References">1.4 References</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Architectural%20Representation">2.   Architectural Representation</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Architectural%20Goals%20and%20Constraints">3.   Architectural Goals and Constraints</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Use-Case%20View">4.   Use-Case View</a>       </p>
-<p>​      <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Architecturally-Significant%20Use%20Cases">4.1 Architecturally-Significant Use Cases</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Logical%20View">5.   Logical View</a>        </p>
-<p>​     <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Architecture+Overview+%3F+Package+and+Subsystem+Layering">5.1 Architecture Overview – Package and Subsystem Layering</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Process%20View">6.   Process View</a>       </p>
-<p>​       <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Processes">6.1 Processes</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Process%20to%20Design%20Elements">6.2 Process to Design Elements</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Process%20Model%20to%20Design%20Model%20Dependencies">6.3 Process Model to Design Model Dependencies</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Processes%20to%20the%20Implementation">6.4 Processes to the Implementation</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Deployment%20View">7.   Deployment View</a>      </p>
-<p>​        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#External%20Desktop%20PC">7.1 External Desktop PC</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Desktop%20PC">7.2 Desktop PC</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Registration%20Server">7.3 Registration Server</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Course%20Catalog">7.4 Course Catalog</a><br>        <a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Billing%20System">7.5 Billing System </a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Size%20and%20Performance">8.   Size and Performance</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch.htm#Quality">9.   Quality</a></p>
-<p><img src="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch_files/sadoc_3.gif" alt="user case"></p>
-<p>logic层采用E-R图的方式，来进行</p>
-<p>Process View采用类图的方式来进行</p>
-<p><img src="http://www.ecs.csun.edu/~rlingard/COMP684/Example2SoftArch_files/sadoc_1.gif" alt="类图"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -655,7 +652,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-count">645</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

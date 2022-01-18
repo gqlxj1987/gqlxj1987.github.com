@@ -153,6 +153,80 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/06/custom-application-monitoring-for-go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/06/custom-application-monitoring-for-go/" class="post-title-link" itemprop="url">custom application monitoring for go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-06 17:01:25" itemprop="dateCreated datePublished" datetime="2018-06-06T17:01:25+08:00">2018-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.logicmonitor.com/blog/custom-application-monitoring-go/">原文链接</a></p>
+<p>our TSDB backup system has several components that need to be monitored, including a metadata database, external storage, backup agents, and a centralized backup scheduler, along with with performance metrics such as network throughput, CPU utilization, memory utilization, and disk performance.</p>
+<p>expose application metric</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line"> <span class="string">&quot;encoding/json&quot;</span></span><br><span class="line"> <span class="string">&quot;log&quot;</span></span><br><span class="line"> <span class="string">&quot;net/http&quot;</span></span><br><span class="line"> <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Performance</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line"> results := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">float32</span>)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// get number of Goroutines</span></span><br><span class="line"> <span class="comment">// https://golang.org/pkg/runtime/#NumGoroutine </span></span><br><span class="line"> numRoutines := runtime.NumGoroutine()</span><br><span class="line"> results[<span class="string">&quot;GoRoutines&quot;</span>] = <span class="keyword">float32</span>(numRoutines)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// get memory stats</span></span><br><span class="line"> <span class="comment">// https://golang.org/pkg/runtime/#MemStats </span></span><br><span class="line"> <span class="keyword">var</span> memStats runtime.MemStats</span><br><span class="line"> runtime.ReadMemStats(&amp;memStats)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes allocated and not yet freed</span></span><br><span class="line"> results[<span class="string">&quot;MemAlloc&quot;</span>] = <span class="keyword">float32</span>(memStats.Alloc) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// number of frees</span></span><br><span class="line"> results[<span class="string">&quot;MemFrees&quot;</span>] = <span class="keyword">float32</span>(memStats.Frees) </span><br><span class="line"> </span><br><span class="line"> <span class="comment">// bytes allocated and not yet freed</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapAlloc&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapAlloc) </span><br><span class="line"> </span><br><span class="line"> <span class="comment">// bytes in idle spans</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapIdle&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapIdle) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes in non-idle span</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapInUse&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapInuse) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// total number of allocated objects</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapObjects&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapObjects) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes obtained from system</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapSys&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapSys) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// number of mallocs</span></span><br><span class="line"> results[<span class="string">&quot;MemMallocs&quot;</span>] = <span class="keyword">float32</span>(memStats.Mallocs) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// total number of garbage collections</span></span><br><span class="line"> results[<span class="string">&quot;MemNumGc&quot;</span>] = <span class="keyword">float32</span>(memStats.NumGC) </span><br><span class="line"></span><br><span class="line"> <span class="comment">//total time that the garbage collector has paused the program</span></span><br><span class="line"> results[<span class="string">&quot;MemPauseTotalNs&quot;</span>] = <span class="keyword">float32</span>(memStats.PauseTotalNs) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes obtained from system </span></span><br><span class="line"> results[<span class="string">&quot;MemSys&quot;</span>] = <span class="keyword">float32</span>(memStats.Sys)</span><br><span class="line"></span><br><span class="line"> resp, err := json.Marshal(results)</span><br><span class="line"> <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">  log.Printf(<span class="string">&quot;error: couldn&#x27;t marshal queue metrics to json&quot;</span>)</span><br><span class="line">  w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  w.Write(resp)</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>将这些收集到的内容，放到TSDB里中，(json格式)</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/06/intresting-interview/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -610,84 +684,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/29/spofity-know-you-so-well/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/29/spofity-know-you-so-well/" class="post-title-link" itemprop="url">spotify know you so well</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-29 11:06:37" itemprop="dateCreated datePublished" datetime="2018-05-29T11:06:37+08:00">2018-05-29</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/spotify/" itemprop="url" rel="index"><span itemprop="name">spotify</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/s/story/spotifys-discover-weekly-how-machine-learning-finds-your-new-music-19a41ab76efe">原文链接</a></p>
-<ol>
-<li><strong>Collaborative Filtering</strong> models (i.e. the ones that Last.fm originally used), which analyze both <em>your</em> behavior and <em>others’</em> behaviors.</li>
-<li><strong>Natural Language Processing (NLP)</strong> models, which analyze <em>text.</em></li>
-<li><strong>Audio</strong> models, which analyze the <em>raw audio tracks</em> <em>themselves</em>.</li>
-</ol>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*cp07MRMUjndZsvV7QElSXg.png" alt="discover weekly"></p>
-<p>Unlike Netflix, Spotify doesn’t have a star-based system with which users rate their music. Instead, Spotify’s data is <strong>implicit feedback</strong> — specifically, the <strong>stream counts</strong> of the tracks and additional streaming data, such as whether a user saved the track to their own playlist, or visited the artist’s page after listening to a song.</p>
-<p>根据喜欢的音乐，来归类于相似用户。</p>
-<p>In actuality, this matrix you see here is <em>gigantic</em>. <strong>Each row represents one of Spotify’s 140 million users —</strong> if you use Spotify, you yourself are a row in this matrix — and <strong>each column represents one of the 30 million songs</strong> in Spotify’s database.</p>
-<p>The exact mechanisms behind NLP are beyond the scope of this article, but here’s what happens on a very high level: Spotify crawls the web constantly looking for blog posts and other written text about music to figure out what people are saying about specific artists and songs — which adjectives and what particular language is frequently used in reference to those artists and songs, and which other artists and songs are also being discussed alongside them.</p>
-<p>with cnn处理audio部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -759,7 +755,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-count">645</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

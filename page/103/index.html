@@ -153,6 +153,163 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/15/kafka-message/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/08/15/kafka-message/" class="post-title-link" itemprop="url">Kafka消息格式演进</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-15 07:46:19" itemprop="dateCreated datePublished" datetime="2017-08-15T07:46:19+08:00">2017-08-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index"><span itemprop="name">kafka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzA5MTc0NTMwNQ==&mid=2650714506&idx=1&sn=6499c694e0ab80a8cf0186544507dfd0&chksm=887dacfcbf0a25ea2106ccddbaa8c39bae2f4dd0754a4528bc198d0b8d164115b2ea103db6ff&scene=0&key=c2513fa3664680e1afbe7fd3a425498928f2fd786ff1e2aec7a6432c0b76a93266c56004455bf451e46a889d1b4c2f8fa92d1b13a11bb24441ce32fc6d9f5cd40b54a09cdbb14016f4d3e96cdf57b387&ascene=0&uin=MjkwMTQwODQ2Mg==&devicetype=iMac+MacBookPro13,3+OSX+OSX+10.12.6+build(16G29)&version=12020810&nettype=WIFI&fontScale=100&pass_ticket=/ztiEOYTeSZniz8t2qIvpohw2kQwMwIFEXYh6ivBqK5th02GsDrWNoAS8zKbW4eV">Kafka消息格式演进</a></p>
+<h3 id="kafka-0-7-x"><a href="#kafka-0-7-x" class="headerlink" title="kafka 0.7.x"></a>kafka 0.7.x</h3><p>Message Format</p>
+<table>
+<thead>
+<tr>
+<th>magic</th>
+<th>Attribute</th>
+<th>Crc</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>Message Set</p>
+<table>
+<thead>
+<tr>
+<th>offset</th>
+<th>size</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>magic: 1个字节,标识kafka版本，1个字节</p>
+<p>attribute: 存储消息压缩所使用的编码， 1个字节</p>
+<p>crc: 校验消息的内容， 4个字节</p>
+<p>value: N-6个字节，N为Message总字节数，</p>
+<p>message set中</p>
+<p>offset: 8个字节，存储到磁盘之后的物理偏移量</p>
+<p>size: 4个字节，消息的大小</p>
+<p>发送以message set为单位进行发送，压缩的话，也是以message set的方式进行压缩，也就是value部分，以message set的方式，多条message</p>
+<h3 id="kafka-0-8-x"><a href="#kafka-0-8-x" class="headerlink" title="kafka 0.8.x"></a>kafka 0.8.x</h3><p>增加了key相关的信息，以及内容的长度，不再通过特定的N-6这种方式来标明</p>
+<table>
+<thead>
+<tr>
+<th>crc</th>
+<th>magic</th>
+<th>Attribute</th>
+<th>key length</th>
+<th>key</th>
+<th>value length</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>如果进行多条消息的压缩的话，这样，会缺少key部分的存储，而且这时候value为压缩之后的消息内容</p>
+<h3 id="kafka-0-10-x"><a href="#kafka-0-10-x" class="headerlink" title="kafka 0.10.x"></a>kafka 0.10.x</h3><p>引入了kakfka stream部分</p>
+<table>
+<thead>
+<tr>
+<th>crc</th>
+<th>magic</th>
+<th>Attribute</th>
+<th>Timestamp</th>
+<th>key length</th>
+<th>key</th>
+<th>value length</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="kafka-0-11-x"><a href="#kafka-0-11-x" class="headerlink" title="kafka 0.11.x"></a>kafka 0.11.x</h3><p>较之以前有重大的改变，消息的格式完全变了。。？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/09/spark-submit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -601,89 +758,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/01/Authentication-and-Authorization-in-microService/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/08/01/Authentication-and-Authorization-in-microService/" class="post-title-link" itemprop="url">Authentication and Authorization in MicroService</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-08-01 00:29:18" itemprop="dateCreated datePublished" datetime="2017-08-01T00:29:18+08:00">2017-08-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/auth/" itemprop="url" rel="index"><span itemprop="name">auth</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/technology-learning/how-we-solved-authentication-and-authorization-in-our-microservice-architecture-994539d1b6e6">How We Solved Authentication and Authorization in Our Microservice Architecture</a></p>
-<h3 id="Architecutre"><a href="#Architecutre" class="headerlink" title="Architecutre"></a>Architecutre</h3><p>Building Blocks of our authentication/authorization layer</p>
-<p>Token Based Authentication</p>
-<blockquote>
-<p>When a user logs in successfully, a jwt is returned. On subsequent requests, the user must attach this token to each request. This is needed so that the api gateway can establish the identity of the user and extract the user’s claims from the token.</p>
-</blockquote>
-<p>Single SignON(SSO) </p>
-<blockquote>
-<p>The way SSO is implemented in our system is simple. When a user logs in for the first time from any frontend app, a cookie called jwt-token gets created on the api-gateway. The cookie’s domain is .andela.com and hence accessible to all andela.com subdomain</p>
-</blockquote>
-<p>针对mobile apps部分</p>
-<blockquote>
-<p>the api-gateway supports passing the jwt via Authorization header as Bearer Tokens</p>
-</blockquote>
-<h3 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h3><p>The api gateway</p>
-<h3 id="Authorization"><a href="#Authorization" class="headerlink" title="Authorization"></a>Authorization</h3><p>permissions in authorization service has many to many relationship with roles in user service</p>
-<p>权限模型部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -755,7 +829,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">644</span>
+          <span class="site-state-item-count">645</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
