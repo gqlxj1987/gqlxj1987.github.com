@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/06/custom-application-monitoring-for-go/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/go-memory-management/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/06/06/custom-application-monitoring-for-go/" class="post-title-link" itemprop="url">custom application monitoring for go</a>
+            <a href="/2018/06/21/go-memory-management/" class="post-title-link" itemprop="url">Go Memory Management</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-06-06 17:01:25" itemprop="dateCreated datePublished" datetime="2018-06-06T17:01:25+08:00">2018-06-06</time>
+              <time title="Created: 2018-06-21 10:12:34" itemprop="dateCreated datePublished" datetime="2018-06-21T10:12:34+08:00">2018-06-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,181 +200,18 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.logicmonitor.com/blog/custom-application-monitoring-go/">原文链接</a></p>
-<p>our TSDB backup system has several components that need to be monitored, including a metadata database, external storage, backup agents, and a centralized backup scheduler, along with with performance metrics such as network throughput, CPU utilization, memory utilization, and disk performance.</p>
-<p>expose application metric</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line"> <span class="string">&quot;encoding/json&quot;</span></span><br><span class="line"> <span class="string">&quot;log&quot;</span></span><br><span class="line"> <span class="string">&quot;net/http&quot;</span></span><br><span class="line"> <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Performance</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line"> results := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">float32</span>)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// get number of Goroutines</span></span><br><span class="line"> <span class="comment">// https://golang.org/pkg/runtime/#NumGoroutine </span></span><br><span class="line"> numRoutines := runtime.NumGoroutine()</span><br><span class="line"> results[<span class="string">&quot;GoRoutines&quot;</span>] = <span class="keyword">float32</span>(numRoutines)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// get memory stats</span></span><br><span class="line"> <span class="comment">// https://golang.org/pkg/runtime/#MemStats </span></span><br><span class="line"> <span class="keyword">var</span> memStats runtime.MemStats</span><br><span class="line"> runtime.ReadMemStats(&amp;memStats)</span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes allocated and not yet freed</span></span><br><span class="line"> results[<span class="string">&quot;MemAlloc&quot;</span>] = <span class="keyword">float32</span>(memStats.Alloc) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// number of frees</span></span><br><span class="line"> results[<span class="string">&quot;MemFrees&quot;</span>] = <span class="keyword">float32</span>(memStats.Frees) </span><br><span class="line"> </span><br><span class="line"> <span class="comment">// bytes allocated and not yet freed</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapAlloc&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapAlloc) </span><br><span class="line"> </span><br><span class="line"> <span class="comment">// bytes in idle spans</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapIdle&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapIdle) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes in non-idle span</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapInUse&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapInuse) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// total number of allocated objects</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapObjects&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapObjects) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes obtained from system</span></span><br><span class="line"> results[<span class="string">&quot;MemHeapSys&quot;</span>] = <span class="keyword">float32</span>(memStats.HeapSys) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// number of mallocs</span></span><br><span class="line"> results[<span class="string">&quot;MemMallocs&quot;</span>] = <span class="keyword">float32</span>(memStats.Mallocs) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// total number of garbage collections</span></span><br><span class="line"> results[<span class="string">&quot;MemNumGc&quot;</span>] = <span class="keyword">float32</span>(memStats.NumGC) </span><br><span class="line"></span><br><span class="line"> <span class="comment">//total time that the garbage collector has paused the program</span></span><br><span class="line"> results[<span class="string">&quot;MemPauseTotalNs&quot;</span>] = <span class="keyword">float32</span>(memStats.PauseTotalNs) </span><br><span class="line"></span><br><span class="line"> <span class="comment">// bytes obtained from system </span></span><br><span class="line"> results[<span class="string">&quot;MemSys&quot;</span>] = <span class="keyword">float32</span>(memStats.Sys)</span><br><span class="line"></span><br><span class="line"> resp, err := json.Marshal(results)</span><br><span class="line"> <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">  log.Printf(<span class="string">&quot;error: couldn&#x27;t marshal queue metrics to json&quot;</span>)</span><br><span class="line">  w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  w.Write(resp)</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>将这些收集到的内容，放到TSDB里中，(json格式)</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/06/intresting-interview/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/06/intresting-interview/" class="post-title-link" itemprop="url">有意思的面试题</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-06 10:58:47" itemprop="dateCreated datePublished" datetime="2018-06-06T10:58:47+08:00">2018-06-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E9%9D%A2%E8%AF%95/" itemprop="url" rel="index"><span itemprop="name">面试</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>mysql的索引部分：关于最左匹配部分</p>
-<blockquote>
-<p>在使用查询的时候遵循mysql组合索引的”最左前缀”,下面我们来分析一下 什么是最左前缀:及索引where时的条件要按照建立索引的时候字段的排序方式</p>
-</blockquote>
-<blockquote>
-<p>1、不按索引最左列开始查询（多列索引） 例如index(‘c1’, ‘c2’, ‘c3’) where ‘c2’ = ‘aaa’ 不使用索引,where <code>c2</code> = <code>aaa</code> and <code>c3</code>=<code>sss</code> 不能使用索引</p>
-</blockquote>
-<blockquote>
-<p>2、查询中某个列有范围查询，则其右边的所有列都无法使用查询（多列查询）</p>
-</blockquote>
-<blockquote>
-<p>Where c1= ‘xxx’ and c2 like = ‘aa%’ and c3=’sss’ 改查询只会使用索引中的前两列,因为like是范围查询</p>
-</blockquote>
-<blockquote>
-<p>3、不能跳过某个字段来进行查询,这样利用不到索引,比如我的sql 是 </p>
-</blockquote>
-<blockquote>
-<p>explain select * from <code>award</code> where nickname &gt; ‘rSUQFzpkDz3R’ and account = ‘DYxJoqZq2rd7’ and created_time = 1449567822; 那么这时候他使用不到其组合索引.</p>
-</blockquote>
-<blockquote>
-<p>因为我的索引是 (nickname, account, created_time),如果第一个字段出现 范围符号的查找,那么将不会用到索引,如果我是第二个或者第三个字段使用范围符号的查找,那么他会利用索引,利用的索引是(nickname),</p>
-</blockquote>
-<blockquote>
-<p><strong>mysql在使用like查询的时候只有</strong>不以%开头的时候，才会使用到索引。</p>
-</blockquote>
-<p>给一个随时会断掉的输入流，取100个输入，保证尽可能的公平</p>
-<blockquote>
-<p>先取100个，再按照一定的比率，取后面的数据，同时按照一定的概率对之前选取的数据进行替换，采用类似ping-pong的机制，通过一定概率进行替换</p>
-</blockquote>
-<p>关于twitter的Finagle框架 rpc框架 同gRPC的区别？</p>
-<blockquote>
-<p>都是rpc部分的框架，</p>
-</blockquote>
-<p>关于goroutine的使用方面，关于使用了多少个goroutine，内存占用的情况</p>
-<blockquote>
-<p>可能来说，监测内存占用情况，比较合适，runtime上去计算多少个goroutine上，有点不是很实用</p>
-</blockquote>
-<p>go与java的区别</p>
-<blockquote>
-<p>关于多线程的实现方式，一个是1:1对应到操作系统的线程，一个是n:m:p的方式，</p>
-<p>finally以及defer之间</p>
-<p>function部分多个返回值部分</p>
-<p>部署的方便性部分，二进制文件以及jar包</p>
-<p>在起多线程方式上，java还有哪些方式？thread/runnable/callable、future部分</p>
-</blockquote>
-<p>nodejs的一些优缺点</p>
-<blockquote>
-<p>事件驱动，非阻塞IO，单进程，单线程，callback机制，</p>
-<p>emet的方式？</p>
-<p>遇到I/O操作，会再起一个线程，不跟主线程冲突，适合I/O密集型应用</p>
-</blockquote>
-<p>tcp的三次握手以及四次挥手</p>
-<blockquote>
-<p><img src="http://images.cnitblog.com/blog/88420/201402/181351206012825.png" alt="tcp"></p>
-<p>tcp为全双工的，</p>
-<p>简单说来是 “先关读，后关写”，一共需要四个阶段。以客户机发起关闭连接为例：</p>
-<p>1.服务器读通道关闭</p>
-<p>2.客户机写通道关闭 </p>
-<p>3.客户机读通道关闭 </p>
-<p>4.服务器写通道关闭</p>
-</blockquote>
-<p>IO模型</p>
-<blockquote>
-<p>阻塞、非阻塞，针对应用来说，非阻塞也是轮询的那种</p>
-<p>IO多路复用，主要是内核给出相关的信息，如select、poll、epoll</p>
-<p>异步通讯，就是服务端来控制传输，无需客户端询问的那种</p>
-<p>同步过程中进程触发IO操作并等待或者轮询的去查看IO操作是否完成。异步过程中进程触发IO操作以后，直接返回，做自己的事情，IO交给内核来处理，完成后内核通知进程IO完成</p>
-<p>需要做一件事能不能立即得到返回应答，如果不能立即获得返回，需要等待，那就阻塞了，否则就可以理解为非阻塞</p>
-</blockquote>
-<p>设计一个内存分配算法</p>
-<blockquote>
-<p>slab算法</p>
-<p><img src="https://chyyuu.gitbooks.io/simple_os_book/content/zh/chapter-3/figures/9.png" alt="slab算法"></p>
-</blockquote>
-<p>分布式系统的设计几个点</p>
-<blockquote>
-<p>稳定性，不允许单点失效</p>
-<p>尽可能减少节点间通讯开销</p>
-<p>应用服务最好做成无状态的</p>
-<p>CAP理论：一致性，可用性，分区容忍性(可靠性)， 带来的一个问题，是ACID理论，(原子性，一致性，隔离性，持久性)</p>
-<p>选主算法方面的问题，关于paxos算法的解释，以及raft协议的阐述</p>
-</blockquote>
-<p>docker</p>
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">适用于弹性部署的场景，例如抢购，秒杀，服务压力骤增，需要短时间增加容器。</span><br><span class="line"></span><br><span class="line">同时适用于分布式情况，毕竟分布式部署应用还需要考虑，单点故障的情况。</span><br><span class="line"></span><br><span class="line">还有就是异步处理任务，配合动态增减服务器，就可以节省资源，降低成本</span><br></pre></td></tr></table></figure>
-
-<p>编排的目的：服务发现，高可用，资源管理，端口管理</p>
-<p>各种编排的策略：swarm, k8s，双方提供的功能不同，</p>
-</blockquote>
-<p>linux中buffers和cached</p>
-<blockquote>
-<p>used：表示总计分配给缓存（包含buffers 与cache ）使用的数量，但其中可能部分缓存并未实际使用。</p>
-<p>free：未被分配的内存。</p>
-<p>shared：共享内存，一般系统不会用到，这里也不讨论。</p>
-<p>buffers：系统分配但未被使用的buffers 数量。</p>
-<p>cached：系统分配但未被使用的cache 数量</p>
-<p>buffers是指用来给块设备做的缓冲大小，他只记录文件系统的metadata以及 tracking in-flight pages.</p>
-<p>cached是用来给文件做缓冲。</p>
-<p>那就是说：buffers是用来存储，目录里面有什么内容，权限等等。</p>
-<p>而cached直接用来记忆我们打开的文件</p>
-</blockquote>
+          <p><a target="_blank" rel="noopener" href="https://povilasv.me/go-memory-management/">原文链接</a></p>
+<p><strong>Virtual Memory Size(VSZ)</strong> is all memory that the process can access, including memory that is swapped out, memory that is allocated, but not used, and memory that is from shared libraries. (<em>Edited</em>, good explanation in <a target="_blank" rel="noopener" href="https://stackoverflow.com/a/21049737/112129">stackoverflow</a>.)</p>
+<p><strong>Resident Set Size(RSS)</strong> is number of memory pages the process has in real memory multiplied by pagesize. This excludes swapped out memory pages.</p>
+<p><a target="_blank" rel="noopener" href="https://www.soasme.com/techshack.weekly/verses/c06f28bc-698b-4586-a170-67f0e9d9ccfc.html">一则</a></p>
+<p>Go 通过 汇编或者 cgo 来调用这些系统调用，而不是 libc，所以它不提供 malloc, 而是直接向 OS 通过 mmap 要内存。Go 使用类似 TCMalloc: Thread-Caching Malloc 的方法管理内存。它比 libc malloc 更快效率更高，做法是使用 thread-local cache 存储预分配的内存对象。具体来说，给对象做大小分级，每个级别的管理都不太一样</p>
+<p><a target="_blank" rel="noopener" href="http://hugozhu.myalert.info/2013/04/20/31-golang-memory-model.html?utm_source=tuicool">golang内存模型</a></p>
+<p>内存模型的目的是为了定义清楚变量的读写在不同执行体里的可见性。理解内存模型在并发编程中非常重要，因为代码的执行顺序和书写的逻辑顺序并不会完全一致，甚至在编译期间编译器也有可能重排代码以最优化CPU执行, 另外还因为有CPU缓存的存在，内存的数据不一定会及时更新，这样对内存中的同一个变量读和写也不一定和期望一样。</p>
+<p>Go的并发模型是基于CSP（<a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">Communicating Sequential Process</a>）的，不同的Goroutine通过一种叫Channel的数据结构来通信；Java的并发模型则基于多线程和共享内存，有较多的概念（violatie, lock, final, construct, thread, atomic等）和场景，当然java.util.concurrent并发工具包大大简化了Java并发编程</p>
+<h2 id="Happens-before-定义"><a href="#Happens-before-定义" class="headerlink" title="Happens-before 定义"></a>Happens-before 定义</h2><p>Happens-before用来指明Go程序里的内存操作的局部顺序。如果一个内存操作事件e1 happens-before e2，则e2 happens-after e1也成立；如果e1不是happens-before e2,也不是happens-after e2，则e1和e2是并发的。</p>
+<h2 id="垃圾回收的时机"><a href="#垃圾回收的时机" class="headerlink" title="垃圾回收的时机"></a>垃圾回收的时机</h2><p>垃圾回收的触发是由一个gcpercent的变量控制的，当新分配的内存占已在使用中的内存的比例超过gcprecent时就会触发。比如，gcpercent=100，当前使用了4M的内存，那么当内存分配到达8M时就会再次gc。如果回收完毕后，内存的使用量为5M，那么下次回收的时机则是内存分配达到10M的时候。也就是说，并不是内存分配越多，垃圾回收频率越高，这个算法使得垃圾回收的频率比较稳定，适合应用的场景。</p>
+<p>gcpercent的值是通过环境变量GOGC获取的，如果不设置这个环境变量，默认值是100。如果将它设置成off，则是关闭垃圾回收。</p>
+<p>+</p>
 
       
     </div>
@@ -394,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/04/interview-once/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/An-Analysis-of-Vgo/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -408,7 +245,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/06/04/interview-once/" class="post-title-link" itemprop="url">面试总结</a>
+            <a href="/2018/06/21/An-Analysis-of-Vgo/" class="post-title-link" itemprop="url">An Analysis of Vgo</a>
         </h2>
 
         <div class="post-meta">
@@ -418,230 +255,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-06-04 21:55:41" itemprop="dateCreated datePublished" datetime="2018-06-04T21:55:41+08:00">2018-06-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E9%9D%A2%E8%AF%95/" itemprop="url" rel="index"><span itemprop="name">面试</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>三年来的第一次面试，算是勉勉强强地过了</p>
-<p>期间一些问题的回顾</p>
-<ul>
-<li>简历上关于新美的部分，有些太少，应该多加点，并且侧重于数据以及优化</li>
-<li>创业公司，一个人干成一个大工程，要强调这部分的一个挑战性，包括技术上的挑战性，沟通上的挑战性，最后成果上的展现的挑战性</li>
-<li>关于成长性的预期，是从大公司的一个螺丝钉到创业公司的独当一面，强调现有工作的全面性</li>
-<li>从内部系统转向了外部系统，从并发性以及复杂性上，给出相应的答案<ul>
-<li>输入法后端的并发性</li>
-<li>推送系统的完备性</li>
-<li>数据平台的完整性，多维度性</li>
-<li>处理框架的实时性上</li>
-<li>多机房部署的复杂性，以及运维上的复杂性</li>
-</ul>
-</li>
-<li>尽量从数据上给出例子<ul>
-<li>qps，接口成功率</li>
-<li>推送系统的成功率，推送的及时性</li>
-<li>离线处理平台部分，涉及多日志处理部分，完整性，复杂性</li>
-<li>在线处理平台的实时性，框架的选择，结果的呈现</li>
-<li>其他一些技术上的选择，以及成果</li>
-</ul>
-</li>
-</ul>
-<p>twitter的fingle框架-&gt; 为什么不用gRPC框架，后续来说。。</p>
-<p>技术上的专家部分-&gt;广度的专家-&gt;深度上的专家</p>
-<hr>
-<p>继续第二面部分</p>
-<p>方向上的一些兴趣点部分？</p>
-<p>对于基础上的预习不够</p>
-<p>简历上关于语言的写法有问题，导致很多还以为会php。。。还是关于侧重点方面，有点牵强</p>
-<p>了解地多，还要了解地深，很容易给别人的感觉就是杂而不精。。</p>
-<p>不过，经过这次的面试，愈发觉得谦卑的重要性，不管是大公司还是小公司，不管身处什么职位，任何人都有其平等对待的必要，而不是一种店大欺客的感觉。。。</p>
-<p>面试也是一种学习和了解，摆好心态，争取自己在面试中学习到更多。。</p>
-<p>同时，算法还是偏弱，还要继续刷leetcode。。。</p>
-<hr>
-<p>所谓的人情三面，终于体会到了。。。</p>
-<p>关于业务和技术方面，最终的方向是什么？还是给什么做什么？</p>
-<p>传说中的技术上的专家部分，是否还有机会？</p>
-<p>关于kafka的一个整合部分，关于规范producer以及consumer部分，以及对突发流量部分的一个把控部分，还是挺有启发的。。</p>
-<p>在面试的时候，不用考虑去迎合面试官，尝试去表达自己的想法，尽量坚定自己的想法，不用随着面试官去摇摆，虽然有各种压力和想法，但面试当做学习的话，也要表现自己的思路，自己优点在哪里。。尽量不要紧张。。</p>
-<p>在面试中去寻找自己感兴趣的部分，觉得有用的地方。。</p>
-<hr>
-<p>第四范式的面试：</p>
-<ul>
-<li>关于内存池分配问题，多线程部分，每个线程独立一个内存池，缓存的局部性</li>
-<li>算法题，还算是蒙对了。。</li>
-</ul>
-<p>技术经理面的时候，会问一些关于管理风格上的问题，以及自己在遇到一些不如人意的环境下，会如何处理的问题。不过，感觉还是有点没答好，关于未来的方向上，有什么遗憾之类。。</p>
-<p>最后面的时候，对岗位的match程度产生了怀疑，不过自己也在介绍的时候，没有说好，只是在说明自己对于底层这块有兴趣，但是实际上的一些经验上，没有表述清楚，没有表达自己对于底层优势的部分？</p>
-<p>关于业界的最佳实践部分，并不算最佳实践部分，在对于业务的方向上，去选取对业务更合适的架构，并从这其中发现更多的问题，解决这些问题，包括应用层，以及底层部分，都可以去优化。。</p>
-<hr>
-<p>freewheel的面试：</p>
-<ul>
-<li>关于数据的严谨性部分，如丢失率部分，有没有计算？</li>
-<li>api gateway的方式，关于限流部分，有没有更好的方式，除了丢弃之外，通过redis来实现限流器部分，</li>
-<li>关于服务的测试/上线部分，通过gor replay部分，对相关流量进行还原</li>
-</ul>
-<p>关于数据的lazy data问题，可能还是基于时间窗口部分，本地状态的一个概念？本地缓存的一个概念</p>
-<p>规定一个时间段用于重排乱序的事件，同时也具有在一定时间段内重排乱序事件的能力</p>
-<p>nosql的一些策略</p>
-<ul>
-<li>hbase</li>
-<li>mongodb</li>
-</ul>
-<p>版本和索引的概念</p>
-<p>基于raft协议的golang的实现部分？分布式锁的情况，其实没有说到选举部分，这一点有点没答出来，只是有一个分布式锁的状况</p>
-<p>关于数据的反馈是如何来做？类似于广告的策略的改变部分？</p>
-<p>后面两面部分：</p>
-<p>关于数据的质量保证部分，是如何来保证，这个按照面试官的说法，没有答好，这块无非就是事前的测试部分完备性，以及事后的及时恢复性部分，事前测试的完备性，在于一个测试环境以及相关功能的测试的引入，包含流量的复制，相关代码的单测部分，功能测试，压测等等。事后的及时恢复，在于事件的及时通知问题，通知完成之后，自动恢复的部分，对相关数据以及应用的影响部分的预估。</p>
-<p>说到自己的缺点的时候，有点太随意了，细节把控部分不仔细，举的例子上，对于上线后的检查部分，有点跟之前质量保证部分，有所冲突。。。有点没答好</p>
-<p>关于lazy data的问题，其实做的思路都差不多，将时间戳部分能够继承到后续的数据中，方便进行数据的修正；具有一段时间时间数据的保存功能，方便进行数据的重处理功能</p>
-<p>对于系统的复杂性部分，运维上，稳定性上，分布式上，还有灵活性，正确性等等。。</p>
-<hr>
-<p>今日头条的面试：</p>
-<ul>
-<li>关于基础知识的不确定，如rune&lt;-&gt;int8部分，数据库的索引部分</li>
-<li>算法的顺序反了。。</li>
-</ul>
-<p>关于百度业务的总结，以及分拆部分，</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/04/ipfs-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/04/ipfs-intro/" class="post-title-link" itemprop="url">IPFS Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-04 11:37:13" itemprop="dateCreated datePublished" datetime="2018-06-04T11:37:13+08:00">2018-06-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ipfs/" itemprop="url" rel="index"><span itemprop="name">ipfs</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://vinta.ws/code/ipfs-the-very-slow-distributed-permanent-web.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_130">原文链接</a></p>
-<p>IPFS stands for InterPlanetary File System, but you could simply consider it as a distributed, permanent, but ridiculously slow, not properly functioning version of web.</p>
-<p>ref: <a target="_blank" rel="noopener" href="https://ipfs.io/">https://ipfs.io/</a></p>
-<p>Every IPFS node’s default storage is <code>10GB</code>, and a single node could only store data it needs, which also means each node only stores a small amount of whole data on IPFS. <strong>If there is not enough nodes, your data might be distributed to no one except your own node.</strong></p>
-<p><code>ipfs add</code>类似git方式？hash code的方式</p>
-<p>Pinning means storing IPFS files on local node, and prevent them from getting garbage collected. Also, you could access them much quickly. You only need to do <code>ipfs pin add</code> to pin contents someone else uploaded.</p>
-<p>Get files? 通过hash值去get相关的文件？</p>
-<p>IPNS stands for InterPlanetary Naming System.</p>
-<p>Everytime you change files under a folder, the hash of the folder also changes. So you need a static reference which always points to the latest hash of your folder. You could publish your static website (a folder) to IPNS with the static reference, which is your peer ID as well as the hash of your public key.</p>
-<p>publish a  website to ipns</p>
-<p>After you change something, publish it again with new hash.</p>
-<h3 id="Create-a-Domain-Name-Alias-for-Your-Peer-ID"><a href="#Create-a-Domain-Name-Alias-for-Your-Peer-ID" class="headerlink" title="Create a Domain Name Alias for Your Peer ID"></a>Create a Domain Name Alias for Your Peer ID</h3><p>可以取别名，这是优于git部分的feature？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/31/Dgraph-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/31/Dgraph-intro/" class="post-title-link" itemprop="url">Dgraph Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-31 17:31:03" itemprop="dateCreated datePublished" datetime="2018-05-31T17:31:03+08:00">2018-05-31</time>
+              <time title="Created: 2018-06-21 09:45:23" itemprop="dateCreated datePublished" datetime="2018-06-21T09:45:23+08:00">2018-06-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -664,11 +278,268 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=cHXbYLNa0qQ">原文链接</a></p>
-<p>Dgraph</p>
-<p>解决key value lookup问题</p>
-<p>跟n4oj 图sql类似</p>
-<p>主要是针对复杂查询，有关联性的实体，但每个实体的字段又很少</p>
+          <p><a target="_blank" rel="noopener" href="https://sdboyer.io/vgo/intro/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_130">原文链接</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/miaosha/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/21/miaosha/" class="post-title-link" itemprop="url">解决秒杀一则</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-21 09:07:24" itemprop="dateCreated datePublished" datetime="2018-06-21T09:07:24+08:00">2018-06-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%A7%92%E6%9D%80/" itemprop="url" rel="index"><span itemprop="name">秒杀</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/hj0U5V5np4fDsdc7jlzmUg">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/chanjarster/artemis-disruptor-miaosha">repo</a></p>
+<ul>
+<li>300线程，循环1000次，共30w请求</li>
+</ul>
+<p>秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的，放在内存中？</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/eZzl4LXykQwtoJTdVPGMW3QgdBOlR2zP5MgkmSklealPbrL56pZUrdIAhickZcNH0L9AcHXkZRKxg7afOq30daQ/640?wx_fmt=png&wxfrom=5&wx_lazy=1" alt="下单流程"></p>
+<p>通过JMS的消息，作为中间件来</p>
+<p>Disruptor是LMAX公司开源的高性能内存队列。Disruptor能够让开发人员只需写单线程代码，就能够获得非常强悍的性能表现，同时避免了写并发编程的难度和坑。 其本质思想在于多线程未必比单线程跑的快。</p>
+<p>backend利用它把从ActiveMQ Artemis获得请求串行化，判断商品库存是否充足，更新剩余库存，最后异步写入数据库。</p>
+<p>库存充足判断、更新剩余库存的动作都是在内存中进行的，配合Disruptor绕过了并发编程的内存可见性、同步、锁等问题，性能非常强。</p>
+<p>在本项目中商品在内存中相关类是Item.java，在利用jol-cli(点此下载)查看其memory-layout后发现，其大小为24byte：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar">http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar</a></p>
+</blockquote>
+<blockquote>
+<p>me.chanjar.jms.server.memdb.Item object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 int Item.amount N/A 16 4 Long Item.id N/A 20 4 (loss due to the next object alignment) Instance size: 24 bytes Space losses: 0 bytes internal + 4 bytes external = 4 bytes total</p>
+</blockquote>
+<p>而Long占用的内存也为24b：</p>
+<blockquote>
+<p>java.lang.Long object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N/A 12 4 (alignment/padding gap) N/A 16 8 long Long.value N/A Instance size: 24 bytes Space losses: 4 bytes internal + 0 bytes external = 4 bytes total</p>
+</blockquote>
+<p>假设你有100W商品需要秒杀，那么其占用内存 = 1,000,000 * (24b + 4b + 24b) = 52,000,000b = 49m。仅仅只占49m。</p>
+<p>架构上的优化点</p>
+<ol>
+<li>下单请求异步处理，请求返回的本次请求的ID，客户端拿这个ID到另行发起请求查询结果</li>
+<li>在秒杀期间，商品库存信息在内存中，库存判断及库存扣减都在内存中进行，之后异步到数据库</li>
+<li>利用Disruptor将并发请求串行化，同时避免了多线程编程复杂度</li>
+<li>抛弃数据库事务，采用最终一致性</li>
+</ol>
+<p>和JMS相关的优化点</p>
+<ol>
+<li>重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象(Spring的JmsTemplate就是这么干的)</li>
+<li>将JMS Session设定为transacted=false, AUTO_ACKNOWLEDGE</li>
+<li>发送JMS消息时DeliveryMode=NON_PERSISTENT</li>
+<li>关闭Artemis的重发、消息持久机制</li>
+</ol>
+<p>下单请求的异步处理，将下单流程同单子的查询分为两个不同流程，这样进行异步操作</p>
+<p>同时引入Disruptor，进行相关的串行化的工作</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/20/Weber-Fechner-law/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/20/Weber-Fechner-law/" class="post-title-link" itemprop="url">Weber-Fechner law</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-20 09:41:07" itemprop="dateCreated datePublished" datetime="2018-06-20T09:41:07+08:00">2018-06-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Weber/" itemprop="url" rel="index"><span itemprop="name">Weber</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E9%9F%8B%E4%BC%AF-%E8%B2%BB%E5%B8%8C%E7%B4%8D%E5%AE%9A%E7%90%86">原文链接</a></p>
+<p>性，用公式来表示，就是<code>△Φ/Φ=C</code>，其中<code>Φ</code>为原刺激量，<code>△Φ</code>为此时的差别阈限，<code>C</code>为常数，又称为韦柏率</p>
+<p>我们的感觉很敏感，但也有惰性：它会蒙骗我们的眼睛，也会加重我们的感受而迷失理性。所以我们应带着谦卑的心对待万物众生，韦伯定律中的生活智慧是：给予方要多做雪中送炭的事，少做锦上添花的事，尽量不做画蛇添足的事；而受予方要懂得珍惜自己的点滴所得，善待身边的人</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/19/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/19/one-week/" class="post-title-link" itemprop="url">风动，帆动，然心动也</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-19 09:55:05" itemprop="dateCreated datePublished" datetime="2018-06-19T09:55:05+08:00">2018-06-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>佛学的禅宗，跟所谓的心学部分？</p>
+<p>心是菩提树，身为明镜台。明镜本清净，何处染尘埃。</p>
+<p>身是菩提树，心如明镜台。时时勤拂拭，莫使有尘埃。</p>
+<hr>
+<p>本周：</p>
+<ul>
+<li>开始刷leetcode部分的题目</li>
+<li>开始总结相关基础部分的知识</li>
+<li>运营广告平台相关内容</li>
+</ul>
+<p>下周：</p>
+<ul>
+<li>整理以及修改简历，配合猎头，进行相关的投递</li>
+<li>继续刷题，巩固基础</li>
+<li>sdk部分的一些策略梳理和整理</li>
+</ul>
+<p>大考部分，算是见了面，不过心理还是挺抗拒的。。。不管是有没有做好准备，还是本身依然在自我怀疑状态。。。被赶鸭子上架了，只能是慢慢去拖一拖，磨一磨了。。</p>
+<p>徐建的事情，算是有一个初步的结果，虽然整体结果不如意，但起码人还在，还有希望在。。。</p>
+<p>感觉最近心不静，不管是之前制定的leetcode刷题计划，还是健身计划，还是面试的一些总结计划什么的，都没有好好地坚持下去。。。</p>
+<p>尽量心静吧，保持学习的心态。。。</p>
+<p>佛在彼岸，也在心中。。。修行。。。</p>
 
       
     </div>
@@ -687,7 +558,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/85/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/85/">85</a><span class="page-number current">86</span><a class="page-number" href="/page/87/">87</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/87/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/85/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/85/">85</a><span class="page-number current">86</span><a class="page-number" href="/page/87/">87</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/87/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -755,20 +626,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

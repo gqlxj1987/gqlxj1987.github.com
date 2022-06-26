@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/05/akka-best-practices/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/27/the-art-of-command-line/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/05/05/akka-best-practices/" class="post-title-link" itemprop="url">akka best practices</a>
+            <a href="/2019/05/27/the-art-of-command-line/" class="post-title-link" itemprop="url">The Art of Command Line</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-05-05 10:36:42" itemprop="dateCreated datePublished" datetime="2019-05-05T10:36:42+08:00">2019-05-05</time>
+              <time title="Created: 2019-05-27 18:53:29" itemprop="dateCreated datePublished" datetime="2019-05-27T18:53:29+08:00">2019-05-27</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                  <a href="/categories/command-line/" itemprop="url" rel="index"><span itemprop="name">command line</span></a>
                 </span>
             </span>
 
@@ -200,331 +200,322 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://harrylaou.com/scala/akka/bestpractices/">原文链接</a></p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/jlevy/the-art-of-command-line/blob/master/README-zh.md">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://explainshell.com/">explainShell</a></p>
 <ul>
-<li>Don’t share mutable state among actors</li>
-<li>Do not close on the sender</li>
-<li>Do not close over an actor’s context</li>
-<li>Do not use the scheduler with the Runnable trait</li>
-<li>Actors do not stop automatically when no longer referenced, every Actor that is created must also explicitly be destroyed. The only simplification is that stopping a parent Actor will also recursively stop all the child Actors that this parent has created.</li>
-<li>It is always preferable to communicate with other Actors using their ActorRef instead of relying upon ActorSelection. Exceptions are<ul>
-<li>sending messages using the <em>At-Least-Once Delivery</em> facility<ul>
-<li>initiating first contact with a remote system</li>
-<li>In all other cases ActorRefs can be provided during Actor creation or initialization, passing them from parent to child or introducing Actors by sending their ActorRefs to other Actors within messages.</li>
+<li>学会如何使用 <code>man</code> 命令去阅读文档。学会使用 <code>apropos</code> 去查找文档。用 <code>type 命令</code> 来判断这个命令到底是可执行文件、shell 内置命令还是别名。</li>
+<li>熟悉 Bash 中的任务管理工具：<code>&amp;</code>，<strong>ctrl-z</strong>，<strong>ctrl-c</strong>，<code>jobs</code>，<code>fg</code>，<code>bg</code>，<code>kill</code> 等。</li>
+<li>在 Bash 中，可以按下 <strong>ctrl-w</strong> 删除你键入的最后一个单词，<strong>ctrl-u</strong> 可以删除行内光标所在位置之前的内容，<strong>alt-b</strong> 和 <strong>alt-f</strong> 可以以单词为单位移动光标，<strong>ctrl-a</strong> 可以将光标移至行首，<strong>ctrl-e</strong> 可以将光标移至行尾，<strong>ctrl-k</strong> 可以删除光标至行尾的所有内容，<strong>ctrl-l</strong> 可以清屏。键入 <code>man readline</code> 可以查看 Bash 中的默认快捷键。内容有很多，例如 <strong>alt-.</strong> 循环地移向前一个参数，而 <strong>alt-</strong>* 可以展开通配符</li>
+<li>如果你输入命令的时候中途改了主意，按下 <strong>alt-#</strong> 在行首添加 <code>#</code> 把它当做注释再按下回车执行（或者依次按下 <strong>ctrl-a</strong>， **#**， <strong>enter</strong>）。这样做的话，之后借助命令行历史记录，你可以很方便恢复你刚才输入到一半的命令。</li>
+<li>使用 <code>xargs</code> （ 或 <code>parallel</code>）。他们非常给力。注意到你可以控制每行参数个数（<code>-L</code>）和最大并行数（<code>-P</code>）。如果你不确定它们是否会按你想的那样工作，先使用 <code>xargs echo</code> 查看一下。此外，使用 <code>-I&#123;&#125;</code> 会很方便。例如：</li>
 </ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find . -name &#x27;*.py&#x27; | xargs grep some_function</span><br><span class="line">cat hosts | xargs -I&#123;&#125; ssh root@&#123;&#125; hostname</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><code>pstree -p</code> 以一种优雅的方式展示进程树</p>
+</li>
+<li><p>了解 Bash 中的“here documents”，例如 <code>cat &lt;&lt;EOF ...</code></p>
+</li>
+<li><p>使用 <code>screen</code> 或 <a target="_blank" rel="noopener" href="https://tmux.github.io/"><code>tmux</code></a> 来使用多份屏幕，当你在使用 ssh 时（保存 session 信息）将尤为有用。而 <code>byobu</code> 可以为它们提供更多的信息和易用的管理工具。另一个轻量级的 session 持久化解决方案是 <a target="_blank" rel="noopener" href="https://github.com/bogner/dtach"><code>dtach</code></a></p>
+</li>
+<li><p>使用 <a target="_blank" rel="noopener" href="https://github.com/ggreer/the_silver_searcher"><code>ag</code></a> 在源代码或数据文件里检索</p>
+</li>
+<li><p>Markdown，HTML，以及所有文档格式之间的转换，试试 <a target="_blank" rel="noopener" href="http://pandoc.org/"><code>pandoc</code></a></p>
+</li>
+<li><p>使用 <a target="_blank" rel="noopener" href="http://stedolan.github.io/jq/"><code>jq</code></a> 处理 JSON</p>
+</li>
+<li><p>使用 <a target="_blank" rel="noopener" href="https://github.com/0k/shyaml"><code>shyaml</code></a> 处理 YAML</p>
+</li>
+<li><p>标准的源代码对比及合并工具是 <code>diff</code> 和 <code>patch</code>。使用 <code>diffstat</code> 查看变更总览数据。注意到 <code>diff -r</code> 对整个文件夹有效。使用 <code>diff -r tree1 tree2 | diffstat</code> 查看变更的统计数据。<code>vimdiff</code> 用于比对并编辑文件。</p>
+</li>
+<li><p><code>curl</code> 和 <code>curl -I</code> 可以被轻松地应用于 web 调试中，它们的好兄弟 <code>wget</code> 也是如此，或者也可以试试更潮的 <a target="_blank" rel="noopener" href="https://github.com/jkbrzt/httpie"><code>httpie</code></a></p>
+</li>
+<li><p>Java 系统调试则是一件截然不同的事，一个可以用于 Oracle 的 JVM 或其他 JVM 上的调试的技巧是你可以运行 <code>kill -3 &lt;pid&gt;</code> 同时一个完整的栈轨迹和堆概述（包括 GC 的细节）会被保存到标准错误或是日志文件。JDK 中的 <code>jps</code>，<code>jstat</code>，<code>jstack</code>，<code>jmap</code> 很有用。<a target="_blank" rel="noopener" href="https://github.com/aragozin/jvm-tools">SJK tools</a> 更高级</p>
 </li>
 </ul>
-</li>
-<li>Messages can be any kind of object but have to be immutable</li>
-<li>Always prefer tell for performance, and only ask if you must.</li>
-<li>To complete the future with an exception you need send a Failure message to the sender. This is not done automatically when an actor throws an exception while processing a message.</li>
-<li>Set the number of thread in the pool to match your cores</li>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/27/jmh-intro/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/27/jmh-intro/" class="post-title-link" itemprop="url">JMH intro</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-05-27 16:03:07" itemprop="dateCreated datePublished" datetime="2019-05-27T16:03:07+08:00">2019-05-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.mkyong.com/java/java-jmh-benchmark-tutorial/">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/code-tools/jmh/">JMH (Java Microbenchmark Harness)</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.mkyong.benchmark;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.annotations.*;</span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.infra.Blackhole;</span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.runner.Runner;</span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.runner.RunnerException;</span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.runner.options.Options;</span><br><span class="line"><span class="keyword">import</span> org.openjdk.jmh.runner.options.OptionsBuilder;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.ArrayList;</span><br><span class="line"><span class="keyword">import</span> java.util.Iterator;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.TimeUnit;</span><br><span class="line"></span><br><span class="line"><span class="meta">@BenchmarkMode(Mode.AverageTime)</span></span><br><span class="line"><span class="meta">@OutputTimeUnit(TimeUnit.MILLISECONDS)</span></span><br><span class="line"><span class="meta">@State(Scope.Benchmark)</span></span><br><span class="line"><span class="meta">@Fork(value = 2, jvmArgs = &#123;&quot;-Xms2G&quot;, &quot;-Xmx2G&quot;&#125;)</span></span><br><span class="line"><span class="comment">//@Warmup(iterations = 3)</span></span><br><span class="line"><span class="comment">//@Measurement(iterations = 8)</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BenchmarkLoop</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Param(&#123;&quot;10000000&quot;&#125;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> N;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;String&gt; DATA_FOR_TESTING;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> RunnerException </span>&#123;</span><br><span class="line"></span><br><span class="line">        Options opt = <span class="keyword">new</span> OptionsBuilder()</span><br><span class="line">                .include(BenchmarkLoop.class.getSimpleName())</span><br><span class="line">                .forks(<span class="number">1</span>)</span><br><span class="line">                .build();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">new</span> Runner(opt).run();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setup</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        DATA_FOR_TESTING = createData();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loopFor</span><span class="params">(Blackhole bh)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; DATA_FOR_TESTING.size(); i++) &#123;</span><br><span class="line">            String s = DATA_FOR_TESTING.get(i); <span class="comment">//take out n consume, fair with foreach</span></span><br><span class="line">            bh.consume(s);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loopWhile</span><span class="params">(Blackhole bh)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> i = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (i &lt; DATA_FOR_TESTING.size()) &#123;</span><br><span class="line">            String s = DATA_FOR_TESTING.get(i);</span><br><span class="line">            bh.consume(s);</span><br><span class="line">            i++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loopForEach</span><span class="params">(Blackhole bh)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (String s : DATA_FOR_TESTING) &#123;</span><br><span class="line">            bh.consume(s);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loopIterator</span><span class="params">(Blackhole bh)</span> </span>&#123;</span><br><span class="line">        Iterator&lt;String&gt; iterator = DATA_FOR_TESTING.iterator();</span><br><span class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">            String s = iterator.next();</span><br><span class="line">            bh.consume(s);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> List&lt;String&gt; <span class="title">createData</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        List&lt;String&gt; data = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">            data.add(<span class="string">&quot;Number : &quot;</span> + i);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> data;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主要是针对单个函数部分进行benchmark的测试</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-shade-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;<span class="name">version</span>&gt;</span>3.2.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">				<span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">					<span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">					<span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">						<span class="tag">&lt;<span class="name">goal</span>&gt;</span>shade<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">					<span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">					<span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">						<span class="tag">&lt;<span class="name">finalName</span>&gt;</span>benchmarks<span class="tag">&lt;/<span class="name">finalName</span>&gt;</span></span><br><span class="line">						<span class="tag">&lt;<span class="name">transformers</span>&gt;</span></span><br><span class="line">							<span class="tag">&lt;<span class="name">transformer</span></span></span><br><span class="line"><span class="tag">									<span class="attr">implementation</span>=<span class="string">&quot;org.apache.maven.plugins.shade.resource.ManifestResourceTransformer&quot;</span>&gt;</span></span><br><span class="line">								<span class="tag">&lt;<span class="name">mainClass</span>&gt;</span>org.openjdk.jmh.Main<span class="tag">&lt;/<span class="name">mainClass</span>&gt;</span></span><br><span class="line">							<span class="tag">&lt;/<span class="name">transformer</span>&gt;</span></span><br><span class="line">						<span class="tag">&lt;/<span class="name">transformers</span>&gt;</span></span><br><span class="line">					<span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">				<span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/27/kubeflow-for-poets/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/27/kubeflow-for-poets/" class="post-title-link" itemprop="url">kubeflow for poets</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-05-27 11:17:33" itemprop="dateCreated datePublished" datetime="2019-05-27T11:17:33+08:00">2019-05-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/kubeflow-for-poets-a05a5d4158ce">原文链接</a></p>
+<p><img src="http://ww3.sinaimg.cn/large/006tNc79ly1g3fq4d8lahj31860u0afx.jpg" alt="machine learning pipeline"></p>
+<h3 id="K8s"><a href="#K8s" class="headerlink" title="K8s"></a>K8s</h3><h4 id="Worker-Node-s"><a href="#Worker-Node-s" class="headerlink" title="Worker Node(s)"></a>Worker Node(s)</h4><ul>
+<li><strong>kube-proxy:</strong> it is the Kubernetes network proxy that runs on each worker node. It listens to the <code>api server</code> and forward requests to the appropriate pod. Important for load-balancing.</li>
+<li><strong>pod(s):</strong>  consists of one or more containers that share network and storage  resources as well as container runtime instructions. Pods are the  smallest deployable unit in Kubernetes.</li>
 </ul>
-<p>关于actor的close部分？</p>
-<p>关于mutable state的定义部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/04/25/much-to-think/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/25/much-to-think/" class="post-title-link" itemprop="url">想太多</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-04-25 09:57:45" itemprop="dateCreated datePublished" datetime="2019-04-25T09:57:45+08:00">2019-04-25</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%BF%83%E7%90%86/" itemprop="url" rel="index"><span itemprop="name">心理</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>是我想太多。。。</p>
-<p>大家都有压力，关键在于怎么去缓解，出了事情，在于如何去解决它，而不是在那里自怨自艾，然后突然压力很大，想哭。。。</p>
-<p>不用太计较得失，提升自己才是关键，其他的都是浮云，给予必要的宽慰就可以了，做到自己能做的就行，其他的就不是自己能够控制的了</p>
-<p>生活在于取舍，你需要什么东西，必然需要舍弃些什么，不可能你拥有所有</p>
-<p>我命由天不由我，无为就行。。不用想太多。。</p>
-<p>作为老年人，看积极面多一些，已经做好了孑然一身的打算，也就无所谓年轻人那样子了，谨记</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/04/23/tdd-change-my-life/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/23/tdd-change-my-life/" class="post-title-link" itemprop="url">TDD change my life</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-04-23 11:35:49" itemprop="dateCreated datePublished" datetime="2019-04-23T11:35:49+08:00">2019-04-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tdd/" itemprop="url" rel="index"><span itemprop="name">tdd</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/javascript-scene/tdd-changed-my-life-5af0ce099f80">原文链接</a></p>
-<p>Bugs still happen, of course, but the release of show-stopping bugs to production has dropped to near zero, even though the rate of software change and upgrade maintenance burden has increased exponentially since then.</p>
-<p>确保主流程？</p>
-<ol>
-<li>Before  you write implementation code, write some code that proves that the  implementation works or fails. Watch the test fail before moving to the  next step (this is how we know that a passing test is not a false  positive — how we test our tests).</li>
-<li>Write the implementation code and watch the test pass.</li>
-<li>Refactor  if needed. You should feel confident refactoring your code now that you  have a test to tell you if you’ve broken something.</li>
-</ol>
-<p><strong>Murphy’s Law of Debugging:</strong><br>The thing you believe so deeply can’t possibly be wrong so you never bother testing it is definitely where you’ll find the bug after you<br>pound your head on your desk and change it only because you’ve tried everything else you can possibly think of.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/04/13/use-object-not-map/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/13/use-object-not-map/" class="post-title-link" itemprop="url">use object not map</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-04-13 13:20:20" itemprop="dateCreated datePublished" datetime="2019-04-13T13:20:20+08:00">2019-04-13</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tdd/" itemprop="url" rel="index"><span itemprop="name">tdd</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/NqSN_1h04jqW3cEiaEDU7A">原文链接</a></p>
-<p><strong>“Map的出现几乎一定意味着有个对象的概念被错过了”</strong></p>
-<p><strong>“Map即对象”</strong></p>
-<p><strong>List和Map（以及其他集合结构）不应该在对象之间传递，只应该在对象内部使用</strong></p>
-<p>写TDD这种，比较注意输入/输出，所以，尽量以对象的方式同外部进行交互，否则，测试如何写？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/04/13/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/13/one-week/" class="post-title-link" itemprop="url">痛苦的学习期</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-04-13 12:44:48" itemprop="dateCreated datePublished" datetime="2019-04-13T12:44:48+08:00">2019-04-13</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>这里要做检讨，领导能跟你说他的一些见解，毕竟是关心你的，希望你能了解他的思路，不要有抵触的心理，要学会如何从从中学习到自己的内容，转化成为自己的方法论和思路，虽然每个人的思路不一样，但是毕竟领导提供了另外一种看待问题的角度，要学习，虽然不一定要走领导的那一条路，但是很多的东西、知识都是可以学习的</p>
-<hr>
-<p>本周工作：</p>
+<p>Each component usually includes two parts:</p>
 <ul>
-<li>完成task转向actor的重构</li>
-<li>1.3.2的bug修复</li>
-<li>赛艇杯算法比赛的参与</li>
-<li>pipeline的一些初步的想法</li>
+<li>Client  code: The code that talks to endpoints to submit jobs. For example, the  code to connect with the Google Cloud Machine Learning Engine.</li>
+<li>Runtime  code: The code that does the actual job and usually runs in the  cluster. For example, the code that prepares the model for training on  Cloud MLE.</li>
 </ul>
-<p>下周工作：</p>
-<ul>
-<li>完成新版的一些需求</li>
-<li>重构pipeline部分，完成探索部分的stage的定义</li>
-</ul>
-<p>很久都没写周报记录了，引以为戒，生活、工作，都需要静下来想一想，不然很容易会变得无头苍蝇，到处乱窜，盲目。。。</p>
-<p>关于每天的深蹲50个，虽然不标准，但是也希望坚持下去，每周一次的跑步，已经很少了，放空自己的大脑的机会，不要错过。。。</p>
-<p>学习上，还是深究actor部分，在不断的实践过程中，去实现自己的框架，把业务的东西，抽离出框架之外。。。</p>
-<p>生活上，要积极向上，不要懒，不要拖延，有的事情就是因为拖延导致后面越来越不想干，例如，洗内裤，厨房的洁净，养成习惯，要有惯性。。。</p>
+<p>A component consists of an interface (inputs/outputs), the implementation (a Docker container image and command-line arguments) and metadata (name, description).</p>
 
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/26/kafka-on-k8s/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/26/kafka-on-k8s/" class="post-title-link" itemprop="url">kafka on k8s</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-05-26 19:11:10" itemprop="dateCreated datePublished" datetime="2019-05-26T19:11:10+08:00">2019-05-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.usejournal.com/kafka-on-kubernetes-a-good-fit-95251da55837">原文链接</a></p>
+<p>build RDS on top of Kubernetes, stateful workloads on k8s</p>
+<p>主要是storage部分</p>
+<p>Use non-local persistent block storage with XFS or ext4 to be more precise. <em>Don’t use NFS.</em> I  warned you. Neither NFS v3 nor v4 will work. In short, a Kafka broker  will terminate itself if it’s not able to delete a data directory due to  the NFS “silly rename” problem. If you still don’t believe me then read  <a target="_blank" rel="noopener" href="https://engineering.skybettingandgaming.com/2018/07/10/kafka-nfs/">this blog post</a>  very carefully. The storage has to be non-local so that Kubernetes is  more flexible in choosing another node after restarts or relocations.</p>
+<p><em>Headless Services:</em> Services decouple the pods from clients through a logical name. Kubernetes takes care of load-balancing. However, with stateful workloads such as ZooKeeper and Kafka, clients have to communicate with a specific instance. This is where headless services come into play: as a client you still get a logical name but you don’t have to access the pod directly.</p>
+<p>Helm is a package manager for Kubernetes comparable to OS package managers like yum, apt, Homebrew or Chocolatey.</p>
+<p>The list of <a target="_blank" rel="noopener" href="https://github.com/operator-framework/awesome-operators">awesome operators</a> mentions two operators for Kafka — one of them being <a target="_blank" rel="noopener" href="https://strimzi.io/">Strimzi</a></p>
+<p>Scaling a Kafka cluster is not an easy task. However, Kubernetes makes it very easy to scale pods to a certain number of replicas which means that the desired number of Kafka brokers can be defined declaratively. The hard part will be to reassign the partions after scaling up or before scaling down. Again, Kubernetes helps you with this task.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/05/26/mocking-is-a-code-smell/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/26/mocking-is-a-code-smell/" class="post-title-link" itemprop="url">mocking is a code smell</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-05-26 18:48:24" itemprop="dateCreated datePublished" datetime="2019-05-26T18:48:24+08:00">2019-05-26</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
       
     </div>
 
@@ -542,7 +533,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/43/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><span class="page-number current">44</span><a class="page-number" href="/page/45/">45</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/45/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/43/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/43/">43</a><span class="page-number current">44</span><a class="page-number" href="/page/45/">45</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/45/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -610,20 +601,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

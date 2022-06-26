@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/10/golang-return/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/07/go-lock/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/10/golang-return/" class="post-title-link" itemprop="url">Golang Return</a>
+            <a href="/2018/02/07/go-lock/" class="post-title-link" itemprop="url">Go Lock</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-10 10:21:11" itemprop="dateCreated datePublished" datetime="2018-01-10T10:21:11+08:00">2018-01-10</time>
+              <time title="Created: 2018-02-07 10:56:38" itemprop="dateCreated datePublished" datetime="2018-02-07T10:56:38+08:00">2018-02-07</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/lock/" itemprop="url" rel="index"><span itemprop="name">lock</span></a>
                 </span>
             </span>
 
@@ -200,34 +200,37 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://blog.minio.io/golang-internals-part-2-nice-benefits-of-named-return-values-1e95305c8687">Golang Internals Part 2: Nice benefits of named return values</a></p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> objectInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	arg1 <span class="keyword">int64</span></span><br><span class="line">	arg2 <span class="keyword">uint64</span></span><br><span class="line">	arg3 <span class="keyword">string</span></span><br><span class="line">	arg4 []<span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NoNamedReturnParams</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(objectInfo)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="comment">// Do one thing</span></span><br><span class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">2</span> &#123;</span><br><span class="line">		<span class="comment">// Do another thing</span></span><br><span class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">3</span> &#123;</span><br><span class="line">		<span class="comment">// Do one more thing still</span></span><br><span class="line">		<span class="keyword">return</span> objectInfo&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Normal return</span></span><br><span class="line">	<span class="keyword">return</span> objectInfo&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/33462152">原文链接</a></p>
+<p>golang部分的锁，主要在sync包里</p>
+<h3 id="runtime-sema-信号量"><a href="#runtime-sema-信号量" class="headerlink" title="runtime/sema(信号量)"></a>runtime/sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</span><br><span class="line">    lock  mutex</span><br><span class="line">    head  *sudog</span><br><span class="line">    tail  *sudog</span><br><span class="line">    nwait <span class="keyword">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></span><br><span class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></span><br><span class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></span><br><span class="line"><span class="comment">// 内部使用的一个私有版本）</span></span><br></pre></td></tr></table></figure>
 
 
 
-<p>actual code that the golang compiler generates</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">&quot;&quot;.NoNamedReturnParams t=1 size=243 args=0x40 locals=0x0</span><br><span class="line">0x0000 	TEXT	&quot;&quot;.NoNamedReturnParams(SB), $0-64</span><br><span class="line">0x0000 	MOVQ	$0, &quot;&quot;.~r1+16(FP)</span><br><span class="line">0x0009 	LEAQ	&quot;&quot;.~r1+24(FP), DI</span><br><span class="line">0x000e 	XORPS	X0, X0</span><br><span class="line">0x0011 	ADDQ	$-16, DI</span><br><span class="line">0x0015 	DUFFZERO	$288</span><br><span class="line">0x0028 	MOVQ	&quot;&quot;.i+8(FP), AX</span><br><span class="line">0x002d 	CMPQ	AX, $1</span><br><span class="line">0x0031 	JEQ	$0, 199</span><br><span class="line">0x0037 	CMPQ	AX, $2</span><br><span class="line">0x003b 	JEQ	$0, 155</span><br><span class="line">0x003d 	CMPQ	AX, $3</span><br><span class="line">0x0041 	JNE	111</span><br><span class="line">0x0043 	MOVQ	&quot;&quot;.statictmp_2(SB), AX</span><br><span class="line">0x004a 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</span><br><span class="line">0x004f 	LEAQ	&quot;&quot;.~r1+24(FP), DI</span><br><span class="line">0x0054 	LEAQ	&quot;&quot;.statictmp_2+8(SB), SI</span><br><span class="line">0x005b 	DUFFCOPY	$854</span><br><span class="line">0x006e 	RET</span><br><span class="line">0x006f 	MOVQ	&quot;&quot;.statictmp_3(SB), AX</span><br><span class="line">0x0076 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</span><br><span class="line">0x007b 	LEAQ	&quot;&quot;.~r1+24(FP), DI</span><br><span class="line">0x0080 	LEAQ	&quot;&quot;.statictmp_3+8(SB), SI</span><br><span class="line">0x0087 	DUFFCOPY	$854</span><br><span class="line">0x009a 	RET</span><br><span class="line">0x009b 	MOVQ	&quot;&quot;.statictmp_1(SB), AX</span><br><span class="line">0x00a2 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</span><br><span class="line">0x00a7 	LEAQ	&quot;&quot;.~r1+24(FP), DI</span><br><span class="line">0x00ac 	LEAQ	&quot;&quot;.statictmp_1+8(SB), SI</span><br><span class="line">0x00b3 	DUFFCOPY	$854</span><br><span class="line">0x00c6 	RET</span><br><span class="line">0x00c7 	MOVQ	&quot;&quot;.statictmp_0(SB), AX</span><br><span class="line">0x00ce 	MOVQ	AX, &quot;&quot;.~r1+16(FP)</span><br><span class="line">0x00d3 	LEAQ	&quot;&quot;.~r1+24(FP), DI</span><br><span class="line">0x00d8 	LEAQ	&quot;&quot;.statictmp_0+8(SB), SI</span><br><span class="line">0x00df 	DUFFCOPY	$854</span><br><span class="line">0x00f2 	RET</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
+<h3 id="sync-atomic"><a href="#sync-atomic" class="headerlink" title="sync/atomic"></a>sync/atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 互斥量加锁操作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</span><br><span class="line">		<span class="keyword">if</span> race.Enabled &#123;</span><br><span class="line">			race.Acquire(unsafe.Pointer(m))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
 
 
 
+<h3 id="sync-mutex（互斥锁）"><a href="#sync-mutex（互斥锁）" class="headerlink" title="sync/mutex（互斥锁）"></a>sync/mutex（互斥锁）</h3><p>sync/mutex.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// A Mutex must not be copied after first use.</span></span><br><span class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</span><br><span class="line">    state <span class="keyword">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></span><br><span class="line">    sema  <span class="keyword">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></span><br><span class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></span><br><span class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></span><br><span class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>lock流程</p>
 <blockquote>
-<p>All fine and dandy, but if that looks a bit repetitive to you, you are quite right. Essentially for each of the <code>return</code> statements the object to be returned is more or less allocated/initialized (or more precisely copied via the <code>DUFFCOPY</code>macro).</p>
+<p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
 </blockquote>
-<p>naked return feature of golang</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NamedReturnParams</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(oi objectInfo)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="comment">// Do one thing</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">2</span> &#123;</span><br><span class="line">		<span class="comment">// Do another thing</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">3</span> &#123;</span><br><span class="line">		<span class="comment">// Do one more thing still</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Normal return</span></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="sync-RWMutex（读写锁）"><a href="#sync-RWMutex（读写锁）" class="headerlink" title="sync/RWMutex（读写锁）"></a>sync/RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></span><br><span class="line">	writerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></span><br><span class="line">	readerSem   <span class="keyword">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></span><br><span class="line">	readerCount <span class="keyword">int32</span>  <span class="comment">// number of pending readers</span></span><br><span class="line">	readerWait  <span class="keyword">int32</span>  <span class="comment">// number of departing readers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p>It reduces the size of the function down from <code>243</code> to <code>67</code> bytes. Also as an additional benefit you will save some CPU cycles upon exiting out because there is no need anymore to do anything in order to setup the return value.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// parse credentialHeader string into its structured form.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">parseCredentialHeader</span><span class="params">(credElement <span class="keyword">string</span>)</span> <span class="params">(ch credentialHeader)</span></span> &#123;</span><br><span class="line">    creds := strings.Split(strings.TrimSpace(credElement), <span class="string">&quot;=&quot;</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(creds) != <span class="number">2</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> creds[<span class="number">0</span>] != <span class="string">&quot;Credential&quot;</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    credElements := strings.Split(strings.TrimSpace(creds[<span class="number">1</span>]), <span class="string">&quot;/&quot;</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(credElements) != <span class="number">5</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> <span class="literal">false</span> <span class="comment">/*!isAccessKeyValid(credElements[0])*/</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Save access key id.</span></span><br><span class="line">    cred := credentialHeader&#123;</span><br><span class="line">	accessKey: credElements[<span class="number">0</span>],</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">var</span> e error</span><br><span class="line">    cred.scope.date, e = time.Parse(yyyymmdd, credElements[<span class="number">1</span>])</span><br><span class="line">    <span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    cred.scope.region = credElements[<span class="number">2</span>]</span><br><span class="line">    <span class="keyword">if</span> credElements[<span class="number">3</span>] != <span class="string">&quot;s3&quot;</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    cred.scope.service = credElements[<span class="number">3</span>]</span><br><span class="line">    <span class="keyword">if</span> credElements[<span class="number">4</span>] != <span class="string">&quot;aws4_request&quot;</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    cred.scope.request = credElements[<span class="number">4</span>]</span><br><span class="line">    <span class="keyword">return</span> cred</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>写锁定</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span> <span class="title">Lock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// First, resolve competition with other writers.</span></span><br><span class="line">	rw.w.Lock()</span><br><span class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</span><br><span class="line">	<span class="comment">// Wait for active readers.</span></span><br><span class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</span><br><span class="line">		runtime_Semacquire(&amp;rw.writerSem)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p>隐含的return value的方式</p>
-<p>Note that actually the <code>ch</code> variable is a normal local variable just like any other local variable that is defined within the function. And as such you can change its value from the default ‘zero’ state (but of course then the modified version will be returned upon exiting out).</p>
-<h4 id="others-uses-of-named-return-values"><a href="#others-uses-of-named-return-values" class="headerlink" title="others uses of named return values"></a>others uses of named return values</h4><p>As pointed out by several persons, another benefit of named return values is the use in closures (i.e. defer statements). Thus one may access the named return value in a function that is called as the result of a <code>defer</code> statement and act accordingly.</p>
-<h4 id="conclusion"><a href="#conclusion" class="headerlink" title="conclusion"></a>conclusion</h4><p>So we will be gradually adopting named return values more and more, both for new code as well as for existing code.</p>
-<p>future to integration with <code>gofmt</code> to modify the source automatically</p>
 
       
     </div>
@@ -247,7 +250,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/04/go-performance/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -261,7 +264,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/04/go-performance/" class="post-title-link" itemprop="url">Go performance</a>
+            <a href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" class="post-title-link" itemprop="url">Building distributed log from scratch With Storage Mechanics</a>
         </h2>
 
         <div class="post-meta">
@@ -271,7 +274,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-04 17:12:37" itemprop="dateCreated datePublished" datetime="2018-01-04T17:12:37+08:00">2018-01-04</time>
+              <time title="Created: 2018-02-05 16:55:09" itemprop="dateCreated datePublished" datetime="2018-02-05T16:55:09+08:00">2018-02-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -279,7 +282,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a>
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
                 </span>
             </span>
 
@@ -294,83 +297,99 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>go performance optimization workflow:</p>
+          <p><a target="_blank" rel="noopener" href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/">原文链接</a></p>
+<p>日志是完全顺序，只接受append操作的数据结构。</p>
+<p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/02/05/mongodb-query-performance/" class="post-title-link" itemprop="url">Mongodb query performance over ranges</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-02-05 14:27:58" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">2018-02-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mongodb/" itemprop="url" rel="index"><span itemprop="name">mongodb</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_115">原文链接</a></p>
+<p>针对<code>$in</code>操作：</p>
 <ul>
-<li>determine your performance goals</li>
-<li>profile to identify the areas to improve. This can be CPU, heap allocations, or goroutine blocking<ul>
-<li>CPU</li>
-<li>heap allocation</li>
-<li>goroutine blocking</li>
-</ul>
+<li><p>index early</p>
 </li>
-<li>benchmark to determine the speed up your solution will provide using the built-in benchmarking framework (<a target="_blank" rel="noopener" href="http://golang.org/pkg/testing/">http://golang.org/pkg/testing/</a>) </li>
-<li>profile again afterwards to verify the issue is gone</li>
-<li>use <a target="_blank" rel="noopener" href="https://godoc.org/golang.org/x/perf/benchstat">https://godoc.org/golang.org/x/perf/benchstat</a> or <a target="_blank" rel="noopener" href="https://github.com/codahale/tinystat">https://github.com/codahale/tinystat</a> to verify that a set of timings are ‘sufficiently’ different for an optimization to be worth the added code complexity</li>
+<li><p>index often</p>
+</li>
+<li><p>index fully</p>
+<p>queries make use of indexes from left to right.</p>
+</li>
+<li><p>index sorts</p>
+<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
+</li>
+<li><p>commands</p>
+<p>​</p>
+</li>
 </ul>
-<p>The basic rules of the game are:</p>
+<p><strong>The order of fields in an index should be:</strong></p>
 <ol>
-<li>minimize CPU usage<ul>
-<li>do less work</li>
-<li>this generally means “a faster algorithm”</li>
-<li>but CPU caches and the hidden constants in O() can play tricks on you</li>
-</ul>
-</li>
-<li>minimize allocations (which leads to less CPU stolen by the GC)</li>
-<li>make your data quick to access</li>
+<li><strong>First, fields on which you will query for exact values.</strong></li>
+<li><strong>Second, fields on which you will sort.</strong></li>
+<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
 </ol>
-<h4 id="Basic"><a href="#Basic" class="headerlink" title="Basic"></a>Basic</h4><ul>
-<li>be aware of <a target="_blank" rel="noopener" href="http://accidentallyquadratic.tumblr.com/">http://accidentallyquadratic.tumblr.com/</a></li>
-</ul>
-<h4 id="Introductory-Pofiling"><a href="#Introductory-Pofiling" class="headerlink" title="Introductory Pofiling"></a>Introductory Pofiling</h4><ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/google/pprof">pprof</a></li>
-<li>Writing and running (micro)benchmarks<ul>
-<li>-cpuprofile</li>
-<li>-memprofile</li>
-<li>-benchmem</li>
-</ul>
-</li>
-<li>how to read it pprof output</li>
-<li>macro-benchmarks, net/http/pprof</li>
-</ul>
-<h4 id="Tracer"><a href="#Tracer" class="headerlink" title="Tracer"></a>Tracer</h4><ul>
-<li>Techniques specific to the architecture running the code</li>
-<li>introduction to CPU caches<ul>
-<li>building intuition around cache-lines: sizes, padding, alignment</li>
-<li>false-sharing</li>
-<li>OS tools to view cache-misses</li>
-</ul>
-</li>
-<li>branch prediction</li>
-</ul>
-<h4 id="Heap-Allocations"><a href="#Heap-Allocations" class="headerlink" title="Heap Allocations"></a>Heap Allocations</h4><ul>
-<li>Understanding escape analysis</li>
-</ul>
-<h4 id="Runtime"><a href="#Runtime" class="headerlink" title="Runtime"></a>Runtime</h4><ul>
-<li>cost of calls via interfaces (indirect calls on the CPU level)</li>
-<li>runtime.convT2E / runtime.convT2I</li>
-<li>type assertions vs. type switches</li>
-<li>defer</li>
-<li>special-case map implementations for ints, strings</li>
-</ul>
-<h4 id="Common-gotchas-with-the-standard-library"><a href="#Common-gotchas-with-the-standard-library" class="headerlink" title="Common gotchas with the standard library"></a>Common gotchas with the standard library</h4><ul>
-<li>time.After() leaks until it fires</li>
-<li>Reusing HTTP connections…</li>
-<li>….</li>
-</ul>
-<h3 id="Alternate-implementions"><a href="#Alternate-implementions" class="headerlink" title="Alternate implementions"></a>Alternate implementions</h3><ul>
-<li>Popular replacements for standard library packages:<ul>
-<li>encoding/json -&gt; ffjson</li>
-<li>net/http -&gt; fasthttp</li>
-<li>regexp -&gt; ragel (or other regular expression package)</li>
-<li>serialization<ul>
-<li>encoding/gob</li>
-<li>protobuf</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p>perf(perf2pprof)</p>
+<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
 
       
     </div>
@@ -390,7 +409,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/25/page-rank/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/spark-2-x-trouble-guide/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -404,7 +423,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/12/25/page-rank/" class="post-title-link" itemprop="url">Page Rank</a>
+            <a href="/2018/02/05/spark-2-x-trouble-guide/" class="post-title-link" itemprop="url">Spark 2.x Trouble guide</a>
         </h2>
 
         <div class="post-meta">
@@ -414,7 +433,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-12-25 11:50:23" itemprop="dateCreated datePublished" datetime="2017-12-25T11:50:23+08:00">2017-12-25</time>
+              <time title="Created: 2018-02-05 10:27:04" itemprop="dateCreated datePublished" datetime="2018-02-05T10:27:04+08:00">2018-02-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -422,7 +441,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rank/" itemprop="url" rel="index"><span itemprop="name">rank</span></a>
+                  <a href="/categories/spark/" itemprop="url" rel="index"><span itemprop="name">spark</span></a>
                 </span>
             </span>
 
@@ -437,32 +456,76 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>PageRank的相关说明</p>
+          <p><a target="_blank" rel="noopener" href="https://www.slideshare.net/jcmia1/a-beginners-guide-on-troubleshooting-spark-applications?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_115">原文链接</a></p>
+<h3 id="Building-Spark"><a href="#Building-Spark" class="headerlink" title="Building Spark"></a>Building Spark</h3><p>JRE path</p>
+<p>Maven installed</p>
 <ul>
-<li>整个互联网，看做一张有向图<ul>
-<li>网页是图上的点</li>
-<li>链接是图上的又向边</li>
+<li>always explicitly set the following in ‘.bashrc’ for ‘root’</li>
+<li>specify support you want explicitly</li>
+<li>Rebuild only modified source code</li>
+</ul>
+<h3 id="Running-Spark"><a href="#Running-Spark" class="headerlink" title="Running Spark"></a>Running Spark</h3><ul>
+<li>always use ‘—verbose’ option on ‘spark-submit’ command to run your workland</li>
+<li>print<ul>
+<li>all default properties</li>
+<li>command line options</li>
+<li>settings from spark’ conf file</li>
+<li>setting from cli</li>
 </ul>
 </li>
-<li>每个网页有一个权威评分，称作pagerank，可以把它当做一种投票权</li>
-<li>将每个超链接作为一次投票<ul>
-<li>每个网页的pagerank等于所有指向该网页超链接的网页的pagerank的加权和</li>
-<li>这些权值等于这些网页各自向外链接数目的倒数</li>
+<li>order of lookup, ‘—package’<ul>
+<li>the local maven repo</li>
+<li>maven central - web</li>
+<li>additional remote repositories </li>
+</ul>
+</li>
+<li>OOM<ul>
+<li>increase ‘—driver-memory’</li>
+<li>saprk sql and spark streaming need large driver heap size</li>
+</ul>
+</li>
+<li>GC overhead limit exceeded<ul>
+<li>too much time spent in garbage collection</li>
+<li>increase executor heapsize</li>
+<li>modify gc policy<ul>
+<li>-XX:UseG1GC &amp;&amp; -XX:UseParallelGC</li>
+<li>spark default: -XX:UseParallelGC</li>
+<li>Try overwrite with -XX:G1GC</li>
 </ul>
 </li>
 </ul>
-<p>里面主要的点：</p>
-<ul>
-<li>足够优美，表达简单</li>
-<li>关于加权和部分，计算方式聪明</li>
+</li>
+<li>has a single SparkContext with multiple sessions supporting<ul>
+<li>concurrency</li>
+<li>re-useable connections</li>
+<li>shared cache</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Vertex</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.in_degree = <span class="number">0</span></span><br><span class="line">        self.out_degree = <span class="number">0</span></span><br><span class="line">        self.pagerank = <span class="number">0.0</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Edge</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, start, end</span>):</span></span><br><span class="line">        self.start_id = start</span><br><span class="line">        self.end_id = end</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">addVertex</span>(<span class="params">vertex_name, vtx_map</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    return the id of vertex_name</span></span><br><span class="line"><span class="string">    if exists in vtx_map, return directly</span></span><br><span class="line"><span class="string">    if not exists, add it, and then return</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    vertex_name: string, the url of a web page</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    res_id = <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> vertex_name <span class="keyword">in</span> vtx_map:</span><br><span class="line">        <span class="keyword">return</span> vtx_map[vertex_name]</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        res_id = <span class="built_in">len</span>(vtx_map)</span><br><span class="line">        vtx_map[vertex_name] = res_id</span><br><span class="line">    <span class="keyword">return</span> res_id</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">readTable</span>(<span class="params">fname, vtx_map, edge_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    read fname line by line, update the vtx_map and edge_list</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    fname: string, the file name of the table</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(fname, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> fin:</span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> fin.readlines():</span><br><span class="line">            tmp = line.strip().split(<span class="string">&#x27;\t&#x27;</span>)</span><br><span class="line">            <span class="keyword">assert</span>(<span class="built_in">len</span>(tmp) == <span class="number">2</span>)</span><br><span class="line">            start = addVertex(tmp[<span class="number">0</span>], vtx_map)</span><br><span class="line">            end = addVertex(tmp[<span class="number">1</span>], vtx_map)</span><br><span class="line">            edge_list.append(Edge(start, end))</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">initialize</span>(<span class="params">vtx_map, edge_list, vtx_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    initialize the data structures</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    vtx_list: list, the list of all vertices</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    vtx_num = <span class="built_in">len</span>(vtx_map)</span><br><span class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</span><br><span class="line">    vtx_list = [Vertex() <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num)]</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num):</span><br><span class="line">        vtx_list[i].pagerank = <span class="number">1.0</span> / vtx_num</span><br><span class="line">    <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</span><br><span class="line">        vtx_list[edge.start_id].out_degree += <span class="number">1</span></span><br><span class="line">        vtx_list[edge.end_id].in_degree += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calcPagerank</span>(<span class="params">alpha, num_iter, vtx_map, edge_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    calc PageRank for all vertices</span></span><br><span class="line"><span class="string">    return: vtx_list, list, the list of all vertices</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    alpha: float, damping factor</span></span><br><span class="line"><span class="string">    num_iter: int, the upper limitation of calculation</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    vtx_list, pr_list = <span class="built_in">list</span>(), <span class="built_in">list</span>()</span><br><span class="line">    initialize(vtx_map, edge_list, vtx_list)</span><br><span class="line">    vtx_num = <span class="built_in">len</span>(vtx_list)</span><br><span class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</span><br><span class="line">    alpha = <span class="built_in">float</span>(alpha)</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(num_iter):</span><br><span class="line">        pr_list = [alpha / vtx_num <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num)]</span><br><span class="line">        <span class="comment"># calc</span></span><br><span class="line">        <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</span><br><span class="line">            pr_list += (<span class="number">1</span> - alpha) * vtx_list[edge.start_id].pagerank / \</span><br><span class="line">                        vtx_list[edge.start_id].out_degree</span><br><span class="line">        <span class="comment"># revise</span></span><br><span class="line">        revise = <span class="built_in">sum</span>(<span class="built_in">map</span>(<span class="keyword">lambda</span> vtx: (<span class="number">1</span> - alpha) * vtx.pagerank / vtx_num, \</span><br><span class="line">                        <span class="built_in">filter</span>(<span class="keyword">lambda</span> vtx:(vtx.out_degree == <span class="number">0</span>), vtx_list)))</span><br><span class="line">        <span class="comment"># update</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num):</span><br><span class="line">            vtx_list[i].pagerank = pr_list[i] + revise</span><br><span class="line">    <span class="keyword">return</span> vtx_list</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">doCalcPageRank</span>(<span class="params">fname = <span class="string">&#x27;wt2g_inlinks.source&#x27;</span>, alpha = <span class="number">0.15</span>, num_iter = <span class="number">30</span></span>):</span></span><br><span class="line">    vtx_map = <span class="built_in">dict</span>()</span><br><span class="line">    edge_list = <span class="built_in">list</span>()</span><br><span class="line">    readTable(fname, vtx_map, edge_list)</span><br><span class="line">    <span class="keyword">return</span> calcPagerank(alpha, num_iter, vtx_map, edge_list)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span> doCalcPageRank()</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>相关程序说明：</p>
-<ul>
-<li>​</li>
+</li>
+<li>Not all CPUs are busy<ul>
+<li>sart with evenly divided memory and cores. <code>-executor-memroy 2500m --num-executors 200</code></li>
+<li>when heap size non-negotiable. <code>--executor-memory 6g --num-executors 80</code>  transfer to <code>--executor-memory 6g --num-executors 80 -executor-cores 2</code> (Forcing 80% utilization, boosting 33% performance!)</li>
+</ul>
+</li>
+<li>‘scratch’ space<ul>
+<li>‘/tmp’ is full</li>
+<li>fix <code>spark.local.dir</code></li>
+</ul>
+</li>
+<li>max result size exceeded<ul>
+<li><code>saprk.driver.maxResultSize</code></li>
+</ul>
+</li>
+<li>out of space on a few data nodes<ul>
+<li><code>hdfs balancer</code> to start balancing</li>
+<li><code>dfs.datanode.balance.bandwidthPerSec</code> increase to 6GB/s</li>
+<li><code>dfs.datanode.balance.max.concurrent.moves</code>  set to 5000 concurrent threads</li>
+</ul>
+</li>
+</ul>
+<h3 id="Profiling-Spark"><a href="#Profiling-Spark" class="headerlink" title="Profiling Spark"></a>Profiling Spark</h3><ul>
+<li>Yarn containers across multiple nodes</li>
+<li>get a full thread dump or get a full heap dump. <code>jstack -l</code>  <code>jmap -dump:live,format=b,file=xxx</code> </li>
+<li>step1: find the hostname in the error log; step 2: find the local directory where ‘stderr’ resides, step 3: open the ‘stderr’, </li>
 </ul>
 
       
@@ -483,7 +546,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/24/tanpengyou/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/31/failure-microservice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -497,7 +560,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/12/24/tanpengyou/" class="post-title-link" itemprop="url">莫道不肝肠</a>
+            <a href="/2018/01/31/failure-microservice/" class="post-title-link" itemprop="url">Designing a Microservices Architecture for Failure</a>
         </h2>
 
         <div class="post-meta">
@@ -507,7 +570,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-12-24 11:27:26" itemprop="dateCreated datePublished" datetime="2017-12-24T11:27:26+08:00">2017-12-24</time>
+              <time title="Created: 2018-01-31 09:59:14" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">2018-01-31</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -515,7 +578,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/emotion/" itemprop="url" rel="index"><span itemprop="name">emotion</span></a>
+                  <a href="/categories/microservice/" itemprop="url" rel="index"><span itemprop="name">microservice</span></a>
                 </span>
             </span>
 
@@ -530,116 +593,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>莫道不肝肠</p>
-<p>没有人会给你这么多耐心，来容忍你这样的拖拉，你这样中二的感觉。。</p>
-<p>真当是说出口的那一句，还是。。</p>
-<p>承诺不了，就不要去说大话了，只会让自己都看轻自己。。</p>
-<p>其实还是胆小，自己不擅长的事情，不敢去做，不敢去承担，只想着逃避，who care you</p>
-<p>之前已经打算好了，何故做小女儿态。。</p>
-<p>做不了别人眼中的自己，做好自己眼中的自己，算是一个卑微的acer的一点梦想吧。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/20/ml-books/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/12/20/ml-books/" class="post-title-link" itemprop="url">机器学习资料</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-12-20 14:54:41" itemprop="dateCreated datePublished" datetime="2017-12-20T14:54:41+08:00">2017-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>借鉴于<a target="_blank" rel="noopener" href="http://d0evi1.com/tecbook/">d0evi1的博客</a></p>
-<h3 id="基础篇"><a href="#基础篇" class="headerlink" title="基础篇"></a>基础篇</h3><p>数学基础</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="http://open.163.com/special/opencourse/daishu.html">线性代数</a></li>
-<li><a target="_blank" rel="noopener" href="https://book.douban.com/subject/1230154/">统计学</a>， <a target="_blank" rel="noopener" href="https://open.163.com/movie/2011/5/M/O/M807PLQMF_M80HQQGMO.html">统计学导论</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.coursera.org/learn/calculus1">微积分基础</a></li>
-<li><a target="_blank" rel="noopener" href="https://open.163.com/movie/2017/5/K/0/MCIM9UCLC_MCIO21CK0.html">微积分-积分学</a></li>
+          <p><a target="_blank" rel="noopener" href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/">原文链接</a></p>
+<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
+<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
+<p>服务降解</p>
+<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
+<h4 id="健康检查和负载平衡"><a href="#健康检查和负载平衡" class="headerlink" title="健康检查和负载平衡"></a>健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
+<h4 id="Self-healing"><a href="#Self-healing" class="headerlink" title="Self-healing"></a>Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
+<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
+<h4 id="failover-caching"><a href="#failover-caching" class="headerlink" title="failover caching"></a>failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
+<h4 id="retry-logic"><a href="#retry-logic" class="headerlink" title="retry logic"></a>retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
+<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
+<h4 id="Rate-Limiters-and-Load-Shedders"><a href="#Rate-Limiters-and-Load-Shedders" class="headerlink" title="Rate Limiters and Load Shedders"></a>Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
+<h4 id="Fail-Fast-and-Independently"><a href="#Fail-Fast-and-Independently" class="headerlink" title="Fail Fast and Independently"></a>Fail Fast and Independently</h4><p>bulkhead pattern</p>
+<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success / fail statistics of operations.</p>
+<h4 id="Bulkheads"><a href="#Bulkheads" class="headerlink" title="Bulkheads"></a>Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
+<h4 id="Circuit-Breaks"><a href="#Circuit-Breaks" class="headerlink" title="Circuit Breaks"></a>Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
+<h4 id="Testing-for-Failures"><a href="#Testing-for-Failures" class="headerlink" title="Testing for Failures"></a>Testing for Failures</h4><p>ChaosMonkey for test</p>
+<h3 id="Key-Takeways"><a href="#Key-Takeways" class="headerlink" title="Key Takeways"></a>Key Takeways</h3><ul>
+<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
+<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
+<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
+<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
+<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
 </ul>
-<p>机器学习</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://www.coursera.org/learn/machine-learning">吴恩达: machine learning－coursera</a></li>
-<li><a target="_blank" rel="noopener" href="http://open.163.com/special/opencourse/machinelearning.html">吴恩达: 机器学习－斯坦福</a></li>
-<li><a target="_blank" rel="noopener" href="http://book.douban.com/subject/10590856/">统计学习方法</a></li>
-</ul>
-<p>coursera的课程</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://class.coursera.org/ntumlone-003/lecture">机器学习基础</a></li>
-<li><a target="_blank" rel="noopener" href="https://class.coursera.org/ntumltwo-002/lecture">机器学习技法</a></li>
-</ul>
-<p>交大课程</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=397">机器学习导论</a></li>
-<li><a target="_blank" rel="noopener" href="http://ocw.sjtu.edu.cn/G2S/OCW/cn/CourseDetails.htm?Id=398">统计机器学习</a></li>
-</ul>
-<h3 id="神经网络"><a href="#神经网络" class="headerlink" title="神经网络"></a>神经网络</h3><p><a target="_blank" rel="noopener" href="http://blog.sina.com.cn/s/blog_71329a960102v1eo.html">神经网络简史</a></p>
-<p><a target="_blank" rel="noopener" href="https://classroom.udacity.com/courses/ud730/lessons/6370362152/concepts/63798118150923">深度学习 from google</a></p>
-<p>李宏毅<a target="_blank" rel="noopener" href="http://space.bilibili.com/23852932/#!/channel/detail?cid=11583">bilili</a></p>
-<p>coursera课程</p>
-<p><a target="_blank" rel="noopener" href="https://class.coursera.org/neuralnets-2012-001/lecture">机器学习中使用的神经网络</a></p>
-<p>tensorflow:</p>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=g-EvyKpZjmQ&list=PLSPPwKHXGS2110rEaNH7amFGmaD5hsObs&spfreload=10">standford tensorflow: CS20SI</a></p>
-<p><a target="_blank" rel="noopener" href="http://web.stanford.edu/class/cs20si/syllabus.html">配套课件ppt</a></p>
-<h3 id="NLP"><a href="#NLP" class="headerlink" title="NLP"></a>NLP</h3><p>语法分析_陆俭明</p>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=DJHvaGU9SW8">CS224D 深度学习与自然语言处理</a> <a target="_blank" rel="noopener" href="http://cs224d.stanford.edu/lectures/">ppt</a></p>
-<h3 id="推荐系统"><a href="#推荐系统" class="headerlink" title="推荐系统"></a>推荐系统</h3><p><a target="_blank" rel="noopener" href="http://www.slideshare.net/xamat/recommender-systems-machine-learning-summer-school-2014-cmu">Recommender Systems</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.slideshare.net/xamat/recsys-2016-tutorial-lessons-learned-from-building-reallife-recommender-systems">Recsys 2016 tutorial: Lessons learned from building real-life recommender systems</a></p>
-<h3 id="others"><a href="#others" class="headerlink" title="others"></a>others</h3><p><a target="_blank" rel="noopener" href="http://study.163.com/course/introduction.htm?courseId=1003223001#/courseDetail">深度学习与计算机视觉</a></p>
 
       
     </div>
@@ -658,7 +635,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/100/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/100/">100</a><span class="page-number current">101</span><a class="page-number" href="/page/102/">102</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/102/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/100/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/100/">100</a><span class="page-number current">101</span><a class="page-number" href="/page/102/">102</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/102/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -726,20 +703,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

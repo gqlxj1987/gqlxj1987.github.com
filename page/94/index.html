@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/lstm-exmaple/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/17/running-keras-model-in-golang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/03/lstm-exmaple/" class="post-title-link" itemprop="url">LSTM Example</a>
+            <a href="/2018/04/17/running-keras-model-in-golang/" class="post-title-link" itemprop="url">Running keras model in golang</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-03 17:51:48" itemprop="dateCreated datePublished" datetime="2018-04-03T17:51:48+08:00">2018-04-03</time>
+              <time title="Created: 2018-04-17 09:48:44" itemprop="dateCreated datePublished" datetime="2018-04-17T09:48:44+08:00">2018-04-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -200,31 +200,131 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/lstm-by-example-using-tensorflow-feb0c1968537">原文链接</a></p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*epcf2SBjRHBynBNFf-CpQA.png" alt="predict"></p>
-<p>​                        Figure 1. LSTM cell with three inputs and 1 output.</p>
-<p>A way to convert symbol to number is to assign a unique integer to each symbol based on frequency of occurrence</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">build_dataset</span>(<span class="params">words</span>):</span></span><br><span class="line">    count = collections.Counter(words).most_common()</span><br><span class="line">    dictionary = <span class="built_in">dict</span>()</span><br><span class="line">    <span class="keyword">for</span> word, _ <span class="keyword">in</span> count:</span><br><span class="line">        dictionary[word] = <span class="built_in">len</span>(dictionary)</span><br><span class="line">    reverse_dictionary = <span class="built_in">dict</span>(<span class="built_in">zip</span>(dictionary.values(), dictionary.keys()))</span><br><span class="line">    <span class="keyword">return</span> dictionary, reverse_dictionary</span><br></pre></td></tr></table></figure>
-
-
-
-<p>上面就是采用通过词频的方式，来进行转化编码</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">RNN</span>(<span class="params">x, weights, biases</span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># reshape to [1, n_input]</span></span><br><span class="line">    x = tf.reshape(x, [-<span class="number">1</span>, n_input])</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Generate a n_input-element sequence of inputs</span></span><br><span class="line">    <span class="comment"># (eg. [had] [a] [general] -&gt; [20] [6] [33])</span></span><br><span class="line">    x = tf.split(x,n_input,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 1-layer LSTM with n_hidden units.</span></span><br><span class="line">    rnn_cell = rnn.BasicLSTMCell(n_hidden)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># generate prediction</span></span><br><span class="line">    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># there are n_input outputs but</span></span><br><span class="line">    <span class="comment"># we only want the last output</span></span><br><span class="line">    <span class="keyword">return</span> tf.matmul(outputs[-<span class="number">1</span>], weights[<span class="string">&#x27;out&#x27;</span>]) + biases[<span class="string">&#x27;out&#x27;</span>]</span><br></pre></td></tr></table></figure>
-
-
-
-<p>Final notes:</p>
-<ol>
-<li>Using int to encode symbols is easy but the “meaning” of the word is lost. Symbol to int is used to simplify the discussion on building a LSTM application using Tensorflow. Word2Vec is a more optimal way of encoding symbols to vector.</li>
-<li>One-hot vector representation of output is inefficient especially if we have a realistic vocabulary size. Oxford dictionary has over 170,000 words. The example above has 112. Again, this is only for simplifying the discussion.</li>
-<li>The number of inputs in this example is 3, see what happens when you use other numbers (eg 4, 5 or more).</li>
-</ol>
-<hr>
-<p>想法：</p>
+          <p><a target="_blank" rel="noopener" href="http://www.tonytruong.net/running-a-keras-tensorflow-model-in-golang/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_123">原文链接</a></p>
+<p>为什么要running在golang上</p>
 <ul>
-<li>one hot的进化？词语太多的话，数组170000？左右</li>
-<li>关于word的meaning部分，采用word2vec的方式，</li>
-<li>关于input的参数的使用？如何使用？</li>
+<li>Current infrastructure is already running Kubernetes / Docker containers and Golang makes the binaries extremely small and efficient 运行比较小</li>
+<li>Web frameworks for Go are much faster than the Python ones golang的web性能高</li>
+<li>The team aren’t necessarily data scientists working in Python and work in Go 没必要切换语言？</li>
+<li>Pushing data internally using GRPC for faster communication between micro services </li>
+</ul>
+<h3 id="Binary-Classification-in-Keras"><a href="#Binary-Classification-in-Keras" class="headerlink" title="Binary Classification in Keras"></a>Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></span><br><span class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">&quot;myModel&quot;</span>)  </span><br><span class="line"><span class="comment"># Tag the model, required for Go</span></span><br><span class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">&quot;myTag&quot;</span>])  </span><br><span class="line">builder.save()  </span><br><span class="line">sess.close()  </span><br></pre></td></tr></table></figure>
+
+
+
+<p>采用saveModel的方式</p>
+<h3 id="loading-and-running-the-model-in-Go"><a href="#loading-and-running-the-model-in-Go" class="headerlink" title="loading and running the model in Go"></a>loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (  </span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line">    tf <span class="string">&quot;github.com/tensorflow/tensorflow/tensorflow/go&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </span><br><span class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></span><br><span class="line">    model, err := tf.LoadSavedModel(<span class="string">&quot;myModel&quot;</span>, []<span class="keyword">string</span>&#123;<span class="string">&quot;myTag&quot;</span>&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;Error loading saved model: %s\n&quot;</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> model.Session.Close()</span><br><span class="line"></span><br><span class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="keyword">float32</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    result, err := model.Session.Run(</span><br><span class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">&quot;inputLayer_input&quot;</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        []tf.Output&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">&quot;inferenceLayer/Sigmoid&quot;</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="literal">nil</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;Error running the session with input, err: %s\n&quot;</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">&quot;Result value: %v \n&quot;</span>, result[<span class="number">0</span>].Value())</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>The tensor we input is in the shape <code>[batch size][width][height][channels]</code>. </p>
+<p>相同版本的python代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">%%time</span><br><span class="line"><span class="keyword">from</span> keras.preprocessing <span class="keyword">import</span> image  </span><br><span class="line"><span class="keyword">from</span> keras.models <span class="keyword">import</span> load_model  </span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line">model = load_model(<span class="string">&quot;model.h5&quot;</span>)  </span><br><span class="line">img = np.zeros((<span class="number">1</span>,<span class="number">250</span>,<span class="number">250</span>,<span class="number">3</span>))  </span><br><span class="line">x = np.vstack([img]) <span class="comment"># just append to this if we have more than one image.  </span></span><br><span class="line">classes = model.predict_classes(x)  </span><br><span class="line"><span class="built_in">print</span>(classes)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>可以尝试比较一下相关的时间问题？</p>
+<h3 id="Performance"><a href="#Performance" class="headerlink" title="Performance"></a>Performance</h3><p>Recall the model was:</p>
+<p>3x3x32 Convolutional Layer<br>3x3x32 Convolutional Layer<br>2x2 Max Pool Layer<br>64 Node Fully Connected Layer with Dropout<br>1 Sigmoid output Layer</p>
+<p><strong>For Python</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~2.72s to warm up and run one inference and ~0.049s for each inference after</li>
+<li><strong>GPU</strong>: - ~3.52s to warm up and run one inference and ~0.009s for each inference after</li>
+<li><strong>Saved Model Size (HDF5)</strong> 242MB</li>
+</ul>
+<p><strong>For Go</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~0.255s to warm up and run one inference and ~0.045s for each inference after</li>
+<li><strong>GPU</strong>: - N/A</li>
+<li><strong>Saved Model Size(Protobuf binaries)</strong> 236MB</li>
+</ul>
+<p>use Go to serve up your models in prod</p>
+<p>感觉在k8s上运行更好一些？</p>
+<p>在于model训练之后，基本稳定后的predict的操作</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/17/Line-of-sight-in-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/17/Line-of-sight-in-code/" class="post-title-link" itemprop="url">Line of sight in code</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-17 09:39:54" itemprop="dateCreated datePublished" datetime="2018-04-17T09:39:54+08:00">2018-04-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@matryer/line-of-sight-in-code-186dd7cdea88">原文链接</a></p>
+<p>通过在阅读代码的sight来关注code的优化问题，有意思的视角</p>
+<blockquote>
+<p>Line of sight is “a straight line along which an observer has unobstructed vision”</p>
+</blockquote>
+<p>good code,  The idea is that another programmer (including your future self) can glance down a single column and understand the expected flow of the code.</p>
+<blockquote>
+<p>Most people focus on the cost of writing code (ever heard “how long will this take to finish?”) But the far greater cost is in maintaining code — especially in successful projects. Making functions obvious, clear, simple and easy to understand is vital to this cause.</p>
+</blockquote>
+<p>Tips for a good line of sight:</p>
+<ul>
+<li>Align the happy path to the left; you should quickly be able to scan down one column to see the expected execution flow</li>
+<li>Don’t hide happy path logic inside a nest of indented braces 成功路径显而易见</li>
+<li>Exit early from your function 尽早退出你的功能</li>
+<li>Avoid else returns; consider flipping the if statement 避免无谓的else</li>
+<li>Put the happy return statement as the very last line</li>
+<li>Extract functions and methods to keep bodies small and readable extract的必要性</li>
+<li>If you need big indented bodies, consider giving them their own function 分拆own function</li>
 </ul>
 
       
@@ -245,7 +345,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/GAN-example/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/15/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -259,7 +359,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/03/GAN-example/" class="post-title-link" itemprop="url">GAN Example on Keras</a>
+            <a href="/2018/04/15/one-week/" class="post-title-link" itemprop="url">天元突破</a>
         </h2>
 
         <div class="post-meta">
@@ -269,7 +369,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-03 10:57:11" itemprop="dateCreated datePublished" datetime="2018-04-03T10:57:11+08:00">2018-04-03</time>
+              <time title="Created: 2018-04-15 17:07:38" itemprop="dateCreated datePublished" datetime="2018-04-15T17:07:38+08:00">2018-04-15</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -277,7 +377,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
                 </span>
             </span>
 
@@ -292,37 +392,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0">原文链接</a></p>
-<p>GAN is almost always explained like the case of a counterfeiter (Generative) and the police (Discriminator). Initially, the counterfeiter will show the police a fake money. The police says it is fake. The police gives feedback to the counterfeiter why the money is fake. The counterfeiter attempts to make a new fake money based on the feedback it received. The police says the money is still fake and offers a new set of feedback. The counterfeiter attempts to make a new fake money based on the latest feedback. The cycle continues indefinitely until the police is fooled by the fake money because it looks real</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*QHMGABbwL04x5VGYc_UWSA.png" alt="discriminator"></p>
-<p>Figure 1. Discriminator of DCGAN tells how real an input image of a digit is. MNIST Dataset is used as ground truth for real images. Strided convolution instead of max-pooling down samples the image.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">self.D = Sequential()</span><br><span class="line">depth = <span class="number">64</span></span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line"><span class="comment"># In: 28 x 28 x 1, depth = 1</span></span><br><span class="line"><span class="comment"># Out: 14 x 14 x 1, depth=64</span></span><br><span class="line">input_shape = (self.img_rows, self.img_cols, self.channel)</span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">1</span>, <span class="number">5</span>, strides=<span class="number">2</span>, input_shape=input_shape, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">2</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">4</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">8</span>, <span class="number">5</span>, strides=<span class="number">1</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 1-dim probability</span></span><br><span class="line">self.D.add(Flatten())</span><br><span class="line">self.D.add(Dense(<span class="number">1</span>))</span><br><span class="line">self.D.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.D.summary()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*gvBT3h4JD7eUN0GexHwx2w.png" alt="generator"></p>
-<p>Figure 2. Generator model synthesizes fake MNIST images from noise. Upsampling is used instead of fractionally-strided transposed convolution.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">self.G = Sequential()</span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line">depth = <span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span></span><br><span class="line">dim = <span class="number">7</span></span><br><span class="line"><span class="comment"># In: 100</span></span><br><span class="line"><span class="comment"># Out: dim x dim x depth</span></span><br><span class="line">self.G.add(Dense(dim*dim*depth, input_dim=<span class="number">100</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line">self.G.add(Reshape((dim, dim, depth)))</span><br><span class="line">self.G.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># In: dim x dim x depth</span></span><br><span class="line"><span class="comment"># Out: 2*dim x 2*dim x depth/2</span></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">2</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">4</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">8</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 28 x 28 x 1 grayscale image [0.0,1.0] per pix</span></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="number">1</span>, <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.G.summary()</span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*PIpd1jHbPc2QrTOPhvxoaw.png" alt="model"></p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*N3nT9AXVnsFBta2R1eEMjg.png" alt="train model"></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">images_train = self.x_train[np.random.randint(<span class="number">0</span>,</span><br><span class="line">     self.x_train.shape[<span class="number">0</span>], size=batch_size), :, :, :]</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> images_fake = self.generator.predict(noise)</span><br><span class="line"> x = np.concatenate((images_train, images_fake))</span><br><span class="line"> y = np.ones([<span class="number">2</span>*batch_size, <span class="number">1</span>])</span><br><span class="line"> y[batch_size:, :] = <span class="number">0</span></span><br><span class="line"> d_loss = self.discriminator.train_on_batch(x, y)</span><br><span class="line"></span><br><span class="line"> y = np.ones([batch_size, <span class="number">1</span>])</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> a_loss = self.adversarial.train_on_batch(noise, y)</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h3 id="Some-tips"><a href="#Some-tips" class="headerlink" title="Some tips"></a>Some tips</h3><p>Training GAN models requires a lot of patience due to its depth. Here are some pointers:</p>
-<ol>
-<li>Problem: generated images look like noise. Solution: use dropout on both Discriminator and Generator. Low dropout values (0.3 to 0.6) generate more realistic images.</li>
-<li>Problem: Discriminator loss converges rapidly to zero thus preventing the Generator from learning. Solution: Do not pre-train the Discriminator. Instead make its learning rate bigger than the Adversarial model learning rate. Use a different training noise sample for the Generator.</li>
-<li>Problem: generator images still look like noise. Solution: check if the activation, batch normalization and dropout are applied in the correct sequence.</li>
-<li>Problem: figuring out the correct training/model parameters. Solution: start with some known working values from published papers and codes and adjust one parameter at a time. Before training for 2000 or more steps, observe the effect of parameter value adjustment at about 500 or 1000 steps.</li>
-</ol>
-<p>尝试使用kaggle来做下试验？</p>
-<h2 id="tips"><a href="#tips" class="headerlink" title="tips:"></a>tips:</h2><p>在进行深度学习的时候，先尝试将相关图能画出来，讲流程图能画出来</p>
+          <p>你认为我是谁。。</p>
+<p>我可是要钻向天际的男人。。</p>
+<p>不要管那么多，就是燃就够了。。</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>尝试性完成了dutch新老语种的转换</li>
+<li>关于android端的banner部分</li>
+</ul>
+<p>本周所学：</p>
+<ul>
+<li>关于kaggle部分的使用</li>
+<li>对于词典的编码上，bucket部分，转换部分，算是对lstm有一个入门的想法</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>考试题目</li>
+<li>react native框架尝试搭起来，包括蓝牙通信</li>
+</ul>
+<p>锻炼部分，坚持下去，包括健身房，跑步上，已经提升到15km，要稳定下去，饮食方面，晚餐尽量少吃，晚上的keep也要坚持10-20分钟的运动</p>
+<p>相处上，还是按部就班，尽量保持独立吧，自己要控制lol。。简直像是精虫上脑一样，尽量少lol。。未来还是有很多的不确定性，不要停留原地，不管它，做好自己。。。</p>
+<p>技术上，deep learning上加快速度，有点慢。。。其他技术上，整理一下东西出来。。</p>
+<p>简历可以开始更新一下了。。考虑之后想做什么方向。。</p>
+<p>时间把控上，还是做的不够，关于英语听说部分，安排时间。。</p>
+<p>不要有太多的想法，就是学习就够了。。</p>
 
       
     </div>
@@ -342,7 +436,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/go101/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/13/bolt-go/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -356,7 +450,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/03/go101/" class="post-title-link" itemprop="url">Go101</a>
+            <a href="/2018/04/13/bolt-go/" class="post-title-link" itemprop="url">bolt-内嵌kv存储</a>
         </h2>
 
         <div class="post-meta">
@@ -366,7 +460,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-03 10:27:12" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">2018-04-03</time>
+              <time title="Created: 2018-04-13 16:21:55" itemprop="dateCreated datePublished" datetime="2018-04-13T16:21:55+08:00">2018-04-13</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -389,52 +483,40 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://go101.org/article/101.html">原文链接</a></p>
-<h3 id="value-parts"><a href="#value-parts" class="headerlink" title="value parts"></a>value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
-<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
-<p>Two kinds points</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/boltdb/bolt">repo</a></p>
+<blockquote>
+<p>However, this limited scope also means that the project is complete.</p>
+</blockquote>
+<p>more featureful version <a target="_blank" rel="noopener" href="https://github.com/coreos/bbolt">repo</a></p>
+<p>关于transactions的手动实现</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Start a writable transaction.</span></span><br><span class="line">tx, err := db.Begin(<span class="literal">true</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">defer</span> tx.Rollback()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Use the transaction...</span></span><br><span class="line">_, err := tx.CreateBucket([]<span class="keyword">byte</span>(<span class="string">&quot;MyBucket&quot;</span>))</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Commit the transaction and check for error.</span></span><br><span class="line"><span class="keyword">if</span> err := tx.Commit(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>使用bucket部分</p>
+<p>这里面比较有意思的是：通过seek()部分操作</p>
 <ul>
-<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
-<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
+<li>prefix scans</li>
+<li>range scans</li>
+<li>foreach</li>
 </ul>
-<p>Internal Definitions of the types</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// map types</span></span><br><span class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></span><br><span class="line">                         <span class="comment">// Go maps are hashtables actually.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// channel types</span></span><br><span class="line"><span class="keyword">type</span> _channel *channelImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// function types</span></span><br><span class="line"><span class="keyword">type</span> _function *functionImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// slice types</span></span><br><span class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>            <span class="comment">// number of elements</span></span><br><span class="line">	<span class="built_in">cap</span>      <span class="keyword">int</span>            <span class="comment">// capacity</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// string types</span></span><br><span class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements *<span class="keyword">byte</span> <span class="comment">// underlying bytes</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>   <span class="comment">// number of bytes</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// general interface types</span></span><br><span class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</span><br><span class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</span><br><span class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></span><br><span class="line">		methods     []*_function <span class="comment">// implemented methods</span></span><br><span class="line">	&#125;</span><br><span class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>underlying value parts are not copied in value assignments</strong></p>
-<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
-<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
-<ul>
-<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
-<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
-<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
+<p>天然支持database backups</p>
+<h2 id="comparison-with-other-databases"><a href="#comparison-with-other-databases" class="headerlink" title="comparison with other databases"></a>comparison with other databases</h2><h3 id="Postgres-MySQL-amp-other-relational-databases"><a href="#Postgres-MySQL-amp-other-relational-databases" class="headerlink" title="Postgres, MySQL, &amp; other relational databases"></a>Postgres, MySQL, &amp; other relational databases</h3><p>sql</p>
+<p>Bolt accesses all data by a byte slice key. This makes Bolt fast to read and write data by key but provides no built-in support for joining values together. Bolt runs as a library included in your application so all data access has to go through your application’s process. This brings data closer to your application but limits multi-process access to the data.</p>
+<h3 id="LevelDB-RocksDB"><a href="#LevelDB-RocksDB" class="headerlink" title="LevelDB, RocksDB"></a>LevelDB, RocksDB</h3><p>their underlying structure is a log-structured merge-tree (LSM tree). An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables</p>
+<p>Bolt uses a B+tree internally and only a single file. </p>
+<p>If you require a high random write throughput (&gt;10,000 w/sec) or you need to use spinning disks then LevelDB could be a good choice. If your application is read-heavy or does a lot of range scans then Bolt could be a good choice.</p>
+<p>One other important consideration is that LevelDB does not have transactions. It supports batch writing of key/values pairs and it supports read snapshots but it will not give you the ability to do a compare-and-swap operation safely. Bolt supports fully serializable ACID transactions.(事务上的支持)</p>
+<h3 id="LMDB"><a href="#LMDB" class="headerlink" title="LMDB"></a>LMDB</h3><p>Bolt was originally a port of LMDB so it is architecturally similar. Both use a B+tree, have ACID semantics with fully serializable transactions, and support lock-free MVCC using a single writer and multiple readers.</p>
+<p>on safe actions</p>
+<p>on api, LMDB requires a maximum mmap size when opening an <code>mdb_env</code> whereas Bolt will handle incremental mmap resizing automatically</p>
+<h2 id="conclusion"><a href="#conclusion" class="headerlink" title="conclusion"></a>conclusion</h2><ul>
+<li>Bolt is good for read intensive workloads.</li>
+<li>Bolt uses a B+tree internally so there can be a lot of random page access</li>
+<li>Bulk loading a lot of random writes into a new bucket can be slow as the page will not split until the transaction is committed. 在一个事务里尽量是连续性的操作</li>
+<li>The data structures in the Bolt database are memory mapped so the data file will be endian specific</li>
+<li>Because of the way pages are laid out on disk, Bolt cannot truncate data files and return free pages back to the disk. Instead, Bolt maintains a free list of unused pages within its data file. These free pages can be reused by later transactions. 关于bolt的reuse特性</li>
 </ul>
-<h3 id="line-break-rules-in-go"><a href="#line-break-rules-in-go" class="headerlink" title="line break rules in go"></a>line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>&#123;</code>) of the explicit code block of a <a target="_blank" rel="noopener" href="https://go101.org/article/control-flow.html">control flow block</a> on a new line.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// do something ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>活用<code>;</code></p>
-<h3 id="Some-Panic-Recover-Use-Cases"><a href="#Some-Panic-Recover-Use-Cases" class="headerlink" title="Some Panic/Recover Use Cases"></a>Some Panic/Recover Use Cases</h3><p>avoid panics crashing programs</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;errors&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;net&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listener, err := net.Listen(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;:12345&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalln(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></span><br><span class="line">		<span class="keyword">go</span> ClientHandler(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;client handler panic:&quot;</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">		c.Close()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">&quot;just a demo.&quot;</span>)) <span class="comment">// a demo-purpose panic</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>automatically restart a crash goroutine</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></span><br><span class="line">		<span class="comment">// Simultate an unexpected panic.</span></span><br><span class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">&quot;unexpected situation&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="keyword">string</span>, f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></span><br><span class="line">			log.Println(name, <span class="string">&quot;is crashed. Restart it now.&quot;</span>)</span><br><span class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.SetFlags(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#A&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#B&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>use panic/recover to reduce error checkings</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Create a demo-purpose panic.</span></span><br><span class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">&quot;bad number: %v&quot;</span>, n))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></span><br><span class="line">		<span class="comment">// a panic will be created if no errors occur.</span></span><br><span class="line">		err, _ = <span class="built_in">recover</span>().(error)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	doTask(<span class="number">22</span>)</span><br><span class="line">	doTask(<span class="number">98</span>)</span><br><span class="line">	doTask(<span class="number">100</span>)</span><br><span class="line">	doTask(<span class="number">53</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="close-channel"><a href="#close-channel" class="headerlink" title="close channel"></a>close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
 
       
     </div>
@@ -454,7 +536,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/12/Neural-Machine-Translation/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -468,7 +550,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/02/flipkart-data-platform/" class="post-title-link" itemprop="url">Flipkart Data Platform</a>
+            <a href="/2018/04/12/Neural-Machine-Translation/" class="post-title-link" itemprop="url">Neural Machine Translation</a>
         </h2>
 
         <div class="post-meta">
@@ -478,7 +560,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-02 16:59:43" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">2018-04-02</time>
+              <time title="Created: 2018-04-12 15:08:35" itemprop="dateCreated datePublished" datetime="2018-04-12T15:08:35+08:00">2018-04-12</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -486,7 +568,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-platform/" itemprop="url" rel="index"><span itemprop="name">data platform</span></a>
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
                 </span>
             </span>
 
@@ -501,113 +583,42 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196">原文链接</a></p>
-<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
-<p>Overall FDP can be broken down into following high level components.</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/tensorflow/nmt#background-on-neural-machine-translation">repo</a></p>
+<h2 id="数据预处理"><a href="#数据预处理" class="headerlink" title="数据预处理"></a>数据预处理</h2><p><a target="_blank" rel="noopener" href="https://xiaozhuanlan.com/topic/5841967302">原文链接</a></p>
+<p>使用了新的Dataset API部分</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">src_dataset=tf.data.TextLineDataset(<span class="string">&#x27;src_data.txt&#x27;</span>)  </span><br><span class="line">tgt_dataset=tf.data.TextLineDataset(<span class="string">&#x27;tgt_data.txt&#x27;</span>)  </span><br></pre></td></tr></table></figure>
+
+<p>查找表的构造方法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_vocab_tables</span>(<span class="params">src_vocab_file, tgt_vocab_file, share_vocab</span>):</span></span><br><span class="line">  <span class="string">&quot;&quot;&quot;Creates vocab tables for src_vocab_file and tgt_vocab_file.&quot;&quot;&quot;</span></span><br><span class="line">  src_vocab_table = lookup_ops.index_table_from_file(</span><br><span class="line">      src_vocab_file, default_value=UNK_ID)</span><br><span class="line">  <span class="keyword">if</span> share_vocab:</span><br><span class="line">    tgt_vocab_table = src_vocab_table</span><br><span class="line">  <span class="keyword">else</span>:</span><br><span class="line">    tgt_vocab_table = lookup_ops.index_table_from_file(</span><br><span class="line">        tgt_vocab_file, default_value=UNK_ID)</span><br><span class="line">  <span class="keyword">return</span> src_vocab_table, tgt_vocab_table</span><br></pre></td></tr></table></figure>
+
+<p>使用了tensorflow库中定义的lookup_ops，简化了产生字典的操作</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="keyword">not</span> output_buffer_size:</span><br><span class="line">    output_buffer_size = batch_size * <span class="number">1000</span></span><br><span class="line">  src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant(eos)), tf.int32)</span><br><span class="line">  tgt_sos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(sos)), tf.int32)</span><br><span class="line">  tgt_eos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(eos)), tf.int32)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过zip操作将源数据集和目标数据集合并在一起</span></span><br><span class="line"><span class="comment"># 此时的张量变化 [src_dataset] + [tgt_dataset] ---&gt; [src_dataset, tgt_dataset]</span></span><br><span class="line">  src_tgt_dataset = tf.data.Dataset.<span class="built_in">zip</span>((src_dataset, tgt_dataset))</span><br><span class="line"><span class="comment"># 数据集分片，分布式训练的时候可以分片来提高训练速度</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.shard(num_shards, shard_index)</span><br><span class="line">  <span class="keyword">if</span> skip_count <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">    src_tgt_dataset = src_tgt_dataset.skip(skip_count)</span><br><span class="line"><span class="comment"># 随机打乱数据，切断相邻数据之间的联系</span></span><br><span class="line"><span class="comment"># 根据文档，该步骤要尽早完成，完成该步骤之后在进行其他的数据集操作</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.shuffle(</span><br><span class="line">      output_buffer_size, random_seed, reshuffle_each_iteration)</span><br><span class="line">    </span><br><span class="line">  <span class="comment"># 将每一行数据，根据“空格”切分开来</span></span><br><span class="line">  <span class="comment"># 这个步骤可以并发处理，用num_parallel_calls指定并发量</span></span><br><span class="line">  <span class="comment"># 通过prefetch来预获取一定数据到缓冲区，提升数据吞吐能力</span></span><br><span class="line">  <span class="comment"># 张量变化举例 [&#x27;上海　浦东&#x27;, &#x27;上海　浦东&#x27;] ---&gt; [[&#x27;上海&#x27;, &#x27;浦东&#x27;], [&#x27;上海&#x27;, &#x27;浦东&#x27;]]</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">      <span class="keyword">lambda</span> src, tgt: (</span><br><span class="line">          tf.string_split([src]).values, tf.string_split([tgt]).values),</span><br><span class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br><span class="line"></span><br><span class="line">  <span class="comment"># Filter zero length input sequences.</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.<span class="built_in">filter</span>(</span><br><span class="line">      <span class="keyword">lambda</span> src, tgt: tf.logical_and(tf.size(src) &gt; <span class="number">0</span>, tf.size(tgt) &gt; <span class="number">0</span>))</span><br><span class="line"><span class="comment"># 限制源数据最大长度</span></span><br><span class="line">  <span class="keyword">if</span> src_max_len:</span><br><span class="line">    src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">        <span class="keyword">lambda</span> src, tgt: (src[:src_max_len], tgt),</span><br><span class="line">        num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br><span class="line">  <span class="comment"># 限制目标数据的最大长度</span></span><br><span class="line">  <span class="keyword">if</span> tgt_max_len:</span><br><span class="line">    src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">        <span class="keyword">lambda</span> src, tgt: (src, tgt[:tgt_max_len]),</span><br><span class="line">        num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br><span class="line">  <span class="comment"># Convert the word strings to ids.  Word strings that are not in the</span></span><br><span class="line">  <span class="comment"># vocab get the lookup table&#x27;s default_value integer.</span></span><br><span class="line">  <span class="comment"># 通过map操作将字符串转换为数字</span></span><br><span class="line">  <span class="comment"># 张量变化举例 [[&#x27;上海&#x27;, &#x27;浦东&#x27;], [&#x27;上海&#x27;, &#x27;浦东&#x27;]] ---&gt; [[1, 2], [1, 2]]</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">      <span class="keyword">lambda</span> src, tgt: (tf.cast(src_vocab_table.lookup(src), tf.int32),</span><br><span class="line">                        tf.cast(tgt_vocab_table.lookup(tgt), tf.int32)),</span><br><span class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br><span class="line">  <span class="comment"># Create a tgt_input prefixed with &lt;sos&gt; and a tgt_output suffixed with &lt;eos&gt;.</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment"># 给目标数据加上 sos, eos　标记</span></span><br><span class="line">  <span class="comment"># 张量变化举例 [[1, 2], [1, 2]] ---&gt; [[1, 2], [sos_id, 1, 2], [1, 2, eos_id]]</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">      <span class="keyword">lambda</span> src, tgt: (src,</span><br><span class="line">                        tf.concat(([tgt_sos_id], tgt), <span class="number">0</span>),</span><br><span class="line">                        tf.concat((tgt, [tgt_eos_id]), <span class="number">0</span>)),</span><br><span class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br><span class="line">  <span class="comment"># Add in sequence lengths.</span></span><br><span class="line">  <span class="comment"># 增加长度信息</span></span><br><span class="line">  <span class="comment"># 张量变化举例 [[1, 2], [sos_id, 1, 2], [1, 2, eos_id]] ---&gt; [[1, 2], [sos_id, 1, 2], [1, 2, eos_id], [src_size], [tgt_size]]</span></span><br><span class="line">  src_tgt_dataset = src_tgt_dataset.<span class="built_in">map</span>(</span><br><span class="line">      <span class="keyword">lambda</span> src, tgt_in, tgt_out: (</span><br><span class="line">          src, tgt_in, tgt_out, tf.size(src), tf.size(tgt_in)),</span><br><span class="line">      num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>处理过程分析：</p>
 <ol>
-<li>Ingestion System</li>
-<li>Batch Data Processing System</li>
-<li>Real time Processing System</li>
-<li>Report Visualization</li>
-<li>Query Platform</li>
+<li><p>开始标记和结束标记，转换成为int32</p>
+</li>
+<li><p>关于增加sos以及eos标记，为啥src和target添加的标记不同？</p>
+</li>
+<li><p>关于增加长度信息的意义？</p>
+<p>​</p>
+</li>
 </ol>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
-<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
-<p><a target="_blank" rel="noopener" href="https://lens.apache.org/">Apache Lens</a> 接入hive等</p>
-<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
-<hr>
-<h2 id="ETL"><a href="#ETL" class="headerlink" title="ETL"></a>ETL</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d">原文链接</a></p>
-<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
-<p>mapreduce vs cascading</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
-<hr>
-<h2 id="REAL-TIME-SEACH-INDEX"><a href="#REAL-TIME-SEACH-INDEX" class="headerlink" title="REAL TIME SEACH INDEX"></a>REAL TIME SEACH INDEX</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d">原文链接</a></p>
-<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=05rX0mJ2N4U">video</a></p>
-<p>高频繁的更新操作，</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
-<p><a target="_blank" rel="noopener" href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart">sides</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 数据对齐</span></span><br><span class="line"><span class="comment"># 参数x实际上就是我们的 dataset 对象</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">batching_func</span>(<span class="params">x</span>):</span></span><br><span class="line">    <span class="comment"># 调用dataset的padded_batch方法，对齐的同时，也对数据集进行分批</span></span><br><span class="line">    <span class="keyword">return</span> x.padded_batch(</span><br><span class="line">        batch_size,</span><br><span class="line">        <span class="comment"># 对齐数据的形状</span></span><br><span class="line">        padded_shapes=(</span><br><span class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></span><br><span class="line">            tf.TensorShape([<span class="literal">None</span>]),  <span class="comment"># src</span></span><br><span class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></span><br><span class="line">            tf.TensorShape([<span class="literal">None</span>]),  <span class="comment"># tgt_input</span></span><br><span class="line">            <span class="comment"># 因为数据长度不定，因此设置None</span></span><br><span class="line">            tf.TensorShape([<span class="literal">None</span>]),  <span class="comment"># tgt_output</span></span><br><span class="line">            <span class="comment"># 数据长度张量，实际上不需要对齐</span></span><br><span class="line">            tf.TensorShape([]),  <span class="comment"># src_len</span></span><br><span class="line">            tf.TensorShape([])),  <span class="comment"># tgt_len</span></span><br><span class="line">        <span class="comment"># 对齐数据的值</span></span><br><span class="line">        padding_values=(</span><br><span class="line">            <span class="comment"># 用src_eos_id填充到 src 的末尾</span></span><br><span class="line">            src_eos_id,  <span class="comment"># src</span></span><br><span class="line">            <span class="comment"># 用tgt_eos_id填充到 tgt_input 的末尾</span></span><br><span class="line">            tgt_eos_id,  <span class="comment"># tgt_input</span></span><br><span class="line">            <span class="comment"># 用tgt_eos_id填充到 tgt_output 的末尾</span></span><br><span class="line">            tgt_eos_id,  <span class="comment"># tgt_output</span></span><br><span class="line">            <span class="number">0</span>,  <span class="comment"># src_len -- unused</span></span><br><span class="line">            <span class="number">0</span>))  <span class="comment"># tgt_len -- unused</span></span><br></pre></td></tr></table></figure>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/02/hot-reloading-go-programs/" class="post-title-link" itemprop="url">Hot Reloading Go Programs</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-02 11:12:06" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">2018-04-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/hot-reload/" itemprop="url" rel="index"><span itemprop="name">hot reload</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72">原文链接</a></p>
-<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
-<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
-<p>原理上：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">watcher, err := fsnotify.NewWatcher()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</span><br><span class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</span><br><span class="line">					watcherLog(<span class="string">&quot;sending event %s&quot;</span>, ev)</span><br><span class="line">					startChannel &lt;- ev.String()</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</span><br><span class="line">				watcherLog(<span class="string">&quot;error: %s&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br></pre></td></tr></table></figure>
-
-<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
-<p>核心部分的build代码</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	buildLog(<span class="string">&quot;Building...&quot;</span>)</span><br><span class="line"></span><br><span class="line">	cmd := exec.Command(<span class="string">&quot;go&quot;</span>, <span class="string">&quot;build&quot;</span>, <span class="string">&quot;-o&quot;</span>, buildPath(), root())</span><br><span class="line"></span><br><span class="line">	stderr, err := cmd.StderrPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	stdout, err := cmd.StdoutPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = cmd.Start()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	io.Copy(os.Stdout, stdout)</span><br><span class="line">	errBuf, _ := ioutil.ReadAll(stderr)</span><br><span class="line"></span><br><span class="line">	err = cmd.Wait()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">string</span>(errBuf), <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="string">&quot;&quot;</span>, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个数据对齐，没看懂。。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> num_buckets &gt; <span class="number">1</span>:</span><br><span class="line"></span><br><span class="line">   <span class="function"><span class="keyword">def</span> <span class="title">key_func</span>(<span class="params">unused_1, unused_2, unused_3, src_len, tgt_len</span>):</span></span><br><span class="line">     <span class="comment"># Calculate bucket_width by maximum source sequence length.</span></span><br><span class="line">     <span class="comment"># Pairs with length [0, bucket_width) go to bucket 0, length</span></span><br><span class="line">     <span class="comment"># [bucket_width, 2 * bucket_width) go to bucket 1, etc.  Pairs with length</span></span><br><span class="line">     <span class="comment"># over ((num_bucket-1) * bucket_width) words all go into the last bucket.</span></span><br><span class="line">     <span class="keyword">if</span> src_max_len:</span><br><span class="line">       bucket_width = (src_max_len + num_buckets - <span class="number">1</span>) // num_buckets</span><br><span class="line">     <span class="keyword">else</span>:</span><br><span class="line">       bucket_width = <span class="number">10</span></span><br><span class="line"></span><br><span class="line">     <span class="comment"># Bucket sentence pairs by the length of their source sentence and target</span></span><br><span class="line">     <span class="comment"># sentence.</span></span><br><span class="line">     bucket_id = tf.maximum(src_len // bucket_width, tgt_len // bucket_width)</span><br><span class="line">     <span class="keyword">return</span> tf.to_int64(tf.minimum(num_buckets, bucket_id))</span><br><span class="line"></span><br><span class="line">   <span class="function"><span class="keyword">def</span> <span class="title">reduce_func</span>(<span class="params">unused_key, windowed_data</span>):</span></span><br><span class="line">     <span class="keyword">return</span> batching_func(windowed_data)</span><br><span class="line"></span><br><span class="line">   batched_dataset = src_tgt_dataset.apply(</span><br><span class="line">       tf.contrib.data.group_by_window(</span><br><span class="line">           key_func=key_func, reduce_func=reduce_func, window_size=batch_size))</span><br><span class="line"> <span class="keyword">else</span>:</span><br><span class="line">   batched_dataset = batching_func(src_tgt_dataset)</span><br></pre></td></tr></table></figure>
 
 
 
-<hr>
-<p>另一种live reload的方式</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/oxequa/realize">git repo</a></p>
-<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
+<p>关于分桶操作，得到的结果，就是相似长度的数据放在一起，能够提升计算效率！！</p>
+<p>使用迭代器获取处理之后的数据</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">batched_iter = batched_dataset.make_initializable_iterator()</span><br><span class="line"> (src_ids, tgt_input_ids, tgt_output_ids, src_seq_len,</span><br><span class="line">  tgt_seq_len) = (batched_iter.get_next())</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -626,7 +637,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/93/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/93/">93</a><span class="page-number current">94</span><a class="page-number" href="/page/95/">95</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/95/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/93/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/93/">93</a><span class="page-number current">94</span><a class="page-number" href="/page/95/">95</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/95/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -694,20 +705,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

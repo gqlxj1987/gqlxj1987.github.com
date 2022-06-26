@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/04/devops/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/slack-pipe/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/05/04/devops/" class="post-title-link" itemprop="url">Devops tips</a>
+            <a href="/2018/05/22/slack-pipe/" class="post-title-link" itemprop="url">Slack队列</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-05-04 17:22:09" itemprop="dateCreated datePublished" datetime="2018-05-04T17:22:09+08:00">2018-05-04</time>
+              <time title="Created: 2018-05-22 19:54:38" itemprop="dateCreated datePublished" datetime="2018-05-22T19:54:38+08:00">2018-05-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/devops/" itemprop="url" rel="index"><span itemprop="name">devops</span></a>
+                  <a href="/categories/queue/" itemprop="url" rel="index"><span itemprop="name">queue</span></a>
                 </span>
             </span>
 
@@ -200,30 +200,42 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzIwMzg1ODcwMw==&idx=1&mid=2247487627&sn=34d437a1253bdf61857cf2ac513285ac&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_125">原文链接</a></p>
-<h4 id="单服务器组发布"><a href="#单服务器组发布" class="headerlink" title="单服务器组发布"></a>单服务器组发布</h4><p>手动发布，手动停掉-&gt; 金丝雀发布，先发一组，做流量测试</p>
-<p>滚动式发布</p>
+          <p><a target="_blank" rel="noopener" href="https://slack.engineering/scaling-slacks-job-queue-687222e9d100">原文链接</a></p>
+<h3 id="initial-job-queue-system-architecture"><a href="#initial-job-queue-system-architecture" class="headerlink" title="initial job queue system architecture"></a>initial job queue system architecture</h3><p><a target="_blank" rel="noopener" href="https://redis.io/commands/rpoplpush#pattern-reliable-queue">Redis task queue</a>:</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*xg9vacHZdbqyqbCPB9nOLQ.png" alt="redis queue"></p>
+<p>job with an identical ID</p>
+<p>Pools of worker machines poll the Redis clusters, looking for new work. When a worker finds a job in one of the queues it monitors, it moves the job from the pending queue to a list of in-flight jobs, and spawns an asynchronous task to handle it.</p>
+<h3 id="Architectural-Problems"><a href="#Architectural-Problems" class="headerlink" title="Architectural Problems"></a>Architectural Problems</h3><ul>
+<li>Redis had little operational headroom, particularly with respect to memory. If we enqueued faster than we dequeued for a sustained period, we would run out of memory and be unable to dequeue jobs (because dequeuing also requires having enough memory to move the job into a processing list).</li>
+<li>Redis connections formed a complete bipartite graph — every job queue client must connect to (and therefore have correct and current information on) every Redis instance.</li>
+<li>Job workers couldn’t scale independently of Redis — adding a worker resulted in extra polling and load on Redis. This property caused a complex feedback situation where attempting to increase our execution capacity could overwhelm an already overloaded Redis instance, slowing or halting progress.</li>
+<li>Previous decisions on which Redis data structures to use meant that dequeuing a job requires work proportional to the length of the queue. As queues become longer, they became more difficult to empty — another unfortunate feedback loop.</li>
+<li>The semantics and quality-of-service guarantees provided to application and platform engineers were unclear and hard to define; asynchronous processing on the job queue is fundamental to our system architecture, but in practice engineers were reluctant to use it. Changes to existing features such as our limited deduplication were also extremely high-risk, as many jobs rely on them to function correctly.</li>
+</ul>
+<p>We thought about replacing Redis with Kafka altogether, but quickly realized that this route would require significant changes to the application logic around scheduling, executing, and de-duping jobs. In the spirit of pursuing a minimum viable change, we decided to add <strong>Kafka in front of Redis</strong> rather than replacing Redis with Kafka outright. This would alleviate a critical bottleneck in our system, while leaving the existing application enqueue and dequeue interfaces in place.</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*gLthmgFNR5NhxFdUO3g9gQ.png" alt="new Queue Architecture"></p>
+<p>Kafka gate:</p>
+<ul>
+<li>A bias towards availability over consitency</li>
+<li>Simple client semantics</li>
+<li>Minimum latency</li>
+</ul>
+<h3 id="replay-jobs-from-kafka-to-redis"><a href="#replay-jobs-from-kafka-to-redis" class="headerlink" title="replay jobs from kafka to redis"></a>replay jobs from kafka to redis</h3><p>use JQRelay to decode the JSON encoded job</p>
+<p><strong>Self-configuration:</strong> When a JQRelay instance starts up, it attempts to acquire a <a target="_blank" rel="noopener" href="https://www.consul.io/">Consul</a> lock on an key/value entry corresponding to the Kafka topic. If it gets the lock, it starts relaying jobs from all partitions of this topic. If it loses its lock, it releases all resources and restarts so that a different instance can pick up this topic. </p>
+<h3 id="load-test"><a href="#load-test" class="headerlink" title="load test"></a>load test</h3><p><strong>Failure testing</strong>: It was important to understand how different Kafka cluster failure scenarios would manifest in the application, e.g. connect failures, job enqueue failures, missing jobs, and duplicate jobs. For this, we tested our cluster against following failure scenarios:</p>
 <ol>
-<li>滚动式发布一般先发 1 台，或者一个小比例，如 2% 服务器，主要做流量验证用，类似金丝雀 (Canary) 测试。</li>
-<li>滚动式发布需要比较复杂的发布工具和智能 LB，支持平滑的版本替换和流量拉入拉出。</li>
-<li>每次发布时，先将老版本 V1 流量从 LB 上摘除，然后清除老版本，发新版本 V2，再将 LB 流量接入新版本。这样可以尽量保证用户体验不受影响。</li>
-<li>一次滚动式发布一般由若干个发布批次组成，每批的数量一般是可以配置的（可以通过发布模板定义）。例如第一批 1 台（金丝雀），第二批 10%，第三批 50%，第四批 100%。每个批次之间留观察间隔，通过手工验证或监控反馈确保没有问题再发下一批次，所以总体上滚动式发布过程是比较缓慢的 (其中金丝雀的时间一般会比后续批次更长，比如金丝雀 10 分钟，后续间隔 2 分钟)。</li>
-<li>回退是发布的逆过程，将新版本流量从 LB 上摘除，清除新版本，发老版本，再将 LB 流量接入老版本。和发布过程一样，回退过程一般也比较慢的。</li>
-<li>滚动式发布国外术语通常叫 Rolling Update Deployment。</li>
+<li>Hard kill and gracefully kill a broker</li>
+<li>Hard kill and gracefully kill two brokers in a single AZ</li>
+<li>Hard kill all three brokers to force Kafka to pick an unclean leader</li>
+<li>Restart the cluster</li>
 </ol>
-<h4 id="双服务器组发布"><a href="#双服务器组发布" class="headerlink" title="双服务器组发布"></a>双服务器组发布</h4><p>为一次发布分配两组服务器，一组运行现有的 V1 老版本，一组运行待上线的 V2 新版本，再通过 LB 切换流量方式完成发布，这就是所谓的双服务器组发布方式。</p>
-<p>蓝绿发布</p>
-<p>金丝雀发布</p>
-<p>滚动发布</p>
-<h4 id="其他发布以及测试"><a href="#其他发布以及测试" class="headerlink" title="其他发布以及测试"></a>其他发布以及测试</h4><p>影子测试</p>
-<p><img src="https://mmbiz.qpic.cn/mmbiz_png/UicsouxJOkBdpqMAJvdAY6GFrP17hbic5SnxNNkF4ZjG97KxRkH9cHhHwVVvOB41KDVQKZVjOCJjUcYpzmDySYfw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1" alt="影子"></p>
+<h3 id="Production-Rollout"><a href="#Production-Rollout" class="headerlink" title="Production Rollout"></a>Production Rollout</h3><p>Rolling out the new system included the following steps:</p>
 <ol>
-<li>目标实现老的 legacy 服务迁移升级到新的 experimental 服务。</li>
-<li>测试开始前，需要在测试环境部署一份 legacy 服务和 experimental 服务，同时将生产数据库复制两份到测试环境。同时需要将生产请求日志收集起来，一般可以通过 kafka 队列收集，然后通过类似 goreplay附录 6.8这样的工具，消费 kafka 里头的请求日志，复制回放，将请求分发到 legacy 服务和 experimental 服务，收到响应后进行比对，如果所有响应比对成功，则可以认为 legacy 服务和 experimental 服务在功能逻辑上是等价的；如果有响应比对失败，则认为两者在功能逻辑上不等价，需要修复 experimental 并重新进行影子测试，直到全部比对成功。根据系统复杂度和关键性不同，比对测试时间短的可能需要几周，长的可达半年之久。</li>
-<li>影子测试因为旁路在独立测试环境中进行，可以对生产流量完全无影响。</li>
-<li>影子测试一般适用于遗留系统的等价重构迁移，例如.net 转 Java，或者 SQLServer 数据库升级为 MySQL 数据库，且外部依赖不能太多，否则需要开发很多 mock，测试部署成本会很高，且比对测试更加复杂和不稳定。</li>
+<li><strong>Double writes:</strong> We started by double writing jobs to both the current and new system (each job was enqueued to <em>both</em> Redis and Kakfa). JQRelay, however, operated in a “shadow” mode where it dropped all jobs after reading it from Kafka. This setup let us safely test the new enqueue path from web app to JQRelay with real production traffic.</li>
+<li><strong>Guaranteeing system correctness:</strong> To ensure the correctness of the new system, we tracked and compared the number of jobs passing through each part of the system: from the web app to Kafkagate, Kafkagate to Kafka, and finally Kafka to Redis.</li>
+<li><strong>Heartbeat canaries:</strong> To ensure that the new system worked end-to-end for 50 Redis clusters and 1600 Kafka partitions (50 topics × 32 partitions), we enqueued heartbeat canaries for every Kafka partition every minute. We then monitored and alerted on the end-to-end flow and timing for these heartbeat canaries.</li>
+<li><strong>Final roll-out</strong>: Once we were sure of our system correctness, we enabled it internally for Slack for a few weeks. After that showed no problems, we rolled it out one by one for various job types for our customers.</li>
 </ol>
-<h4 id="比较"><a href="#比较" class="headerlink" title="比较"></a>比较</h4><p><img src="https://mmbiz.qpic.cn/mmbiz_png/UicsouxJOkBdpqMAJvdAY6GFrP17hbic5SAq6JtYTCQXeFC6QKUibiclw66TyQFiavQxSHbAl4ZzxTAE3bxW2pkDHhQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1" alt="比较"></p>
 
       
     </div>
@@ -243,7 +255,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/01/one-weeek/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/jvm-statics/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -257,7 +269,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/05/01/one-weeek/" class="post-title-link" itemprop="url">五圆驾临</a>
+            <a href="/2018/05/22/jvm-statics/" class="post-title-link" itemprop="url">jvm 线程分析</a>
         </h2>
 
         <div class="post-meta">
@@ -267,7 +279,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-05-01 15:11:53" itemprop="dateCreated datePublished" datetime="2018-05-01T15:11:53+08:00">2018-05-01</time>
+              <time title="Created: 2018-05-22 19:51:08" itemprop="dateCreated datePublished" datetime="2018-05-22T19:51:08+08:00">2018-05-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -275,7 +287,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
                 </span>
             </span>
 
@@ -290,209 +302,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>北京是一个人人都想拥有政策去压制别人的世界，有些绝望。幸好，有那么一丝希望。</p>
-<p>五圆，希望能一直相互陪伴。。认真地面对这个世界</p>
-<hr>
-<p>本周工作：</p>
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzIwMzg1ODcwMw==&mid=2247487826&idx=1&sn=f1ab8a7a26fb31445a76d4f712ddaa29&chksm=96c9a732a1be2e24b405d3c3098a0501cb324759fe6e89014e6c3f3500628e550d0d0cf385dc#rd">原文链接</a></p>
 <ul>
-<li>rn还差几个页面，基本摸到一些门道</li>
-<li>coinrobot部分，api部分，以及收发微信啥的。</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>微信通知的一个api部分</li>
-<li>rn部分</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>关于gp抓取的恢复以及监控</li>
-<li>关于adInstall-kafka的重构部分</li>
-<li>rn几个页面整体完成，开始蓝牙部分的适配</li>
-<li>coinrobot部分，完成初步的设定</li>
-</ul>
-<p>猫领完，后面是安静地陪伴成长了。。</p>
-<p>租房的事情，算是搞定，后面，可能会进入所谓的同居阶段，慢慢改变一些，慢慢适应吧，也没有什么好失去的，不是已经有最坏的打算。。</p>
-<p>关于家长会面。。。哎。。感觉很不确定。。感觉还是给不了想要的，可能。。哎。。</p>
-<p>锻炼上，要继续坚持下去，健身房的还保持的不错。。。</p>
-<p>学习上和工作，有些压迫感，关于外包的东西，要给点压力，做完。。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/24/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/24/one-week/" class="post-title-link" itemprop="url">杭州三日游</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-24 23:44:34" itemprop="dateCreated datePublished" datetime="2018-04-24T23:44:34+08:00">2018-04-24</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>青城山下白素贞，洞中千年修此身</p>
-<p>一心向道无杂念，皈依三宝弃红尘</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>react native 开始入门，做了几个页面</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>rn的部分知识，这次相对于之前的入门有所好转，但rn的组件方式导致lib库太繁多。。</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>基本接入部分</li>
-<li>排查相关的运维问题</li>
-<li>rn的基本成型，页面大致搞定，一些跳转方面</li>
-</ul>
-<p>说好的四月下杭州计划，就这样匆匆忙忙的过程中完成。。</p>
-<p>还是缺乏理性，尤其是一到性上，简直是精虫上脑，还吃了短效避孕药。。。希望没啥事。。哎。。渣男附体，苦笑。。</p>
-<p>自己还是太挫了，不管是什么方面。。。还是包裹起来吧，保持一定的距离，做好自己，保持理性。。</p>
-<p>保持计划性，保证计划的实施，稳定性，恒心和耐心，要保持一下去。。。</p>
-<p>撸管什么的，不要想了。。戒掉。。不要放纵自己。。</p>
-<p>努力工作，积极生活。。为自己鼓劲。。就算acer也有梦想。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/23/titus/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/23/titus/" class="post-title-link" itemprop="url">Titus</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-23 15:08:07" itemprop="dateCreated datePublished" datetime="2018-04-23T15:08:07+08:00">2018-04-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/container/" itemprop="url" rel="index"><span itemprop="name">container</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/titus-the-netflix-container-management-platform-is-now-open-source-f868c9fb5436">原文链接</a></p>
-<p>Multiple container management platforms (Kubernetes, Mesosphere DC/OS, and Amazon ECS) have been adopted across the industry during the last two years, driving different benefits to a wide class of use cases. Additionally, a handful of web-scale companies have developed solutions on top of Apache Mesos to meet the unique needs of their organizations.</p>
-<p>可以尝试看下apache mesos？</p>
-<h3 id="How-is-Titus-different-from-other-container-platforms"><a href="#How-is-Titus-different-from-other-container-platforms" class="headerlink" title="How is Titus different from other container platforms"></a>How is Titus different from other container platforms</h3><ul>
-<li><p>tight integration between Titus and both Amazon and Netflix infrastructure</p>
-<p>Titus has advanced ENI and security group management support spanning not only our networking fabric but also our scheduling logic. This allows us to handle ENIs and IPs as resources and ensure safe large scale deployments that consider EC2 VPC API call rate limits</p>
-<p>同亚马逊的结合</p>
-<p>We also worked with AWS on the design of IP target groups for Application Load Balancers, which brings support for full IP stack containers and AWS load balancing</p>
-</li>
-<li><p> We choose this path to ensure a common developer and operational approach between VMs and containers. This is evident through our <a target="_blank" rel="noopener" href="https://github.com/spinnaker/clouddriver/tree/master/clouddriver-titus">Spinnaker</a>enablement, support in our service discovery (Eureka), changes in our telemetry system (Atlas), and <a target="_blank" rel="noopener" href="http://getvector.io/blog/release/2016/06/01/whats-new-in-vector.html">performance insight</a> technologies.</p>
-</li>
-<li><p>scale</p>
-<ul>
-<li><p>we run over a thousand different applications, with some being very compute heavy (media encoding), some being critical Netflix customer facing services, some memory and GPU heavy (algorithm training), some being network bound (stream processing), some that are happy with resource over commitment (big data jobs) and some that are not</p>
-<p>we do not believe there are off-the-shelf solutions that can take on each of these scale challenges</p>
-</li>
-<li><p> We always try to maintain a philosophy of “just enough” vs “just in case” with the goal of keeping things as simple and maintainable as possible.</p>
-</li>
-</ul>
-<p>  In the scheduling layer, we support advanced concepts such as capacity management, agent management, and dynamic scheduling profiles</p>
-</li>
-<li><p>​</p>
-</li>
+<li>主要是 top -Hp [pid]这个命令，查看进程内所有线程的CPU消耗情况</li>
+<li>jstack pid查看各个线程栈，十进制换成16位进制的nid</li>
 </ul>
 
       
@@ -513,7 +326,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/23/storytelling-dashboard/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/go-not-good/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -527,7 +340,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/23/storytelling-dashboard/" class="post-title-link" itemprop="url">Storytelling in Dashboard</a>
+            <a href="/2018/05/22/go-not-good/" class="post-title-link" itemprop="url">Go the good, the bad and the ugly</a>
         </h2>
 
         <div class="post-meta">
@@ -537,7 +350,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-23 11:45:37" itemprop="dateCreated datePublished" datetime="2018-04-23T11:45:37+08:00">2018-04-23</time>
+              <time title="Created: 2018-05-22 17:04:31" itemprop="dateCreated datePublished" datetime="2018-05-22T17:04:31+08:00">2018-05-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -545,7 +358,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dashboard/" itemprop="url" rel="index"><span itemprop="name">dashboard</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -560,12 +373,189 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://susielu.com/data-viz/storytelling-in-dashboards?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_124">原文链接</a></p>
-<p>A common categorization for data visualizations is <strong>exploratory</strong> and <strong>explanatory</strong>.</p>
-<p>数据可视化的关键是可解释，可讲故事</p>
-<p><a target="_blank" rel="noopener" href="http://www.r2d3.us/%E5%9B%BE%E8%A7%A3%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">图解机器学习</a></p>
-<p>关于决策树部分，决策树的末节又叫做叶节点，预测取决于叶节点内哪一类的样本相对较多</p>
-<p>Commonly we reduce these two modes into:<br><em>Explanatory</em> = has a story e.g. scrollytelling<br><em>Exploratory</em> = doesn’t have a story e.g. dashboards</p>
+          <p><a target="_blank" rel="noopener" href="https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_127">原文链接</a></p>
+<h3 id="Good"><a href="#Good" class="headerlink" title="Good"></a>Good</h3><p>new Types</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> UserId <span class="keyword">string</span> <span class="comment">// &lt;-- new type</span></span><br><span class="line"><span class="keyword">type</span> ProductId <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddProduct</span><span class="params">(userId UserId, productId ProductId)</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    userId := UserId(<span class="string">&quot;some-user-id&quot;</span>)</span><br><span class="line">    productId := ProductId(<span class="string">&quot;some-product-id&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Right order: all fine</span></span><br><span class="line">    AddProduct(userId, productId)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wrong order: would compile with raw strings</span></span><br><span class="line">    AddProduct(productId, userId)</span><br><span class="line">    <span class="comment">// Compilation errors:</span></span><br><span class="line">    <span class="comment">// cannot use productId (type ProductId) as type UserId in argument to AddProduct</span></span><br><span class="line">    <span class="comment">// cannot use userId (type UserId) as type ProductId in argument to AddProduct</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Bad"><a href="#Bad" class="headerlink" title="Bad"></a>Bad</h3><h4 id="Go-ignored-advances-in-modern-language-design"><a href="#Go-ignored-advances-in-modern-language-design" class="headerlink" title="Go ignored advances in modern language design"></a>Go ignored advances in modern language design</h4><p><strong>functional programing</strong></p>
+<p><strong>No LLVM</strong></p>
+<p><strong>GC</strong></p>
+<h4 id="Interfaces-are-structural-types"><a href="#Interfaces-are-structural-types" class="headerlink" title="Interfaces are structural types"></a>Interfaces are structural types</h4><p>Go interfaces are like Java interfaces or Scala &amp; Rust traits: they define behaviour that is later implemented by a type (I won’t call it “class” here).</p>
+<h3 id="No-enumerations"><a href="#No-enumerations" class="headerlink" title="No enumerations"></a>No enumerations</h3><p><code>iota</code></p>
+<h3 id="The-var-dilemma"><a href="#The-var-dilemma" class="headerlink" title="The:=/var dilemma"></a>The<code>:=</code>/<code>var</code> dilemma</h3><p>Go provides two ways to declare a variable and assign it a value: <code>var x = &quot;foo&quot;</code> and <code>x := &quot;foo&quot;</code>. </p>
+<p>The main differences are that <code>var</code> allows declaration without initialization (and you then have to declare the type), like in <code>var x string</code>, whereas <code>:=</code> requires assignment and allows a mix of existing and new variables. My guess is that <code>:=</code> was invented to make error handling <em>a bit</em> less painful:</p>
+<h4 id="Zero-values-that-panic"><a href="#Zero-values-that-panic" class="headerlink" title="Zero values that panic"></a>Zero values that panic</h4><p>go have no constructor</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> m1 = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;&#125; <span class="comment">// empty map</span></span><br><span class="line"><span class="keyword">var</span> m0 <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>     <span class="comment">// zero map (nil)</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m1))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m0))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m1[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m0[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line">m1[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// ok</span></span><br><span class="line">m0[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// panics!</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>上面所示，m1初始化了，但m0没有初始化。。</p>
+<h4 id="Go-doesn’t-have-exceptions"><a href="#Go-doesn’t-have-exceptions" class="headerlink" title="Go doesn’t have exceptions."></a>Go doesn’t have exceptions.</h4><p>just  “<a target="_blank" rel="noopener" href="https://blog.golang.org/defer-panic-and-recover">Defer, panic and recover</a>“</p>
+<h3 id="Ugly"><a href="#Ugly" class="headerlink" title="Ugly"></a>Ugly</h3><h4 id="The-dependency-management-nightmare"><a href="#The-dependency-management-nightmare" class="headerlink" title="The dependency management nightmare"></a>The dependency management nightmare</h4><p>Things are getting better though: <code>dep</code>, the <a target="_blank" rel="noopener" href="https://golang.github.io/dep/">official dependency management tool</a> was recently introduced to support vendoring.</p>
+<p>But <code>dep</code> may not live long though as <a target="_blank" rel="noopener" href="https://github.com/golang/vgo"><code>vgo</code></a>, also from Google, wants to bring versioning in the language itself and has been making some waves lately.</p>
+<h4 id="mutability-is-hardcoded-in-the-language"><a href="#mutability-is-hardcoded-in-the-language" class="headerlink" title="mutability is hardcoded in the language"></a>mutability is hardcoded in the language</h4><p>Go makes it easy however to copy an entire struct with a simple assignment, so we may think that passing arguments by value is all that is needed to have immutability at the cost of copying.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</span><br><span class="line">    A <span class="keyword">string</span></span><br><span class="line">    B []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    x := S&#123;<span class="string">&quot;x-A&quot;</span>, []<span class="keyword">string</span>&#123;<span class="string">&quot;x-B&quot;</span>&#125;&#125;</span><br><span class="line">    y := x <span class="comment">// copy the struct</span></span><br><span class="line">    y.A = <span class="string">&quot;y-A&quot;</span></span><br><span class="line">    y.B[<span class="number">0</span>] = <span class="string">&quot;y-B&quot;</span></span><br><span class="line"></span><br><span class="line">    fmt.Println(x, y)</span><br><span class="line">    <span class="comment">// Outputs &quot;&#123;x-A [y-B]&#125; &#123;y-A [y-B]&#125;&quot; -- x was modified!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> And the since built-in collections (map, slice and array) are references and are mutable, copying a struct that contains one of these just copies the pointer to the same underlying memory.</p>
+<h4 id="Slice-gotchas"><a href="#Slice-gotchas" class="headerlink" title="Slice gotchas"></a>Slice gotchas</h4><p>Slices come with many gotchas: as explained in “<a target="_blank" rel="noopener" href="https://blog.golang.org/go-slices-usage-and-internals">Go slices: usage and internals</a>“, re-slicing a slice doesn’t copy the underlying array for performance reasons. </p>
+<p>This is a laudable goal but means that sub-slices of a slice are just views that follow the mutations of the original slice. So don’t forget to <code>copy()</code> a slice if you want to separate it from its origin.</p>
+<p>Forgetting to <code>copy()</code> becomes more dangerous with the <code>append</code> function: appending values to a slice resizes the underlying array <em>if it doesn’t have enough capacity</em> to hold the new values. This means that the result of <code>append</code> may or may not point to the original array depending on its initial capacity. This can cause hard to find non deterministic bugs. (在append的时候，如果没有足够的空间，会重新resize slice，这样pointer会乱指)</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doStuff</span><span class="params">(value []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v\n&quot;</span>, value)</span><br><span class="line"></span><br><span class="line">    value2 := value[:]</span><br><span class="line">    value2 = <span class="built_in">append</span>(value2, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line"></span><br><span class="line">    value2[<span class="number">0</span>] = <span class="string">&quot;z&quot;</span></span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    slice1 := []<span class="keyword">string</span>&#123;<span class="string">&quot;a&quot;</span>&#125; <span class="comment">// length 1, capacity 1</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice1)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[z b] -- ok: value unchanged, value2 updated</span></span><br><span class="line"></span><br><span class="line">    slice10 := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1</span>, <span class="number">10</span>) <span class="comment">// length 1, capacity 10</span></span><br><span class="line">    slice10[<span class="number">0</span>] = <span class="string">&quot;a&quot;</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice10)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[z], value2=[z b] -- WTF?!? value changed???</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="mutability-and-channels-race-conditions-made-easy"><a href="#mutability-and-channels-race-conditions-made-easy" class="headerlink" title="mutability and channels: race conditions made easy"></a>mutability and channels: race conditions made easy</h4><p>As we saw above there is no way in Go to have immutable data structures. This means that once we send a pointer on a channel, it’s game over: we share mutable data between concurrent processes. Of course a channel of structures (and not pointers) copies the values sent on the channel, but as we saw above, this doesn’t deep-copy references, including slices and maps, which are intrinsically mutable. Same goes with struct fields of an interface type: they are pointers, and any mutation method defined by the interface is an open door to race conditions.</p>
+<h4 id="noisy-error-management"><a href="#noisy-error-management" class="headerlink" title="noisy error management"></a>noisy error management</h4><p>In “<a target="_blank" rel="noopener" href="https://blog.golang.org/errors-are-values">Error has values</a>“ Rob Pike suggests some strategies to reduce error handling verbosity</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">type errWriter struct &#123;</span><br><span class="line">    w   io.Writer</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (ew *errWriter) write(buf []byte) &#123;</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return // Write nothing if we already errored-out</span><br><span class="line">    &#125;</span><br><span class="line">    _, ew.err = ew.w.Write(buf)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func doIt(fd io.Writer) &#123;</span><br><span class="line">    ew := &amp;errWriter&#123;w: fd&#125;</span><br><span class="line">    ew.write(p0[a:b])</span><br><span class="line">    ew.write(p1[c:d])</span><br><span class="line">    ew.write(p2[e:f])</span><br><span class="line">    // and so on</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return ew.err</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="nil-interface-values"><a href="#nil-interface-values" class="headerlink" title="nil interface values"></a>nil interface values</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Explodes <span class="keyword">interface</span> &#123;</span><br><span class="line">    Bang()</span><br><span class="line">    Boom()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Type Bomb implements Explodes</span></span><br><span class="line"><span class="keyword">type</span> Bomb <span class="keyword">struct</span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*Bomb)</span> <span class="title">Bang</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Bomb)</span> <span class="title">Boom</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> bomb *Bomb = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">var</span> explodes Explodes = bomb</span><br><span class="line">    <span class="built_in">println</span>(bomb, explodes) <span class="comment">// &#x27;0x0 (0x10a7060,0x0)&#x27;</span></span><br><span class="line">    <span class="keyword">if</span> explodes != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;Not nil!&quot;</span>) <span class="comment">// &#x27;Not nil!&#x27; What are we doing here?!?!</span></span><br><span class="line">        explodes.Bang()     <span class="comment">// works fine</span></span><br><span class="line">        explodes.Boom()     <span class="comment">// panic: value method main.Bomb.Boom called using nil *Bomb pointer</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;nil!&quot;</span>)     <span class="comment">// why don&#x27;t we end up here?</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="struct-field-tags-runtime-DSL-in-a-string"><a href="#struct-field-tags-runtime-DSL-in-a-string" class="headerlink" title="struct field tags: runtime DSL in a string"></a>struct field tags: runtime DSL in a string</h4><h4 id="Go-has-few-data-structures-beyond-slice-and-map"><a href="#Go-has-few-data-structures-beyond-slice-and-map" class="headerlink" title="Go has few data structures beyond slice and map"></a>Go has few data structures beyond slice and map</h4>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/Deep-Reinforcement-Learning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/22/Deep-Reinforcement-Learning/" class="post-title-link" itemprop="url">Deep Reinforcement Learning</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-22 16:43:13" itemprop="dateCreated datePublished" datetime="2018-05-22T16:43:13+08:00">2018-05-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/applied-data-science/how-to-build-your-own-world-model-using-python-and-keras-64fb388ba459">原文链接</a></p>
+<p>[<strong><a target="_blank" rel="noopener" href="https://arxiv.org/abs/1803.10122">https://arxiv.org/abs/1803.10122</a></strong></p>
+<h3 id="step-1-The-Problem"><a href="#step-1-The-Problem" class="headerlink" title="step 1 The Problem"></a>step 1 The Problem</h3>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/G-unit-stack/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/22/G-unit-stack/" class="post-title-link" itemprop="url">G-unit Stack</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-22 16:01:49" itemprop="dateCreated datePublished" datetime="2018-05-22T16:01:49+08:00">2018-05-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/G-unit/" itemprop="url" rel="index"><span itemprop="name">G-unit</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://iheanyi.com/journal/2018/05/12/the-g-unit-stack-go-graphql-and-grpc/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_128">原文链接</a></p>
+<p>这里的G-unit是指Go, GraphQL, gRPC</p>
+<p>GraphQL fits really nicely into a service-oriented architecture (SoAs).</p>
+<p>API Gateways</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/azure/architecture/patterns/gateway-routing">Gateway Routing pattern</a></p>
+<h3 id="GraphQL-as-the-API-Gateway"><a href="#GraphQL-as-the-API-Gateway" class="headerlink" title="GraphQL as the API Gateway"></a>GraphQL as the API Gateway</h3><p><a target="_blank" rel="noopener" href="https://github.com/apollographql/apollo-server">nodejs GraphQL</a></p>
 
       
     </div>
@@ -584,7 +574,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/89/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/89/">89</a><span class="page-number current">90</span><a class="page-number" href="/page/91/">91</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/91/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/89/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/89/">89</a><span class="page-number current">90</span><a class="page-number" href="/page/91/">91</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/91/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -652,20 +642,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

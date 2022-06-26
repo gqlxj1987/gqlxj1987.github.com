@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/01/15/clickhouse-design/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/06/25/time-series-database-101/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2022/01/15/clickhouse-design/" class="post-title-link" itemprop="url">clickhouse 实践</a>
+            <a href="/2022/06/25/time-series-database-101/" class="post-title-link" itemprop="url">time series database 101</a>
         </h2>
 
         <div class="post-meta">
@@ -177,16 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-01-15 17:24:56" itemprop="dateCreated datePublished" datetime="2022-01-15T17:24:56+08:00">2022-01-15</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
-                </span>
+              <time title="Created: 2022-06-25 18:42:17" itemprop="dateCreated datePublished" datetime="2022-06-25T18:42:17+08:00">2022-06-25</time>
             </span>
 
           
@@ -200,83 +191,16 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/419864799">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://presentations.clickhouse.com/bdtc_2019/#cover">PPT</a></p>
-<p>目标:</p>
-<ul>
-<li>filter and aggregate as fast as possible</li>
-<li>GROUP BY</li>
-</ul>
-<p>设计方式:</p>
-<ul>
-<li><p>NOT top-down</p>
-</li>
-<li><p>基于硬件能力设计</p>
-</li>
-<li><ul>
-<li>we will do GROUP BY in memory</li>
-<li>will put all data in a hash table</li>
-<li>if the hash table is large, it will not fit in L3 cache of CPU</li>
-<li>if the values of GROUP BY keys are not distributed locally, then we have L3 cache miss for every row in a table</li>
-<li>L3 cache miss has 70..100 ns latency</li>
-<li>How many keys per second we can process?</li>
-</ul>
-</li>
-</ul>
-<p>基于硬件设计，内存，cpu，cache，从底层的角度入手，而非单纯的软件角度在外围在处理。。。</p>
-<ul>
-<li><p>解决一个问题，要分场景，不同场景有不同解决方案</p>
-</li>
-<li><ul>
-<li>Hash Table</li>
-<li>memcpy</li>
-<li>甚至对于小规模数据，有一个特化版本, memcpySmallAllowReadWriteOverflow15</li>
-<li>不排斥新算法，选取实际效果最优的</li>
-</ul>
-</li>
-<li><p>对于不同数据规模，有不同的实现</p>
-</li>
-<li><ul>
-<li><p>quantileTiming</p>
-</li>
-<li><p>uniqCombined</p>
-</li>
-<li><ul>
-<li>小规模: flat array</li>
-<li>中规模: hash table</li>
-<li>极大规模: HyperLogLog</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li><ul>
-<li>keep in mind low-level details when designing your system</li>
-<li>design based on hardware capabilities</li>
-<li>choose data structures and abstractions based on the needs of the task</li>
-<li>provide specializations for special cases</li>
-<li>try the new, “best” algorithms, that you read about yesterday</li>
-<li>choose algorithm in runtime based on statistics</li>
-<li>benchmark on real datasets</li>
-<li>test for performance regressions in CI</li>
-<li>measure and observe everything</li>
-<li>even in production environment</li>
-<li>and rewrite code all the time</li>
-</ul>
-</li>
-<li></li>
-<li></li>
-</ul>
-<p>基于硬件的设计，是很大的一个看重点</p>
-<p>merge tree，定期合并碎片化文件</p>
-<img src="https://tva1.sinaimg.cn/large/008i3skNly1gyi3gqx8y8j314e0dkgnj.jpg" alt="image-20220118195126518" style="zoom:50%;" />
+          <p><a target="_blank" rel="noopener" href="https://liuliqiang.github.io/webtrack/cncf/prometheus/devopstarter.info/translate-writing-a-time-series-database-from-scratch/index.html">原文链接</a></p>
+<p>问题，难题，问题域，首先需要确定边界和问题</p>
+<p>所有数据点都可以在一个二维平面上分布</p>
+<img src="https://liuliqiang.github.io/webtrack/cncf/prometheus/devopstarter.info/content/images/2017/Apr/series.png" alt="series" style="zoom:50%;" />
 
 
 
-<p>存储与计算分离的思考模式？</p>
-<p>最开始单纯就是解决group by 问题</p>
-<p>算法是最重要，抽象性是其次的，也就是性能是最重要的，普适性并不是一开始考虑的</p>
+<p>引入chunk机制</p>
+<p>由于每隔几秒就把单个的样本数据添加到所有这些文件的成本不小，我们针对每个序列在内存里批量存放了1KiB的数据块，一旦它们填满了再把这些块添加到一个个的文件里。这一方案解决了很大一部分问题。写操作如今是分批次的，样本数据也是顺序存储的。它还能为我们提供一个令人难以置信的高效压缩格式</p>
+<p>序列分流</p>
 
       
     </div>
@@ -296,7 +220,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/01/07/from-mesa-to-doris/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/06/25/cockroachdb-serverless-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -310,7 +234,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2022/01/07/from-mesa-to-doris/" class="post-title-link" itemprop="url">From mesa to doris</a>
+            <a href="/2022/06/25/cockroachdb-serverless-intro/" class="post-title-link" itemprop="url">Cockroachdb serverless intro</a>
         </h2>
 
         <div class="post-meta">
@@ -320,16 +244,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-01-07 16:48:53" itemprop="dateCreated datePublished" datetime="2022-01-07T16:48:53+08:00">2022-01-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
-                </span>
+              <time title="Created: 2022-06-25 16:19:51" itemprop="dateCreated datePublished" datetime="2022-06-25T16:19:51+08:00">2022-06-25</time>
             </span>
 
           
@@ -343,23 +258,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://ericfu.me/from-mesa-to-doris/">原文链接</a></p>
-<h3 id="Mesa"><a href="#Mesa" class="headerlink" title="Mesa"></a>Mesa</h3><p>mesa的预聚合数据模型</p>
-<p>针对广告的背景，原始数据没有意义，但查询的时候需要有各种维度的数据</p>
-<img src="https://ericfu.me/images/2021/03/mesa-table-examples.png" alt="Example of Mesa Tables" style="zoom: 33%;" />
-
-<p>上面的 Table A～D 其实表示的是<strong>同一批原始数据</strong>的在四个不同维度的聚合结果，供不同的业务查询使用</p>
-<p>只支持按照batch来更新，同spark-streaming天然贴合？</p>
-<p>每次导入的 delta 数据不会立即和基线数据合并，而是会先以单独的文件存在，积累一定数量后再做 Compaction</p>
-<p>kylin的预聚合？</p>
-<h3 id="Doris"><a href="#Doris" class="headerlink" title="Doris"></a>Doris</h3><p>支持以下三种模型的表：</p>
-<ol>
-<li>Aggregate 表：需要定义 Key 列和 Value 列，Key 列相同的数据行会自动合并，合并时 Value 列的数据按预先定义好的聚合函数进行聚合</li>
-<li>Duplicate 表：不会自动合并 Key 相同的数据，其语义类似于其他数据库中的关系表，Key 表示表的排序键（sort key）而不是唯一键</li>
-<li>Uniq 表，Key 列相同时新的行覆盖（Replace）旧的行，本质上是一种特化的 Aggregate 表</li>
-</ol>
-<p>Base-&gt;ROLLUP</p>
-<p>物化视图的概念，<strong>允许用户基于明细表（Duplicate 表）定义预聚合</strong>。Doris 的物化视图仅支持定义聚合（Group-By）</p>
+          <p><a target="_blank" rel="noopener" href="https://www.zenlife.tk/cockroach-severless.md">原文链接</a></p>
+<p>cockroachdb 在整个架构上，分为计算层和存储层。存储层管理 key-value 存储，支持分布式事务这些东西。key-value 是有序的，然后逻辑上按 range 进行划分，一段 range 的数据再物理上分布到具体的存储节点上面。每一块 range 的 key-value 数据会有多份副本，这样在分布式环境下，部分副本挂掉的时候数据不会丢失。</p>
+<p>独享计算层，共享存储层。上层的 SQL 是租户之间物理隔离的，下面的 kv 存储是由所有租户去共享的。/tenant-id/table-id/index-id/key</p>
+<p>但这个随之而来，有个问题是，存储资源的带宽如何去划定，共享存储资源，也就是共享存储带宽</p>
 
       
     </div>
@@ -379,7 +281,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/01/05/restart-2022/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/06/25/Ramsey-theory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -393,7 +295,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2022/01/05/restart-2022/" class="post-title-link" itemprop="url">2022重启</a>
+            <a href="/2022/06/25/Ramsey-theory/" class="post-title-link" itemprop="url">Ramsey theory</a>
         </h2>
 
         <div class="post-meta">
@@ -403,16 +305,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-01-05 14:36:34" itemprop="dateCreated datePublished" datetime="2022-01-05T14:36:34+08:00">2022-01-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
-                </span>
+              <time title="Created: 2022-06-25 16:09:02" itemprop="dateCreated datePublished" datetime="2022-06-25T16:09:02+08:00">2022-06-25</time>
             </span>
 
           
@@ -426,7 +319,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>没想到又开始更新了，断更了一年之后，又可以恢复更新了</p>
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/iFQDGF10YaN01jKjUEhALA">原文链接</a></p>
+<p>无序的不可能性</p>
+<p><strong>混沌之海里必然存在有序的岛屿——只要这片海足够大。</strong></p>
+<p>结构必然会自发地从混沌（只要它的规模够大！）中浮现，有时候它会以最出乎意料的方式出现在我们的日常生活中</p>
+<p>所以，如何利用规模够大的情况，去构建一种策略，让系统按照某种有序的方式运转？</p>
 
       
     </div>
@@ -446,7 +343,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/01/05/hundren-days/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/06/25/LSM-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -460,7 +357,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2022/01/05/hundren-days/" class="post-title-link" itemprop="url">百年法</a>
+            <a href="/2022/06/25/LSM-intro/" class="post-title-link" itemprop="url">LSM Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -470,16 +367,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-01-05 11:53:33" itemprop="dateCreated datePublished" datetime="2022-01-05T11:53:33+08:00">2022-01-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/read/" itemprop="url" rel="index"><span itemprop="name">read</span></a>
-                </span>
+              <time title="Created: 2022-06-25 15:50:11" itemprop="dateCreated datePublished" datetime="2022-06-25T15:50:11+08:00">2022-06-25</time>
             </span>
 
           
@@ -493,7 +381,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          
+          <p><a target="_blank" rel="noopener" href="https://cs-people.bu.edu/mathan/publications/slides/sigmod2022-Tutorial.pdf">原文链接</a></p>
+<p>Log-Structured Merge-tree</p>
+<p>why lsm:</p>
+<ul>
+<li>fast writes</li>
+<li>tunable read-write performance</li>
+<li>good space utilization</li>
+</ul>
+
       
     </div>
 
@@ -512,7 +408,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/01/05/patien/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2022/06/25/read-write-quorum-system/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -526,7 +422,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2022/01/05/patien/" class="post-title-link" itemprop="url">病人家属</a>
+            <a href="/2022/06/25/read-write-quorum-system/" class="post-title-link" itemprop="url">read-write quorum system</a>
         </h2>
 
         <div class="post-meta">
@@ -536,16 +432,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-01-05 11:52:33" itemprop="dateCreated datePublished" datetime="2022-01-05T11:52:33+08:00">2022-01-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/reads/" itemprop="url" rel="index"><span itemprop="name">reads</span></a>
-                </span>
+              <time title="Created: 2022-06-25 15:38:12" itemprop="dateCreated datePublished" datetime="2022-06-25T15:38:12+08:00">2022-06-25</time>
             </span>
 
           
@@ -559,7 +446,20 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          
+          <p><a target="_blank" rel="noopener" href="https://www.douban.com/note/833553733/?_dtcc=1&_i=6139819p9WrXlu">原文链接</a></p>
+<p>区分了read-write quorum system以及majority系统之间的区别</p>
+<img src="https://img2.doubanio.com/view/note/l/public/p89746343.webp" alt="img" style="zoom: 50%;" />
+
+<p>针对</p>
+<ul>
+<li>加入节点 d，即从 {a,b,c} 变成 {a,b,c,d}。</li>
+<li>删除节点 a，即从 {a,b,c,d} 变成 {b,c,d}。</li>
+</ul>
+<p>的情况，针对其中的网络隔离的情况，read-write符合替换，但majority达不到要求</p>
+<p>join consensus算法</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">M(abc) x M(bcd) = &#123;</span><br><span class="line">    ab ∪ bc,</span><br><span class="line">    ab ∪ cd,</span><br><span class="line">    ab ∪ bd,</span><br><span class="line">    bc ∪ bc,</span><br><span class="line">    bc ∪ cd,</span><br><span class="line">    bc ∪ bd,</span><br><span class="line">    ac ∪ bc,</span><br><span class="line">    ac ∪ cd,</span><br><span class="line">    ac ∪ bd,</span><br><span class="line">&#125; = &#123;</span><br><span class="line">    abc,</span><br><span class="line">    abcd,</span><br><span class="line">    abd,</span><br><span class="line">    acd,</span><br><span class="line">    bc,</span><br><span class="line">    bcd,</span><br><span class="line">&#125; = &#123;M(a,b,c,d),&#123;b,c&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+
       
     </div>
 
@@ -577,7 +477,7 @@
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -645,20 +545,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/15/mysql-index/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/31/Dgraph-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/05/15/mysql-index/" class="post-title-link" itemprop="url">MySQL order by limit</a>
+            <a href="/2018/05/31/Dgraph-intro/" class="post-title-link" itemprop="url">Dgraph Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -177,287 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-05-15 15:41:46" itemprop="dateCreated datePublished" datetime="2018-05-15T15:41:46+08:00">2018-05-15</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://seanlook.com/2017/10/26/mysql-bad-plan-order_by-limit/">原文链接</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE `t_tbl_test_time_08` (</span><br><span class="line">  `f_some_id` int(11) unsigned DEFAULT &#x27;0&#x27;,</span><br><span class="line">  `f_qiye_id` int(11) DEFAULT &#x27;0&#x27;,</span><br><span class="line">  `f_type` tinyint(3) DEFAULT &#x27;0&#x27; COMMENT &#x27;有效联系类型 1: QQ联系，2:拨打电话，3:发送邮件，4:发送短信，5:添加跟进记录，6:拜访客户，7:EC联系，8:更新客户阶段&#x27;,</span><br><span class="line">  `f_contact_time` timestamp NULL DEFAULT &#x27;1970-01-01 16:00:01&#x27;,</span><br><span class="line">  UNIQUE KEY `some_qiye_type` (`f_some_id`,`f_qiye_id`,`f_type`),</span><br><span class="line">  KEY `f_contact_time` (`f_contact_time`)</span><br><span class="line">) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; explain extended select f_some_id from d_ec_some1.t_tbl_test_time_08</span><br><span class="line">where f_qiye_id=5077665 and f_type=9</span><br><span class="line">and f_contact_time &gt; &#x27;2017-10-17 14:23:49&#x27; and f_contact_time &lt; &#x27;2017-10-17 14:23:53&#x27;</span><br><span class="line">order by f_some_id limit 300;</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+---------------+---------+------+-------+----------+-------------+</span><br><span class="line">| id | select_type | table                 | type  | possible_keys  | key           | key_len | ref  | rows  | filtered | Extra       |</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+---------------+---------+------+-------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | t_tbl_test_time_08    | index | f_contact_time | some_qiye_type | 12     | NULL | 16032 |  2248.49 | Using where |</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+---------------+---------+------+-------+----------+-------------+</span><br><span class="line">1 row in set</span><br><span class="line"> </span><br><span class="line">-- 指定一个索引</span><br><span class="line">mysql&gt; explain extended select f_some_id from d_ec_some1.t_tbl_test_time_08  use index(f_contact_time)</span><br><span class="line">where f_qiye_id=5077665 and f_type=9</span><br><span class="line">and f_contact_time &gt; &#x27;2017-10-17 14:23:49&#x27; and f_contact_time &lt; &#x27;2017-10-17 14:23:53&#x27;</span><br><span class="line">order by f_some_id limit 300;</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+----------------+---------+------+--------+----------+---------------------------------------------------------------+</span><br><span class="line">| id | select_type | table                 | type  | possible_keys  | key            | key_len | ref  | rows   | filtered | Extra                                                         |</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+----------------+---------+------+--------+----------+---------------------------------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | t_tbl_test_time_08    | range | f_contact_time | f_contact_time | 5       | NULL | 360478 |      100 | Using index condition; Using where; Using MRR; Using filesort |</span><br><span class="line">+----+-------------+-----------------------+-------+----------------+----------------+---------+------+--------+----------+---------------------------------------------------------------+</span><br><span class="line">1 row in set</span><br></pre></td></tr></table></figure>
-
-
-
-<p>第一个explain结果里面，<code>type=index</code>，表示 full index scan。注意这里看到的 index 不代表“查询用到索引了”。全索引扫描比全表扫描并不好到拿去，甚至更慢（因为随机IO）。是否用到正确的索引要看key那一列:<br><code>some_qiye_type</code> 索引定义是 <code>(f_some_id,f_qiye_id,f_type)</code>，从key_len=12看得出这三列都用上了（12=4+5+3）。但实际这个执行计划需要200多秒。</p>
-<p>第二个explain，在sql里面指定了 <code>use index(f_contact_time)</code>，依据是where条件里面f_contact_time的范围固定4s，猜想数据量不会很大，过滤效果会比较好。</p>
-<p>这里的filtered部分，表示执行后的时间？</p>
-<p>Extra列:</p>
-<ul>
-<li><code>Using index condition</code>: 用到了索引下推特性。Using where是回表拿数据。关于ICP见文后参考。</li>
-<li><code>Using MRR</code>: 用到了 Multi-Range Read 优化特性。mysql在通过二级索引范围查找的时候，得到的记录在物理上是无序的，为了减少去获取数据的随机IO，它会在内存缓冲区里面先根据rowid快速排序，然后顺序IO去拉取数据。（这个缓冲区大小参数由 read_rnd_buffer_size 控制）</li>
-<li><code>Using filesort</code>: 需要内存排序。对应 order by f_some_id</li>
-</ul>
-<p>rows扫描虽然36w行，比前面的 16032 要多，但这个执行计划实际运行只需要0.7s，要快将近300倍。</p>
-<p>这里我们祭出优化sql的两大法宝：profiling和optimizer_trace，来尝试找出是什么因素。</p>
-<ul>
-<li><code>profiling</code>：可以定位出sql从接受到返回结果，时间都耗在哪里</li>
-<li><code>optimizer_trace</code>: 跟踪优化器的成本评估过程，可以情况的看到它如何从多个候选索引里，做出选择</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; set profiling=1;</span><br><span class="line">mysql&gt; select f_some_id from d_ec_some1.t_tbl_test_time_08 where f_qiye_id=5077665 and f_type=9</span><br><span class="line">and f_contact_time &gt; &#x27;2017-10-17 14:23:49&#x27; and f_contact_time &lt; &#x27;2017-10-17 14:23:53&#x27; order by f_some_id limit 300;</span><br><span class="line"></span><br><span class="line">mysql&gt; show profile block io,cpu for query 1;</span><br><span class="line">+----------------------+------------+------------+------------+--------------+---------------+</span><br><span class="line">| Status               | Duration   | CPU_user   | CPU_system | Block_ops_in | Block_ops_out |</span><br><span class="line">+----------------------+------------+------------+------------+--------------+---------------+</span><br><span class="line">| starting             | 0.000121   | 0          | 0          |            0 |             0 |</span><br><span class="line">| checking permissions | 3.2E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| Opening tables       | 3.7E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| init                 | 4.2E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| System lock          | 2.9E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| optimizing           | 3.3E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| statistics           | 0.005796   | 0          | 0.000999   |          448 |             0 |</span><br><span class="line">| preparing            | 4.3E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| Sorting result       | 2.8E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| executing            | 2.7E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| Sending data         | 172.824522 | 189.040262 | 2.441629   |      1504928 |          6896 |</span><br><span class="line">| end                  | 8.3E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| query end            | 3E-5       | 0          | 0          |            0 |             0 |</span><br><span class="line">| closing tables       | 3.3E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| freeing items        | 7E-5       | 0          | 0          |            0 |             0 |</span><br><span class="line">| logging slow query   | 3.1E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| Opening tables       | 3.4E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">| System lock          | 7E-5       | 0          | 0          |            0 |             8 |</span><br><span class="line">| cleaning up          | 9.5E-5     | 0          | 0          |            0 |             0 |</span><br><span class="line">+----------------------+------------+------------+------------+--------------+---------------+</span><br><span class="line">19 rows in set</span><br><span class="line"> </span><br><span class="line">mysql&gt; show status like &quot;Handler%&quot;;</span><br><span class="line">+----------------------------+---------+</span><br><span class="line">| Variable_name              | Value   |</span><br><span class="line">+----------------------------+---------+</span><br><span class="line">| Handler_commit             | 1       |</span><br><span class="line">| Handler_delete             | 0       |</span><br><span class="line">| Handler_discover           | 0       |</span><br><span class="line">| Handler_external_lock      | 4       |</span><br><span class="line">| Handler_mrr_init           | 0       |</span><br><span class="line">| Handler_prepare            | 0       |</span><br><span class="line">| Handler_read_first         | 1       |</span><br><span class="line">| Handler_read_key           | 1       |</span><br><span class="line">| Handler_read_last          | 0       |</span><br><span class="line">| Handler_read_next          | 9430930 |</span><br><span class="line">| Handler_read_prev          | 0       |</span><br><span class="line">| Handler_read_rnd           | 0       |</span><br><span class="line">| Handler_read_rnd_next      | 0       |</span><br><span class="line">| Handler_rollback           | 0       |</span><br><span class="line">| Handler_savepoint          | 0       |</span><br><span class="line">| Handler_savepoint_rollback | 0       |</span><br><span class="line">| Handler_update             | 0       |</span><br><span class="line">| Handler_write              | 1       |</span><br><span class="line">+----------------------------+---------+</span><br><span class="line">18 rows in set</span><br></pre></td></tr></table></figure>
-
-
-
-<p>那么解决这个问题，就是要去掉干扰因素，或者提供更优的选项给它。</p>
-<ol>
-<li>去掉干扰因素<br>干扰它的索引是 some_qiye_type，是个唯一索引，因为恰好f_some_id开头，索引优化器想当然的用它来避免排序。<br>去掉这个干扰因素就是调换 f_qiye_id,f_some_id的顺序。调换顺序还有个好处，有f_qiye_id等值条件，可以用在索引检索上。<br>但是它的负面作用有两个：<ul>
-<li>原本这个表上有 f_some_id 的等值、join ref以及分页查询，调换索引这两个字段顺序后，全都变成慢查询</li>
-<li>f_qiye_id作为第一列，满足条件的值可能会有上百万，对这个查询的改观不大</li>
-</ul>
-</li>
-<li>提供更优的索引<br>添加索引 (f_qiye_id,f_contact_time) 看起来不错。这样一来，该类查询都会走这个索引</li>
-</ol>
-<p>另外这个表上只有一个唯一索引，而且该唯一索引有字段允许null，所以没有主键。<br>加一个自增主键 f_id bigint unsigned not null<br>修改f_some_id字段为 f_some_id bigint unsigned NOT NULL<br>修改f_qiye_id字段为 f_qiye_id int unsigned NOT NULL<br>修改字段f_type字段为 tinyint NOT NULL<br>总之一句话：所有（作为索引的）字段，都定义为NOT NULL，f_some_id全部定义为bigint。最终表结构：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE `t_tbl_test_time_16` (</span><br><span class="line">  `f_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,</span><br><span class="line">  `f_some_id` bigint(20) unsigned NOT NULL,</span><br><span class="line">  `f_qiye_id` int(11) unsigned NOT NULL DEFAULT &#x27;0&#x27;,</span><br><span class="line">  `f_type` tinyint(3) NOT NULL DEFAULT &#x27;0&#x27; COMMENT &#x27;有效联系类型 1: QQ联系，2:拨打电话，3:发送邮件，4:发送短信，5:添加跟进记录，6:拜访客户，7:EC联系，8:更新客户阶段&#x27;,</span><br><span class="line">  `f_contact_time` timestamp NOT NULL DEFAULT &#x27;1970-01-01 16:00:01&#x27;,</span><br><span class="line">  PRIMARY KEY(f_id),</span><br><span class="line">  UNIQUE KEY `some_qiye_type` (`f_some_id`,`f_qiye_id`,`f_type`) USING BTREE,</span><br><span class="line">  KEY `idx_qiye_time` (`f_qiye_id`,`f_contact_time`)</span><br><span class="line">) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/10/aws-lambda/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/aws-lambda/" class="post-title-link" itemprop="url">Aws Lambda Tips</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-10 14:47:36" itemprop="dateCreated datePublished" datetime="2018-05-10T14:47:36+08:00">2018-05-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/aws/" itemprop="url" rel="index"><span itemprop="name">aws</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://vinta.ws/code/apex-and-terraform-the-easiest-way-to-manage-aws-lambda-functions.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_125">原文链接</a></p>
-<p>Apex and Terraform</p>
-<h3 id="Write-Lambda-Functions"><a href="#Write-Lambda-Functions" class="headerlink" title="Write Lambda Functions"></a>Write Lambda Functions</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> aws = <span class="built_in">require</span>(<span class="string">&#x27;aws-sdk&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="built_in">exports</span>.handle = <span class="function">(<span class="params">event, context, callback</span>) =&gt;</span> &#123;</span><br><span class="line">  doYourShit();</span><br><span class="line">  callback(<span class="literal">null</span>, <span class="string">&#x27;DONE&#x27;</span>);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;encoding/json&quot;</span></span><br><span class="line">    <span class="string">&quot;errors&quot;</span></span><br><span class="line">    <span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="string">&quot;github.com/aws/aws-lambda-go/events&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/aws/aws-lambda-go/lambda&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/vinta/pangu&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    <span class="comment">// ErrTextNotProvided is thrown when text is not provided in HTTP query string</span></span><br><span class="line">    ErrTextNotProvided = errors.New(<span class="string">&quot;No text was provided in HTTP query string&quot;</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handler is the AWS Lambda function handler</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Handler</span><span class="params">(request events.APIGatewayProxyRequest)</span> <span class="params">(events.APIGatewayProxyResponse, error)</span></span> &#123;</span><br><span class="line">    log.Printf(<span class="string">&quot;request id: %s\n&quot;</span>, request.RequestContext.RequestID)</span><br><span class="line"></span><br><span class="line">    text, ok := request.QueryStringParameters[<span class="string">&quot;t&quot;</span>]</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        errMap := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">            <span class="string">&quot;message&quot;</span>: ErrTextNotProvided.Error(),</span><br><span class="line">        &#125;</span><br><span class="line">        errMapJSON, _ := json.MarshalIndent(errMap, <span class="string">&quot;&quot;</span>, <span class="string">&quot; &quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> events.APIGatewayProxyResponse&#123;</span><br><span class="line">            Body: <span class="keyword">string</span>(errMapJSON),</span><br><span class="line">            StatusCode: <span class="number">400</span>,</span><br><span class="line">        &#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    log.Printf(<span class="string">&quot;text: %s\n&quot;</span>, text)</span><br><span class="line"></span><br><span class="line">    textPlainHeaders := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">&quot;content-type&quot;</span>: <span class="string">&quot;text/plain; charset=utf-8&quot;</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> events.APIGatewayProxyResponse&#123;</span><br><span class="line">        Body: pangu.SpacingText(text),</span><br><span class="line">        Headers: textPlainHeaders,</span><br><span class="line">        StatusCode: <span class="number">200</span>,</span><br><span class="line">    &#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    lambda.Start(Handler)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/10/large-application-with-flask/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/large-application-with-flask/" class="post-title-link" itemprop="url">Large Application With Flask</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-10 14:35:46" itemprop="dateCreated datePublished" datetime="2018-05-10T14:35:46+08:00">2018-05-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/flask/" itemprop="url" rel="index"><span itemprop="name">flask</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.digitalocean.com/community/tutorials/how-to-structure-large-flask-applications?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126">原文链接</a></p>
-<p>As we have just been over in the previous section, Flask-way of doing things involves using the tools you are most comfortable with. In our article, we will be using – perhaps – the most common (and sensible) of choices in terms of extensions and libraries (i.e. database extraction layer). These choices will involve:</p>
-<ul>
-<li>SQLAlchemy (via Flask-SQLAlchemy)</li>
-<li>WTForms (via Flask-WTF)</li>
-</ul>
-<p>整个代码架构：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">~/LargeApp</span><br><span class="line">    |-- run.py</span><br><span class="line">    |-- config.py</span><br><span class="line">    |__ /env             # Virtual Environment</span><br><span class="line">    |__ /app             # Our Application Module</span><br><span class="line">         |-- __init__.py</span><br><span class="line">         |-- /module_one</span><br><span class="line">             |-- __init__.py</span><br><span class="line">             |-- controllers.py</span><br><span class="line">             |-- models.py                </span><br><span class="line">         |__ /templates</span><br><span class="line">             |__ /module_one</span><br><span class="line">                 |-- hello.html</span><br><span class="line">         |__ /static</span><br><span class="line">         |__ ..</span><br><span class="line">         |__ .</span><br><span class="line">    |__ ..</span><br><span class="line">    |__ .</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd ~/LargeApp</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask-sqlalchemy</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask-wtf</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p>the data model</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Import the database object (db) from the main application module</span></span><br><span class="line"><span class="comment"># We will define this inside /app/__init__.py in the next sections.</span></span><br><span class="line"><span class="keyword">from</span> app <span class="keyword">import</span> db</span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a base model for other database tables to inherit</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Base</span>(<span class="params">db.Model</span>):</span></span><br><span class="line"></span><br><span class="line">    __abstract__  = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">id</span>            = db.Column(db.Integer, primary_key=<span class="literal">True</span>)</span><br><span class="line">    date_created  = db.Column(db.DateTime,  default=db.func.current_timestamp())</span><br><span class="line">    date_modified = db.Column(db.DateTime,  default=db.func.current_timestamp(),</span><br><span class="line">                                           onupdate=db.func.current_timestamp())</span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a User model</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span>(<span class="params">Base</span>):</span></span><br><span class="line"></span><br><span class="line">    __tablename__ = <span class="string">&#x27;auth_user&#x27;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># User Name</span></span><br><span class="line">    name    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Identification Data: email &amp; password</span></span><br><span class="line">    email    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="literal">False</span>,</span><br><span class="line">                                            unique=<span class="literal">True</span>)</span><br><span class="line">    password = db.Column(db.String(<span class="number">192</span>),  nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Authorisation Data: role &amp; status</span></span><br><span class="line">    role     = db.Column(db.SmallInteger, nullable=<span class="literal">False</span>)</span><br><span class="line">    status   = db.Column(db.SmallInteger, nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># New instance instantiation procedure</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name, email, password</span>):</span></span><br><span class="line"></span><br><span class="line">        self.name     = name</span><br><span class="line">        self.email    = email</span><br><span class="line">        self.password = password</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;&lt;User %r&gt;&#x27;</span> % (self.name)                        </span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/07/gopher-sg/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/07/gopher-sg/" class="post-title-link" itemprop="url">Gopher Sg</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-07 10:43:12" itemprop="dateCreated datePublished" datetime="2018-05-07T10:43:12+08:00">2018-05-07</time>
+              <time title="Created: 2018-05-31 17:31:03" itemprop="dateCreated datePublished" datetime="2018-05-31T17:31:03+08:00">2018-05-31</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -480,61 +200,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?index=11&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126&v=wh81Xjuq8E4">Erlang for Go developers</a></p>
-<p>erlang vs golang:</p>
-<p>相同点：</p>
-<ul>
-<li>在于concurrent部分的设计</li>
-<li>标准库的使用</li>
-</ul>
-<p>不同点：</p>
-<ul>
-<li>deploys on a virtual machine, hot reload</li>
-<li>supports distributed communication</li>
-</ul>
-<p>erlang runtime</p>
-<p>provides behaviours to solve many design problems</p>
-<p>很难传递状态，必须通过消息传递 </p>
-<p>goroutine &lt;-&gt; process (pids)</p>
-<p>erlang process:</p>
-<ul>
-<li>each process has a mailbox</li>
-<li>a process is like a  goroutine + channel</li>
-<li>this composition creates an ‘actor’</li>
-<li>message are serialized through the mailbox</li>
-</ul>
-<p>distributed erlang</p>
-<p>monitor and link for process? 关于进程间的协同操作，这个挺有用的。</p>
-<p>关于supervison trees in go</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/ucirello/supervisor">repo1</a></p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?index=1&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126&v=F8nrpe0XWRg">Go with Versions</a></p>
-<p>Vgo？</p>
-<p>在获取依赖的时候，出现两种情况，too old/ too new</p>
-<p>software engineering vs programming engineering</p>
-<p>principles of versioning in Go:</p>
-<ul>
-<li>Compatibility</li>
-</ul>
-<p>如果具有相同的import path, 需要坐到后向兼容</p>
-<ul>
-<li>repeatability</li>
-<li>cooperation</li>
-</ul>
-<p>关于依赖的相互适应部分，</p>
-<p>version: major version, minor version, patch version</p>
-<p>using latest version is a feature! but only for library builds</p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=7R39CMW4MJQ&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&index=14">The Lost Art of Bondage</a></p>
-<p>cudn?</p>
-<p>parse c-header to go source code?</p>
-<p>time spent manually annotating functions vs time spent generating code</p>
-<p>cuda library</p>
-<p>what is the use case of algo?</p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://engineers.sg/video/distributed-tracing-in-grab-gophercon-sg-2017--1751">Distributed Tracing in Grab</a></p>
-<p>OpenTracing API</p>
-<p>basictracer-go</p>
+          <p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=cHXbYLNa0qQ">原文链接</a></p>
+<p>Dgraph</p>
+<p>解决key value lookup问题</p>
+<p>跟n4oj 图sql类似</p>
+<p>主要是针对复杂查询，有关联性的实体，但每个实体的字段又很少</p>
 
       
     </div>
@@ -554,7 +224,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/06/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/29/spofity-know-you-so-well/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -568,7 +238,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/05/06/one-week/" class="post-title-link" itemprop="url">人生到底是什么</a>
+            <a href="/2018/05/29/spofity-know-you-so-well/" class="post-title-link" itemprop="url">spotify know you so well</a>
         </h2>
 
         <div class="post-meta">
@@ -578,7 +248,163 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-05-06 22:23:05" itemprop="dateCreated datePublished" datetime="2018-05-06T22:23:05+08:00">2018-05-06</time>
+              <time title="Created: 2018-05-29 11:06:37" itemprop="dateCreated datePublished" datetime="2018-05-29T11:06:37+08:00">2018-05-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spotify/" itemprop="url" rel="index"><span itemprop="name">spotify</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/s/story/spotifys-discover-weekly-how-machine-learning-finds-your-new-music-19a41ab76efe">原文链接</a></p>
+<ol>
+<li><strong>Collaborative Filtering</strong> models (i.e. the ones that Last.fm originally used), which analyze both <em>your</em> behavior and <em>others’</em> behaviors.</li>
+<li><strong>Natural Language Processing (NLP)</strong> models, which analyze <em>text.</em></li>
+<li><strong>Audio</strong> models, which analyze the <em>raw audio tracks</em> <em>themselves</em>.</li>
+</ol>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*cp07MRMUjndZsvV7QElSXg.png" alt="discover weekly"></p>
+<p>Unlike Netflix, Spotify doesn’t have a star-based system with which users rate their music. Instead, Spotify’s data is <strong>implicit feedback</strong> — specifically, the <strong>stream counts</strong> of the tracks and additional streaming data, such as whether a user saved the track to their own playlist, or visited the artist’s page after listening to a song.</p>
+<p>根据喜欢的音乐，来归类于相似用户。</p>
+<p>In actuality, this matrix you see here is <em>gigantic</em>. <strong>Each row represents one of Spotify’s 140 million users —</strong> if you use Spotify, you yourself are a row in this matrix — and <strong>each column represents one of the 30 million songs</strong> in Spotify’s database.</p>
+<p>The exact mechanisms behind NLP are beyond the scope of this article, but here’s what happens on a very high level: Spotify crawls the web constantly looking for blog posts and other written text about music to figure out what people are saying about specific artists and songs — which adjectives and what particular language is frequently used in reference to those artists and songs, and which other artists and songs are also being discussed alongside them.</p>
+<p>with cnn处理audio部分</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/28/5-things-hate-about-go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/28/5-things-hate-about-go/" class="post-title-link" itemprop="url">5 things hate about go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-28 17:12:57" itemprop="dateCreated datePublished" datetime="2018-05-28T17:12:57+08:00">2018-05-28</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://jaxenter.com/5-things-you-hate-about-go-143422.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_129">原文链接</a></p>
+<p>My personal favorite is that Go does not offer a <em>reentrant lock</em>, i.e. a lock that can be recursively acquired from the same thread or Goroutine (the Go variant of Coroutines or <em>Green Threads</em>). However, without hacks there is no way to build such an implementation by yourself, since threads are not available in Go and Goroutines do not offer an identifier, which would allow you to recognize the same Goroutine you’ve seen before.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> task <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  task := &amp;task&#123;&#125;</span><br><span class="line">  task = &amp;task&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>At this point, Go is no longer able to see the distinction between the type and the variable</p>
+<h3 id="Type-or-no-type-that-is-the-question"><a href="#Type-or-no-type-that-is-the-question" class="headerlink" title="Type or no type, that is the question!"></a><strong>Type or no type, that is the question!</strong></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> handle = <span class="keyword">int</span> <span class="comment">// after go 1.9</span></span><br><span class="line"><span class="keyword">type</span> handle <span class="keyword">int</span> <span class="comment">// before go 1.9</span></span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> var1 <span class="keyword">int</span> = <span class="number">1</span></span><br><span class="line">  <span class="keyword">var</span> var2 handle = <span class="number">2</span></span><br><span class="line">  types(var1)</span><br><span class="line">  types(var2)</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">types</span><span class="params">(val <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="keyword">int</span>:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">&quot;I am an int: %d&quot;</span>, v))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> handle:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">&quot;I am an handle: %d&quot;</span>, v))</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Gophers-are-lazy-by-nature"><a href="#Gophers-are-lazy-by-nature" class="headerlink" title="Gophers are lazy by nature!"></a>Gophers are lazy by nature!</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  functions := <span class="built_in">make</span>([]<span class="function"><span class="keyword">func</span><span class="params">()</span>, 3)</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">      functions[i] = <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      fmt.Println(fmt.Sprintf(<span class="string">&quot;iterator value: %d&quot;</span>, i))</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">  functions[<span class="number">0</span>]()</span><br><span class="line">  functions[<span class="number">1</span>]()</span><br><span class="line">  functions[<span class="number">2</span>]()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Of-nil-and-nothing"><a href="#Of-nil-and-nothing" class="headerlink" title="Of nil and nothing"></a>Of nil and nothing</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">(v <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> e *MyError = <span class="literal">nil</span></span><br><span class="line">  <span class="keyword">if</span> v &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>When <code>e</code> is returned, the <code>*MyError</code> pointer becomes an instance of the interface type <code>error</code> and it’s not nil! </p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/27/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/27/one-week/" class="post-title-link" itemprop="url">万法缘起</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-27 08:49:18" itemprop="dateCreated datePublished" datetime="2018-05-27T08:49:18+08:00">2018-05-27</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -601,36 +427,148 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>人生到底什么，或许有些意义，或许也没有意义。。。</p>
-<p>有些原则看起来很可笑，很迂腐，但值得内心平和地去坚持。。。</p>
-<p>不要让焦虑去阻碍进步。。</p>
+          <p>菩萨畏因，众生畏果</p>
+<p>缘起缘灭，终究逃不过自己做的一切。。</p>
 <hr>
 <p>本周工作：</p>
 <ul>
-<li>gp的token抓取集成</li>
-<li>新的es部分重新灌入，后续保证删除，单机5亿条数据后，写入会非常地缓慢。。</li>
-<li>coinbot的初始部分完成</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>golang重新恢复一些写法</li>
-<li>关于okhttp3加入proxy</li>
+<li>相关运维部分的交接</li>
+<li>简历部分进行修改</li>
 </ul>
 <p>本周未完成：</p>
 <ul>
-<li>关于rn的收尾工作</li>
+<li>coinbot部分，关于自动化交易部分</li>
+<li>rn部分的第一版的收尾部分</li>
 </ul>
-<p>下周计划：</p>
+<p>下周工作：</p>
 <ul>
-<li>rn的收尾工作</li>
-<li>golang的一些知识的总结</li>
-<li>子渠道部分的一些算法</li>
+<li>开始复习一些东西</li>
+<li>准备简历上的东西，准备投一些</li>
 </ul>
-<p>突然发生的事情，让人措手不及，怎么就沦为这样的地步，做最坏的打算，资金链崩坏，不再联系，双方见面也尴尬。。。还是希望度过这一难关吧，人还在，什么都有。。。</p>
-<p>人是在了。。。不过感觉关系也就这样了，出了问题遮遮掩掩，并没有彻底地去解决问题。。。还背锅。。。自己自在地活着。。</p>
-<p>还是这样，人畜无害地平庸地生存下去，这样挺好，低欲望，低消费，保持可笑的原则，慢慢走下去，与其说成探索人生，不如说在人生中去过一些地方，遇到一些人，碰到一些事，人生也是一场修行，正念，加油。。。</p>
-<p>外包的事情，抓点紧，这快1个月过去了，感觉还只是1/4的样子。。。算是补贴下贷款吧。。</p>
-<p>其他学习方面和工作上，也抓紧点。。</p>
+<p>如期所至的同居生活开始了。。。有过争吵，有过所谓的甜蜜。。。哎，感觉达不到要求，给不了，感觉已经不是那种一人吃饱，全家不愁的状态，不管是心理上，还是物质上，还是配不上人家吧，有时候，也在怀疑，当初自己是怎么做了这个选择。。。窝起来，做一个肥宅多幸福。。。但不管怎么说，现在已经这个状态，先慢慢撑起来吧。。。毕竟最坏的结果，不是已经打算了，窝起来。。。</p>
+<p>还是生活和工作之间，怎么来平衡吧，个人还是有点强迫症，定一个计划出来，拖延症什么的。。要努力克服。。</p>
+<p>简历已经开始着手准备了，那么找工作部分，也要提上日程了。。关于简历上内容的回顾，leetcode的刷题部分，全都要慢慢捡起来。。</p>
+<p>尽量不要给他人困扰，也不要给他人带来麻烦，从根源上，斩断一些缘。。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/24/go-std-doc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/24/go-std-doc/" class="post-title-link" itemprop="url">Go std doc</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-24 15:36:32" itemprop="dateCreated datePublished" datetime="2018-05-24T15:36:32+08:00">2018-05-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/preytaren/go-doc-zh">原repo</a></p>
+<h2 id="container-heap"><a href="#container-heap" class="headerlink" title="container/heap"></a>container/heap</h2><p>fix用于单次对堆进行调整</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fix</span><span class="params">(h Interface, i <span class="keyword">int</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>关于大顶堆以及小顶堆</p>
+<h2 id="container-list"><a href="#container-list" class="headerlink" title="container/list"></a>container/list</h2><p>基本的双向链表</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">&quot;fmt&quot;</span></span><br><span class="line"><span class="string">&quot;container/list&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	link := list.New()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt;= <span class="number">10</span>; i++ &#123;</span><br><span class="line">		link.PushBack(i)</span><br><span class="line">	&#125;<span class="comment">//</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> p := link.Front(); p != link.Back(); p = p.Next() &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;Number&quot;</span>, p.Value)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="container-ring"><a href="#container-ring" class="headerlink" title="container/ring"></a>container/ring</h2><p>循环表结构</p>
+<p>Do, Ring包提供一个额外的方法Do，会依次将每个节点的Value当做参数调用这个函数</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;container/ring&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(<span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">		fmt.Println(i)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>求和的写法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;container/ring&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> SumInt <span class="keyword">struct</span> &#123;</span><br><span class="line">	Value <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SumInt)</span> <span class="title">add</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	s.Value += i.(<span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(sum.add)</span><br><span class="line">	fmt.Println(sum.Value)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="sort"><a href="#sort" class="headerlink" title="sort"></a>sort</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">        Len() <span class="keyword">int</span>            <span class="comment">// 返回当前元素个数</span></span><br><span class="line">        Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span>. <span class="comment">// 判断第i个元素是小于第j个元素</span></span><br><span class="line">        Swap(i, j <span class="keyword">int</span>)       <span class="comment">// 交换两个元素</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>只要实现这三个函数，即可使用sort的相关函数</p>
+<p>Slice</p>
+<p>Slice函数用于对一个Slice进行排序，这是实际使用中更为常用的一个函数，函数接收两个参数。第一个是需要排序的Slice；第二个是Slice元素比较函数，它类似于前面sort.Interface里的Less方法。函数声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Slice</span><span class="params">(slice <span class="keyword">interface</span>&#123;&#125;, less <span class="keyword">func</span>(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span>)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="sync"><a href="#sync" class="headerlink" title="sync"></a>sync</h2><p>信号量，sync.Cond是信号量的实现</p>
+<p>Signal和Broadcast用于唤醒一个信号量，区别在于Signal只会随机的唤醒一个线程，而Broadcast会唤醒所有在等待的线程。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Signal</span><span class="params">()</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Broadcast</span><span class="params">()</span></span> </span><br></pre></td></tr></table></figure>
+
+<p>wait</p>
+<p>阻塞等待，当Signal或Broadcast被调用时唤醒，声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Wait</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>sync.Once保证某个函数有且仅有一次执行，只有一个方法Do，接受一个无参函数作为参数，当你调用Do时会执行这个函数，其方法声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="context"><a href="#context" class="headerlink" title="context"></a>context</h2><p>context也是并发环境的一个常用标准库，它用于在并发环境下在协程之间安全的传递某些上下文信息。</p>
+<p>一个经典的应用场景是服务器模型，当服务器处理接收到的请求时，通常需要并发的运行多个子任务，例如访问服务器，请求授权等。而这些任务都会以子协程的方式运行，也就是说一个请求绑定了多个协程，这些协程需要共享或传递某些请求相关的数据；此外当请求被撤销时，也需要有一种机制保证每个子协程能够安全的退出。而context包就给提供了上面说到的这些功能。</p>
+<p>Context是一个上下文对象，其声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">    Deadline() (deadline time.Time, ok <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 获取deadline</span></span><br><span class="line">    Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// </span></span><br><span class="line">    Err() error</span><br><span class="line">    Value(key <span class="keyword">interface</span>&#123;&#125;) <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -649,7 +587,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/88/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/88/">88</a><span class="page-number current">89</span><a class="page-number" href="/page/90/">90</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/90/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/88/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/88/">88</a><span class="page-number current">89</span><a class="page-number" href="/page/90/">90</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/90/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -717,20 +655,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

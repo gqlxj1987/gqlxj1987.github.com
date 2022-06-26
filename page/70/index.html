@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/21/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/virtual-memory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/10/21/one-week/" class="post-title-link" itemprop="url">Wake me up !</a>
+            <a href="/2018/11/13/virtual-memory/" class="post-title-link" itemprop="url">算子虚存</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-10-21 21:48:46" itemprop="dateCreated datePublished" datetime="2018-10-21T21:48:46+08:00">2018-10-21</time>
+              <time title="Created: 2018-11-13 21:58:29" itemprop="dateCreated datePublished" datetime="2018-11-13T21:58:29+08:00">2018-11-13</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weeekly/" itemprop="url" rel="index"><span itemprop="name">weeekly</span></a>
+                  <a href="/categories/linux/" itemprop="url" rel="index"><span itemprop="name">linux</span></a>
                 </span>
             </span>
 
@@ -200,35 +200,37 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>我也一直 都不会是特别的</p>
-<p>虽然如此 但对我来说或许足够了</p>
-<p>虽然知道不能继续如此 但对我来说或许已经满足了</p>
-<p>耳边传来了别人正在唱歌的动听的歌声</p>
-<p>虽然感到了有些沮丧</p>
-<p>明天到来就用这样的态度</p>
-<p>生活下去吧</p>
-<hr>
-<p>本周工作：</p>
+          <p>首先是hadoop部分涉及到的虚存问题</p>
+<p>关于虚存限制，Hadoop 有两个参数控制，第一个参数决定是否打开虚存检查，默认为 true，第二个参数指出虚存的 Limit 的计算规则是申请实存的 2.1 倍，这解释了为什么实存设置的小了之后虚存也小了。 </p>
+<table>
+<thead>
+<tr>
+<th>yarn.nodemanager.vmem-check-enabled</th>
+<th>true</th>
+<th>Whether virtual memory limits will be enforced for containers.</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>yarn.nodemanager.vmem-pmem-ratio</td>
+<td>2.1</td>
+<td>Ratio between virtual memory to physical memory when setting memory limits for containers. Container allocations are expressed in terms of physical memory, and virtual memory usage is allowed to exceed this allocation by this ratio.</td>
+</tr>
+</tbody></table>
+<h3 id="什么是虚存"><a href="#什么是虚存" class="headerlink" title="什么是虚存"></a>什么是虚存</h3><p>虚存本质上是 OS 对内存资源的超售，技术上来说从 OS 角度有 Demand Paging，从进程角度有 Overcommit。而 Overcommit 是 OOM 的根源，内核对进程对内存的使用做了较为乐观的估计和假设，所以像 JVM 这种一起来就申请 (malloc) 巨大内存的情况虽然很多，但由于 Overcommit 机制所以能很好的运行。 又因为这种假设并不能放之四海而皆准，所以当遇到进程真的挤兑资源的时候(与 Overcommit 假设不符)，操作系统会通过 OOM - Killer 机制来挽救。挽救的方式是使用一些特殊的策略来随机的杀死进程，在进程的角度看到的就是跑的好好地被 OOM Killed 了。 </p>
+<p>当然，日常使用中还存在另一种 OOM，不同于 Overcommit 策略被挤兑时才出现，在 CGroup 生效的时候进程通过 cgroup 与内核协商了最大的资源限制，一旦 RSS(实存) 超过此限制后同样会被 OOM Killed。 </p>
+<p><a target="_blank" rel="noopener" href="http://linuxperf.com/?p=102">理解linux的memory overcommit</a></p>
+<p>理解memory overcommit的关键：commit(或overcommit)针对的是内存申请，内存申请不等于内存分配，内存只在实际用到的时候才分配。</p>
+<p>内核参数 vm.overcommit_memory 接受三种取值：</p>
 <ul>
-<li>修复dag合并的问题，同时将node部分进行整合，提升相关效率</li>
-<li>人工特征流程部分完成</li>
-<li>整体流程串联成功</li>
+<li>0 – Heuristic overcommit handling. 这是缺省值，它允许overcommit，但过于明目张胆的overcommit会被拒绝，比如malloc一次性申请的内存大小就超过了系统总内存。Heuristic的意思是“试探式的”，内核利用某种算法（对该算法的详细解释请看文末）猜测你的内存申请是否合理，它认为不合理就会拒绝overcommit。</li>
+<li>1 – Always overcommit. 允许overcommit，对内存申请来者不拒。</li>
+<li>2 – Don’t overcommit. 禁止overcommit。</li>
 </ul>
-<p>下周工作：</p>
-<ul>
-<li>一些边界条件部分的修复</li>
-<li>另起一个实验数据部分</li>
-<li>准备提测的相关事宜</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于进度的一些把控方面</li>
-<li>同他人的协同方面正在恢复</li>
-</ul>
-<p>时间安排上，尽快地安排一下，合理地安排学习和游戏的时间部分，总感觉自己的学习新知识部分，有点拉下来了。。。早日把jenkins部分的源码部分进行阅读，按里面有没有可以借鉴部分</p>
-<p>身体锻炼上，起码恢复了每周一跑，继续坚持，同时在周中的时候，看有没有机会加入5km的跑步环节，节食部分，也要坚持下去，晚上不要吃太多，以水果啥的为主</p>
-<p>目标是架构的设计一些方面，之前做的可能更轻量级，更小众，现在要涉及一些企业级的框架部分，希望自己能够慢慢转向这个方向，去设计一些东西，能够将之前的一些设计完善起来，同时加入自己的理解部分</p>
-<p>正如歌词里提到的，已经知道不能继续如此，应该感到很满足才对，有过这段很珍贵的经历，就已经很足够了。虽然会有些沮丧，但明天还是会继续，就用这样的态度，生活下去吧</p>
+<p><em>“sar -r”是查看内存使用状况的常用工具，它的输出结果中有两个与overcommit有关，kbcommit 和 %commit：</em><br><em>kbcommit对应/proc/meminfo中的 Committed_AS；</em><br><em>%commit的计算公式并没有采用 CommitLimit作分母，而是Committed_AS/(MemTotal+SwapTotal)，意思是_内存申请_占_物理内存与交换区之和_的百分比。</em></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sar -r</span> </span><br><span class="line"> </span><br><span class="line">05:00:01 PM kbmemfree kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty</span><br><span class="line">05:10:01 PM    160576   3648460     95.78         0   1846212   4939368     62.74   1390292   1854880         4</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -248,7 +250,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/13/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/05/reservoir-sampling/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -262,7 +264,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/10/13/one-week/" class="post-title-link" itemprop="url">我们无法成为野兽</a>
+            <a href="/2018/11/05/reservoir-sampling/" class="post-title-link" itemprop="url">Reservoir Sampling</a>
         </h2>
 
         <div class="post-meta">
@@ -272,7 +274,236 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-10-13 17:18:29" itemprop="dateCreated datePublished" datetime="2018-10-13T17:18:29+08:00">2018-10-13</time>
+              <time title="Created: 2018-11-05 10:23:09" itemprop="dateCreated datePublished" datetime="2018-11-05T10:23:09+08:00">2018-11-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/algorithm/" itemprop="url" rel="index"><span itemprop="name">algorithm</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h4 id="解决的问题"><a href="#解决的问题" class="headerlink" title="解决的问题"></a>解决的问题</h4><p>要求从N个元素中随机的抽取k个元素，其中N无法确定。<br>这种应用的场景一般是数据流的情况下，由于数据只能被读取一次，而且数据量很大，并不能全部保存，因此数据量N是无法在抽样开始时确定的；但又要保持随机性</p>
+<h4 id="证明过程"><a href="#证明过程" class="headerlink" title="证明过程"></a>证明过程</h4><p>假设数据序列的规模为 nn，需要采样的数量的为 kk。</p>
+<p>首先构建一个可容纳 kk 个元素的数组，将序列的前 kk 个元素放入数组中。</p>
+<p>然后从第 k+1 个元素开始，以 $\frac {k}{n}$ 的概率来决定该元素是否被替换到数组中（数组中的元素被替换的概率是相同的）。 当遍历完所有元素之后，数组中剩下的元素即为所需采取的样本。</p>
+<p>对于第 <em>i</em>个数（i≤k）。在 <em>k</em> 步之前，被选中的概率为 <em>1</em>。当走到第 <em>k+1</em> 步时，被 <em>k+1</em> 个元素替换的概率 <em>= k+1</em>个元素被选中的概率 * <em>i</em> 被选中替换的概率，即为 $\frac{k}{k+1}×\frac{1}{k}=\frac{1}{k+1}$。则被保留的概率为 $1−\frac{1}{k+1}=\frac{k}{k+1}$。依次类推，不被 <em>k+2</em>个元素替换的概率为 $1−\frac{k}{k+2}×\frac{1}{k}=\frac{k+1}{k+2}$。则运行到第 <em>n</em>步时，被保留的概率 = 被选中的概率 * 不被替换的概率，即：</p>
+<p>$$1×\frac{k}{k+1}×\frac{k+1}{k+2}×\frac{k+2}{k+3}×…×\frac{n−1}{n}=\frac{k}{n}$$</p>
+<p>对于第 <em>j</em> 个数（j&gt;k）。在第 j 步被选中的概率为 kjkj。不被 j+1j+1 个元素替换的概率为 1−kj+1×1k=jj+11−kj+1×1k=jj+1。则运行到第 nn 步时，被保留的概率 = 被选中的概率 * 不被替换的概率，即：</p>
+<p>$$\frac{k}{j}×\frac{j}{j+1}×\frac{j+1}{j+2}×\frac{j+2}{j+3}×…×\frac{n−1}{n}=\frac{k}{n}$$</p>
+<p>所以对于其中每个元素，被保留的概率都为 $\frac{k}{n}$.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ReservoirSamplingTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span>[] pool; <span class="comment">// 所有数据</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> N = <span class="number">100000</span>; <span class="comment">// 数据规模</span></span><br><span class="line">    <span class="keyword">private</span> Random random = <span class="keyword">new</span> Random();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Before</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setUp</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">// 初始化</span></span><br><span class="line">        pool = <span class="keyword">new</span> <span class="keyword">int</span>[N];</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">            pool[i] = i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span>[] sampling(<span class="keyword">int</span> K) &#123;</span><br><span class="line">        <span class="keyword">int</span>[] result = <span class="keyword">new</span> <span class="keyword">int</span>[K];</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; K; i++) &#123; <span class="comment">// 前 K 个元素直接放入数组中</span></span><br><span class="line">            result[i] = pool[i];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = K; i &lt; N; i++) &#123; <span class="comment">// K + 1 个元素开始进行概率采样</span></span><br><span class="line">            <span class="keyword">int</span> r = random.nextInt(i + <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (r &lt; K) &#123;</span><br><span class="line">                result[r] = pool[i];</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i : sampling(<span class="number">100</span>)) &#123;</span><br><span class="line">            System.out.println(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>注意random部分</li>
+<li>以及r&lt;K</li>
+</ul>
+<p>保证$\frac{k}{n}$的概率</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/jenkins-analysis/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/04/jenkins-analysis/" class="post-title-link" itemprop="url">jenkins analysis</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-04 20:59:55" itemprop="dateCreated datePublished" datetime="2018-11-04T20:59:55+08:00">2018-11-04</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/arthas-log/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/04/arthas-log/" class="post-title-link" itemprop="url">Arthas Log Bug追查</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-04 17:31:36" itemprop="dateCreated datePublished" datetime="2018-11-04T17:31:36+08:00">2018-11-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/boGS0VK45mZ_zT25K44S5Q">原文链接</a></p>
+<p>利用arthas直接在线上定位问题的过程，主要使用 <code>sc</code>和 <code>getstatic</code>命令。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/sc.html">https://alibaba.github.io/arthas/sc.html</a></li>
+<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/getstatic.html">https://alibaba.github.io/arthas/getstatic.html</a></li>
+</ul>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sc io.netty.channel.nio.NioEventLoop</span></span><br><span class="line">class-info        io.netty.channel.nio.NioEventLoop</span><br><span class="line"> code-source       file:/opt/app/plugins/tair-plugin/lib/netty-all-4.0.35.Final.jar!/</span><br><span class="line"> name              io.netty.channel.nio.NioEventLoop</span><br><span class="line"> isInterface       false</span><br><span class="line"> isAnnotation      false</span><br><span class="line"> isEnum            false</span><br><span class="line"> isAnonymousClass  false</span><br><span class="line"> isArray           false</span><br><span class="line"> isLocalClass      false</span><br><span class="line"> isMemberClass     false</span><br><span class="line"> isPrimitive       false</span><br><span class="line"> isSynthetic       false</span><br><span class="line"> simple-name       NioEventLoop</span><br><span class="line"> modifier          final,public</span><br><span class="line"> annotation</span><br><span class="line"> interfaces</span><br><span class="line"> </span><br><span class="line">super-class     +-io.netty.channel.SingleThreadEventLoop</span><br><span class="line">                     +-io.netty.util.concurrent.SingleThreadEventExecutor</span><br><span class="line">                       +-io.netty.util.concurrent.AbstractScheduledEventExecutor</span><br><span class="line">                         +-io.netty.util.concurrent.AbstractEventExecutor</span><br><span class="line">                           +-java.util.concurrent.AbstractExecutorService</span><br><span class="line">                             +-java.lang.Object</span><br><span class="line"> </span><br><span class="line">class-loader      +-tair-plugin&#x27;s ModuleClassLoader</span><br><span class="line"> classLoaderHash   73ad2d6</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>通过查看源码，了解相关的logger的实现</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> getstatic -c 73ad2d6 io.netty.channel.nio.NioEventLoop logger <span class="string">&#x27;getClass().getName()&#x27;</span></span></span><br><span class="line">field: logger</span><br><span class="line">@String[io.netty.util.internal.logging.Slf4JLogger]</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>tair插件里的logback没有设置ROOT logger，所以它的默认level是DEBUG，并且默认的appender会输出到stdout里。</strong></p>
+<p>一些经验</p>
+<ul>
+<li>logback默认的ROOT logger level是 <code>DEBUG</code>，输出是stdout</li>
+<li>利用arthas的 <code>sc</code>命令定位具体的类</li>
+<li>利用arthas的 <code>getstatic</code>获取static filed的值</li>
+<li>利用logger parent层联的特性，可以向上一层层获取到ROOT logger的配置</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/04/one-week/" class="post-title-link" itemprop="url">孤独的美食家</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-04 15:45:10" itemprop="dateCreated datePublished" datetime="2018-11-04T15:45:10+08:00">2018-11-04</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -295,262 +526,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>如果可以像野兽一样自由生活就好</p>
-<p>就算是社畜，就算是被人遗弃的zombie，但只要心中有一点点的光亮，也要努力地活下去  —佐贺传奇</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>dag转换部分的工作</li>
-<li>流程的完善，加入default template的构造</li>
-<li>整个流程的串联</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>整合node到一个节点上去，提升效率，跟进银行的试验部分</li>
-<li>人工选择特征部分的加入</li>
-<li>关于整体流程的运行能够成功</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于python脚本的集成部分</li>
-<li>对dag的理解更深了</li>
-</ul>
-<p>这周的时间安排，慢慢在恢复，晚上也能抽点时间来做一些东西，后面就是定一下，每天晚上抽10分钟或者半个小时，学习一下新的知识部分？</p>
-<p>关于身体锻炼部分，还是要加强，不管是跑步还是keep部分，都要保持，现在才知道32是180穿的。。。目标是30才行</p>
-<p>新知识的梳理部分，以及新知识的学习部分，感觉有点缓慢，不妨以深度学习为例，来做一些新知识的入门，在业务的基础上，深入技术去学习一些东西</p>
-<p>感觉刚刚摸到一些头绪，哎。。。尽力去做吧。。。哎，感觉还是有差距，效率上的方式，无法提升，很多的东西就无法把控。。。哎。。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/09/time-speed/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/10/09/time-speed/" class="post-title-link" itemprop="url">时间计划</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-10-09 10:07:19" itemprop="dateCreated datePublished" datetime="2018-10-09T10:07:19+08:00">2018-10-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/time/" itemprop="url" rel="index"><span itemprop="name">time</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>关于一些时间管理上的想法</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/08/RxJava/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/10/08/RxJava/" class="post-title-link" itemprop="url">RxJava intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-10-08 22:26:41" itemprop="dateCreated datePublished" datetime="2018-10-08T22:26:41+08:00">2018-10-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/RxJava/" itemprop="url" rel="index"><span itemprop="name">RxJava</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://baurine.github.io/2017/07/12/rxjava_understand.html">原文链接</a></p>
-<p>关于流式编程的一些说明，Stream API</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// JavaScript</span><br><span class="line">let r = [1,2,3,4,5,6,7,8,9].filter(i=&gt;i&gt;5).map(i=&gt;i*10).reduce((a,b)=&gt;a+b, 0)</span><br><span class="line"></span><br><span class="line">// Ruby</span><br><span class="line">r = [1,2,3,4,5,6,7,8,9].select &#123;|i| i&gt;5&#125;.map &#123;|i| i*10&#125;.reduce(0) &#123;|a,b| a+b&#125;</span><br><span class="line"></span><br><span class="line">// Swift</span><br><span class="line">var r = [1,2,3,4,5,6,7,8,9].filter &#123;$0&gt;5&#125;.map &#123;$0*10&#125;.reduce(0) &#123;$0+$1&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Integer[] numbers = <span class="keyword">new</span> Integer[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>&#125;;</span><br><span class="line">Observable.from(numbers)</span><br><span class="line">        .filter(integer) -&gt; &#123; <span class="keyword">return</span> integer &gt; <span class="number">5</span>; &#125;)</span><br><span class="line">        .map((integer) -&gt; &#123; <span class="keyword">return</span> integer * <span class="number">10</span>; &#125;)</span><br><span class="line">        .reduce(<span class="number">0</span>, (int1, int2) -&gt; &#123; <span class="keyword">return</span> int1 + int2; &#125;)</span><br><span class="line">        .subscribe((integer) -&gt; &#123; Log.i(TAG, <span class="string">&quot;result: &quot;</span> + integer); &#125;);</span><br></pre></td></tr></table></figure>
-
-
-
-<ol>
-<li>流式编程法，每一个单独的步骤，在内部都重新对整体数据进行一次循环，因此它要做很多次小循环，但整体的流程只走一遍。</li>
-<li>Rx，只在数据最源头，对整体数据进行一次循环，取出每一个单独的数据，让它去走一遍整体流程，因此，它只做一次循环，但整个的流程会走很多遍。</li>
-</ol>
-<p>对于 Rx 来说，如果数据源不是固定的，那么它可以监听这个数据来源，当有数据到来时，它就可以把它发射出去把整个流程走一遍。这就是我用来理解 Rx 的观察者模式和响应式编程的方法。</p>
-<p>Rx 比常见流式编程的抽象程度更高，它不光抽象了对数据的操作，还抽象了线程切换操作。</p>
-<p>Rx的Promise和Observable对象：</p>
-<ul>
-<li>Promise 对象，当它被 new 出来后，其中的方法体是立即执行的，不管后面有没有用 <code>.then()</code> 加上回调，执行的结果被存储在对象之中，如果后面再用 <code>.then()</code> 加上回调，之前的结果会马上传递给新的回调。</li>
-<li>Rx 的 Observable 对象，当它被 new 出来后，其中的方法体，只有 <code>.subscribe()</code> 方法被执行的那一刻才会执行，否则，只要没有调用 <code>.subscribe()</code>，其中的变换就永远不会执行，这和 Promise 是完全不一样的。</li>
-</ul>
-<p>只要是 T -&gt; Observable 的变换，就应该用 flatMap</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/08/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/10/08/one-week/" class="post-title-link" itemprop="url">逃避可耻但有用(续)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-10-08 21:19:24" itemprop="dateCreated datePublished" datetime="2018-10-08T21:19:24+08:00">2018-10-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>国庆期间，又把逃避看了一遍，果然电视里都是美好的，big happy ending</p>
-<p>不过现实还是现实，能混一个not bad ending就不错了，嗯，目标是not bad ending，经历过，not bad就好了</p>
-<p>抱着这样的目标，保持一些独立性，保持一点进步性，战战兢兢，安安静静地做好自己的acer</p>
-<p>不是有职业单身汉这个职业，安稳，不变化，或者说一切的变化都在自己的承受范围内</p>
-<p>不要各种自以为是的地要求他人，也就是狂妄吧，自卑地把声音放低，不要强调自己的声音。。。</p>
-<p>没有女性经验，但也有很好的结局，毕竟是电视，现实的话，只能呵呵，或许是自己的肾不好，存不住水。。哈哈。。</p>
-<p>也无所谓了，有了觉悟了，也就是觉得尴尬，其实也没什么，相比之下，只是痛苦一些，也没啥了</p>
-<p>为了not bad的结局，嗯，加强自己的学习和锻炼啥的，每周去总结自己的不足，每周养成一点小好的习惯，改正一些不好的习惯。。。</p>
-<p>电视里最后还是勇敢面对了，不过那还是电视，现实上还是能逃避一会儿是一会儿吧，能活下来就好，对，不管是怎样的方式，活下来就好。。。活下来，见识一下就好。。。</p>
-<p>一个人有两个人的心态。。。哈哈。。。</p>
-<p>頑張って！</p>
+          <hr>
 
       
     </div>
@@ -569,7 +545,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/69/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/69/">69</a><span class="page-number current">70</span><a class="page-number" href="/page/71/">71</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/71/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/69/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/69/">69</a><span class="page-number current">70</span><a class="page-number" href="/page/71/">71</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/71/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -637,20 +613,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

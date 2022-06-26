@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/30/vitess-intro/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/01/Travis-CI-Step-Job-Stage/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/30/vitess-intro/" class="post-title-link" itemprop="url">Vitess Intro</a>
+            <a href="/2018/11/01/Travis-CI-Step-Job-Stage/" class="post-title-link" itemprop="url">Travis CI - Step/Job/Stage</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-30 18:48:58" itemprop="dateCreated datePublished" datetime="2018-09-30T18:48:58+08:00">2018-09-30</time>
+              <time title="Created: 2018-11-01 14:43:45" itemprop="dateCreated datePublished" datetime="2018-11-01T14:43:45+08:00">2018-11-01</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/vitess/" itemprop="url" rel="index"><span itemprop="name">vitess</span></a>
+                  <a href="/categories/ci/" itemprop="url" rel="index"><span itemprop="name">ci</span></a>
                 </span>
             </span>
 
@@ -200,35 +200,184 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://jixiuf.github.io/blog/go_vitess.html/">原文链接</a></p>
-<p><img src="http://jixiuf.github.io/assets/blog/go_vitess.html/VitessOverview.png" alt="Architecture"></p>
+          <p><a target="_blank" rel="noopener" href="https://www.hwchiu.com/travisci-step-job-stage.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_145">原文链接</a></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">language:</span> <span class="string">go</span></span><br><span class="line"></span><br><span class="line"><span class="attr">go:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">before_install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_install&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;install&quot;</span></span><br><span class="line">  <span class="bullet">-</span> </span><br><span class="line"><span class="attr">before_script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_script&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;script&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://i.imgur.com/Mrb22oE.png" alt="travisci steps"></p>
+<p>关于<code>Job</code>的定义，<code>Job</code> 就是一個歷經 <code>TravisCI</code> 生命週期所有步驟的基本單位。</p>
+<p>关于<code>Custom job</code>的实现</p>
+<p><img src="https://i.imgur.com/Kr9KDi3.png" alt="custom job"></p>
+<p>引入<code>job:include</code>的概念</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">language:</span> <span class="string">go</span></span><br><span class="line"></span><br><span class="line"><span class="attr">go:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">before_install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_install&quot;</span></span><br><span class="line"><span class="attr">install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;install&quot;</span></span><br><span class="line"><span class="attr">before_script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_script&quot;</span></span><br><span class="line"><span class="attr">script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;script&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">include:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">stage:</span> <span class="string">Custom</span> <span class="string">Testing</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">Unit-Testing</span></span><br><span class="line">      <span class="attr">go:</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line">      <span class="attr">script:</span> <span class="string">echo</span> <span class="string">&quot;unit script&quot;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Integration-Testing</span></span><br><span class="line">      <span class="attr">before_install:</span> <span class="string">&quot;Integration-Testing_before_install&quot;</span></span><br><span class="line">      <span class="attr">go:</span> <span class="string">&quot;1.9&quot;</span></span><br><span class="line">      <span class="attr">script:</span> <span class="string">&quot;Integration-Testing_script&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>Stage</code> 的特色以及概念如下</p>
+<ol>
+<li>由一群 <code>Job</code> 組成</li>
+<li>只要有一個 <code>Job</code> 失敗，該 <code>Stage</code> 就會被視為失敗</li>
+<li>只有當該前 Stage 是成功的狀態，才會執行下一個 Stage</li>
+</ol>
+<p><img src="https://i.imgur.com/YkGmTQN.png" alt="多个stage"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/30/ddd-blue-book/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/10/30/ddd-blue-book/" class="post-title-link" itemprop="url">domain drive design</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-10-30 23:33:41" itemprop="dateCreated datePublished" datetime="2018-10-30T23:33:41+08:00">2018-10-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/domain/" itemprop="url" rel="index"><span itemprop="name">domain</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>有效建模的要素：</p>
 <ul>
-<li>vtgate 可以认为是网关,client 只需要与vtgate 连接即可，vtgate 会把相应的sql 路由到相应的vttablet 进行查询 执行等，vtgate 可以启动多个，来做负载均衡，相当于proxy部分</li>
-<li>vttablet 可以认为是在mysql 前面挡了一层，一个vttablet 对应一个mysql 实例，主要提供连接池、查询重写、查询去重、以及相应的管理操作</li>
-<li>vtctl 命令行， 提供管理vitess 的命令等，包括查询master-slave关系，sharding 信息。例如，建表，执行sharding resharding ，执行failover(切换主从关系等)等操作。</li>
-<li>vtworker 执行一些需要长时间运行的进程。它支持一个插件式的架构并提供了第三方库，这样你可以轻易选择要使用的 tablet。该插件可以用于以下类型的工作：<ul>
-<li>resharding differ：在水平分片的分割以及合并时核查数据完整性的工作</li>
-<li>vertical split differ：在垂直分割以及合并时核查数据完整性的工作</li>
-<li>vtworker 还允许您轻松地添加其他验证程序。你可以进行 in-tablet 完整性检查以验证外键之类的关联关系或者跨片完整性检查，例如，一个密钥空间里的索引表所指向的数据在另一个密钥空间里。</li>
+<li>模型和实现的绑定</li>
+<li>获得了一种基于模型的语言</li>
+<li>开发一个蕴含丰富知识的模型</li>
+<li>提炼模型</li>
+<li>头脑风暴和实验</li>
 </ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/29/crud/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/10/29/crud/" class="post-title-link" itemprop="url">Don't talk CRUD</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-10-29 19:54:16" itemprop="dateCreated datePublished" datetime="2018-10-29T19:54:16+08:00">2018-10-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/crud/" itemprop="url" rel="index"><span itemprop="name">crud</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://codecoding.net/ruby/on/rails/2018/09/14/dont-talk-crud.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_143">原文链接</a></p>
+<p>从一个需求开始</p>
+<blockquote>
+<p>I want to be able to assign the account manager to the user who is my client.</p>
+</blockquote>
+<p>solution way</p>
+<ul>
+<li><p>First of all we need to stop thinking in a CRUD way</p>
+<p>化身领域的方式来进行，思考namespace，module部分，</p>
+</li>
+<li><p>action name</p>
 </li>
 </ul>
-<p>Vitess 使用基于范围的分片。Vitess 使用一个数据存储一致性的拓扑支持，比如 etcd 或者 ZooKeeper。这也就意味着集群视图始终是最新的而且对于不同的客户端也能始终保证其一致性。</p>
-<p>Keyspace对应着mysql逻辑上的一个database，那么他的关键的就是做sharding，还有作为读写分离部分</p>
-<p>一个tablet 包含</p>
-<ol>
-<li>一个mysql instance</li>
-<li>一个 vttablet instance</li>
-<li>一个可选的row cache instance (memcache)</li>
-<li>其他一些特定的database 相关进程</li>
-</ol>
-<p>类型</p>
-<ol>
-<li>master 主库</li>
-<li>replica 低延迟的从库</li>
-<li>rdonly 延迟相对较高的只读库，主要执行一些后台耗时操作</li>
-<li>spare 暂时不工作的slave</li>
-</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">app/contexts/authentication` or `app/domains/authentication</span><br></pre></td></tr></table></figure>
+
+<p>关于context或者说domain的设置部分</p>
+<p><strong>DDD blue book</strong></p>
 
       
     </div>
@@ -248,7 +397,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/20/grpc-json/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/28/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -262,7 +411,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/20/grpc-json/" class="post-title-link" itemprop="url">gRpc With JSON</a>
+            <a href="/2018/10/28/one-week/" class="post-title-link" itemprop="url">楚门的世界</a>
         </h2>
 
         <div class="post-meta">
@@ -272,254 +421,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-20 23:21:36" itemprop="dateCreated datePublished" datetime="2018-09-20T23:21:36+08:00">2018-09-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/grpc/" itemprop="url" rel="index"><span itemprop="name">grpc</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://grpc.io/blog/grpc-with-json">原文链接</a></p>
-<p>不想使用protobuf，使用gRPC，可以采用gRPC+JSON的方式</p>
-<p>本文中采用Gson的方式</p>
-<p><a target="_blank" rel="noopener" href="https://www.hardikp.com/2018/07/28/services/">grpc vs thrift vs pyrc</a></p>
-<p>rpc框架逃离不出，配置文件的束缚？那在形成python lib的时候，是否要总是使用最新的配置文件去生成？感觉也是可行的，按照版本来行，thrift部分，可以通过不同的版本，逐次地开放更多的功能这样子？</p>
-<p>My preferences are:</p>
-<ul>
-<li>I would personally perfer to use <code>RPyC</code> if python is the only language I am going to use.</li>
-<li>I would prefer to use <code>gPRC</code> if I needed robustness, reliability, and scalability from my services.</li>
-<li>The best thing about <code>Thrift</code> is that it supports so many languages. If that’s what you’re targetting, go for <code>Thirft</code>.</li>
-</ul>
-<p>grpc部分的配置文件，需要重新生成这样子？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/18/Airbnb-Architecture/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/09/18/Airbnb-Architecture/" class="post-title-link" itemprop="url">Airbnb Architecture</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-09-18 23:47:31" itemprop="dateCreated datePublished" datetime="2018-09-18T23:47:31+08:00">2018-09-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://enqueuezero.com/airbnb-architecture.html">原文链接</a></p>
-<h4 id="elb做load-balancer"><a href="#elb做load-balancer" class="headerlink" title="elb做load balancer"></a>elb做load balancer</h4><h4 id="服务发现"><a href="#服务发现" class="headerlink" title="服务发现"></a>服务发现</h4><ul>
-<li>SmartStack，对象存储，依赖zookeeper来存储发现数据</li>
-<li>Nerve 管理微服务的生命周期</li>
-<li>Synapse，服务发现，并更新haproxy</li>
-<li>meta信息部分，存储到zookeeper部分</li>
-</ul>
-<h4 id="Infrastructure"><a href="#Infrastructure" class="headerlink" title="Infrastructure"></a>Infrastructure</h4><p>配置管理部分，采用Chef</p>
-<h4 id="数据仓库部分"><a href="#数据仓库部分" class="headerlink" title="数据仓库部分"></a>数据仓库部分</h4><p><img src="https://enqueuezero.com/static/images/airbnb-architecture-data-pipeline.png" alt="data warehouse"></p>
-<h4 id="microservices"><a href="#microservices" class="headerlink" title="microservices"></a>microservices</h4><p>后端采用<a target="_blank" rel="noopener" href="https://www.dropwizard.io/1.3.5/docs/">Dropwizard</a> 框架，并发布为Thrift IDL</p>
-<h4 id="search-services"><a href="#search-services" class="headerlink" title="search services"></a>search services</h4><p><img src="https://enqueuezero.com/static/images/airbnb-architecture-search.png" alt="search services"></p>
-<p>Nebula is a schema-less, versioned data store service with both real-time random data access and offline batch data management</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/18/Kubernetes-Ingress-101/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/09/18/Kubernetes-Ingress-101/" class="post-title-link" itemprop="url">Kubernetes Ingress 101</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-09-18 23:08:41" itemprop="dateCreated datePublished" datetime="2018-09-18T23:08:41+08:00">2018-09-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blog.getambassador.io/kubernetes-ingress-nodeport-load-balancers-and-ingress-controllers-6e29f1c44f2d">原文链接</a></p>
-<p>Kubernetes ingress is a collection of routing rules that govern how external users access services running in a Kubernetes cluster.</p>
-<p>Ingress in Kubernetes</p>
-<ul>
-<li>Using a Kubernetes service of type <code>NodePort</code>, which exposes the application on a port across each of your nodes</li>
-<li>Use a Kubernetes service of type <code>LoadBalancer</code>, which creates an external load balancer that points to a Kubernetes service in your cluster</li>
-<li>Use a Kubernetes I<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/services-networking/ingress/">ngress</a> Resource</li>
-</ul>
-<p>nodePort与service部分绑定，无关node部分，</p>
-<p>This external load balancer is associated with a specific IP address and routes external traffic to a Kubernetes service in your cluster.</p>
-<p>Typically, though, your Kubernetes services will impose additional requirements on your ingress. Examples of this include:</p>
-<ul>
-<li>content-based routing, e.g., routing based on HTTP method, request headers, or other properties of the specific request</li>
-<li>resilience, e.g., rate limiting, timeouts</li>
-<li>support for multiple protocols, e.g., WebSockets or gRPC</li>
-<li>authentication</li>
-</ul>
-<p>用ingress，扩展来说，可以说是service mesh？应该是可以实现每一个部分？通过ingress controller部分来实现</p>
-<p>Different ingress controllers will have different functionality, just like API Gateways. Here are a few choices to consider:</p>
-<ul>
-<li>There are three different NGINX ingress controllers, with <a target="_blank" rel="noopener" href="https://github.com/nginxinc/kubernetes-ingress/blob/master/docs/nginx-ingress-controllers.md">different feature sets and functionality</a>.</li>
-<li><a target="_blank" rel="noopener" href="http://traefik.io/">Traefik</a> can <a target="_blank" rel="noopener" href="https://docs.traefik.io/configuration/backends/kubernetes/">also be deployed as an ingress controller</a>, and exposes a subset of its functionality through Kubernetes annotations.</li>
-<li>Kong is a popular open source API gateway built on NGINX. However, because it supports <a target="_blank" rel="noopener" href="https://konghq.com/install/">many infrastructure platforms</a>, it isn’t optimized for Kubernetes. For example, Kong requires a database, when Kubernetes provides an excellent persistent data store in etcd. Kong also is configured via REST, while Kubernetes embraces declarative configuration management.</li>
-<li><a target="_blank" rel="noopener" href="https://www.getambassador.io/">Ambassador</a> is built on the <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy Proxy</a>, and exposes a <a target="_blank" rel="noopener" href="https://www.getambassador.io/reference/mappings">rich set of configuration options</a> for your services, as well as support for external authentication services.</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/17/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/09/17/one-week/" class="post-title-link" itemprop="url">战战兢兢</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-09-17 09:33:58" itemprop="dateCreated datePublished" datetime="2018-09-17T09:33:58+08:00">2018-09-17</time>
+              <time title="Created: 2018-10-28 16:18:24" itemprop="dateCreated datePublished" datetime="2018-10-28T16:18:24+08:00">2018-10-28</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -542,25 +444,111 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>战战兢兢</p>
-<p>如履薄冰</p>
-<p>重回苦行僧般的生活</p>
+          <p>如果再也见不到你，我再祝你早安、午安、晚安</p>
+<p>困于自己的牢笼，还是去继续探索世界</p>
 <hr>
-<p>本周：</p>
+<p>本周工作：</p>
 <ul>
-<li>完成第一版的脚本的提交</li>
-<li>框架部分完成大概</li>
+<li>进行提测</li>
+<li>新的feature_graph脚本的讨论</li>
 </ul>
-<p>下周：</p>
+<p>本周所得：</p>
 <ul>
-<li>完成多表拼接的具体任务</li>
-<li>脚本的修改以及集成</li>
+<li>demo day的恢复</li>
+<li>相关流程的熟悉</li>
+<li>熟悉了一些k8s的命令</li>
 </ul>
-<p>不断地降低自己的预期和奢望，不断地远离自己的舒适区，保持谦卑的心态和想法，重回苦行僧般的生活。。。</p>
-<p>所谓苦行僧，也就是按部就班，努力地践行着那种愚笨的方法和计划，这样，不管是在得到或者失去的时候，不至于有大喜大悲，不放纵，也不过度地丧，得之我幸，失之我命，佛与道的无为和平淡。。。</p>
-<p>锻炼计划，慢慢恢复，每周的keep部分也要坚持下去，跑步什么的，也要持续下去，腰围和腿围要降下去。。。</p>
-<p>生活上，时间计划安排上，还要进一步把控，答应的事情，一定要做到一些，按照自己的标准和原则，去做些所谓心安的事情吧。。。</p>
-<p>读书上，要慢慢捡起来，每个月1本书的习惯，要努力践行起来。。。</p>
+<p>下周工作：</p>
+<ul>
+<li>支持提测，修复相关的bug</li>
+<li>无时间列的情况</li>
+<li>调研新版的fe脚本部分</li>
+</ul>
+<p>第一版终于是提交了，算是开了一个头，不过感觉还是做的像个玩具一样。。。效果什么的，操作上什么的，感觉还是比较业余。希望后面能够做的越来越专业吧，希望自己能够往更上一点的架构层次上去想一想，每次重构一点代码，每次学习一点东西</p>
+<p>谁给你的自信，能够让你放松。。。无论是生活还是工作。。。秉持正念，苦行僧。。。</p>
+<p>前头还说按部就班，后面感觉自己就放松了一些，还是要找到方向，找到持续学习的地方。。。</p>
+<p>在生活上，也放松了对自己的要求，不要轻易破坏自己的一些想法和一些原则，虽然看起来是那么可笑以及幼稚，但其实是自己刺猬的一种方式，缩在自己的套中。。。</p>
+<p>按照基本的要求去规范自己，不要偷懒，也不要过多地牵扯太多，珍惜这样的时光，但也不想失去自己。。。</p>
+<p>锻炼部分，又偷懒了，还是慢慢恢复吧，下午的晚饭，忍住不要吃了。。。看能否抵挡一些脂肪</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/25/pws-dynamic-load/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/10/25/pws-dynamic-load/" class="post-title-link" itemprop="url">PWS动态算子加载</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-10-25 10:25:56" itemprop="dateCreated datePublished" datetime="2018-10-25T10:25:56+08:00">2018-10-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">URLClassLoaderTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String remoteJarPath = <span class="string">&quot;http://localhost:8080/operators/base-operator.jar&quot;</span>;</span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testLoadRemoteJar</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        URI uri = <span class="keyword">new</span> URI(remoteJarPath);</span><br><span class="line">        URLClassLoader classLoader = <span class="keyword">new</span> URLClassLoader(<span class="keyword">new</span> URL[]&#123;uri.toURL()&#125;);</span><br><span class="line">        Thread.currentThread().setContextClassLoader(classLoader);</span><br><span class="line">        ServiceLoader&lt;Operator&gt; loader = ServiceLoader.load(Operator.class);</span><br><span class="line">        Iterator&lt;Operator&gt; iterator = loader.iterator();</span><br><span class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Operator operator = iterator.next();</span><br><span class="line">                log.info(<span class="string">&quot;OperatorInfo: name=&#123;&#125;, platform=&#123;&#125;&quot;</span>, operator.getName(), operator.getPlatform());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.warn(<span class="string">&quot;Failed to instantiate operator&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>以代码为例说明：</p>
+<ul>
+<li>采用URLClassLoader的方式来加载jar包</li>
+<li>在此基础上，加入SerivceLoader来加载类Operator的class</li>
+</ul>
+<p>关于URLClassLoader部分</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Bean</span> </span>&#123;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sayHello</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;Hello from loaded Bean class !!!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Constructor;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.net.URLClassLoader;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">URLClassLoaderTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> args</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@throws</span> Exception </span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Getting the jar URL which contains target class</span></span><br><span class="line">		URL[] classLoaderUrls = <span class="keyword">new</span> URL[]&#123;<span class="keyword">new</span> URL(<span class="string">&quot;file:///home/ashraf/Desktop/simple-bean-1.0.jar&quot;</span>)&#125;;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Create a new URLClassLoader </span></span><br><span class="line">		URLClassLoader urlClassLoader = <span class="keyword">new</span> URLClassLoader(classLoaderUrls);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Load the target class</span></span><br><span class="line">        Class&lt;?&gt; beanClass = urlClassLoader.loadClass(<span class="string">&quot;com.jcg.Bean&quot;</span>);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Create a new instance from the loaded class</span></span><br><span class="line">        Constructor&lt;?&gt; constructor = beanClass.getConstructor();</span><br><span class="line">        Object beanObj = constructor.newInstance();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Getting a method from the loaded class and invoke it</span></span><br><span class="line">        Method method = beanClass.getMethod(<span class="string">&quot;sayHello&quot;</span>);</span><br><span class="line">        method.invoke(beanObj);</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>见上面的例子，利用反射的方式？</p>
 
       
     </div>
@@ -579,7 +567,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/70/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/70/">70</a><span class="page-number current">71</span><a class="page-number" href="/page/72/">72</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/72/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/70/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/70/">70</a><span class="page-number current">71</span><a class="page-number" href="/page/72/">72</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/72/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -647,20 +635,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

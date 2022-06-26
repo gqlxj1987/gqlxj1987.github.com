@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/02/12/handling-1-million-requests-with-go/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/25/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/02/12/handling-1-million-requests-with-go/" class="post-title-link" itemprop="url">使用go处理一百万请求</a>
+            <a href="/2017/03/25/one-week/" class="post-title-link" itemprop="url">每当变幻时</a>
         </h2>
 
         <div class="post-meta">
@@ -177,128 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-02-12 17:50:12" itemprop="dateCreated datePublished" datetime="2017-02-12T17:50:12+08:00">2017-02-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/">原文链接</a></p>
-<p>Agenda:</p>
-<ul>
-<li><p>The Problem</p>
-</li>
-<li><p>The Solution</p>
-</li>
-<li><p>Conclusion</p>
-</li>
-</ul>
-<h4 id="Problem"><a href="#Problem" class="headerlink" title="Problem"></a>Problem</h4><p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
-<p>先期采用worker-tier的方式</p>
-<ul>
-<li><p>Sidekiq</p>
-</li>
-<li><p>Resque</p>
-</li>
-<li><p>DelayedJob</p>
-</li>
-<li><p>Elasticbeanstalk Worker Tier</p>
-</li>
-<li><p>RabbitMQ</p>
-</li>
-<li><p>and so on…</p>
-</li>
-</ul>
-<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
-<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
-<h4 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h4><h5 id="goroutines"><a href="#goroutines" class="headerlink" title="goroutines"></a>goroutines</h5><p>采用的方式便是goroutines，但切忌用navie的方式</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// Go through each payload and queue items individually to be posted to S3</span><br><span class="line">for _, payload := range content.Payloads &#123;</span><br><span class="line">    go payload.UploadToS3()   // &lt;----- DON&#x27;T DO THIS</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
-<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
-<blockquote>
-<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
-</blockquote>
-<p>相关的数据结构为：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">type Worker struct &#123;</span><br><span class="line">	WorkerPool  chan chan Job</span><br><span class="line">	JobChannel  chan Job</span><br><span class="line">	quit    	chan bool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
-<p>关键的代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">for &#123;</span><br><span class="line">		select &#123;</span><br><span class="line">		case job := &lt;-JobQueue:</span><br><span class="line">			// a job request has been received</span><br><span class="line">			go func(job Job) &#123;</span><br><span class="line">				// try to obtain a worker job channel that is available.</span><br><span class="line">				// this will block until a worker is idle</span><br><span class="line">				jobChannel := &lt;-d.WorkerPool</span><br><span class="line"></span><br><span class="line">				// dispatch the job to the worker job channel</span><br><span class="line">				jobChannel &lt;- job</span><br><span class="line">			&#125;(job)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此处为dispatcher操作</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">// Start method starts the run loop for the worker, listening for a quit channel in</span><br><span class="line">// case we need to stop it</span><br><span class="line">func (w Worker) Start() &#123;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		for &#123;</span><br><span class="line">			// register the current worker into the worker queue.</span><br><span class="line">			w.WorkerPool &lt;- w.JobChannel</span><br><span class="line"></span><br><span class="line">			select &#123;</span><br><span class="line">			case job := &lt;-w.JobChannel:</span><br><span class="line">				// we have received a work request.</span><br><span class="line">				if err := job.Payload.UploadToS3(); err != nil &#123;</span><br><span class="line">					log.Errorf(&quot;Error uploading to S3: %s&quot;, err.Error())</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">			case &lt;-w.quit:</span><br><span class="line">				// we have received a signal to stop</span><br><span class="line">				return</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此处为worker内部的操作</p>
-<p>带来的效果是，服务器数量从100台drop到20台。</p>
-<h4 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h4><blockquote>
-<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
-</blockquote>
-<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
-<blockquote>
-<p>There is always the right tool for the job</p>
-</blockquote>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/02/12/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/02/12/one-week/" class="post-title-link" itemprop="url">逃避虽然可耻但有用</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-02-12 16:03:27" itemprop="dateCreated datePublished" datetime="2017-02-12T16:03:27+08:00">2017-02-12</time>
+              <time title="Created: 2017-03-25 21:10:14" itemprop="dateCreated datePublished" datetime="2017-03-25T21:10:14+08:00">2017-03-25</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -321,49 +200,45 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>单纯、平等、坦诚，作为处世的原则</p>
-<p>安稳、沁入人心</p>
-<p>本周工作：</p>
+          <p>悲苦心刻藏骨髓，韶华去四季暗中追随</p>
+<p>梦如人生试问谁能料</p>
+<p>本周完成：</p>
 <ul>
-<li><p>上传的流量的切换至线上，已上60%，目前看起来还好</p>
+<li><p>arpu和roi部分的计算</p>
 </li>
-<li><p>尝试进行hindsight的安装</p>
+<li><p>关于数据的一些检查部分</p>
 </li>
-<li><p>收入抓取以及相关数据的修复</p>
-</li>
-<li><p>初步的OKR，自定义一部分</p>
+<li><p>bidder log部分的一些解析</p>
 </li>
 </ul>
-<p>本周未完成：</p>
+<p>未完成：</p>
 <ul>
-<li>相关文档的整理</li>
-</ul>
-<ul>
-<li>关于arpu值部分的一些bug的修复</li>
+<li><p>相关文档的沉淀</p>
+</li>
+<li><p>渠道监控部分的完结</p>
+</li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li>OKR的确认</li>
-</ul>
-<ul>
-<li>文档开始补全</li>
-</ul>
-<ul>
-<li>渠道监控部分代码的交接以及一些bug的修复</li>
-</ul>
-<ul>
-<li>上传部分上至100%，进行观察</li>
+<li><p>渠道监控部分整体的完结</p>
+</li>
+<li><p>bidder log的扩展</p>
+</li>
+<li><p>相关的一些数据bug的追查</p>
+</li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>lua_sanbox部分的一些知识</p>
+<li><p>golang的cli部分的使用，但跟beego的使用有冲突？</p>
 </li>
-<li><p>hindsight部分的一些考量</p>
+<li><p>关于hbase的一些时间戳的新的做法</p>
+</li>
+<li><p>关于spark编写代码的一些重构</p>
 </li>
 </ul>
-<p>开始尝试写一些技术性的文章，来进行相关的总结，从读后感开始，再结合自己实际的项目经验</p>
-<p>关于之前开源的部分，也要慢慢捡起来，开源的目标不变</p>
-<p>其他日程上的工作也要按部就班地进行</p>
+<p>工作和生活部分的平衡，需要把控下，技术文章方面不要拉下</p>
+<p>数据部分，找些业界的方式，尝试对相关架构进行改进。。</p>
+<p>电影方面还行，不过书部分，还需要加强。。。</p>
 
       
     </div>
@@ -383,7 +258,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/02/09/hindsight/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/20/restful-api/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -397,7 +272,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/02/09/hindsight/" class="post-title-link" itemprop="url">hindsight</a>
+            <a href="/2017/03/20/restful-api/" class="post-title-link" itemprop="url">Restful API tips</a>
         </h2>
 
         <div class="post-meta">
@@ -407,7 +282,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-02-09 15:12:49" itemprop="dateCreated datePublished" datetime="2017-02-09T15:12:49+08:00">2017-02-09</time>
+              <time title="Created: 2017-03-20 10:02:01" itemprop="dateCreated datePublished" datetime="2017-03-20T10:02:01+08:00">2017-03-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -415,7 +290,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/log/" itemprop="url" rel="index"><span itemprop="name">log</span></a>
+                  <a href="/categories/restful/" itemprop="url" rel="index"><span itemprop="name">restful</span></a>
                 </span>
             </span>
 
@@ -430,24 +305,41 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/mozilla-services/hindsight">hindsight</a> 作为hekad部分的替代者，成为日志处理部分的新宠</p>
-<p>Agenda:</p>
+          <p>restful api 设计的相关原则</p>
+<p>设计的相关5个动作</p>
 <ul>
-<li><p>项目起因</p>
+<li><p>GET</p>
 </li>
-<li><p>install guide</p>
+<li><p>PUT</p>
 </li>
-<li><p>use tips</p>
+<li><p>DELETE</p>
 </li>
-<li><p>performance</p>
+<li><p>POST</p>
+</li>
+<li><p>PATCH</p>
 </li>
 </ul>
-<h4 id="项目起因"><a href="#项目起因" class="headerlink" title="项目起因"></a>项目起因</h4><p><a target="_blank" rel="noopener" href="https://github.com/mozilla-services/heka">heka</a> 作为使用golang编写，进行相关的日志处理，相比较logstash来说，相关的cpu利用率部分有所降低。同时，相对于logstash来说，支持多种插件(插件采用lua或者go编写)。</p>
-<h5 id="heka-vs-logstash"><a href="#heka-vs-logstash" class="headerlink" title="heka vs logstash"></a>heka vs logstash</h5><p>在实际使用过程中，cpu的使用率部分，从400%降至100%左右</p>
-<p>logstash部分，采用gork正则的方式来过滤相关的信息</p>
-<p>heka部分，亦采用正则，辅之以lua脚本的方式</p>
-<p>门槛方面，logstash门槛较低，正则匹配较为简单；heka，需要加入插件部分的支持，同时需要lua脚本的支持</p>
-<h5 id="heka-vs-hindsight"><a href="#heka-vs-hindsight" class="headerlink" title="heka vs hindsight"></a>heka vs hindsight</h5><p>hindsight利用<a target="_blank" rel="noopener" href="https://github.com/mozilla-services/lua_sandbox">lua sanbox</a>部分，再辅以<a target="_blank" rel="noopener" href="https://github.com/mozilla-services/lua_sandbox_extensions">lua_sandbox_extensions</a>来支持各种对日志的处理要求</p>
+<h3 id="Custom-Methods"><a href="#Custom-Methods" class="headerlink" title="Custom Methods"></a>Custom Methods</h3><p><a target="_blank" rel="noopener" href="https://cloud.google.com/apis/design/custom_methods?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_79">Design Custom Methods</a></p>
+<p>custom methods的http设计:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//service.name/v1/some/resource/name:customVerb</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>采用<code>:</code>代替<code>/</code>的理由在于，可以支持任意的路径</p>
+<p>关于custom methods部分，遵循下面几个原则</p>
+<ul>
+<li><p>应尽量使用POST方法，因为其支持灵活的语义</p>
+</li>
+<li><p>即使要使用其他动作的话，也需尽量符合其对应的语义学</p>
+</li>
+<li><p>GET方法，需要保持独立以及幂等</p>
+</li>
+<li><p>关于body的一些建议</p>
+</li>
+</ul>
+<p>代码部分的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This is a service level custom method.</span></span><br><span class="line">rpc Watch(WatchRequest) returns (WatchResponse) &#123;</span><br><span class="line">  <span class="comment">// Custom method maps to HTTP POST. All request parameters go into body.</span></span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v1:watch&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a collection level custom method.</span></span><br><span class="line">rpc ClearEvents(ClearEventsRequest) returns (ClearEventsResponse) &#123;</span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v3/events:clear&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a resource level custom method.</span></span><br><span class="line">rpc CancelEvent(CancelEventRequest) returns (CancelEventResponse) &#123;</span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v3/&#123;name=events/*&#125;:cancel&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a batch get custom method.</span></span><br><span class="line">rpc BatchGetEvents(BatchGetEventsRequest) returns (BatchGetEventsResponse) &#123;</span><br><span class="line">  <span class="comment">// The batch get method maps to HTTP GET verb.</span></span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">get</span>: <span class="string">&quot;/v3/events:batchGet&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -467,7 +359,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/02/06/the-state-of-go/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/19/GraphQL/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -481,7 +373,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/02/06/the-state-of-go/" class="post-title-link" itemprop="url">The state of Go(1.8)</a>
+            <a href="/2017/03/19/GraphQL/" class="post-title-link" itemprop="url">GraphQL</a>
         </h2>
 
         <div class="post-meta">
@@ -491,7 +383,74 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-02-06 23:02:37" itemprop="dateCreated datePublished" datetime="2017-02-06T23:02:37+08:00">2017-02-06</time>
+              <time title="Created: 2017-03-19 16:18:24" itemprop="dateCreated datePublished" datetime="2017-03-19T16:18:24+08:00">2017-03-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/GraphQL/" itemprop="url" rel="index"><span itemprop="name">GraphQL</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>GraphQL是facebook提出，准备替代Restful API?</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/19/golang-tips/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/03/19/golang-tips/" class="post-title-link" itemprop="url">Golang Tips</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-03-19 15:04:53" itemprop="dateCreated datePublished" datetime="2017-03-19T15:04:53+08:00">2017-03-19</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -514,75 +473,52 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>Changes since Go 1.7</p>
-<ul>
-<li><p>The Language</p>
-</li>
-<li><p>The Standard Library</p>
-</li>
-<li><p>The Runtime</p>
-</li>
-<li><p>The Tooling</p>
-</li>
-<li><p>The Community</p>
-</li>
-</ul>
-<h3 id="The-Language"><a href="#The-Language" class="headerlink" title="The Language"></a>The Language</h3><ul>
-<li>Conversion rules</li>
-</ul>
-<p>可以针对same sequence of fields and corresponding fields with same type 进行类型强转</p>
-<ul>
-<li>Ports to other platforms</li>
-</ul>
-<p>针对大小端的32位linux系统的兼容性</p>
-<p>同时针对arm进行支持</p>
-<ul>
-<li>Tool</li>
-</ul>
-<p>针对context部分的修正</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go tool fix -diff -force=context state-of-go/tools/gofix.go</span><br></pre></td></tr></table></figure>
+          <p>这里列举一些golang的一些小技巧</p>
+<h4 id="Behavior-Of-Missing-The-OK-Optional-Return-Value"><a href="#Behavior-Of-Missing-The-OK-Optional-Return-Value" class="headerlink" title="Behavior Of Missing The OK Optional Return Value"></a>Behavior Of Missing The OK Optional Return Value</h4><p>Basic Rule:</p>
+<blockquote>
+<p>Whether or not the ok return value is present will not affect program behavior.</p>
+</blockquote>
+<p>Exception:</p>
+<blockquote>
+<p>Missing the ok optional return value will make current goroutine panic if a type assertion fails.</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> v <span class="keyword">interface</span>&#123;&#125; = <span class="string">&quot;abc&quot;</span></span><br><span class="line">_, ok = v.(<span class="keyword">int</span>) <span class="comment">// will not panic</span></span><br><span class="line">_ = v.(<span class="keyword">int</span>)     <span class="comment">// will panic!</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
+<p>这里提供了一种思路，在interface的转化部分</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> m = <span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">_, ok = m[<span class="number">123</span>] <span class="comment">// will not panic</span></span><br><span class="line">_ = m[<span class="number">123</span>]     <span class="comment">// will not panic</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
-<p>vet部分可以静态检查代码？</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go vet state-of-go/tools/govet.go</span><br></pre></td></tr></table></figure>
+<p>关于第二句？</p>
+<h4 id="Types-Of-Values"><a href="#Types-Of-Values" class="headerlink" title="Types Of Values"></a>Types Of Values</h4><p>Basic Rule:</p>
+<blockquote>
+<p>Values should have either a type or a default type.</p>
+</blockquote>
+<p>Exception:</p>
+<blockquote>
+<p>Untyped <code>nil</code> has neither a type nor a default type.</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> v <span class="keyword">interface</span>&#123;&#125; </span><br><span class="line">fmt.Printf(<span class="string">&quot;type of %v is %T \n&quot;</span>, v, v) <span class="comment">// type of &lt;nil&gt; is &lt;nil&gt;</span></span><br><span class="line"><span class="keyword">var</span> _ <span class="keyword">interface</span>&#123;&#125; = v.(<span class="keyword">interface</span>&#123;&#125;) <span class="comment">// will panic</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
+<p>注意inteface的default value是nil</p>
+<h4 id="The-Blank-Composite-Literals"><a href="#The-Blank-Composite-Literals" class="headerlink" title="The Blank Composite Literals"></a>The Blank Composite Literals</h4><blockquote>
+<p>If a type <code>T</code> support composite literal values, then <code>T&#123;&#125;</code> is its zero value.</p>
+<p>For a map or a slice type <code>T</code>, <code>T&#123;&#125;</code> isn’t its zero value. Its zero value is represented with <code>nil</code>.</p>
+</blockquote>
+<h4 id="Comparison"><a href="#Comparison" class="headerlink" title="Comparison"></a>Comparison</h4><blockquote>
+<p>Most types in Go support comparison.</p>
+<p>Map, slice and function types don’t support comparison. but, Map, slice and function values can be compared to the <code>nil</code> identifier.</p>
+</blockquote>
+<h4 id="Modify-Unaddressable-Values"><a href="#Modify-Unaddressable-Values" class="headerlink" title="Modify Unaddressable Values"></a>Modify Unaddressable Values</h4><blockquote>
+<p>Unaddressable values can’t be modified.</p>
+<p>Although map element values are unaddressable, but their value can be modified if their types are numeric or string types.</p>
+</blockquote>
+<p>主要是针对map部分？</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> mt = <span class="keyword">map</span>[<span class="keyword">string</span>]T&#123;<span class="string">&quot;abc&quot;</span>: &#123;<span class="number">123</span>&#125;&#125;</span><br><span class="line">	_ = mt</span><br><span class="line"><span class="comment">// mt[&quot;abc&quot;].x *= 2 // error: mt[&quot;abc&quot;].x is not changeable</span></span><br><span class="line">mt[<span class="string">&quot;abc&quot;</span>] = T&#123;mt[<span class="string">&quot;abc&quot;</span>].x * <span class="number">2</span>&#125; <span class="comment">// map elements are unaddressable</span></span><br><span class="line">                               <span class="comment">// but replaceable</span></span><br><span class="line">	</span><br></pre></td></tr></table></figure>
 
-<p>SSA everywhere?</p>
-<h3 id="Runtime"><a href="#Runtime" class="headerlink" title="Runtime"></a>Runtime</h3><ul>
-<li>Detection of concurrent map accesses</li>
-</ul>
-<p>关于map的并发读写问题，</p>
-<p>是指掩盖了map的并发读写的问题，还是检测map的并发读写问题？</p>
-<ul>
-<li>bench use mutex contention profile</li>
-</ul>
-<p>关于mutex部分，wide protection and narrow protection</p>
-<ul>
-<li>GC history in tweets</li>
-</ul>
-<p>defer and cgo is faster</p>
-<h3 id="The-Standard-Library"><a href="#The-Standard-Library" class="headerlink" title="The Standard Library"></a>The Standard Library</h3><ul>
-<li>sort部分</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sort.Sort(byName(p))</span><br><span class="line">sort.Sort(byAge(p))</span><br></pre></td></tr></table></figure>
-
-<p>原生支持按照field部分进行排序，无需定义之前len,less,swap等等操作</p>
-<p>同时也只支持sort.Slice</p>
-<ul>
-<li>plugins部分</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go build -buildmode=plugin</span><br></pre></td></tr></table></figure>
-
-<p>可以编译成为.so文件，然后在第三方文件中使用，通过Lookup的方式，来寻找相关的函数以及变量</p>
-<ul>
-<li>http shutdown</li>
-</ul>
-<p>加入http.server的shutdown机制</p>
-<p>这样能够及时判断http.server是否退出？</p>
-<ul>
-<li>HTTP/2</li>
-</ul>
-<p>可以使用http.Response来推送进行？使用http.Pusher的功能？</p>
+<p>随着带来的问题</p>
+<blockquote>
+<p>Map elements are not addressable, even if they can be overwritten.</p>
+</blockquote>
+<p>map的value可以改写，但是无法给出地址</p>
 
       
     </div>
@@ -602,7 +538,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/02/03/new-plan/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/14/design-scale-system/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -616,7 +552,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/02/03/new-plan/" class="post-title-link" itemprop="url">2017新年计划</a>
+            <a href="/2017/03/14/design-scale-system/" class="post-title-link" itemprop="url">Design Scale System</a>
         </h2>
 
         <div class="post-meta">
@@ -626,7 +562,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-02-03 14:17:53" itemprop="dateCreated datePublished" datetime="2017-02-03T14:17:53+08:00">2017-02-03</time>
+              <time title="Created: 2017-03-14 21:53:08" itemprop="dateCreated datePublished" datetime="2017-03-14T21:53:08+08:00">2017-03-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -634,7 +570,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
+                  <a href="/categories/system/" itemprop="url" rel="index"><span itemprop="name">system</span></a>
                 </span>
             </span>
 
@@ -649,41 +585,29 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>惯例，在每年的伊始，写写自己的新年计划。回顾下自己的2016，生活上和工作，自己开始有意识地向着有趣的方向进行，尽量去体验过程，结果很多不好强求。</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/donnemartin/system-design-primer">how to design large scale system</a></p>
+<blockquote>
+<p>Summaries of various system design topics, including pros and cons. Everything is a trade-off.</p>
+</blockquote>
+<blockquote>
+<p>Each section contains links to more in-depth resources.</p>
+</blockquote>
+<p>可用性与一致性</p>
+<p>CAP理论</p>
 <ul>
-<li>工作上，继续在数据和架构上下功夫，将整个广告架构部分梳理一下，以及尝试加入跨机房的服务。语言上，继续深挖golang，成为golang的专家。争取能够升4吧。加油，努力</li>
+<li><p>CP</p>
+</li>
+<li></li>
 </ul>
+<p>一致性模型：</p>
 <ul>
-<li>关于客户端部分，看能不能在小程序以及react app部分，有所突破，看相关的使用情况</li>
+<li><p>弱一致性</p>
+</li>
+<li><p>最终一致性</p>
+</li>
+<li><p>强一致性</p>
+</li>
 </ul>
-<ul>
-<li>blog部分，每周的总结部分，还是需要坚持下去，不过，后续需要增加技术部分的读后感，类似之前每周新技术以及已有技术的总结一样，迈向150篇的大关？</li>
-</ul>
-<ul>
-<li>关于算法部分，leecode部分，刷题部分，要提上日程；同时，project 52部分，希望在新年能够坚持下去(作为blog的补充)；</li>
-</ul>
-<ul>
-<li>开源部分，希望能够找到一两个感兴趣的项目进行contribution，来提升自己的协作能力；自己之前关于gcm的部分开源，是不是也可以进行？</li>
-</ul>
-<ul>
-<li>生活上，今年的目标是成都和日本，希望能够达成吧，多加点班，赚年假。。</li>
-</ul>
-<ul>
-<li>身体锻炼上，经过一整年的习惯，现在跑步的习惯养成，其他keep部分的锻炼，或者那个每天7分钟的锻炼也要坚持下去，今年看能否报名跑次半马。</li>
-</ul>
-<ul>
-<li>感情傻瓜，新一年的感情，看能不能稳定下来，尝试稳定一个，想结束异地？虽然知道很困难，享受过程吧。。</li>
-</ul>
-<ul>
-<li>摄影和吉他部分，能够有所精进，能够把100节课程学习完，跟他人多交流摄影部分；吉他方面，坚持学习，能够把那个教程学习完成，</li>
-</ul>
-<ul>
-<li>电影和书方面，开始在豆瓣上做些记录，做好一些读书笔记，每月的3本书，以及4部好电影，写些评论来做记录。</li>
-</ul>
-<ul>
-<li>投资上，争取今年能够买套房子吧，地点方面，或许在深圳，或许在其他的地方，开拓一下投资的眼界和渠道；加油实现自己的第一个一百万的诺言；</li>
-</ul>
-<p>把时间做朋友，相关的想法去付诸行动，克服自己的拖延症。</p>
 
       
     </div>
@@ -702,7 +626,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/109/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/109/">109</a><span class="page-number current">110</span><a class="page-number" href="/page/111/">111</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/111/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/109/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/109/">109</a><span class="page-number current">110</span><a class="page-number" href="/page/111/">111</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/111/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -770,20 +694,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

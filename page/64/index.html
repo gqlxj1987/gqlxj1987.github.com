@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/12/slowlog/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/26/executors-thread-groups/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/12/slowlog/" class="post-title-link" itemprop="url">redis slowlog</a>
+            <a href="/2018/12/26/executors-thread-groups/" class="post-title-link" itemprop="url">Executors同Thread Groups</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-12 10:22:16" itemprop="dateCreated datePublished" datetime="2018-12-12T10:22:16+08:00">2018-12-12</time>
+              <time title="Created: 2018-12-26 22:16:16" itemprop="dateCreated datePublished" datetime="2018-12-26T22:16:16+08:00">2018-12-26</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
                 </span>
             </span>
 
@@ -200,16 +200,14 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzA5OTAyNzQ2OA==&mid=2649699682&idx=1&sn=8d9a61974bbfcd068aa8a8caf2b67281&chksm=88930a01bfe483177c2d7ab7626cdf1eb26cee4d941ed364fff57b506aac2da9f7b0a232daac&mpshare=1&scene=1&srcid=1206KGxNWjDMrrSnG4umLjhg#rd">原文链接</a></p>
-<p>slow-log</p>
-<p>阅读Redis源码（图2）不难发现，当某次Redis的操作大于配置中slowlog-log-slower-than设置的值时，Redis就会将该值记录到内存中，通过slowlog get可以获取该次slowlog发生的时间和耗时</p>
-<p>重新审视系统调用gettimeofday获取当前时间背后的原理</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /sys/devices/system/clocksource/clocksource0/current_clocksource</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="http://weinan.io/2018/01/24/executors.html">原文链接</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExecutorsDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		ExecutorService executorService = Executors.newSingleThreadExecutor();</span><br><span class="line">		executorService.submit(() -&gt; &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				Thread.currentThread().wait();</span><br><span class="line">			&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// main thread会在这里block住。</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p>内核级别的bug</p>
-<p>该commit非常清楚指出，在4.9以后添加了一个宏定义INTEL_FAM6_SKYLAKE_X，但因为搞错了该类型CPU的crystal frequency会导致该类型的CPU每10分钟慢1秒钟。</p>
+<p>猜测在同一个thread group的thread会互相block住</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PlayWithDefaultThreadFactory</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		DefaultThreadFactory factory = <span class="keyword">new</span> DefaultThreadFactory(); <span class="comment">// 这个DefaultThreadFactory会把新的thread创建在main thread所属的group里。</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 同一个thread group里面的thread执行没结束的时候，main thread不会退出，会被block住。</span></span><br><span class="line">		Thread t = factory.newThread(() -&gt; &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				sleep(<span class="number">3000</span>);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 这个thread跑起来以后，main thread会继续执行，直到block在结束的地方，等待t里面的sleep的3秒钟完成，除非像下面这样给interrupt()。</span></span><br><span class="line">		t.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 让worker thread直接退出，这样main thread就不会block在结束的位置了</span></span><br><span class="line">        t.interrupt();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 
       
     </div>
@@ -229,7 +227,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/11/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/23/yarn-schedule/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -243,7 +241,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/11/one-week/" class="post-title-link" itemprop="url">winter is coming</a>
+            <a href="/2018/12/23/yarn-schedule/" class="post-title-link" itemprop="url">Yarn Schedule</a>
         </h2>
 
         <div class="post-meta">
@@ -253,7 +251,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-11 22:23:10" itemprop="dateCreated datePublished" datetime="2018-12-11T22:23:10+08:00">2018-12-11</time>
+              <time title="Created: 2018-12-23 10:45:39" itemprop="dateCreated datePublished" datetime="2018-12-23T10:45:39+08:00">2018-12-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -261,7 +259,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                  <a href="/categories/yarn/" itemprop="url" rel="index"><span itemprop="name">yarn</span></a>
                 </span>
             </span>
 
@@ -276,29 +274,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>winter is coming!</p>
-<p>尽最大的努力，同时又不抱有任何希望</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>kaggle部分的试验</li>
-<li>1.3部分的功能</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>起码对kaggle有所了解</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>jenkins入门，对plugin框架有所了解</li>
-<li>提测相关的</li>
-<li>ci/cd部分，一些策略，关于前后端开发的一些想法落地</li>
-</ul>
-<p>工作上的事情还是按部就班的来，但是感觉还有点慢，包括自己后面的方向，以及所涉及到的一些想法，感觉还是有点空，尽快地落地吧，边做边想。。。</p>
-<p>做一些自己能做的事情，以及自己想做的事情，其他的就不是自己能够决定了。。。</p>
-<p>也不用想太多，尽自己最大的努力，同时也不抱任何希望。。。加油</p>
-<p>锻炼。。拉下。。恢复。。</p>
-<p></p>
+          <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/double-kill/articles/8979779.html">原文链接</a></p>
+<p>FairScheduler/CapacityScheduler</p>
+<p>采用层级树的方式，FairScheduler通过这样一棵资源树，维护了整个集群的资源使用情况。资源树中的每一个叶子节点都挂载了此时正在这个队列上运行、或者正在申请运行的应用。FairScheduler只需要对这个树进行适当遍历，就可以知道任何一个资源队列当前有哪些应用在运行、队列当前还剩下多少资源、已经使用多少资源等</p>
+<p>###心跳调度</p>
+<p>NM通过心跳的方式定期向RM汇报自身状态，</p>
+<p>###持续调度</p>
+<p>不用等待NodeManager向ResourceManager发送心跳才进行任务调度，而是由一个独立的线程进行<strong>实时</strong>的资源分配等调度，与NodeManager的心跳出发的调度相互异步并行进行。当心跳到来，只需要把调度结果通过心跳响应告诉对应的NodeManager即可</p>
+<p>两种触发机制不同的地方只有两个：</p>
+<p>调度时机：心跳调度仅仅发生在收到了某个NodeManager的心跳信息的情况下，持续调度则不依赖与NodeManager的心跳通信，是连续发生的，当心跳到来，会将调度结果直接返回给NodeManager；</p>
+<p>调度范围：心跳调度下，当收到某个节点的心跳，就对这个节点且仅仅对这个节点进行一次调度。持续调度的每一轮，是会遍历当前集群的所有节点，每个节点依次进行一次调度，保证一轮下来每个节点都被公平的调度一次</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">continuousSchedulingAttempt</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> start = getClock().getTime();</span><br><span class="line">  List&lt;NodeId&gt; nodeIdList = <span class="keyword">new</span> ArrayList&lt;NodeId&gt;(nodes.keySet());</span><br><span class="line">  <span class="comment">//进行调度以前，先对节点根据剩余资源的多少进行排序，从而让资源更充裕的节点先得到调度</span></span><br><span class="line">  <span class="comment">//这样我们更容易让所有节点的资源能够被均匀分配，而不会因为某些节点总是先被调度所以总是比</span></span><br><span class="line">  <span class="comment">//后调度的节点的资源使用率更高</span></span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    Collections.sort(nodeIdList, nodeAvailableResourceComparator);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 遍历所有节点，依次对每一个节点进行一次调度</span></span><br><span class="line">  <span class="keyword">for</span> (NodeId nodeId : nodeIdList) &#123;</span><br><span class="line">    <span class="comment">//FSSchedulerNode是FairScheduler视角下的一个节点</span></span><br><span class="line">    FSSchedulerNode node = getFSSchedulerNode(nodeId);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//判断</span></span><br><span class="line">      <span class="keyword">if</span> (node != <span class="keyword">null</span> &amp;&amp; Resources.fitsIn(minimumAllocation,</span><br><span class="line">          node.getAvailableResource())) &#123;</span><br><span class="line">        attemptScheduling(node);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ex) &#123; <span class="comment">//这每次调度过程中如果发生异常，这个异常将被捕获，因此不会影响在其它节点上进行调度</span></span><br><span class="line">      <span class="comment">//异常处理，略</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> duration = getClock().getTime() - start;</span><br><span class="line">  fsOpDurations.addContinuousSchedulingRunDuration(duration);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比较器部分，实际上只是比较了内存</p>
+<p>预留资源同非预留资源的区别对待</p>
+<p>剥离预留/尝试分配资源</p>
+<p>适合在这个节点运行</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span> <span class="title">NodeType</span> </span>&#123;</span><br><span class="line">    NODE_LOCAL(<span class="number">0</span>), <span class="comment">//请求规定了必须运行在某个的服务器节点</span></span><br><span class="line">    RACK_LOCAL(<span class="number">1</span>), <span class="comment">//请求规定了必须运行在某个机架上</span></span><br><span class="line">    OFF_SWITCH(<span class="number">2</span>); <span class="comment">//这个请求对本地化没有要求</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> index;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">NodeType</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.index = index;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
 
       
     </div>
@@ -318,7 +317,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/07/miaosha/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/birthday/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -332,7 +331,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/07/miaosha/" class="post-title-link" itemprop="url">秒杀架构浅析</a>
+            <a href="/2018/12/20/birthday/" class="post-title-link" itemprop="url">没钱的31岁</a>
         </h2>
 
         <div class="post-meta">
@@ -342,7 +341,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-07 10:25:33" itemprop="dateCreated datePublished" datetime="2018-12-07T10:25:33+08:00">2018-12-07</time>
+              <time title="Created: 2018-12-20 19:53:47" itemprop="dateCreated datePublished" datetime="2018-12-20T19:53:47+08:00">2018-12-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -350,7 +349,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sql/" itemprop="url" rel="index"><span itemprop="name">sql</span></a>
+                  <a href="/categories/birthday/" itemprop="url" rel="index"><span itemprop="name">birthday</span></a>
                 </span>
             </span>
 
@@ -365,59 +364,17 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://crossoverjie.top/2018/05/07/ssm/SSM18-seconds-kill/">原文链接</a></p>
-<p>其实抛开秒杀这个场景来说正常的一个下单流程可以简单分为以下几步：</p>
-<ul>
-<li>校验库存</li>
-<li>扣库存</li>
-<li>创建订单</li>
-<li>支付</li>
-</ul>
-<p>超卖现象</p>
-<p>采用乐观锁的实现方式</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">update</span> <span class="attr">id</span>=<span class="string">&quot;updateByOptimistic&quot;</span> <span class="attr">parameterType</span>=<span class="string">&quot;com.crossoverJie.seconds.kill.pojo.Stock&quot;</span>&gt;</span></span><br><span class="line">    update stock</span><br><span class="line">    <span class="tag">&lt;<span class="name">set</span>&gt;</span></span><br><span class="line">        sale = sale + 1,</span><br><span class="line">        version = version + 1,</span><br><span class="line">    <span class="tag">&lt;/<span class="name">set</span>&gt;</span></span><br><span class="line">    WHERE id = #&#123;id,jdbcType=INTEGER&#125;</span><br><span class="line">    AND version = #&#123;version,jdbcType=INTEGER&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">update</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `stock` (</span><br><span class="line">  `id` <span class="type">int</span>(<span class="number">11</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `name` <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">&#x27;&#x27;</span> COMMENT <span class="string">&#x27;名称&#x27;</span>,</span><br><span class="line">  `count` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;库存&#x27;</span>,</span><br><span class="line">  `sale` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;已售&#x27;</span>,</span><br><span class="line">  `version` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;乐观锁，版本号&#x27;</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>version作为关键字来使用？</p>
-<p>分布式限流的方式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//限流</span></span><br><span class="line"><span class="keyword">boolean</span> limit = redisLimit.limit();</span><br><span class="line"><span class="keyword">if</span> (!limit)&#123;</span><br><span class="line">    res.setCode(StatusEnum.REQUEST_LIMIT.getCode());</span><br><span class="line">    res.setMessage(StatusEnum.REQUEST_LIMIT.getMessage());</span><br><span class="line">    <span class="keyword">return</span> res ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>每次请求时将当前时间(精确到秒)作为 Key 写入到 Redis 中，超时时间设置为 2 秒，Redis 将该 Key 的值进行自增。</li>
-<li>当达到阈值时返回错误。</li>
-<li>写入 Redis 的操作用 Lua 脚本来完成，利用 Redis 的单线程机制可以保证每个 Redis 请求的原子性。</li>
-</ul>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">--lua 下标从 1 开始</span></span><br><span class="line"><span class="comment">-- 限流 key</span></span><br><span class="line"><span class="keyword">local</span> key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="comment">-- 限流大小</span></span><br><span class="line"><span class="keyword">local</span> limit = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="comment">-- 获取当前流量大小</span></span><br><span class="line"><span class="keyword">local</span> curentLimit = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;get&#x27;</span>, key) <span class="keyword">or</span> <span class="string">&quot;0&quot;</span>)</span><br><span class="line"><span class="keyword">if</span> curentLimit + <span class="number">1</span> &gt; limit <span class="keyword">then</span></span><br><span class="line">    <span class="comment">-- 达到限流大小 返回</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="comment">-- 没有达到阈值 value + 1</span></span><br><span class="line">    redis.call(<span class="string">&quot;INCRBY&quot;</span>, key, <span class="number">1</span>)</span><br><span class="line">    redis.call(<span class="string">&quot;EXPIRE&quot;</span>, key, <span class="number">2</span>)</span><br><span class="line">    <span class="keyword">return</span> curentLimit + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">limit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String key = String.valueOf(System.currentTimeMillis() / <span class="number">1000</span>);</span><br><span class="line">    Object result = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> Jedis) &#123;</span><br><span class="line">        result = ((Jedis) <span class="keyword">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> JedisCluster) &#123;</span><br><span class="line">        result = ((JedisCluster) <span class="keyword">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//throw new RuntimeException(&quot;instance is error&quot;) ;</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (FAIL_CODE != (Long) result) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p>乐观锁更新+分布式限流+redis缓存</p>
-<ul>
-<li>每次查询库存时走 Redis。</li>
-<li>扣库存时更新 Redis。</li>
-<li>需要提前将库存信息写入 Redis（手动或者程序自动都可以）</li>
-</ul>
-<p>更进一步，加上kafka异步队列</p>
-<p>因为异步了，所以最终需要采取回调或者是其他提醒的方式提醒用户购买完成。</p>
-<p>但好像代码里面没有采用回调的方式？</p>
-<p>其实经过上面的一顿优化总结起来无非就是以下几点：</p>
-<ul>
-<li>尽量将请求拦截在上游。</li>
-<li>还可以根据 UID 进行限流。</li>
-<li>最大程度的减少请求落到 DB。</li>
-<li>多利用缓存。</li>
-<li>同步操作异步化。</li>
-<li>fail fast，尽早失败，保护应用</li>
-</ul>
+          <p>祝自己31岁生日快乐！</p>
+<p>以一个借5K来作为自己生日礼物，最后还感觉像吃了X一样难受，也是给自己见识了，只能说，人变化地太快。。。</p>
+<p>上半年，以突然的资金崩裂开始，让人来不及反应。而且，相比较别人稍微有个好结果来算，资金估计也是打水漂了，也就值这么点亲戚关系了。而且，你也不知道他到底是干了什么。。。</p>
+<p>借用友邻的一句话，没钱可以省着花，慢慢积累，哪怕再也不足以改变自己的生活。少一点悲春伤秋，把脚下的路走好，把眼前的事情办好。但很显然，事情并不如你想的那样。</p>
+<p>但这个也是给自己的警示，对自己诚实，知道自己并不是怎样的人，不要有太多的奢求和野望。</p>
+<p>今年算是开始真正照顾他人的第一年，但感觉有的时候，无论是心理上，还是行动上，自己感觉到有点厌倦，可能是因为自己的坚持不够，性格上多多少少会有点没那么有耐心，也有可能是，还是没找到很好相处的方式，自己不由自主地就变成了保姆角色？但谁来保姆我。。。</p>
+<p>看到低欲望的社会一书上写的，对未来的不安，导致了一部分的低欲望，觉得未来很可能发生突变，所以不愿意去尝试或者改变一些东西。其实，这也不是在说我。。内心对未来的极度不确定，自己都照顾不来，怎么能照顾别人，怎么能给别人带来幸福。。可拉到吧。。</p>
+<p>所以，既然内心的不确定，那就可以考虑我能留下些什么。放弃治疗，不要想着什么都要抓，从加法做到减法，生命从博识走向专精。既然决定留下些什么，那关于自己的行动，就要专起来，不要贪多，做好自己力所能及的，留下些美好的回忆就可以了。</p>
+<p>有时候，会想自己突然死亡的话，结果也要尽量不会给别人带来困扰，朝着这样的目标，去掉那些负面的情绪，没有必要，珍视美好的东西就行，尽自己最大的努力。。。</p>
+<p>或许，现在才是开始知天命的时候。。。</p>
+<p>成家立业的什么的不用想了。。能够修身就可以了，也应该努力地去修身。。。</p>
 
       
     </div>
@@ -437,7 +394,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/06/resteasy/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/argo-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -451,7 +408,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/06/resteasy/" class="post-title-link" itemprop="url">Resteasy</a>
+            <a href="/2018/12/20/argo-architecture/" class="post-title-link" itemprop="url">Argo Architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -461,7 +418,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-06 21:34:00" itemprop="dateCreated datePublished" datetime="2018-12-06T21:34:00+08:00">2018-12-06</time>
+              <time title="Created: 2018-12-20 19:26:27" itemprop="dateCreated datePublished" datetime="2018-12-20T19:26:27+08:00">2018-12-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -469,7 +426,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/resteasy/" itemprop="url" rel="index"><span itemprop="name">resteasy</span></a>
+                  <a href="/categories/argo/" itemprop="url" rel="index"><span itemprop="name">argo</span></a>
                 </span>
             </span>
 
@@ -484,11 +441,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>RESTEasy is a JBoss project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is a <strong>fully certified</strong> and portable implementation of the <a target="_blank" rel="noopener" href="https://jax-rs-spec.java.net/">JAX-RS 2.1</a> specification, a JCP specification that provides a Java API for RESTful Web Services over the HTTP protocol.</p>
-<p>采用的是跟spring boot不一样的策略，任意的servlet的容器中都可以运行的restful的服务？</p>
-<p>感觉又不是，前者更强调servlet的体系部分，而后者掩盖了这一体系</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/resteasy/Resteasy">repo</a></p>
-<p>关于JAX-RS的意思？</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/argoproj/argo">repo地址</a></p>
+<p>argo是一个Open source Kubernetes native workflows, events, CI and CD</p>
+<p>这里主要是介绍它的events机制，也就是所谓的事件驱动？</p>
+<ul>
+<li><code>gateways</code> which are implemented as a Kubernetes-native Custom Resource Definition that either produce the events internally or process the events that originate from outside the gateways</li>
+<li><code>sensors</code> which are implemented as a Kubernetes-native Custom Resource Definition that define a set of dependencies and trigger actions.<ul>
+<li>Define multiple dependencies from a variety of gateway sources</li>
+<li>Build custom gateways to support business-level constraint logic</li>
+<li>Trigger messages and Kubernetes object creation after successful dependency resolution</li>
+<li>Trigger escalation after errors, or dependency constraint failures</li>
+<li>Build and manage a distributed, cross-team, event-driven architecture</li>
+<li>Easily leverage Kubernetes-native APIs to monitor dependencies</li>
+</ul>
+</li>
+</ul>
+<p>gateways作为producer，sensors的作用？</p>
 
       
     </div>
@@ -508,7 +476,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/06/compile/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/sofa-ark/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -522,7 +490,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/06/compile/" class="post-title-link" itemprop="url">Compile Thoery</a>
+            <a href="/2018/12/18/sofa-ark/" class="post-title-link" itemprop="url">sofa ark</a>
         </h2>
 
         <div class="post-meta">
@@ -532,16 +500,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-06 21:23:05" itemprop="dateCreated datePublished" datetime="2018-12-06T21:23:05+08:00">2018-12-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/compile/" itemprop="url" rel="index"><span itemprop="name">compile</span></a>
-                </span>
+              <time title="Created: 2018-12-18 20:07:15" itemprop="dateCreated datePublished" datetime="2018-12-18T20:07:15+08:00">2018-12-18</time>
             </span>
 
           
@@ -555,14 +514,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://weinan.io/2018/09/21/compile.html">原文链接</a></p>
-<p>编译原理分为前端和后端</p>
-<p>「前端」是用来处理 Context Free Language ，把 text 转化成 tokens ，然后再把 tokens 通过 syntax rules 转化成 AST 的过程。</p>
-<p>其中把 text 转化成 tokens ，一般用到的技术是 Regular Expression ，也就是「正则表达式」，背后对应的是无状态的自动机 NFA ， NFA 可以转化为 DFA 。</p>
-<p>然后， tokens 根据 syntax rules 进行 semantic analysis 的过程，是通过 parser 来完成的。</p>
-<p>因为 context free language 需要分析文本前后的联系，也就是所谓代码的内在关系，所以必须用到内存，但不必用到随机存取内存，因此就在无状态自动机基础上加上 stack memory ，变成 Pushdown Automaton ，也就是 PDA ，下推自动机。</p>
-<p>「后端」就是把 AST 转化成实际的目标代码</p>
-
+          
       
     </div>
 
@@ -580,7 +532,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/63/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/63/">63</a><span class="page-number current">64</span><a class="page-number" href="/page/65/">65</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/65/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/63/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/63/">63</a><span class="page-number current">64</span><a class="page-number" href="/page/65/">65</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/65/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -648,20 +600,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

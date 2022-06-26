@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/28/recipe-for-an-https-sidecar/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/dataflow-model/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/08/28/recipe-for-an-https-sidecar/" class="post-title-link" itemprop="url">Recipe for an https sidecar</a>
+            <a href="/2019/09/09/dataflow-model/" class="post-title-link" itemprop="url">The Dataflow Model</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-08-28 11:10:49" itemprop="dateCreated datePublished" datetime="2019-08-28T11:10:49+08:00">2019-08-28</time>
+              <time title="Created: 2019-09-09 22:24:07" itemprop="dateCreated datePublished" datetime="2019-09-09T22:24:07+08:00">2019-09-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sidecar/" itemprop="url" rel="index"><span itemprop="name">sidecar</span></a>
+                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
                 </span>
             </span>
 
@@ -200,14 +200,240 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@zhimin.wen/https-sidecar-f26ad139dafb">原文链接</a></p>
-<p>为非http的application实现https</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create cm hello-sidecar-nginx-conf --from-file=nginx.conf=./nginx.conf</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="http://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf">论文地址</a></p>
+<p>针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost</p>
+<p>举的例子，流式视频的广告投放问题</p>
+<p>关于数据处理的几个重点：</p>
+<ul>
+<li>exactly-once semantics</li>
+<li>temporal primitives necessary for windowing, not provide windowing semantics that are limited totuple- or processing-time-based windows</li>
+<li>provide event-time-based windowing either rely on ordering (SQLStream [27]),or have limited window triggering3semantics in event-timemode (Stratosphere/Flink)</li>
+</ul>
+<p>a single unified model</p>
+<ul>
+<li>Allows for the calculation of event-time5ordered re-sults, windowed by features of the data themselves,over an unbounded, unordered data source, with cor-rectness, latency, and cost tunable across a broad spec-trum of combinations</li>
+<li>Decomposes pipeline implementation across four re-lated dimensions, providing clarity, composability, andflexibility:<ul>
+<li>– Whatresults are being computed.</li>
+<li>– Wherein event time they are being computed.</li>
+<li>– Whenin processing time they are materialized.</li>
+<li>– Howearlier results relate to later refinements.</li>
+</ul>
+</li>
+<li>Separates the logical notion of data processing fromthe underlying physical implementation, allowing thechoice of batch, micro-batch, or streaming engine tobecome one of simply correctness, latency, and cost</li>
+</ul>
+<p>那么总结起来：</p>
+<ul>
+<li>a window model</li>
+<li>a triggering model</li>
+<li>a incremental processing model</li>
+<li>scalable implements </li>
+</ul>
+<h3 id="Window"><a href="#Window" class="headerlink" title="Window"></a>Window</h3><p>When dealing with unbounded data,windowing is required for some operations (to delineate fi-nite boundaries in most forms of grouping: aggregation,outer joins, time-bounded operations, etc.), and unneces-sary for others (filtering, mapping, inner joins, etc.).</p>
+<ul>
+<li>Fixed，静态window</li>
+<li>Sliding，滑动窗口</li>
+<li>Sessions，windows that capture some period of activ-ity over a subset of the data，按照key以及timeout来计算</li>
+</ul>
+<p>(particularly time management [28] and semantic models [9], but alsowindowing [22], out-of-order processing [23], punctuations[30], heartbeats [21], watermarks [2], frames)</p>
+<h3 id="DATA-FLOW-MODEL"><a href="#DATA-FLOW-MODEL" class="headerlink" title="DATA FLOW MODEL"></a>DATA FLOW MODEL</h3><p>核心要素：</p>
+<ul>
+<li>ParDo, Each input ele-ment to be processed (which itself may be a finite col-lection) is provided to a user-defined function (calledaDoFnin Dataflow), which can yield zero or more out-put elements per input. (多输出设定？)</li>
+<li>GroupByKey, key-grouping (key, value) pairs</li>
+</ul>
+<p>可map也可以reduce</p>
+<ul>
+<li>support for un-aligned windows, for which there are two key insights. Thefirst is that it is simpler to treat all windowing strategiesas unaligned from the perspective of the model, and allowunderlying implementations to apply optimizations relevantto the aligned cases where applicable. </li>
+<li>windowing can be broken apart into two related operations: assignWindow and mergedWindow</li>
+</ul>
+<p>pass (key, value, eventtime, window) 4-tuples</p>
+<p>window assign-&gt;window merge:</p>
+<ul>
+<li>DropTimestamps- Drops element timestamps, asonly the window is relevant from here on out9.</li>
+<li>GroupByKey- Groups (value, window) tuples by key.</li>
+<li>MergeWindows- Merges the set of currently bufferedwindows for a key. The actual merge logic is definedby the windowing strategy. In this case, the windowsforv1andv4overlap, so the sessions windowing strat-egy merges them into a single new, larger session, asindicated in bold.</li>
+<li>GroupAlsoByWindow- For each key, groups valuesby window. After merging in the prior step,v1andv4are now in identical windows, and thus are groupedtogether at this step</li>
+<li>ExpandToElements- Expands per-key, per-windowgroups of values into (key, value, eventtime, window)tuples, with new per-window timestamps. In this ex-ample, we set the timestamp to the end of the window,but any timestamp greater than or equal to the times-tamp of the earliest event in the window is valid withrespect to watermark correctness</li>
+</ul>
+<img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg" style="zoom:40%" />
 
 
 
-<p>We are using the “ — from-file=key=filename” format, so the configMap and secret have the key fields specified as what we have defined.</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">443</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">443</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">https</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">zhiminwen/hello:v1</span></span><br><span class="line">        <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">LISTENING_PORT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">&quot;8080&quot;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">tls-sidecar</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">            <span class="attr">mountPath:</span> <span class="string">/app/cert</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">            <span class="attr">mountPath:</span> <span class="string">/etc/nginx/nginx.conf</span></span><br><span class="line">            <span class="attr">subPath:</span> <span class="string">nginx.conf</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">        <span class="attr">secret:</span></span><br><span class="line">          <span class="attr">secretName:</span> <span class="string">hello-sidecar-nginx-certs</span></span><br><span class="line">          <span class="attr">items:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">hello-server-cert</span></span><br><span class="line">              <span class="attr">path:</span> <span class="string">hello-server.pem</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">hello-server-key</span></span><br><span class="line">              <span class="attr">path:</span> <span class="string">hello-server-key.pem</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">        <span class="attr">configMap:</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">hello-sidecar-nginx-conf</span></span><br></pre></td></tr></table></figure>
+<p>有关watermarks，too fast or too slow</p>
+<p>A useful insight in addressing the complete-ness problem is that the Lambda Architecture effectivelysidesteps the issue: it does not solve the completeness prob-lem by somehow providing correct answers faster; it simplyprovides the best low-latency estimate of a result that thestreaming pipeline can provide, with the promise of eventualconsistency and correctness once the batch pipeline runs</p>
+<ul>
+<li>Windowing determines where in event time data are grouped together for processing.</li>
+<li>Triggering determines when in processing time the results of groupings are emitted as panes</li>
+</ul>
+<p>trigger同window的结合</p>
+<ul>
+<li>Discarding: Upon triggering, window contents arediscarded, and later results bear no relation to previ-ous results. </li>
+<li>Accumulating: Upon triggering, window contentsare left intact in persistent state, and later results be-come a refinement of previous results.</li>
+<li>Accumulating &amp; Retracting: Upon triggering, inaddition to theAccumulatingsemantics, a copy of theemitted value is also stored in persistent state. Whenthe window triggers again in the future, a retraction forthe previous value will be emitted first, followed by thenew value as a normal datum(反馈+反向更新)</li>
+</ul>
+<p>design principles</p>
+<ul>
+<li>Never rely on any notion of completeness.</li>
+<li>Be flexible, to accommodate the diversity of known usecases, and those to come in the future.</li>
+<li>Not only make sense, but also add value, in the contextof each of the envisioned execution engines.</li>
+<li>Encourage clarity of implementation.•Support robust analysis of data in the context in whichthey occurred</li>
+</ul>
+<p>One particularly large log join pipeline runs in streamingmode on MillWheel by default, but has a separate Flume-Java batch implementation used for large scale backfills.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/life-is-fruit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/09/life-is-fruit/" class="post-title-link" itemprop="url">人生果实</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-09 19:54:20" itemprop="dateCreated datePublished" datetime="2019-09-09T19:54:20+08:00">2019-09-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>很久没有写周结了，感觉都提不起精神，不管是生活还是工作，感觉很是一团糟，本来以为自己能够做到，但是现实还是不断地冲击着自己，自己并不能做到照顾好别人，连自己都照顾不好，还谈什么照顾别人，呵呵</p>
+<p>还是做好枯叶的觉悟，收拾好自己，拾掇好自己，提升自己，加强自律。。</p>
+<p>至于照顾她人什么的，能做到什么程度就做到什么样子，缓慢而坚定地做好自己能做的事情就够了，不要心太大，也不要心太累。。。</p>
+<p>重要的是，重新把握好节奏，把自己的时间/节奏都安排好。</p>
+<p>少抱怨，多鼓励，多鼓励去做自己想做的事情，减少双方的依赖，这样才能独立地活下去，挺好的</p>
+<p>既然死亡必不可免的话，何不去充实地去面对它，这样起码的话，不会太后悔，任何事情都尝试过，自己也提升过，而不是在那儿自怨自艾，原地踏步</p>
+<h4 id="时间计划"><a href="#时间计划" class="headerlink" title="时间计划"></a>时间计划</h4><p>早上8点起的话，在做早餐的时候，能否找一些事情来填充这其中的空白，听一段播客，或者学英语？</p>
+<p>晚上10点回家，保证10分钟左右的锻炼，先从4分钟burpas开始</p>
+<p>保证1个小时的学习时间，不管是学什么，blog、代码什么样子都可以</p>
+<p>周末，至少保证5公里的跑步，尽量朝10公里去努力</p>
+<p>缓慢而坚定的做好自己能做的事情，不要焦虑，也不要急躁，慢生活，慢学习</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/Sync-pool-in-Go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/08/Sync-pool-in-Go/" class="post-title-link" itemprop="url">Sync pool in Go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-08 23:50:15" itemprop="dateCreated datePublished" datetime="2019-09-08T23:50:15+08:00">2019-09-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/a-journey-with-go/go-understand-the-design-of-sync-pool-2dde3024e277">原文链接</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Small <span class="keyword">struct</span> &#123;</span><br><span class="line">   a <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pool = sync.Pool&#123;</span><br><span class="line">   New: <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">interface</span></span>&#123;&#125; &#123; <span class="keyword">return</span> <span class="built_in">new</span>(Small) &#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:noinline</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">inc</span><span class="params">(s *Small)</span></span> &#123; s.a++ &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkWithoutPool</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">   <span class="keyword">var</span> s *Small</span><br><span class="line">   <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">      <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">         s = &amp;Small&#123; a: <span class="number">1</span>, &#125;</span><br><span class="line">         b.StopTimer(); inc(s); b.StartTimer()</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkWithPool</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">   <span class="keyword">var</span> s *Small</span><br><span class="line">   <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">      <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">         s = pool.Get().(*Small)</span><br><span class="line">         s.a = <span class="number">1</span></span><br><span class="line">         b.StopTimer(); inc(s); b.StartTimer()</span><br><span class="line">         pool.Put(s)</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Since the loop has 10k iterations, the benchmark that does not use the pool made 10k allocations on the heap vs only 3 for the benchmark with pool.</p>
+<p><img src="https://miro.medium.com/max/1144/1*OXMSVCef1UByrMBfK0_viQ.png" alt="sync.pool workflow"></p>
+<p><img src="https://miro.medium.com/max/1772/1*BAH0gDeO2OuF-m2qwvQVpA.png" alt="shared pool"></p>
+<p>Go version 1.13 brings <a target="_blank" rel="noopener" href="https://github.com/golang/go/commit/d5fd2dd6a17a816b7dfd99d4df70a85f1bf0de31#diff-491b0013c82345bf6cfa937bd78b690d">a new doubly-linked list</a>as a shared pool that removes the lock and improves the shared access.</p>
+<p>With this new chained pool, each processor with push and pop at the head of its queue while the shared access will pop from the tail. 大小的增长，类似于hashmap的增长</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Drop victim caches from all pools.</span></span><br><span class="line"><span class="keyword">for</span> _, p := <span class="keyword">range</span> oldPools &#123;</span><br><span class="line">   p.victim = <span class="literal">nil</span></span><br><span class="line">   p.victimSize = <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Move primary cache to victim cache.</span></span><br><span class="line"><span class="keyword">for</span> _, p := <span class="keyword">range</span> allPools &#123;</span><br><span class="line">   p.victim = p.local</span><br><span class="line">   p.victimSize = p.localSize</span><br><span class="line">   p.local = <span class="literal">nil</span></span><br><span class="line">   p.localSize = <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The pools with non-empty primary caches now have non-empty</span></span><br><span class="line"><span class="comment">// victim caches and no pools have primary caches.</span></span><br><span class="line">oldPools, allPools = allPools, <span class="literal">nil</span></span><br></pre></td></tr></table></figure>
+
+
+
+
 
 
 
@@ -230,7 +456,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/27/APM/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/update-k8s-deployment-on-a-configmap-change/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -244,7 +470,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/08/27/APM/" class="post-title-link" itemprop="url">APM调用链</a>
+            <a href="/2019/09/08/update-k8s-deployment-on-a-configmap-change/" class="post-title-link" itemprop="url">Update k8s deployment on a configmap change</a>
         </h2>
 
         <div class="post-meta">
@@ -254,83 +480,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-08-27 11:06:09" itemprop="dateCreated datePublished" datetime="2019-08-27T11:06:09+08:00">2019-08-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/apm/" itemprop="url" rel="index"><span itemprop="name">apm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://skywalking.apache.org/zh/blog/2019-03-29-introduction-of-skywalking-and-simple-practice.html">原文链接</a></p>
-<p>主要是比较了pinpoint/skywalking/cat部分</p>
-<p>agent部分</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过bytebuddy的AgentBuilder构造javaagent增强classLoader</span></span><br><span class="line"><span class="keyword">new</span> AgentBuilder.Default(byteBuddy)</span><br><span class="line">    .ignore( <span class="comment">//忽略这些包的内容，不进行增强</span></span><br><span class="line">        nameStartsWith(<span class="string">&quot;net.bytebuddy.&quot;</span>)</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.slf4j.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.apache.logging.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.groovy.&quot;</span>))</span><br><span class="line">        .or(nameContains(<span class="string">&quot;javassist&quot;</span>))</span><br><span class="line">        .or(nameContains(<span class="string">&quot;.asm.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;sun.reflect&quot;</span>))</span><br><span class="line">        .or(allSkyWalkingAgentExcludeToolkit())</span><br><span class="line">        .or(ElementMatchers.&lt;TypeDescription&gt;isSynthetic()))</span><br><span class="line">    <span class="comment">//通过pluginFinder加载所有的探针扩展，并获取所有可以增强的class</span></span><br><span class="line">    .type(pluginFinder.buildMatch())</span><br><span class="line">    <span class="comment">//按照pluginFinder的实现，去改变字节码增强类</span></span><br><span class="line">    .transform(<span class="keyword">new</span> Transformer(pluginFinder))</span><br><span class="line">    <span class="comment">//通过listener订阅增强的操作记录，方便调试</span></span><br><span class="line">    .with(<span class="keyword">new</span> Listener())</span><br><span class="line">    .installOn(instrumentation);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">//加载所有的service实现并启动</span></span><br><span class="line">    ServiceManager.INSTANCE.boot();</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    logger.error(e, <span class="string">&quot;Skywalking agent boot failure.&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>agent部分的设计思路：</p>
-<p>参照dubbo的设计思路</p>
-<p><img src="https://linz.ink/images/20181126/dubbo.png" alt="image1"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/26/k8s-garbage-collection/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/26/k8s-garbage-collection/" class="post-title-link" itemprop="url">k8s garbage collection</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-26 11:41:16" itemprop="dateCreated datePublished" datetime="2019-08-26T11:41:16+08:00">2019-08-26</time>
+              <time title="Created: 2019-09-08 15:50:26" itemprop="dateCreated datePublished" datetime="2019-09-08T15:50:26+08:00">2019-09-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -353,93 +503,28 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@bharatnc/kubernetes-garbage-collection-781223f03c17">原文链接</a></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Namespace</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">   <span class="attr">name:</span> <span class="string">postgres-namespace</span></span><br><span class="line">   <span class="attr">ownerReferences:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">controller:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">blockOwnerDeletion:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">kind:</span> <span class="string">Database</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">postgres</span></span><br><span class="line">      <span class="attr">uid:</span> <span class="string">1552c2c2-8ea1-11e8-8289-02ee24bb8af6</span></span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://blog.questionable.services/article/kubernetes-deployments-configmap-change/">原文链接</a></p>
+<blockquote>
+<p>kubectl v1.15 now provides a <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG-1.15.md#cli-improvements"><code>rollout restart</code></a> sub-command that allows you to restart Pods in a <code>Deployment</code> - taking into account your surge/unavailability config - and thus have them pick up changes to a referenced <code>ConfigMap</code>, <code>Secret</code> or similar. It’s worth noting that you can use this with clusters older than v1.15, as it’s implemented in the client.</p>
+<p>Example usage: <code>kubectl rollout restart deploy/admission-control</code> to restart a specific deployment. Easy as that!</p>
+</blockquote>
+<p>there are certainly cases where we want to:</p>
+<ul>
+<li>Update a ConfigMap</li>
+<li>Have our Deployment reference that specific ConfigMap version (in a version-control &amp; CI friendly way)</li>
+<li>Rollout a new revision of our Deployment</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">demo-deployment</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line">    <span class="attr">annotations:</span></span><br><span class="line">      <span class="comment"># The field we&#x27;ll use to couple our ConfigMap and Deployment</span></span><br><span class="line">      <span class="attr">configHash:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-demo-app</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">gcr.io/optimum-rock-145719/config-demo-app</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">envFrom:</span></span><br><span class="line">        <span class="comment"># The ConfigMap we want to use</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">configMapRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">demo-config</span></span><br><span class="line">        <span class="comment"># Extra-curricular: We can make the hash of our ConfigMap available at a</span></span><br><span class="line">        <span class="comment"># (e.g.) debug endpoint via a fieldRef</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">CONFIG_HASH</span></span><br><span class="line">            <span class="attr">valueFrom:</span></span><br><span class="line">              <span class="attr">fieldRef:</span></span><br><span class="line">                <span class="attr">fieldPath:</span> <span class="string">spec.template.metadata.annotations.configHash</span></span><br></pre></td></tr></table></figure>
 
 
 
-<p>ownerRefrences</p>
-<p>when we delete the database called postgres, this should result in the automatic garbage collection of the namespace “postgres-namespace”.</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get database postgres -oyaml | grep uid</span><br></pre></td></tr></table></figure>
+<p>采用confighash的方式</p>
+<p>这样就可以自动rollout restart</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> Invoke as hash-deploy-config deployment.yaml configHash myConfigMap</span></span><br><span class="line">hash-deploy-config() &#123;</span><br><span class="line">  yq w $1 spec.template.metadata.annotations.$2 \</span><br><span class="line"><span class="meta">  $</span><span class="bash">(kubectl get cm/<span class="variable">$3</span> -oyaml | sha256sum)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-
-
-<p>通过ownerRefrence去关联不同scope之间的resouce，但始终都有一个uid来关联</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/26/migrate-rest-to-http-2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/26/migrate-rest-to-http-2/" class="post-title-link" itemprop="url">migrate rest to http/2</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-26 11:06:33" itemprop="dateCreated datePublished" datetime="2019-08-26T11:06:33+08:00">2019-08-26</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rest/" itemprop="url" rel="index"><span itemprop="name">rest</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blog.usejournal.com/migrating-your-rest-apis-to-http-2-why-and-how-8caee7d798fb">原文链接</a></p>
-<p>HTTP/1.x traditionally used newline-delimited text to transfer data. It is slower, larger, and more error-prone compared to binary</p>
-<p><img src="http://ww3.sinaimg.cn/large/006y8mN6ly1g6cwpn5uszj30rk0nu0vc.jpg" alt="different"></p>
-<p>HTTP/2 breaks down the HTTP protocol communication into an exchange of binary-encoded frames, which are then mapped to messages that belong to a particular stream, all of which are multiplexed within a single TCP connection.</p>
-<p>header compression HPACK</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> EmbeddedServletContainerCustomizer <span class="title">tomcatCustomizer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (container) -&gt; &#123;</span><br><span class="line">        <span class="keyword">if</span> (container <span class="keyword">instanceof</span> TomcatEmbeddedServletContainerFactory) &#123;</span><br><span class="line">            ((TomcatEmbeddedServletContainerFactory) container)</span><br><span class="line">                    .addConnectorCustomizers((connector) -&gt; &#123;</span><br><span class="line">                connector.addUpgradeProtocol(<span class="keyword">new</span> Http2Protocol());</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
+<p>We can now re-deploy our Deployment, and because our <code>spec.template</code> changed, Kubernetes will detect it as a change and re-create our Pods.</p>
+<p>以此为原理的工程</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/stakater/Reloader">repo</a></p>
 
       
     </div>
@@ -459,7 +544,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/22/how-dat-work/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/Almighty-pause-container/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -473,7 +558,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/08/22/how-dat-work/" class="post-title-link" itemprop="url">How Dat Work</a>
+            <a href="/2019/09/08/Almighty-pause-container/" class="post-title-link" itemprop="url">Almighty pause container</a>
         </h2>
 
         <div class="post-meta">
@@ -483,7 +568,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-08-22 10:43:30" itemprop="dateCreated datePublished" datetime="2019-08-22T10:43:30+08:00">2019-08-22</time>
+              <time title="Created: 2019-09-08 15:30:05" itemprop="dateCreated datePublished" datetime="2019-09-08T15:30:05+08:00">2019-09-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -491,7 +576,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dat/" itemprop="url" rel="index"><span itemprop="name">dat</span></a>
+                  <a href="/categories/docker/" itemprop="url" rel="index"><span itemprop="name">docker</span></a>
                 </span>
             </span>
 
@@ -506,13 +591,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://datprotocol.github.io/how-dat-works/">原文链接</a></p>
-<p><strong>Dat is a protocol for sharing data between computers</strong></p>
-<p>Dat community is testing the waters and has begun to use it for websites, art, music releases, peer-to-peer chat programs and many other experiments. 多种使用场景部分</p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g87xnu1lo8j31om05iab3.jpg" alt="image-20191023103849200"></p>
-<p>关于eavesdroppers部分，</p>
-<p>Dat makes no attempt to hide IP addresses</p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g87xw30lmmj31sc0fqabb.jpg" alt="image-20191023104647136"></p>
+          <p><a target="_blank" rel="noopener" href="https://www.ianlewis.org/en/almighty-pause-container">原文链接</a></p>
+<p>Kubernetes provides a clean abstraction called pods for just this use case. It hides the complexity of Docker flags and the need to babysit the containers, shared volumes, and the like. It also hides differences between container runtimes</p>
+<p>In Kubernetes, the pause container serves as the “parent container” for all of the containers in your pod. The pause container has two core responsibilities. First, it serves as the basis of Linux namespace sharing in the pod. And second, with PID (process ID) namespace sharing enabled, it serves as PID 1 for each pod and reaps zombie processes.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name pause -p 8080:80 gcr.io/google_containers/pause-amd64:3.0</span></span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name nginx -v `<span class="built_in">pwd</span>`/nginx.conf:/etc/nginx/nginx.conf --net=container:pause --ipc=container:pause --pid=container:pause nginx</span></span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker run -d --name ghost --net=container:pause --ipc=container:pause --pid=container:pause ghost</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://storage.googleapis.com/static.ianlewis.org/prod/img/767/pause_container.png" alt="pause container"></p>
+<p>Zombie processes are processes that have stopped running but their process table entry still exists because the parent process hasn’t retrieved it via the <code>wait</code> syscall. Technically each process that terminates is a zombie for a very short period of time but they could live for longer.</p>
+<p>Longer lived zombie processes occur when parent processes don’t call the <code>wait</code> syscall after the child process has finished</p>
+<p>但并不是所有的container部分都可以被指定为PID为1的角色</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sigdown</span><span class="params">(<span class="keyword">int</span> signo)</span> </span>&#123;</span><br><span class="line">  psignal(signo, <span class="string">&quot;Shutting down, got signal&quot;</span>);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sigreap</span><span class="params">(<span class="keyword">int</span> signo)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (waitpid(<span class="number">-1</span>, <span class="literal">NULL</span>, WNOHANG) &gt; <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (getpid() != <span class="number">1</span>)</span><br><span class="line">    <span class="comment">/* Not an error because pause sees use outside of infra containers. */</span></span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Warning: pause should be the first process\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGINT, &amp;(struct sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGTERM, &amp;(struct sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGCHLD, &amp;(struct sigaction)&#123;.sa_handler = sigreap,</span><br><span class="line">                                             .sa_flags = SA_NOCLDSTOP&#125;,</span><br><span class="line">                <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (;;)</span><br><span class="line">    pause();</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error: infinite loop terminated\n&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">42</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>If PID namespace sharing is not enabled then each container in a Kubernetes pod will have its own PID 1 and each one will need to reap zombie processes itself.</p>
 
       
     </div>
@@ -531,7 +625,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/32/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/32/">32</a><span class="page-number current">33</span><a class="page-number" href="/page/34/">34</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/34/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/32/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/32/">32</a><span class="page-number current">33</span><a class="page-number" href="/page/34/">34</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/34/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -599,20 +693,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

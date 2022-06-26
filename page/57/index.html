@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/23/clean-architecture-on-golang/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/02/12/httpclient/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/23/clean-architecture-on-golang/" class="post-title-link" itemprop="url">clean architecture on golang</a>
+            <a href="/2019/02/12/httpclient/" class="post-title-link" itemprop="url">http client</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-23 19:53:59" itemprop="dateCreated datePublished" datetime="2019-01-23T19:53:59+08:00">2019-01-23</time>
+              <time title="Created: 2019-02-12 11:10:00" itemprop="dateCreated datePublished" datetime="2019-02-12T11:10:00+08:00">2019-02-12</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/http/" itemprop="url" rel="index"><span itemprop="name">http</span></a>
                 </span>
             </span>
 
@@ -200,22 +200,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://hackernoon.com/golang-clean-archithecture-efd6d7c43047">原文链接</a></p>
-<p>As we know the constraint before designing the Clean Architecture are :</p>
-<ol>
-<li>Independent of Frameworks. The architecture does not depend on the existence of some library of feature laden software. This allows you to use such frameworks as tools, rather than having to cram your system into their limited constraints.</li>
-<li>Testable. The business rules can be tested without the UI, Database, Web Server, or any other external element.</li>
-<li>Independent of UI. The UI can change easily, without changing the rest of the system. A Web UI could be replaced with a console UI, for example, without changing the business rules.</li>
-<li>Independent of Database. You can swap out Oracle or SQL Server, for Mongo, BigTable, CouchDB, or something else. Your business rules are not bound to the database.</li>
-<li>Independent of any external agency. In fact your business rules simply don’t know anything at all about the outside world.</li>
-</ol>
-<p>service部分的单测写法</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> usecase_test</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;errors&quot;</span></span><br><span class="line">	<span class="string">&quot;strconv&quot;</span></span><br><span class="line">	<span class="string">&quot;testing&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;github.com/bxcodec/faker&quot;</span></span><br><span class="line">	models <span class="string">&quot;github.com/bxcodec/go-clean-arch/article&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/bxcodec/go-clean-arch/article/repository/mocks&quot;</span></span><br><span class="line">	ucase <span class="string">&quot;github.com/bxcodec/go-clean-arch/article/usecase&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/stretchr/testify/assert&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/stretchr/testify/mock&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestFetch</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	mockArticleRepo := <span class="built_in">new</span>(mocks.ArticleRepository)</span><br><span class="line">	<span class="keyword">var</span> mockArticle models.Article</span><br><span class="line">	err := faker.FakeData(&amp;mockArticle)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line"></span><br><span class="line">	mockListArtilce := <span class="built_in">make</span>([]*models.Article, <span class="number">0</span>)</span><br><span class="line">	mockListArtilce = <span class="built_in">append</span>(mockListArtilce, &amp;mockArticle)</span><br><span class="line">	mockArticleRepo.On(<span class="string">&quot;Fetch&quot;</span>, mock.AnythingOfType(<span class="string">&quot;string&quot;</span>), mock.AnythingOfType(<span class="string">&quot;int64&quot;</span>)).Return(mockListArtilce, <span class="literal">nil</span>)</span><br><span class="line">	u := ucase.NewArticleUsecase(mockArticleRepo)</span><br><span class="line">	num := <span class="keyword">int64</span>(<span class="number">1</span>)</span><br><span class="line">	cursor := <span class="string">&quot;12&quot;</span></span><br><span class="line">	list, nextCursor, err := u.Fetch(cursor, num)</span><br><span class="line">	cursorExpected := strconv.Itoa(<span class="keyword">int</span>(mockArticle.ID))</span><br><span class="line">	assert.Equal(t, cursorExpected, nextCursor)</span><br><span class="line">	assert.NotEmpty(t, nextCursor)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Len(t, list, <span class="built_in">len</span>(mockListArtilce))</span><br><span class="line"></span><br><span class="line">	mockArticleRepo.AssertCalled(t, <span class="string">&quot;Fetch&quot;</span>, mock.AnythingOfType(<span class="string">&quot;string&quot;</span>), mock.AnythingOfType(<span class="string">&quot;int64&quot;</span>))</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000010771138">原文链接</a></p>
+<p>keepAliveStrategy部分</p>
+<p>默认的话，是从response里头读timeout参数的，没有读到则设置为-1，这个代表无穷，这样设置是有点问题了</p>
+<p>https会报read time out</p>
+<p><strong>如果头部信息Keep-Alive在响应中不存在，HttpClient假设连接无限期的保持活动。然而许多现实中的HTTP服务器配置了在特定不活动周期之后丢掉持久连接来保存系统资源，往往这是不通知客户端的。</strong></p>
+<p>Connection eviction policy</p>
+<blockquote>
+<p>一个经典的阻塞 I/O 模型的主要缺点是网络套接字仅当 I/O 操作阻塞时才可以响应 I/O 事件。当一个连接被释放返回管理器时，它可以被保持活动状态而却不能监控套接字的状态和响应任何 I/O 事件。如果连接在服务器端关闭，那么客户端连接也不能去侦测连接状态中的变化和关闭本端的套接字去作出适当响应。</p>
+</blockquote>
+<p>唯一可行的而不涉及到每个对空闲连接的套接字模型线程解决方案，是使用专用的监控线程来收回因为长时间不活动而被认为是过期的连接。监控线程可以周期地调用 ClientConnectionManager#closeExpiredConnections()方法来关闭所有过期的连接，从连接池中收回关闭的连接。它也可以选择性调用ClientConnectionManager#closeIdleConnections()方法来关闭所有已经空 闲超过给定时间周期的连接</p>
+<p>ConnTimeToLive</p>
+<p>http连接池connection的存活时间</p>
+<blockquote>
+<p>默认构造的话，timeToLive是-1，如果默认是-1的话，则不失效</p>
+</blockquote>
+<p>当getKeepAliveDuration为-1以及connTimeToLive为-1的时候，closeExpiredConnections方法其实是没有用的，查看debug日志会出现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">o.a.http.impl.client.DefaultHttpClient <span class="number">509</span> : Connection can be kept alive indefinitely</span><br></pre></td></tr></table></figure>
+
+<p>当getKeepAliveDuration不为-1的话，假设是5s,则日志可能是这样的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">o.a.http.impl.execchain.MainClientExec <span class="number">285</span> : Connection can be kept alive <span class="keyword">for</span> <span class="number">5000</span> MILLISECONDS</span><br></pre></td></tr></table></figure>
 
 
 
-<p>controller端的单测写法</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestGetByID</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">     <span class="keyword">var</span> mockArticle models.Article </span><br><span class="line">     err := faker.FakeData(&amp;mockArticle) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     mockUCase := <span class="built_in">new</span>(mocks.ArticleUsecase) </span><br><span class="line">     num := <span class="keyword">int</span>(mockArticle.ID) </span><br><span class="line">     mockUCase.On(“GetByID”, <span class="keyword">int64</span>(num)).Return(&amp;mockArticle, <span class="literal">nil</span>) </span><br><span class="line">     e := echo.New() </span><br><span class="line">     req, err := http.NewRequest(echo.GET, “/article/” +  </span><br><span class="line">                 strconv.Itoa(<span class="keyword">int</span>(num)), strings.NewReader(“”)) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     rec := httptest.NewRecorder() </span><br><span class="line">     c := e.NewContext(req, rec) </span><br><span class="line">     c.SetPath(“article/:id”) </span><br><span class="line">     c.SetParamNames(“id”) </span><br><span class="line">     c.SetParamValues(strconv.Itoa(num)) </span><br><span class="line">     handler:= articleHttp.ArticleHandler&#123;</span><br><span class="line">                AUsecase: mockUCase,</span><br><span class="line">                Helper: httpHelper.HttpHelper&#123;&#125;</span><br><span class="line">     &#125; </span><br><span class="line">     handler.GetByID(c) </span><br><span class="line">     assert.Equal(t, http.StatusOK, rec.Code) </span><br><span class="line">     mockUCase.AssertCalled(t, “GetByID”, <span class="keyword">int64</span>(num))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 
 
       
@@ -236,7 +244,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/23/dockerise-scala-and-akka/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/02/11/cnab/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -250,7 +258,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/23/dockerise-scala-and-akka/" class="post-title-link" itemprop="url">dockerise scala and akka</a>
+            <a href="/2019/02/11/cnab/" class="post-title-link" itemprop="url">CNAB - Packagaging for Applications with Multiple Toolchains</a>
         </h2>
 
         <div class="post-meta">
@@ -260,7 +268,226 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-23 19:41:03" itemprop="dateCreated datePublished" datetime="2019-01-23T19:41:03+08:00">2019-01-23</time>
+              <time title="Created: 2019-02-11 21:11:30" itemprop="dateCreated datePublished" datetime="2019-02-11T21:11:30+08:00">2019-02-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/package/" itemprop="url" rel="index"><span itemprop="name">package</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://speakerdeck.com/garethr/cnab-packagaging-for-applications-with-multiple-toolchains">原文链接</a></p>
+<p>关于一个内容，讲spec部分</p>
+<p>It’s not tool specific, It’s about compatibility between tools</p>
+<p><img src="/Users/gqlxj1987/bitbucket/gqlxj1987/source/images/image-20190222152143905.png" alt="image-20190222152143905"></p>
+<p>A executable entry point responsible for translating action requests(install, upgrade…) to a sequence tasks</p>
+<p>使用docker-app命令</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/31/some-bad-opinions/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/31/some-bad-opinions/" class="post-title-link" itemprop="url">some bad opinions</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-31 14:38:35" itemprop="dateCreated datePublished" datetime="2019-01-31T14:38:35+08:00">2019-01-31</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/software/" itemprop="url" rel="index"><span itemprop="name">software</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://ferd.ca/operable-software.html">原文链接</a></p>
+<p>Operability and observability</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/31/building-Observability-Tools/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/31/building-Observability-Tools/" class="post-title-link" itemprop="url">building Observability Tools</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-31 11:37:27" itemprop="dateCreated datePublished" datetime="2019-01-31T11:37:27+08:00">2019-01-31</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Observability/" itemprop="url" rel="index"><span itemprop="name">Observability</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/lessons-from-building-observability-tools-at-netflix-7cfafed6ab17">原文链接</a></p>
+<p>By <em>observability</em>, we mean analysis of logs, traces, and metrics</p>
+<ul>
+<li>At some point in business growth, we learned that storing raw application logs won’t scale. To address scalability, we switched to streaming logs, filtering them on selected criteria, transforming them in memory, and persisting them as needed.</li>
+<li>As applications migrated to having a microservices architecture, we needed a way to gain insight into the complex decisions that microservices were making. Distributed request tracing is a start, but is not sufficient to fully understand application behavior and reason about issues. Augmenting <strong>the request trace with application context and intelligent conclusions</strong> is also necessary.</li>
+<li>Besides analysis of logging and request traces, observability also includes analysis of metrics. By exploring metrics anomaly detection and metrics correlation, we’ve learned <strong>how to define actionable alerting beyond just threshold alerting</strong>.</li>
+<li>Our observability tools need to access various persisted data types. Choosing which kind of database to store a given data type depends on how each particular data type is written and retrieved.</li>
+<li>Data presentation requirements vary widely between teams and users. It is critical to understand your users and deliver views tailored to a user’s profile.</li>
+</ul>
+<p>内存存放数据，不是所有的数据都存放在磁盘上，进行一部分的过滤</p>
+<p>the key learnings from our effort are that tying multiple request traces into a logical concept, a playback session in this case, and providing additional context based on constituent traces enables our users to quickly determine the root cause of a streaming issue that may involve multiple systems</p>
+<p>存储部分，由es迁移到Cassandra，来应付越来越多的查询部分？</p>
+<p>全集同子集之间的区别，在展现上？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/31/akka-json/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/31/akka-json/" class="post-title-link" itemprop="url">Akka Json unmarshal</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-31 10:48:02" itemprop="dateCreated datePublished" datetime="2019-01-31T10:48:02+08:00">2019-01-31</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -283,270 +510,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.freecodecamp.org/how-to-dockerise-a-scala-and-akka-http-application-the-easy-way-23310fc880fa">原文链接</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">sbt docker:stage</span></span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://medium.freecodecamp.org/un-marshalling-json-in-akka-http-with-circe-3dcc2764eedb">原文链接</a></p>
+<p>the usual library is spray-json</p>
+<p>需要引入如下的lib</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> akka.http.scaladsl.server.<span class="type">Directives</span>._</span><br><span class="line"><span class="keyword">import</span> de.heikoseeberger.akkahttpcirce.<span class="type">FailFastCirceSupport</span>._</span><br><span class="line"><span class="keyword">import</span> io.circe.generic.auto._</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">route</span> </span>= path(<span class="string">&quot;todos&quot;</span>) &#123;</span><br><span class="line">  get &#123;</span><br><span class="line">    complete(todoRepository.all())</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<p>这部分主要是用来unmarshal Json</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">route</span> </span>= path(<span class="string">&quot;todos&quot;</span>) &#123;</span><br><span class="line">  get &#123;</span><br><span class="line">    complete(todoRepository.all())</span><br><span class="line">  &#125; ~ post &#123;</span><br><span class="line">    entity(as[<span class="type">Todo</span>]) &#123; todo =&gt;</span><br><span class="line">      complete(todoRepository.save(todo))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-
-<p>在build.sbt中去配置</p>
-<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">packageName</span> <span class="string">in Docker := &quot;dockerised-akka-http&quot;</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-<p>一个思路是在编译脚本中，去做</p>
-<p>是不是有一个直接在maven插件中去做？而不用单独写dockerfile？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/22/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/22/one-week/" class="post-title-link" itemprop="url">风雨飘摇</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-22 00:02:50" itemprop="dateCreated datePublished" datetime="2019-01-22T00:02:50+08:00">2019-01-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>优于别人，并不高贵，真正的高贵，是优于过去的自己</p>
-<p>比昨天进步才是真正的学习，进步</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>tracing部分，完成基本的第一版阶段的定义和接口的定义</li>
-<li>1.3版本的bug修复</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于open tracing那一套实践部分</li>
-<li>模型探索部分，整体思路有所了解</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>tracing部分，看能否第一版评审</li>
-<li>流程改造以及asol部分的定义文档的评审</li>
-</ul>
-<p>部门开始流转？不是很清楚整体的组织结构部分，还是安心地做好自己应该做的，从写好文档开始。自己写的东西，能否抽象成框架部分来进行？能不能进一步剥离开业务？现在看起来，虽然automl的代码不怎么样，但整体的架构部分，算是workaround的比较好的典型。能不能从里面剥离好的思路，加上良好的代码组织，形成一个比较好的架构？</p>
-<p>生活上，也就安心地照顾就行，基本上，已经有了隔阂。自己的处境自己也清楚，给不了，还是安心地当好acer，做好应该做的就行</p>
-<p>锻炼上，要继续坚持下去了。。</p>
-<p>也应该开始提笔写自己的2018年总结和2019年展望了</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/17/migration-to-grpc/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/17/migration-to-grpc/" class="post-title-link" itemprop="url">dropbox migration to grpc</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-17 19:48:26" itemprop="dateCreated datePublished" datetime="2019-01-17T19:48:26+08:00">2019-01-17</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/grpc/" itemprop="url" rel="index"><span itemprop="name">grpc</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blogs.dropbox.com/tech/2019/01/courier-dropbox-migration-to-grpc/">原文链接</a></p>
-<p>We settled on gRPC primarily because it allowed us to bring forward our existing protobufs. For our use cases, multiplexing HTTP/2 transport and bi-directional streaming were also attractive.</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">limits:</span></span><br><span class="line">  <span class="attr">dropbox_engine_ocr:</span></span><br><span class="line">    <span class="comment"># All RPC methods.</span></span><br><span class="line">    <span class="attr">default:</span></span><br><span class="line">      <span class="attr">max_concurrency:</span> <span class="number">32</span></span><br><span class="line">      <span class="attr">queue_timeout_ms:</span> <span class="number">1000</span></span><br><span class="line"></span><br><span class="line">      <span class="attr">rate_acls:</span></span><br><span class="line">        <span class="comment"># OCR clients are unlimited.</span></span><br><span class="line">        <span class="attr">ocr:</span> <span class="number">-1</span></span><br><span class="line">        <span class="comment"># Nobody else gets to talk to us.</span></span><br><span class="line">        <span class="attr">authenticated:</span> <span class="number">0</span></span><br><span class="line">        <span class="attr">unauthenticated:</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>api部分按照规范可以查询，limits，authenticated, 等等</p>
-<p>deadlines-&gt;超时？</p>
-<p>Another common problem that our legacy RPC clients have to solve is implementing custom exponential backoff and jitter on retries</p>
-<p>we wanted to solve circuit-breaking in a more generic way. We started by introducing a LIFO queue between the listener and the workpool. 引入类似延迟队列的方式，由size limit和time limit来统一调度/限制</p>
-<p>一些practise:</p>
-<ul>
-<li>We switched from RSA 2048 keypairs to ECDSA P-256 to get better performance for signing operations. </li>
-<li>Marshaling and unmarshaling can be expensive when you switch to gRPC. For our Go code, we’ve switched to <a target="_blank" rel="noopener" href="https://github.com/gogo/protobuf">gogo/protobuf</a> which noticeably decreased CPU usage on our busiest Courier servers.</li>
-</ul>
-<p>一些想法：</p>
-<ol>
-<li>Observability is a feature. Having all the metrics and breakdowns out-of-the-box is invaluable during troubleshooting.</li>
-<li>Standardization and uniformity are important. They lower cognitive load, and simplify operations and code maintenance.</li>
-<li>Try to minimize the amount of boilerplate code developers need to write. Codegen is your friend here.</li>
-<li>Make migration as easy as possible. Migration will likely take way more time than the development itself. Also, migration is only finished after cleanup is performed.</li>
-<li>RPC framework can be a place to add infrastructure-wide reliability improvements, e.g. mandatory deadlines, overload protection, etc. Common reliability issues can be identified by aggregating incident reports on a quarterly basis.</li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/16/skipper-architecture/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/16/skipper-architecture/" class="post-title-link" itemprop="url">skipper Architecture</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-16 21:29:53" itemprop="dateCreated datePublished" datetime="2019-01-16T21:29:53+08:00">2019-01-16</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/skipper/" itemprop="url" rel="index"><span itemprop="name">skipper</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://opensource.zalando.com/skipper/reference/architecture/">原文链接</a></p>
-<p> Skipper is an HTTP router and reverse proxy for service composition. It’s designed to handle large amounts of dynamically configured HTTP route definitions (&gt;800000 routes) with detailed lookup conditions, and flexible augmentation of the request flow with filters</p>
-<p>增强版的nginx部分？</p>
-<p><img src="https://opensource.zalando.com/skipper/img/architecture.svg" alt="skipper arch"></p>
-<p><img src="https://opensource.zalando.com/skipper/img/req-and-resp-processing.svg" alt="skipper机制"></p>
+<p>使用entity，可以自动parse输入的json到我们的model</p>
 
       
     </div>
@@ -565,7 +537,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/56/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/56/">56</a><span class="page-number current">57</span><a class="page-number" href="/page/58/">58</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/58/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/56/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/56/">56</a><span class="page-number current">57</span><a class="page-number" href="/page/58/">58</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/58/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -633,20 +605,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/20/restful-api/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/05/23/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/03/20/restful-api/" class="post-title-link" itemprop="url">Restful API tips</a>
+            <a href="/2017/05/23/one-week/" class="post-title-link" itemprop="url">月光宝盒</a>
         </h2>
 
         <div class="post-meta">
@@ -177,376 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2017-03-20 10:02:01" itemprop="dateCreated datePublished" datetime="2017-03-20T10:02:01+08:00">2017-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/restful/" itemprop="url" rel="index"><span itemprop="name">restful</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>restful api 设计的相关原则</p>
-<p>设计的相关5个动作</p>
-<ul>
-<li><p>GET</p>
-</li>
-<li><p>PUT</p>
-</li>
-<li><p>DELETE</p>
-</li>
-<li><p>POST</p>
-</li>
-<li><p>PATCH</p>
-</li>
-</ul>
-<h3 id="Custom-Methods"><a href="#Custom-Methods" class="headerlink" title="Custom Methods"></a>Custom Methods</h3><p><a target="_blank" rel="noopener" href="https://cloud.google.com/apis/design/custom_methods?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_79">Design Custom Methods</a></p>
-<p>custom methods的http设计:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//service.name/v1/some/resource/name:customVerb</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>采用<code>:</code>代替<code>/</code>的理由在于，可以支持任意的路径</p>
-<p>关于custom methods部分，遵循下面几个原则</p>
-<ul>
-<li><p>应尽量使用POST方法，因为其支持灵活的语义</p>
-</li>
-<li><p>即使要使用其他动作的话，也需尽量符合其对应的语义学</p>
-</li>
-<li><p>GET方法，需要保持独立以及幂等</p>
-</li>
-<li><p>关于body的一些建议</p>
-</li>
-</ul>
-<p>代码部分的示例：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This is a service level custom method.</span></span><br><span class="line">rpc Watch(WatchRequest) returns (WatchResponse) &#123;</span><br><span class="line">  <span class="comment">// Custom method maps to HTTP POST. All request parameters go into body.</span></span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v1:watch&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a collection level custom method.</span></span><br><span class="line">rpc ClearEvents(ClearEventsRequest) returns (ClearEventsResponse) &#123;</span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v3/events:clear&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a resource level custom method.</span></span><br><span class="line">rpc CancelEvent(CancelEventRequest) returns (CancelEventResponse) &#123;</span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">post</span>: <span class="string">&quot;/v3/&#123;name=events/*&#125;:cancel&quot;</span></span><br><span class="line">    <span class="attr">body</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// This is a batch get custom method.</span></span><br><span class="line">rpc BatchGetEvents(BatchGetEventsRequest) returns (BatchGetEventsResponse) &#123;</span><br><span class="line">  <span class="comment">// The batch get method maps to HTTP GET verb.</span></span><br><span class="line">  option (google.api.http) = &#123;</span><br><span class="line">    <span class="attr">get</span>: <span class="string">&quot;/v3/events:batchGet&quot;</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/19/GraphQL/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/03/19/GraphQL/" class="post-title-link" itemprop="url">GraphQL</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-03-19 16:18:24" itemprop="dateCreated datePublished" datetime="2017-03-19T16:18:24+08:00">2017-03-19</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/GraphQL/" itemprop="url" rel="index"><span itemprop="name">GraphQL</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>GraphQL是facebook提出，准备替代Restful API?</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/19/golang-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/03/19/golang-tips/" class="post-title-link" itemprop="url">Golang Tips</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-03-19 15:04:53" itemprop="dateCreated datePublished" datetime="2017-03-19T15:04:53+08:00">2017-03-19</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>这里列举一些golang的一些小技巧</p>
-<h4 id="Behavior-Of-Missing-The-OK-Optional-Return-Value"><a href="#Behavior-Of-Missing-The-OK-Optional-Return-Value" class="headerlink" title="Behavior Of Missing The OK Optional Return Value"></a>Behavior Of Missing The OK Optional Return Value</h4><p>Basic Rule:</p>
-<blockquote>
-<p>Whether or not the ok return value is present will not affect program behavior.</p>
-</blockquote>
-<p>Exception:</p>
-<blockquote>
-<p>Missing the ok optional return value will make current goroutine panic if a type assertion fails.</p>
-</blockquote>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> v <span class="keyword">interface</span>&#123;&#125; = <span class="string">&quot;abc&quot;</span></span><br><span class="line">_, ok = v.(<span class="keyword">int</span>) <span class="comment">// will not panic</span></span><br><span class="line">_ = v.(<span class="keyword">int</span>)     <span class="comment">// will panic!</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>这里提供了一种思路，在interface的转化部分</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> m = <span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">_, ok = m[<span class="number">123</span>] <span class="comment">// will not panic</span></span><br><span class="line">_ = m[<span class="number">123</span>]     <span class="comment">// will not panic</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>关于第二句？</p>
-<h4 id="Types-Of-Values"><a href="#Types-Of-Values" class="headerlink" title="Types Of Values"></a>Types Of Values</h4><p>Basic Rule:</p>
-<blockquote>
-<p>Values should have either a type or a default type.</p>
-</blockquote>
-<p>Exception:</p>
-<blockquote>
-<p>Untyped <code>nil</code> has neither a type nor a default type.</p>
-</blockquote>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> v <span class="keyword">interface</span>&#123;&#125; </span><br><span class="line">fmt.Printf(<span class="string">&quot;type of %v is %T \n&quot;</span>, v, v) <span class="comment">// type of &lt;nil&gt; is &lt;nil&gt;</span></span><br><span class="line"><span class="keyword">var</span> _ <span class="keyword">interface</span>&#123;&#125; = v.(<span class="keyword">interface</span>&#123;&#125;) <span class="comment">// will panic</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>注意inteface的default value是nil</p>
-<h4 id="The-Blank-Composite-Literals"><a href="#The-Blank-Composite-Literals" class="headerlink" title="The Blank Composite Literals"></a>The Blank Composite Literals</h4><blockquote>
-<p>If a type <code>T</code> support composite literal values, then <code>T&#123;&#125;</code> is its zero value.</p>
-<p>For a map or a slice type <code>T</code>, <code>T&#123;&#125;</code> isn’t its zero value. Its zero value is represented with <code>nil</code>.</p>
-</blockquote>
-<h4 id="Comparison"><a href="#Comparison" class="headerlink" title="Comparison"></a>Comparison</h4><blockquote>
-<p>Most types in Go support comparison.</p>
-<p>Map, slice and function types don’t support comparison. but, Map, slice and function values can be compared to the <code>nil</code> identifier.</p>
-</blockquote>
-<h4 id="Modify-Unaddressable-Values"><a href="#Modify-Unaddressable-Values" class="headerlink" title="Modify Unaddressable Values"></a>Modify Unaddressable Values</h4><blockquote>
-<p>Unaddressable values can’t be modified.</p>
-<p>Although map element values are unaddressable, but their value can be modified if their types are numeric or string types.</p>
-</blockquote>
-<p>主要是针对map部分？</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> mt = <span class="keyword">map</span>[<span class="keyword">string</span>]T&#123;<span class="string">&quot;abc&quot;</span>: &#123;<span class="number">123</span>&#125;&#125;</span><br><span class="line">	_ = mt</span><br><span class="line"><span class="comment">// mt[&quot;abc&quot;].x *= 2 // error: mt[&quot;abc&quot;].x is not changeable</span></span><br><span class="line">mt[<span class="string">&quot;abc&quot;</span>] = T&#123;mt[<span class="string">&quot;abc&quot;</span>].x * <span class="number">2</span>&#125; <span class="comment">// map elements are unaddressable</span></span><br><span class="line">                               <span class="comment">// but replaceable</span></span><br><span class="line">	</span><br></pre></td></tr></table></figure>
-
-<p>随着带来的问题</p>
-<blockquote>
-<p>Map elements are not addressable, even if they can be overwritten.</p>
-</blockquote>
-<p>map的value可以改写，但是无法给出地址</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/14/design-scale-system/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/03/14/design-scale-system/" class="post-title-link" itemprop="url">Design Scale System</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-03-14 21:53:08" itemprop="dateCreated datePublished" datetime="2017-03-14T21:53:08+08:00">2017-03-14</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index"><span itemprop="name">system</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/donnemartin/system-design-primer">how to design large scale system</a></p>
-<blockquote>
-<p>Summaries of various system design topics, including pros and cons. Everything is a trade-off.</p>
-</blockquote>
-<blockquote>
-<p>Each section contains links to more in-depth resources.</p>
-</blockquote>
-<p>可用性与一致性</p>
-<p>CAP理论</p>
-<ul>
-<li><p>CP</p>
-</li>
-<li></li>
-</ul>
-<p>一致性模型：</p>
-<ul>
-<li><p>弱一致性</p>
-</li>
-<li><p>最终一致性</p>
-</li>
-<li><p>强一致性</p>
-</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/03/05/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/03/05/one-week/" class="post-title-link" itemprop="url">Committing every day</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-03-05 10:21:40" itemprop="dateCreated datePublished" datetime="2017-03-05T10:21:40+08:00">2017-03-05</time>
+              <time title="Created: 2017-05-23 08:04:41" itemprop="dateCreated datePublished" datetime="2017-05-23T08:04:41+08:00">2017-05-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -569,48 +200,504 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>I really believe committing every day on an open source project is the best practice.</p>
+          <p>当时有一份真诚的爱情摆在我面前，我没有珍惜，等到失去的时候，我才追悔莫及，人生中最痛苦的事莫过于此。。。</p>
+<hr>
 <p>本周完成：</p>
 <ul>
-<li>取数据部分的及时性和便捷性</li>
+<li><p>在线数据整合部分整体完成</p>
+</li>
+<li><p>bidder部分，完成相关数据修复</p>
+</li>
+<li><p>bidder部分，完成依赖剥离</p>
+</li>
 </ul>
+<p>本周未完成：</p>
 <ul>
-<li>日志的归一化部分，由于涉及到callback部分，暂不可替server端日志</li>
-</ul>
-<ul>
-<li>加入keyword策略部分的统计，在线以及离线</li>
-</ul>
-<ul>
-<li>收入抓取和报警部分调整</li>
-</ul>
-<p>未完成：</p>
-<ul>
-<li>渠道监控后续的工作？</li>
-</ul>
-<ul>
-<li>现有的服务点的改造</li>
+<li><p>数据抽象的一些心得体会部分</p>
+</li>
+<li><p>gatling部分的一些调整</p>
+</li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li><p>golang-101-hacks</p>
+<li><p>数据抽象部分，渐入佳境</p>
 </li>
-<li><p>python bs4部分，有关session以及https部分的抓取</p>
+<li><p>govendor部分，依赖部分调整</p>
+</li>
+<li><p>mock service部分的一些了解</p>
 </li>
 </ul>
 <p>下周计划：</p>
 <ul>
-<li>规范一些离线报告的范畴</li>
+<li><p>bidder日志部分进行调整以及监控</p>
+</li>
+<li><p>调整相关的数据监控部分</p>
+</li>
 </ul>
+<p>数据部分，看大数据部分如何进行存储以及处理，后续的情况</p>
+<p>还是先保证，在余下的时间内，保证自己的学习，调整自己的状态。。</p>
+<p>整理一下方向，后续这块如何进行，如何进行突破部分，看如何进行。。</p>
+<p>看书部分，写代码部分要捡起来。。。</p>
+<p>还有写blog部分。。。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/05/14/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/14/one-week/" class="post-title-link" itemprop="url">大圣娶亲</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-05-14 16:01:01" itemprop="dateCreated datePublished" datetime="2017-05-14T16:01:01+08:00">2017-05-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>重看一遍大圣娶亲，其实，只是不想做渣男，结果，却发现自己错过了最美丽的风景，人生，有时就是这么无奈。。。</p>
+<p>把握好现在，既然在最美丽的时候，就绽放出它应有的光芒，其他的时候，并不是我们能决定的。。</p>
+<hr>
+<p>本周完成：</p>
 <ul>
-<li>梳理现有的服务的改造点</li>
+<li><p>在线数据部分代码进行重构，相关数据的维度方面进行整合</p>
+</li>
+<li><p>监控文档方面的整理，还是稍显有些不足</p>
+</li>
+<li><p>bidder部分数据一些追查</p>
+</li>
 </ul>
+<p>本周未完成：</p>
 <ul>
-<li>关于ecpm的分时报告部分</li>
+<li><p>关于数据维度的一些整合，相关的数据抽象部分</p>
+</li>
+<li><p>详细文档部分</p>
+</li>
 </ul>
-<p>技术文章，每周两篇，没啥问题</p>
-<p>关于project52部分，组织一下项目结构部分，慢慢写一些工作log</p>
-<p>尝试写下每周阿南的读后感，尝试向开源部分靠靠。。</p>
-<p>尝试控制自己的欲望，推迟一些不必要的想法和成就感。。</p>
+<p>本周所得：</p>
+<ul>
+<li><p>mock_path部分，针对大型项目的一些目录分布</p>
+</li>
+<li><p>关于数据抽象的一部分内容</p>
+</li>
+</ul>
+<p>下周计划：</p>
+<ul>
+<li><p>关于bidder数据的一些整理</p>
+</li>
+<li><p>维度部分数据的收尾以及相关总结</p>
+</li>
+</ul>
+<p>看书，写代码，学会在余下的时间内，调整自己学习。。</p>
+<p>心态放平和，很多事情不要用力过猛。。。</p>
+<p>诚然，很多时候，并不想失去，但尽力做好自己就行，在工作和生活之间进行调整好自己。。</p>
+<p>走~</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/05/14/xinli/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/14/xinli/" class="post-title-link" itemprop="url">新心态</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-05-14 14:27:05" itemprop="dateCreated datePublished" datetime="2017-05-14T14:27:05+08:00">2017-05-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BF%83%E6%80%81/" itemprop="url" rel="index"><span itemprop="name">心态</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本来不想重启这样一篇，结果，还是各种不到位，不知道怎么办，中间还是有些怪怪的，可能还是给不了太多吧。。</p>
+<p>acer还是有acer的觉悟，太高难度的事情还是不要去尝试，也不要太多想了。。</p>
+<p>可能还是自己的不安全感，更重一些，有些东西不明白怎么相处，在交流过程中，还是不自觉地奉承的因素多了一些，导致越来越受不了说话的方式。。。</p>
+<p>在同别人交流的时候，说是没习惯，其实还是感觉以不确定的态度去处理这段关系，既然不确定的话，很多的时候就不知道该如何相处。。。</p>
+<p>说是要保持自信，其实骨子里的悲观主义还是跑不了，acer还是有些理解不了过多复杂的问题。。</p>
+<p>还是保持，简单，真诚，改变一些说话的方式，也不要纠结，事情本来很简单，不要想地过于复杂。。。</p>
+<p>其实，挺讨厌自己这样一种状态，自己一个人瞎想，有联系的时候，有时候会觉得有些难hold住，没联系的时候，又会觉得自己做错了什么，这样一种状态，也算是恋爱的一种体验吧。。</p>
+<p>这其中一个最大的问题，还是不确定性，X可能算一方面，然后其他方面，感觉还是不够坦诚，或者自己想太多，觉得自己还是太low，配不上吧。。。</p>
+<p>保持自己吧，让自己忙一些，不要多想，不纠结，顺其自然，不纠结。。</p>
+<hr>
+<p>突然，想到处男和处女的问题，其实好像差不多是一样的。。。</p>
+<p>有时候觉得无所谓的，不知道怎么办才好，其实还是在逃避，逃避一些处理的未来。。。</p>
+<p>或者还是自己没有资本或者实力去强求一些事情，自己有时候也想不到未来，也就只能先逃避一些。。</p>
+<p>其实，最重要的还是提升自己了，提高自己的资本以及实力，才能去要求一些事情，做一些事情。。</p>
+<p>生活以及工作上去保持平衡，多看书以及学习。。。</p>
+<p>不强求，也不纠结，不要让不安全感绑架了自己，做好自己就行。。</p>
+<hr>
+<p>果然，有时莫名地冷淡，真是很让人无奈，这时候，就会问自己，是否能hold地住了。。。</p>
+<p>是不是真的适合，这种高强度的神经紧绷式的，不安全感的。。。</p>
+<p>还是提升自己，该干嘛干嘛，或许自己真的。。。</p>
+<p>acer有acer的觉悟。。。</p>
+<hr>
+<p>自己可能真的是不知道怎么弄，前一秒钟还热情似火，后一秒钟就冷面如霜。。或许还是自己玻璃心吧。。在这种不断地拉扯中，感觉有点癫狂。。。</p>
+<p>有时是想发火，但想想还是算了吧。。。发了火又解决不了问题，该是什么样子就是什么样子。。。</p>
+<p>acer做好自己就好，不用想太多其他的了。。。</p>
+<p>准备好6月份的那一次，大不了就拉倒呗。。。</p>
+<p>该干嘛干嘛。。。</p>
+<hr>
+<p>6月份如期地还是黄了。。其实怨不得别人，还是自己有些拖延症晚期，很多东西本来想试试，结果还是拖过去了。。。</p>
+<p>做好计划，按部就班地进行吧，调整下状态，一切清零，重新上路吧。。。</p>
+<p>不管是工作还是生活上，做好计划，acer就慢慢地进行，没有其他的路可以走。。。</p>
+<p>真的是需要不断地给自己打鸡血，加油，只有不断地提升自己。。。</p>
+<p>不要想太多其他后面的事情，不用筹谋后面更多的事情，做好现在，按照节奏，达成目标就行，不要想地太多。。。</p>
+<p>自己有时候，真的不知道是否应该坚持下去，有时得不到理解，或许有时候也只是自己一厢情愿的所谓的牺牲，但也不要管那么多，不强求一些事情，尽力地做好自己的最好就可以，按照自己的标准和原则，去实践相关的行为就行了，至于结果如何，就不是自己所能决定的。。。</p>
+<p>还是需要多学习，多看书，以及多锻炼，加油，找回之前的状态，重新整理一下时间表部分。。</p>
+<hr>
+<p>一切归零，重新上路。。</p>
+<p>人总是要学会成长，一些事情，就算知道没有好的结果，依然要根据自己的意愿去做下去，如果连做都不做下去的话，会从心理感到遗憾和鄙视自己。。。</p>
+<p>人少言，多做事，不要动不动以训导人的姿态，少言，或者不言。。。</p>
+<p>重新调整一下状态，按照既定的时间计划，去看书，锻炼，学习，每周一部电影，一些文章，找到相应的节奏。。。</p>
+<hr>
+<p>说是没有压力，其实压力很大。。现在的主流是x经验多，就很牛，渣男永远比老实人更受欢迎，应该是更有趣吧。。。</p>
+<p>做个无趣的人吧。。谨言慎行。。。</p>
+<p>其实，感觉除了X方面外，还有很多问题没有去面对，都是在逃避。。。例如，未来，例如，学习，等等</p>
+<p>还是感觉自己的心态有问题。。。说好地全身心投入进去。。感觉自己玻璃心划了好多下。。。</p>
+<p>acer。。。该干嘛干嘛去。。。</p>
+<p>说着死工资，其实，也是自我成长的一部分。。。还是专心写自己的代码，提升自己吧。。</p>
+<hr>
+<p>大姨妈没来，应该不会有了吧。。。都没有经历过X。。。感觉略有些讽刺。。</p>
+<p>药拖延着还是买了。。。按着计划来吧。。成不成，自己都不知道。。。</p>
+<p>只能自己加油了。。。</p>
+<hr>
+<p>不出意外地怂了。。。自己可能是没救了。。。</p>
+<p>其实挺排斥这种氛围，但没办法，自己所空想的一些东西，太幼稚了。。。</p>
+<p>acer，还是努力学习，看书，写代码。。其他的就不要妄想了。。。</p>
+<p>反正已经做好了最坏的打算。。不是吗。。</p>
+<p>时间表部分，尽快整理一下，并且坚持下去。。。</p>
+<p>不要想着逃避了。。。</p>
+<hr>
+<p>感觉最近有点颓废，原本按照计划的事情，由于自己的拖延症以及颓废，很多事情都没有做。。。</p>
+<p>不能再这样了，不然又回到以前的痛苦的老路上。。</p>
+<p>强化自己，遵守时间表，坚持下去，看书，写代码。。。</p>
+<p>加油吧。。。</p>
+<hr>
+<p>还是对自己的不自信吧。。。有些东西顺其自然。。没有什么过不了的坎，只是时间的问题</p>
+<p>心态放轻松，已经做好了最坏的打算，没有比那个更差了。。</p>
+<p>博客部分，慢慢恢复，但代码部分，也要有所跟上，例如100天算法部分，jupyter平台尽快熟悉起来。。。</p>
+<p>学习，忙碌起来，让自己不要想那么多。。。强化自己。。。加油。。。</p>
+<hr>
+<p>一切顺其自然地进行，顺其自然地发生，不要想太多，不是已经做好最坏的打算，所谓的放弃，或者及时止损什么的。。哎。。</p>
+<p>一切顺心意，做自己该做的，做自己想做的。。</p>
+<p>加油。。。</p>
+<hr>
+<p>莫名地就到房子的事情，就当是借钱吧。。。。既然已经做了最坏的打算，不甘心又能怎么样，</p>
+<p>–</p>
+<p>恶心，想吐。。。应该不会有了吧。。。毕竟都没有X进去。。。自己应该控制了一下了。。还是有点讽刺。。</p>
+<p>哎。。自己果然还是不太行。。也就这样吧，顺其自然，acer什么的，不要太多幻想了。。。</p>
+<p>该干嘛干嘛，还是继续学习，工作才是王道。。</p>
+<p>博客部分，要捡起来，学习计划部分，也要整理一下。。。</p>
+<p>或许自己是想逃避，但也要正向的逃避。。。</p>
+<p>–</p>
+<p>自己真的很水。。感觉达不到各种。。。可能比之前还要严重些吧，有的时候，感觉hold不住吧。。。像自己这样，可能真的不是很适合。。。</p>
+<p>自己果然还是有些太幼稚了，或者说是不适合，自己可能脱离社会太久了。。。</p>
+<p>就这样吧，acer呗，本来就是一种很怪异的生物。。</p>
+<p>该干嘛就干嘛。。。</p>
+<p>–</p>
+<p>涉及到钱的问题，总是感觉双方会有隔阂吧，可能真的是因为穷的原因吧，有时候，也在怀疑当初自己怎么就认为自己是门当户对的。。哎，自己还是有些天真。。</p>
+<p>感觉自从买房后，整个趋势就向不可逆转的方式在发展，钱，果然是个决定性的因素。。哎。。。</p>
+<p>坦诚地面对吧，该怎么做就怎么做吧。。。</p>
+<p>A站虽然暂时不在了，但acer这种还是在的。。</p>
+<p>该干嘛就干嘛吧。。并没有什么大不了，做自己想做的。。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/05/07/redis-pool-timeout/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/07/redis-pool-timeout/" class="post-title-link" itemprop="url">Redis connection pool timeout</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-05-07 16:29:06" itemprop="dateCreated datePublished" datetime="2017-05-07T16:29:06+08:00">2017-05-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在jinwu的运行过程中，出现过，在取redis中的数值时</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line">pkg error redis: connection pool timeout</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在将poolsize升至500后，有时会出现这样的错误：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">pkg error ERR max number of clients reached</span><br><span class="line">win id error ERR max number of clients reached</span><br><span class="line">response id error ERR max number of clients reached</span><br></pre></td></tr></table></figure>
+
+<p>出现这样的问题，可能是因为：</p>
+<blockquote>
+<ul>
+<li>Redis is busy doing some expensive work (unlikely)</li>
+<li>you use PubSub or Multi and don’t close it correctly (multi.Close() when multi is not needed any more) so connection is not returned to the pool</li>
+</ul>
+</blockquote>
+<p>猜测的原因，是因为并发数太大，导致redis部分的pool connection没有及时释放。</p>
+<p>注意到redis连接option中这样的一个参数：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Options <span class="keyword">struct</span> &#123;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The maximum number of socket connections.</span></span><br><span class="line">	<span class="comment">// Default is 10 connections.</span></span><br><span class="line">	PoolSize <span class="keyword">int</span></span><br><span class="line">	<span class="comment">// Specifies amount of time client waits for connection if all</span></span><br><span class="line">	<span class="comment">// connections are busy before returning an error.</span></span><br><span class="line">	<span class="comment">// Default is 1 seconds.</span></span><br><span class="line">	PoolTimeout time.Duration</span><br><span class="line">	<span class="comment">// Specifies amount of time after which client closes idle</span></span><br><span class="line">	<span class="comment">// connections. Should be less than server&#x27;s timeout.</span></span><br><span class="line">	<span class="comment">// Default is to not close idle connections.</span></span><br><span class="line">	IdleTimeout time.Duration</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>注意到poolTimeout这样的参数，1s的timeout的设置，在高并发的情况，可能有些connection来不及返回，这样导致获取不到connection,这样就会出现timeout的情况</p>
+<p>于是，针对现有的情况，做了以下处理</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">Cluster = redis.NewClusterClient(&amp;redis.ClusterOptions&#123;</span><br><span class="line">        Addrs:        addresses,</span><br><span class="line">        PoolSize:     <span class="number">1000</span>,</span><br><span class="line">        PoolTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        IdleTimeout:  <span class="number">10</span> * time.Minute,</span><br><span class="line">        ReadTimeout:  <span class="number">2</span> * time.Minute,</span><br><span class="line">        WriteTimeout: <span class="number">1</span> * time.Minute,</span><br><span class="line">        <span class="comment">// Password: password,</span></span><br><span class="line">    &#125;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>将pooltimeout以及相关的timeout设置地稍微大一些，是不是可以避免这样因为高并发引起的timeout的bug？</p>
+<p>当然，这样的情况，主要是针对接口不是那么实时，不需要在1s以内返回这样的接口</p>
+<p>解决思路参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/go-redis/redis/issues/195">connection pool timeout</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/05/07/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/07/one-week/" class="post-title-link" itemprop="url">空帆船</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-05-07 11:04:12" itemprop="dateCreated datePublished" datetime="2017-05-07T11:04:12+08:00">2017-05-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>我迎着风</p>
+<p>金山银山 繁华云烟 温柔之夜</p>
+<p>我什么也不带走</p>
+<p>我爱这艰难又拼尽了全力的每一天</p>
+<hr>
+<p>本周完成：</p>
+<ul>
+<li><p>修复redis高并发下的bug，主要是一些pool参数的一些设置问题</p>
+</li>
+<li><p>代码部分的重构，加入git父子模块部分</p>
+</li>
+<li><p>监控部分开始整理，针对在线数据部分</p>
+</li>
+</ul>
+<p>本周未完成：</p>
+<ul>
+<li><p>监控文档部分未完成</p>
+</li>
+<li><p>关于代码重构部分</p>
+</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li><p>代码重构部分，看能否提取一些公共库出来</p>
+</li>
+<li><p>关于uuid的重复部分，取rand部分</p>
+</li>
+<li><p>redis的pool参数设置问题</p>
+</li>
+<li><p>关于seelog部分的按照分钟来取</p>
+</li>
+</ul>
+<p>下周计划：</p>
+<ul>
+<li><p>监控的文档部分的整理</p>
+</li>
+<li><p>在线数据部分整理维度，相关数据进行整合</p>
+</li>
+</ul>
+<p>一年过去了。。重新慢慢回到轨道上。。</p>
+<p>锻炼，吉他，文章，读书部分，强制性地去调整状态，不要想那么多，该是什么样就是什么样</p>
+<p>forever young~</p>
 
       
     </div>
@@ -629,7 +716,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/107/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/107/">107</a><span class="page-number current">108</span><a class="page-number" href="/page/109/">109</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/109/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/107/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/107/">107</a><span class="page-number current">108</span><a class="page-number" href="/page/109/">109</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/109/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -697,20 +784,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/kubeflow-deploy/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/23/data-traffic-in-airflow/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/10/kubeflow-deploy/" class="post-title-link" itemprop="url">kubeflow pipline deploy</a>
+            <a href="/2019/01/23/data-traffic-in-airflow/" class="post-title-link" itemprop="url">data traffic control in apache airflow</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-10 23:05:40" itemprop="dateCreated datePublished" datetime="2019-01-10T23:05:40+08:00">2019-01-10</time>
+              <time title="Created: 2019-01-23 20:15:36" itemprop="dateCreated datePublished" datetime="2019-01-23T20:15:36+08:00">2019-01-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubeflow/" itemprop="url" rel="index"><span itemprop="name">kubeflow</span></a>
+                  <a href="/categories/airflow/" itemprop="url" rel="index"><span itemprop="name">airflow</span></a>
                 </span>
             </span>
 
@@ -200,100 +200,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3">原文链接2</a></p>
-<p>This model has the following steps: </p>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/leboncoin-engineering-blog/data-traffic-control-with-apache-airflow-ab8fd3fc8638">原文链接</a></p>
 <ul>
-<li>extract data from BigQuery, transform it and write the transformed data to Cloud Storage. </li>
-<li>Train a TensorFlow Estimator API model and do hyperparameter tuning of the model </li>
-<li>Once the best learning rate, batch size, etc. are determined, train the model longer and on more data using those parameters</li>
-<li>Deploy the trained model to Cloud ML Engine.</li>
+<li>Scale our data pipelines to process workloads of up to several terabytes a day efficiently</li>
+<li>Adapt to the platform’s technological and organisational shift to a micro-service architecture</li>
+<li>Quickly detect failures and inconsistencies in the many data processes run each day/hour</li>
+<li>Respond to internal or external faults without impacting the quality, conformity, and availability of actionable information to our business users</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">preprocess = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;preprocess&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-bqtocsv:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    <span class="string">&#x27;--project&#x27;</span>, project,</span><br><span class="line">    <span class="string">&#x27;--mode&#x27;</span>, <span class="string">&#x27;cloud&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;--bucket&#x27;</span>, bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;bucket&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">hparam_train = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;hypertrain&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-hypertrain:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    preprocess.outputs[<span class="string">&#x27;bucket&#x27;</span>]</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;jobname&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;traintuned&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-traintuned-trainer:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    hparam_train.outputs[<span class="string">&#x27;jobname&#x27;</span>],</span><br><span class="line">    bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned.set_memory_request(<span class="string">&#x27;2G&#x27;</span>)</span><br><span class="line">train_tuned.set_cpu_request(<span class="string">&#x27;1&#x27;</span>)</span><br><span class="line">deploy_cmle = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;deploycmle&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-deploycmle:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    train_tuned.outputs[<span class="string">&#x27;train&#x27;</span>],  <span class="comment"># modeldir</span></span><br><span class="line">    <span class="string">&#x27;babyweight&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;mlp&#x27;</span></span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;</span><br><span class="line">    <span class="string">&#x27;model&#x27;</span>: <span class="string">&#x27;/model.txt&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;version&#x27;</span>: <span class="string">&#x27;/version.txt&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p>注意到kubeflow采用文件的方式来交互不同component</p>
-<h4 id="Deploying-the-notebook-as-a-component"><a href="#Deploying-the-notebook-as-a-component" class="headerlink" title="Deploying the notebook as a component"></a>Deploying the notebook as a component</h4><p>打一个镜像</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> kfp.components <span class="keyword">as</span> comp</span><br><span class="line"><span class="keyword">import</span> kfp.dsl <span class="keyword">as</span> dsl</span><br><span class="line"><span class="comment"># a single-op pipeline that runs the flights pipeline on the pod</span></span><br><span class="line"><span class="meta">@dsl.pipeline(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="meta">   name=<span class="string">&#x27;FlightsPipeline&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta">   description=<span class="string">&#x27;Trains, deploys flights model&#x27;</span></span></span></span><br><span class="line"><span class="params"><span class="meta"></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">flights_pipeline</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">   inputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;inputnb&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="function">   outputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;outputnb&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="function">   params=dsl.PipelineParam(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span></span><br><span class="line"><span class="params"><span class="function"></span>):</span></span><br><span class="line">    notebookop = dsl.ContainerOp(</span><br><span class="line">      name=<span class="string">&#x27;flightsmodel&#x27;</span>,</span><br><span class="line">      image=<span class="string">&#x27;gcr.io/cloud-training-demos/submitnotebook:latest&#x27;</span>,</span><br><span class="line">      arguments=[</span><br><span class="line">        inputnb,</span><br><span class="line">        outputnb,</span><br><span class="line">        params</span><br><span class="line">      ]</span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/graphql-server-design/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/10/graphql-server-design/" class="post-title-link" itemprop="url">Medium GraphQL server design</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-10 22:37:06" itemprop="dateCreated datePublished" datetime="2019-01-10T22:37:06+08:00">2019-01-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphql/" itemprop="url" rel="index"><span itemprop="name">graphql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.engineering/graphql-server-design-medium-34862677b4b8">原文链接</a></p>
-<p><strong>It should be easy to alter the shape of the data</strong></p>
-<p>We currently use <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Protocol_Buffers">protocol buffers</a> as a schema for data that comes from our backend</p>
-<p><strong>It should be clear what data is for the client</strong></p>
-<p>Within our GraphQL server, data is being passed around and exists in different stages of “readiness” for the client</p>
-<p><strong>It should be easy to add new data sources</strong></p>
-<p>Fetchers, Repositories (Repos), and the GraphQL Schema.</p>
-<p>Fetchers should correspond to a REST or preferably a gRPC endpoint. Fetchers require a protobuf. This means that any data that is being fetched by a Fetcher must follow the schema defined by the protobuf</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*VCs9aXb1RdBFYMhoFJsjjw.png" alt="data flow"></p>
-<p>The data’s shape becomes more like what the client needs as it passes through each of the distinct layers. It’s clear where the data comes from at each step and we know what each piece of the server is responsible for</p>
-<p>关注数据shape</p>
+<p>It provides:</p>
+<ul>
+<li><strong>Retry mechanisms</strong> to ensure that each and every anomaly can be detected, and automatically or manually healed over time (with as little human intervention as possible)</li>
+<li>Priority aware work <strong>queue management</strong>, ensuring that the most important tasks are run first and complete as soon as possible</li>
+<li><strong>Resource pooling</strong> system to ensure that, in a high concurrency environment, thresholds can be set to avoid overloading input or output systems</li>
+<li><strong>Backfill</strong> capabilities to identify “missing” past runs, and automatically re-create and run them</li>
+<li>Full history of <strong>metrics and statistics</strong> to view the evolution of each task performance over time, and even assess data-delivery SLAs over time</li>
+<li>An <strong>horizontally scalable</strong> set of alternatives to the way tasks are dispatched and run on a distributed infrastructure</li>
+<li>A centralized, secure place to store and view <strong>logs and configuration parameters</strong> for all task runs</li>
+</ul>
+<p>A <strong>central database</strong> that stores all stateful information</p>
+<p>Airflow proposes several executor out of the box, from the simplest to the most full-featured:</p>
+<ul>
+<li><strong><code>SequentialExecutor</code></strong>: a very basic, single task at a time, executor that is also the default one. You do <strong>NOT</strong> want to use this one for anything but unit testing</li>
+<li><strong><code>LocalExecutor</code></strong>: also very basic, it runs the tasks on the same host as the scheduler, and is quite simple to set-up. It’s the best candidate for small, non-distributed deployments, and development environments, but won’t scale horizontally</li>
+<li><strong><code>CeleryExecutor</code></strong>: here we are beginning to scale out over a distributed cluster of Celery workers to cope with a large sized task set. Still quite easy to set-up and use, it’s the recommended setup for production</li>
+<li><strong><code>MesosExecutor</code></strong>: if you’re one of the cool kids, and have an existing <a target="_blank" rel="noopener" href="http://mesos.apache.org/">Mesos</a>infrastructure, surely your will want to leverage as a destination for your task executions</li>
+<li><strong><code>KubernetesExecutor</code></strong>: if you’re an even cooler kid, support for <a target="_blank" rel="noopener" href="https://kubernetes.io/">Kubernetes</a>has been <a target="_blank" rel="noopener" href="https://airflow.incubator.apache.org/kubernetes.html">added in version 1.10.0</a></li>
+</ul>
+<p>不支持：</p>
+<p><strong>No dynamic execution —</strong> The graph built by Airflow is built ahead of the actual execution. Airflow has a dynamic DAG generation system, which can rely on external parameters (configuration, or even Airflow variables), to alter the workflow’s graph. We use this pattern a lot, but it’s not possible to alter the shape of the workflow at runtime (for instance, spawn a variable number of tasks depending on the output of an upstream task)</p>
 
       
     </div>
@@ -313,7 +247,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/09/python-command-line-interfaces/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/23/clean-architecture-on-golang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -327,7 +261,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/09/python-command-line-interfaces/" class="post-title-link" itemprop="url">python command-line interfaces</a>
+            <a href="/2019/01/23/clean-architecture-on-golang/" class="post-title-link" itemprop="url">clean architecture on golang</a>
         </h2>
 
         <div class="post-meta">
@@ -337,7 +271,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-09 23:42:03" itemprop="dateCreated datePublished" datetime="2019-01-09T23:42:03+08:00">2019-01-09</time>
+              <time title="Created: 2019-01-23 19:53:59" itemprop="dateCreated datePublished" datetime="2019-01-23T19:53:59+08:00">2019-01-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -345,7 +279,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index"><span itemprop="name">python</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -360,110 +294,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://blog.sicara.com/perfect-python-command-line-interfaces-7d5d4efad6a2">原文链接</a></p>
-<p>In order to achieve that, I advise you to respect 4 guidelines:</p>
+          <p><a target="_blank" rel="noopener" href="https://hackernoon.com/golang-clean-archithecture-efd6d7c43047">原文链接</a></p>
+<p>As we know the constraint before designing the Clean Architecture are :</p>
 <ol>
-<li>You should provide <strong>default arguments values</strong> when possible</li>
-<li>All <strong>error cases</strong> should be handled (ex: a missing argument, a wrong type, a file not found)</li>
-<li>All arguments and options have to be <strong>documented</strong></li>
-<li>A <strong>progress bar</strong> should be printed for not instantaneous tasks</li>
+<li>Independent of Frameworks. The architecture does not depend on the existence of some library of feature laden software. This allows you to use such frameworks as tools, rather than having to cram your system into their limited constraints.</li>
+<li>Testable. The business rules can be tested without the UI, Database, Web Server, or any other external element.</li>
+<li>Independent of UI. The UI can change easily, without changing the rest of the system. A Web UI could be replaced with a console UI, for example, without changing the business rules.</li>
+<li>Independent of Database. You can swap out Oracle or SQL Server, for Mongo, BigTable, CouchDB, or something else. Your business rules are not bound to the database.</li>
+<li>Independent of any external agency. In fact your business rules simply don’t know anything at all about the outside world.</li>
 </ol>
-<p>We’re in luck: there is a Python library which offers the same features as <code>argparse</code> (and more), with a <strong>prettier code style</strong>: its name is <a target="_blank" rel="noopener" href="https://click.palletsprojects.com/en/7.x/"><code>click</code></a>.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> click</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> caesar_encryption <span class="keyword">import</span> encrypt</span><br><span class="line"></span><br><span class="line"><span class="meta">@click.command()</span></span><br><span class="line"><span class="meta">@click.argument(<span class="params"><span class="string">&#x27;text&#x27;</span>, nargs=-<span class="number">1</span></span>)</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"><span class="string">&#x27;--decrypt/--encrypt&#x27;</span>, <span class="string">&#x27;-d/-e&#x27;</span></span>)</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"><span class="string">&#x27;--key&#x27;</span>, <span class="string">&#x27;-k&#x27;</span>, default=<span class="number">1</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">caesar</span>(<span class="params">text, decrypt, key</span>):</span></span><br><span class="line">    text_string = <span class="string">&#x27; &#x27;</span>.join(text)</span><br><span class="line">    <span class="keyword">if</span> decrypt:</span><br><span class="line">        key = -key</span><br><span class="line">    cyphertext = encrypt(text_string, key)</span><br><span class="line">    click.echo(cyphertext)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    caesar()</span><br></pre></td></tr></table></figure>
+<p>service部分的单测写法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> usecase_test</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;errors&quot;</span></span><br><span class="line">	<span class="string">&quot;strconv&quot;</span></span><br><span class="line">	<span class="string">&quot;testing&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;github.com/bxcodec/faker&quot;</span></span><br><span class="line">	models <span class="string">&quot;github.com/bxcodec/go-clean-arch/article&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/bxcodec/go-clean-arch/article/repository/mocks&quot;</span></span><br><span class="line">	ucase <span class="string">&quot;github.com/bxcodec/go-clean-arch/article/usecase&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/stretchr/testify/assert&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/stretchr/testify/mock&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestFetch</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	mockArticleRepo := <span class="built_in">new</span>(mocks.ArticleRepository)</span><br><span class="line">	<span class="keyword">var</span> mockArticle models.Article</span><br><span class="line">	err := faker.FakeData(&amp;mockArticle)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line"></span><br><span class="line">	mockListArtilce := <span class="built_in">make</span>([]*models.Article, <span class="number">0</span>)</span><br><span class="line">	mockListArtilce = <span class="built_in">append</span>(mockListArtilce, &amp;mockArticle)</span><br><span class="line">	mockArticleRepo.On(<span class="string">&quot;Fetch&quot;</span>, mock.AnythingOfType(<span class="string">&quot;string&quot;</span>), mock.AnythingOfType(<span class="string">&quot;int64&quot;</span>)).Return(mockListArtilce, <span class="literal">nil</span>)</span><br><span class="line">	u := ucase.NewArticleUsecase(mockArticleRepo)</span><br><span class="line">	num := <span class="keyword">int64</span>(<span class="number">1</span>)</span><br><span class="line">	cursor := <span class="string">&quot;12&quot;</span></span><br><span class="line">	list, nextCursor, err := u.Fetch(cursor, num)</span><br><span class="line">	cursorExpected := strconv.Itoa(<span class="keyword">int</span>(mockArticle.ID))</span><br><span class="line">	assert.Equal(t, cursorExpected, nextCursor)</span><br><span class="line">	assert.NotEmpty(t, nextCursor)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Len(t, list, <span class="built_in">len</span>(mockListArtilce))</span><br><span class="line"></span><br><span class="line">	mockArticleRepo.AssertCalled(t, <span class="string">&quot;Fetch&quot;</span>, mock.AnythingOfType(<span class="string">&quot;string&quot;</span>), mock.AnythingOfType(<span class="string">&quot;int64&quot;</span>))</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p>click第三方，提供更多的功能集，例如，读写文件？</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> click</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> caesar_encryption <span class="keyword">import</span> encrypt</span><br><span class="line"></span><br><span class="line"><span class="meta">@click.command()</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="string">&#x27;--input_file&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="built_in">type</span>=click.File(<span class="params"><span class="string">&#x27;r&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="built_in">help</span>=<span class="string">&#x27;File in which there is the text you want to encrypt/decrypt.&#x27;</span></span></span></span><br><span class="line"><span class="params"><span class="meta">         <span class="string">&#x27;If not provided, a prompt will allow you to type the input text.&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta"></span>)</span></span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;</span><span class="bash"> python caesar_script_v2.py --<span class="built_in">help</span></span></span><br><span class="line">Usage: caesar_script_v2.py [OPTIONS]</span><br><span class="line">Options:</span><br><span class="line">  --input_file FILENAME          File in which there is the text you want to encrypt/decrypt. If not provided, a prompt will allow you to type the input text.</span><br><span class="line">  --output_file FILENAME         File in which the encrypted/decrypted text will be written. If not provided, the output text will just be printed.</span><br><span class="line">  -d, --decrypt / -e, --encrypt  Whether you want to encrypt the input text or decrypt it.</span><br><span class="line">  -k, --key INTEGER              The numeric key to use for the caesar encryption / decryption.</span><br><span class="line">  --help                         Show this message and exit.</span><br></pre></td></tr></table></figure>
-
-
-
-<p>还自带help的相关信息，argparse的help信息如何加入？</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">parser = argparse.ArgumentParser(description=<span class="string">&#x27;Process some integers.&#x27;</span>)</span><br><span class="line">parser.add_argument(<span class="string">&#x27;integers&#x27;</span>, metavar=<span class="string">&#x27;N&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, nargs=<span class="string">&#x27;+&#x27;</span>,</span><br><span class="line">                    <span class="built_in">help</span>=<span class="string">&#x27;an integer for the accumulator&#x27;</span>)</span><br><span class="line">parser.add_argument(<span class="string">&#x27;--sum&#x27;</span>, dest=<span class="string">&#x27;accumulate&#x27;</span>, action=<span class="string">&#x27;store_const&#x27;</span>,</span><br><span class="line">                    const=<span class="built_in">sum</span>, default=<span class="built_in">max</span>,</span><br><span class="line">                    <span class="built_in">help</span>=<span class="string">&#x27;sum the integers (default: find the max)&#x27;</span>)</span><br></pre></td></tr></table></figure>
-
-<p>也是类似的</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> key <span class="keyword">in</span> tqdm(<span class="built_in">range</span>(<span class="number">26</span>)):</span><br></pre></td></tr></table></figure>
-
-
-
-<p>显示progress bar部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/09/graph-algorithm/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/09/graph-algorithm/" class="post-title-link" itemprop="url">Graph Algorithm</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-09 23:28:51" itemprop="dateCreated datePublished" datetime="2019-01-09T23:28:51+08:00">2019-01-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/algorithm/" itemprop="url" rel="index"><span itemprop="name">algorithm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://becominghuman.ai/to-all-data-scientists-the-one-graph-algorithm-you-need-to-know-59178dbb1ec2">原文链接</a></p>
-<p><strong>Connected Components</strong></p>
-<p><em>You can think of Connected Components in very layman’s terms as sort of a hard clustering algorithm which finds clusters/islands in related/connected data. As a concrete example: Say you have data about roads joining any two cities in the world. And you need to find out all the continents in the world and which city they contain.</em></p>
-<p>pyspark use graphFrame</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> graphframes <span class="keyword">import</span> *</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">vertices</span>(<span class="params">line</span>):</span></span><br><span class="line">    vert = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> line.split(<span class="string">&quot; &quot;</span>)]</span><br><span class="line">    <span class="keyword">return</span> vert</span><br><span class="line">vertices = adjacency_list.flatMap(<span class="keyword">lambda</span> x: vertices(x)).distinct().collect()</span><br><span class="line">vertices = sqlContext.createDataFrame([[x] <span class="keyword">for</span> x <span class="keyword">in</span> vertices], [<span class="string">&quot;id&quot;</span>])</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_edges</span>(<span class="params">line</span>):</span></span><br><span class="line">    a = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> line.split(<span class="string">&quot; &quot;</span>)]</span><br><span class="line">    edges_list=[]</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(a)==<span class="number">1</span>:</span><br><span class="line">        edges_list.append((a[<span class="number">0</span>],a[<span class="number">0</span>]))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="built_in">len</span>(a)-<span class="number">1</span>):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span> ,<span class="built_in">len</span>(a)):</span><br><span class="line">            edges_list.append((a[i],a[j]))</span><br><span class="line">            edges_list.append((a[j],a[i]))</span><br><span class="line">    <span class="keyword">return</span> edges_list</span><br><span class="line">edges = adjacency_list.flatMap(<span class="keyword">lambda</span> x: create_edges(x)).distinct().collect()</span><br><span class="line">edges = sqlContext.createDataFrame(edges, [<span class="string">&quot;src&quot;</span>, <span class="string">&quot;dst&quot;</span>])</span><br><span class="line">g = GraphFrame(vertices, edges)</span><br><span class="line">sc.setCheckpointDir(<span class="string">&quot;.&quot;</span>)</span><br><span class="line"><span class="comment"># graphframes uses the same paper we referenced apparently</span></span><br><span class="line">cc = g.connectedComponents()</span><br><span class="line"><span class="built_in">print</span> cc.show()</span><br></pre></td></tr></table></figure>
-
-
+<p>controller端的单测写法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestGetByID</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">     <span class="keyword">var</span> mockArticle models.Article </span><br><span class="line">     err := faker.FakeData(&amp;mockArticle) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     mockUCase := <span class="built_in">new</span>(mocks.ArticleUsecase) </span><br><span class="line">     num := <span class="keyword">int</span>(mockArticle.ID) </span><br><span class="line">     mockUCase.On(“GetByID”, <span class="keyword">int64</span>(num)).Return(&amp;mockArticle, <span class="literal">nil</span>) </span><br><span class="line">     e := echo.New() </span><br><span class="line">     req, err := http.NewRequest(echo.GET, “/article/” +  </span><br><span class="line">                 strconv.Itoa(<span class="keyword">int</span>(num)), strings.NewReader(“”)) </span><br><span class="line">     assert.NoError(t, err) </span><br><span class="line">     rec := httptest.NewRecorder() </span><br><span class="line">     c := e.NewContext(req, rec) </span><br><span class="line">     c.SetPath(“article/:id”) </span><br><span class="line">     c.SetParamNames(“id”) </span><br><span class="line">     c.SetParamValues(strconv.Itoa(num)) </span><br><span class="line">     handler:= articleHttp.ArticleHandler&#123;</span><br><span class="line">                AUsecase: mockUCase,</span><br><span class="line">                Helper: httpHelper.HttpHelper&#123;&#125;</span><br><span class="line">     &#125; </span><br><span class="line">     handler.GetByID(c) </span><br><span class="line">     assert.Equal(t, http.StatusOK, rec.Code) </span><br><span class="line">     mockUCase.AssertCalled(t, “GetByID”, <span class="keyword">int64</span>(num))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
       
@@ -484,7 +330,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/08/k8s-intro/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/23/dockerise-scala-and-akka/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -498,7 +344,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/08/k8s-intro/" class="post-title-link" itemprop="url">k8s 概念Intro</a>
+            <a href="/2019/01/23/dockerise-scala-and-akka/" class="post-title-link" itemprop="url">dockerise scala and akka</a>
         </h2>
 
         <div class="post-meta">
@@ -508,7 +354,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-08 19:31:56" itemprop="dateCreated datePublished" datetime="2019-01-08T19:31:56+08:00">2019-01-08</time>
+              <time title="Created: 2019-01-23 19:41:03" itemprop="dateCreated datePublished" datetime="2019-01-23T19:41:03+08:00">2019-01-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -516,7 +362,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
                 </span>
             </span>
 
@@ -531,44 +377,199 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://enqueuezero.com/kubernetes-in-a-nutshell.html">原文链接</a></p>
-<p>master-&gt;node-&gt;pod-&gt;replicaSet-&gt;deployment</p>
-<p>As a Kubernetes user, you might most want to ask Kubernetes to <strong>run a container</strong> via HTTP APIs or CLI.</p>
-<p>In other words, you set a desired state to the <strong>Master</strong> server.</p>
-<p>The <strong>Master</strong> server compares the desired state to the current state in the cluster and decides which node to run.</p>
-<p><strong>Node</strong> servers receive instructions from the <strong>Master</strong> server and then starts a container in the runtime.</p>
-<p>Except the container runtime, the <strong>Node</strong> server runs <strong>kubelet</strong> and <strong>kube-proxy</strong>.</p>
-<p><strong>Kubelet</strong> communicates to the <strong>master</strong> to receive desired states.</p>
-<p><strong>Kubelet</strong> controls the <strong>container runtime</strong> to launch or destroy containers to match the desired states.</p>
-<p><strong>Kube-proxy</strong> forwards requests to the containers, either in localhost or other hosts.</p>
-<p>A <strong>Pod</strong> is one or more containers in a group that should always run on the same <strong>node</strong>.</p>
-<p>All containers in a <strong>pod</strong> are launched and destroyed together, or share a life cycle.</p>
-<p>All containers in a <strong>pod</strong> share their environments, volumes, and IP space.</p>
-<p>Usually, there is one main container and some optional <strong>sidecar containers</strong> in a <strong>pod</strong>.</p>
-<p>A <strong>ReplicaSet</strong> is one or more pod replicas that are running at any given time.</p>
-<p>A <strong>Deployment</strong> is a desired state for <strong>ReplicaSets</strong>.</p>
-<p>The <strong>deployment controller</strong> creates new replicasets for the rolling updates and then replaces the current replicaset.</p>
+          <p><a target="_blank" rel="noopener" href="https://medium.freecodecamp.org/how-to-dockerise-a-scala-and-akka-http-application-the-easy-way-23310fc880fa">原文链接</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">sbt docker:stage</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>在build.sbt中去配置</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">packageName</span> <span class="string">in Docker := &quot;dockerised-akka-http&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<p>一个思路是在编译脚本中，去做</p>
+<p>是不是有一个直接在maven插件中去做？而不用单独写dockerfile？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/22/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/22/one-week/" class="post-title-link" itemprop="url">风雨飘摇</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-22 00:02:50" itemprop="dateCreated datePublished" datetime="2019-01-22T00:02:50+08:00">2019-01-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>优于别人，并不高贵，真正的高贵，是优于过去的自己</p>
+<p>比昨天进步才是真正的学习，进步</p>
 <hr>
-<p>order kill</p>
-<p>To support the ordering and uniqueness of Pods, Kubernetes offers <strong>StatefulSet</strong>.</p>
-<hr>
-<p>For applications like logging agents, we want to deploy them per host.</p>
-<p>To support such feature, Kubernetes offers <strong>DaemonSet</strong>.</p>
-<p>It ensures that all (or some) Nodes run a copy of a Pod.</p>
-<p>As nodes are added to the cluster, Pods are added to them.</p>
-<p>As nodes are removed from the cluster, those Pods are garbage collected.</p>
-<p>Deleting a DaemonSet will clean up the Pods it created.</p>
-<hr>
-<p>In case you have one-off jobs, Kubernetes offers <strong>Jobs</strong>.</p>
-<p>A <strong>job</strong> creates one or more pods and ensures that a specified number of them successfully terminate.</p>
-<p>When a specified number of successful completion is reached, the job itself is complete.</p>
-<p>Deleting a Job will clean up the pods it created.</p>
-<hr>
-<p>pods communicate to other pods use <strong>Services</strong></p>
-<p>A <strong>Service</strong> is a component that acts as a basic internal load balancer for pods.</p>
-<p>The <strong>Service</strong> exposes a group of pods as a single entity. When one pod communicates to a service, the service proxies the request to one of the backend pods.</p>
-<p>service -&gt; dns -&gt; pod</p>
-<p>What if one service wants to expose itself to the external world? Kubernetes offers <strong>Ingress</strong>.</p>
+<p>本周工作：</p>
+<ul>
+<li>tracing部分，完成基本的第一版阶段的定义和接口的定义</li>
+<li>1.3版本的bug修复</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>关于open tracing那一套实践部分</li>
+<li>模型探索部分，整体思路有所了解</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>tracing部分，看能否第一版评审</li>
+<li>流程改造以及asol部分的定义文档的评审</li>
+</ul>
+<p>部门开始流转？不是很清楚整体的组织结构部分，还是安心地做好自己应该做的，从写好文档开始。自己写的东西，能否抽象成框架部分来进行？能不能进一步剥离开业务？现在看起来，虽然automl的代码不怎么样，但整体的架构部分，算是workaround的比较好的典型。能不能从里面剥离好的思路，加上良好的代码组织，形成一个比较好的架构？</p>
+<p>生活上，也就安心地照顾就行，基本上，已经有了隔阂。自己的处境自己也清楚，给不了，还是安心地当好acer，做好应该做的就行</p>
+<p>锻炼上，要继续坚持下去了。。</p>
+<p>也应该开始提笔写自己的2018年总结和2019年展望了</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/17/migration-to-grpc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/17/migration-to-grpc/" class="post-title-link" itemprop="url">dropbox migration to grpc</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-17 19:48:26" itemprop="dateCreated datePublished" datetime="2019-01-17T19:48:26+08:00">2019-01-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/grpc/" itemprop="url" rel="index"><span itemprop="name">grpc</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blogs.dropbox.com/tech/2019/01/courier-dropbox-migration-to-grpc/">原文链接</a></p>
+<p>We settled on gRPC primarily because it allowed us to bring forward our existing protobufs. For our use cases, multiplexing HTTP/2 transport and bi-directional streaming were also attractive.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">limits:</span></span><br><span class="line">  <span class="attr">dropbox_engine_ocr:</span></span><br><span class="line">    <span class="comment"># All RPC methods.</span></span><br><span class="line">    <span class="attr">default:</span></span><br><span class="line">      <span class="attr">max_concurrency:</span> <span class="number">32</span></span><br><span class="line">      <span class="attr">queue_timeout_ms:</span> <span class="number">1000</span></span><br><span class="line"></span><br><span class="line">      <span class="attr">rate_acls:</span></span><br><span class="line">        <span class="comment"># OCR clients are unlimited.</span></span><br><span class="line">        <span class="attr">ocr:</span> <span class="number">-1</span></span><br><span class="line">        <span class="comment"># Nobody else gets to talk to us.</span></span><br><span class="line">        <span class="attr">authenticated:</span> <span class="number">0</span></span><br><span class="line">        <span class="attr">unauthenticated:</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>api部分按照规范可以查询，limits，authenticated, 等等</p>
+<p>deadlines-&gt;超时？</p>
+<p>Another common problem that our legacy RPC clients have to solve is implementing custom exponential backoff and jitter on retries</p>
+<p>we wanted to solve circuit-breaking in a more generic way. We started by introducing a LIFO queue between the listener and the workpool. 引入类似延迟队列的方式，由size limit和time limit来统一调度/限制</p>
+<p>一些practise:</p>
+<ul>
+<li>We switched from RSA 2048 keypairs to ECDSA P-256 to get better performance for signing operations. </li>
+<li>Marshaling and unmarshaling can be expensive when you switch to gRPC. For our Go code, we’ve switched to <a target="_blank" rel="noopener" href="https://github.com/gogo/protobuf">gogo/protobuf</a> which noticeably decreased CPU usage on our busiest Courier servers.</li>
+</ul>
+<p>一些想法：</p>
+<ol>
+<li>Observability is a feature. Having all the metrics and breakdowns out-of-the-box is invaluable during troubleshooting.</li>
+<li>Standardization and uniformity are important. They lower cognitive load, and simplify operations and code maintenance.</li>
+<li>Try to minimize the amount of boilerplate code developers need to write. Codegen is your friend here.</li>
+<li>Make migration as easy as possible. Migration will likely take way more time than the development itself. Also, migration is only finished after cleanup is performed.</li>
+<li>RPC framework can be a place to add infrastructure-wide reliability improvements, e.g. mandatory deadlines, overload protection, etc. Common reliability issues can be identified by aggregating incident reports on a quarterly basis.</li>
+</ol>
 
       
     </div>
@@ -587,7 +588,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/58/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/58/">58</a><span class="page-number current">59</span><a class="page-number" href="/page/60/">60</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/60/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/58/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/58/">58</a><span class="page-number current">59</span><a class="page-number" href="/page/60/">60</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/60/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -655,20 +656,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

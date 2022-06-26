@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/06/Using-CompletableFuture/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/istio-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/06/Using-CompletableFuture/" class="post-title-link" itemprop="url">Using CompletableFuture</a>
+            <a href="/2019/09/23/istio-intro/" class="post-title-link" itemprop="url">Istio Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-06 16:46:28" itemprop="dateCreated datePublished" datetime="2019-09-06T16:46:28+08:00">2019-09-06</time>
+              <time title="Created: 2019-09-23 16:14:05" itemprop="dateCreated datePublished" datetime="2019-09-23T16:14:05+08:00">2019-09-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                  <a href="/categories/istio/" itemprop="url" rel="index"><span itemprop="name">istio</span></a>
                 </span>
             </span>
 
@@ -200,34 +200,21 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://dzone.com/articles/20-examples-of-using-javas-completablefuture">原文链接</a></p>
-<p>This post revisits Java 8’s <code>CompletionStage</code> API and specifically its implementation in the standard Java library <code>CompletableFuture</code>.</p>
-<p>It represents a stage of a certain computation which can be done either synchronously or asynchronously.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">runAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;Void&gt; cf = CompletableFuture.runAsync(() -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">    &#125;);</span><br><span class="line">    assertFalse(cf.isDone());</span><br><span class="line">    sleepEnough();</span><br><span class="line">    assertTrue(cf.isDone());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>关于sleepEnough？</p>
-<p>By default (when no <code>Executor</code> is specified), asynchronous execution uses the common <code>ForkJoinPool</code> implementation, which uses <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/9/docs/api/java/lang/Thread.html#setDaemon-boolean-">daemon</a> threads to execute the <code>Runnable</code> task. Note that this is specific to <code>CompletableFuture</code>. Other <code>CompletionStage</code> implementations can override the default behavior.</p>
-<p>use executors</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> ExecutorService executor = Executors.newFixedThreadPool(<span class="number">3</span>, <span class="keyword">new</span> ThreadFactory() &#123;</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">1</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Thread <span class="title">newThread</span><span class="params">(Runnable runnable)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Thread(runnable, <span class="string">&quot;custom-executor-&quot;</span> + count++);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenApplyAsyncWithExecutorExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(<span class="string">&quot;message&quot;</span>).thenApplyAsync(s -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().getName().startsWith(<span class="string">&quot;custom-executor-&quot;</span>));</span><br><span class="line">        assertFalse(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">        <span class="keyword">return</span> s.toUpperCase();</span><br><span class="line">    &#125;, executor);</span><br><span class="line">    assertNull(cf.getNow(<span class="keyword">null</span>));</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGE&quot;</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>thenApply return value</p>
-<p>thenAccept do not need to return a value</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">applyToEitherExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf1 = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s));</span><br><span class="line">    CompletableFuture&lt;String&gt; cf2 = cf1.applyToEither(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">            s -&gt; s + <span class="string">&quot; from applyToEither&quot;</span>);</span><br><span class="line">    assertTrue(cf2.join().endsWith(<span class="string">&quot; from applyToEither&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenAcceptBothExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    StringBuilder result = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">    CompletableFuture.completedFuture(original).thenApply(String::toUpperCase).thenAcceptBoth(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApply(String::toLowerCase),</span><br><span class="line">            (s1, s2) -&gt; result.append(s1 + s2));</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGEmessage&quot;</span>, result.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">thenCombineAsyncExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String original = <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s))</span><br><span class="line">            .thenCombine(CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">                    (s1, s2) -&gt; s1 + s2);</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGEmessage&quot;</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// sync</span></span><br><span class="line">CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()])).whenComplete((v, th) -&gt; &#123;</span><br><span class="line">        futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">        result.append(<span class="string">&quot;done&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// async</span></span><br><span class="line">CompletableFuture&lt;Void&gt; allOf = CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> CompletableFuture[futures.size()]))</span><br><span class="line">            .whenComplete((v, th) -&gt; &#123;</span><br><span class="line">                futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="keyword">null</span>))));</span><br><span class="line">                result.append(<span class="string">&quot;done&quot;</span>);</span><br><span class="line">            &#125;);</span><br><span class="line"> allOf.join();</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
+          <p><a target="_blank" rel="noopener" href="https://medium.com/avitotech/running-istio-on-kubernetes-in-production-part-i-a8bbf7fec18e">原文链接</a></p>
+<p><img src="https://miro.medium.com/max/2596/1*Qz-ejoBJsCHU7Xnxunn50w.png" alt="istio components"></p>
+<ul>
+<li>Pilot is the main control component that distributes all information about what we keep inside the cluster — services, their endpoints and routing rules (for example, the rules of canary deployment or the circuit breaker rules).</li>
+<li>Mixer is an optional control plane component that provides the ability to collect metrics, logs, and any information about network interactions. It also monitors compliance with policy rules and compliance with the rate limits.</li>
+<li>The data plane component is implemented using sidecar proxy containers.By default, a powerful <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">proxy server envoy</a>is used</li>
+</ul>
+<p>整体的流程：</p>
+<ol>
+<li>We deploy a new version of the service.</li>
+<li>Depending on the sidecar container injection type, an istio-init container and istio-agent container (envoy) are added during the configuration phase, or they can be manually inserted into the pod description of the kubernetes entity.</li>
+<li>The istio-init container is a script that applies the iptables rules for a pod. There are two ways to configure traffic redirecting to an istio-agent container: using redirect iptables rules or <a target="_blank" rel="noopener" href="https://github.com/kristrev/tproxy-example/blob/master/tproxy_example.c">TPROXY</a>. At the writing moment, the default is using redirect rules. In istio-init, it is possible to configure which traffic will be intercepted and sent to istio-agent. For example, in order to intercept all incoming and all outgoing traffic, you need to set the parameters <code>-i</code>and <code>-b</code>to <code>*</code>. You can specify specific ports to be intercepted. To avoid intercepting a certain subnet, you can specify it using the <code>-x</code>flag.</li>
+<li>After init execution, the containers, including pilot-agent (envoy), are launched. It connects to the deployed Pilot by GRPC and gets information about all existing services and routing policies in the cluster. According to the received data, it configures the cluster and maps these directly to the application endpoints in the k8s cluster. There is an important moment: envoy dynamically configures listeners (IP, port pairs) that start listening. Therefore, when requests enter the pod and are redirected using iptables rules to sidecar, envoy is prepared to handle these connections and understands where to forward the proxy traffic. In this step, the information is sent to the Mixer, which we will be described below.</li>
+</ol>
+<p>Mixer has two components: istio-telemetry, istio-policy (up to version 0.8, it used to be a single component istio-mixer). Both are a mixer. Istio telemetry receives GRPC from sidecar containers and reports information about service interactions and parameters. Istio-policy accepts check requests to verify compliance with Policy rules. </p>
 
       
     </div>
@@ -247,7 +234,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/05/java-types-intro/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/automated-ML-hyperparameter-Tuning/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -261,7 +248,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/05/java-types-intro/" class="post-title-link" itemprop="url">java类型系统介绍</a>
+            <a href="/2019/09/23/automated-ML-hyperparameter-Tuning/" class="post-title-link" itemprop="url">Automated ML Hyperparameter Tuning</a>
         </h2>
 
         <div class="post-meta">
@@ -271,7 +258,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-05 14:51:25" itemprop="dateCreated datePublished" datetime="2019-09-05T14:51:25+08:00">2019-09-05</time>
+              <time title="Created: 2019-09-23 15:21:47" itemprop="dateCreated datePublished" datetime="2019-09-23T15:21:47+08:00">2019-09-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -279,7 +266,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                  <a href="/categories/ml/" itemprop="url" rel="index"><span itemprop="name">ml</span></a>
                 </span>
             </span>
 
@@ -294,31 +281,117 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/sU_SQ6GU65BstkyR1t2PiA">原文链接</a></p>
-<p>首先是对参数化多态的扩展，支持给泛型变量添加边界，即：<code>&lt;T extends X&gt;</code>等，这样可以表示更加精确的类型约束，而不仅仅是 forall；不仅如此，Java 还支持 F-bounded，即类型变量可以出现在自己的上边界中：<code>&lt;T extends F&lt;T&gt;&gt;</code></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    Comparable&lt;String&gt; a = min(<span class="string">&quot;cat&quot;</span>, <span class="string">&quot;dog&quot;</span>);</span><br><span class="line">    Comparable&lt;Integer&gt; b = min(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">    String str = Fmin(<span class="string">&quot;cat&quot;</span>, <span class="string">&quot;dog&quot;</span>);</span><br><span class="line">    Integer i = Fmin(<span class="keyword">new</span> Integer(<span class="number">10</span>), <span class="keyword">new</span> Integer(<span class="number">3</span>));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;S extends Comparable&gt; <span class="function">S <span class="title">min</span><span class="params">(S a, S b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;T extends Comparable&lt;T&gt;&gt; <span class="function">T <span class="title">Fmin</span><span class="params">(T a, T b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/automated-machine-learning-hyperparameter-tuning-in-python-dfda59b72f8a">原文链接</a></p>
+<p>a complete example of Bayesian hyperparameter tuning of a gradient boosting machine using the <a target="_blank" rel="noopener" href="https://hyperopt.github.io/hyperopt/">Hyperopt library</a></p>
+<h3 id="Bayesian-Optimization-Methods"><a href="#Bayesian-Optimization-Methods" class="headerlink" title="Bayesian Optimization Methods"></a>Bayesian Optimization Methods</h3><p>Bayesian methods differ from random or grid search in that they <em>use past evaluation results to choose the next values to evaluate</em>.</p>
+<p><strong>limit expensive evaluations of the objective function by choosing the next input values based on those that have done well in the past</strong></p>
+<h3 id="Four-Parts-of-Optimization-Problem"><a href="#Four-Parts-of-Optimization-Problem" class="headerlink" title="Four Parts of Optimization Problem"></a>Four Parts of Optimization Problem</h3><ol>
+<li><strong>Objective Function:</strong> what we want to minimize, in this case the validation error of a machine learning model with respect to the hyperparameters</li>
+<li><strong>Domain Space:</strong> hyperparametervalues to search over</li>
+<li><strong>Optimization algorithm:</strong> method for constructing the surrogate model and choosing the next hyperparameter values to evaluate</li>
+<li><strong>Result history:</strong> stored outcomes from evaluations of the objective function consisting of the hyperparameters and validation loss</li>
+</ol>
+<p>rather than separating training data into a distinct validation set, we use <a target="_blank" rel="noopener" href="https://machinelearningmastery.com/k-fold-cross-validation/">KFold cross validation</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> lightgbm <span class="keyword">as</span> lgb</span><br><span class="line"><span class="keyword">from</span> hyperopt <span class="keyword">import</span> STATUS_OK</span><br><span class="line"></span><br><span class="line">N_FOLDS = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create the dataset</span></span><br><span class="line">train_set = lgb.Dataset(train_features, train_labels)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">objective</span>(<span class="params">params, n_folds = N_FOLDS</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Objective function for Gradient Boosting Machine Hyperparameter Tuning&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Perform n_fold cross validation with hyperparameters</span></span><br><span class="line">    <span class="comment"># Use early stopping and evalute based on ROC AUC</span></span><br><span class="line">    cv_results = lgb.cv(params, train_set, nfold = n_folds, num_boost_round = <span class="number">10000</span>, </span><br><span class="line">                        early_stopping_rounds = <span class="number">100</span>, metrics = <span class="string">&#x27;auc&#x27;</span>, seed = <span class="number">50</span>)</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># Extract the best score</span></span><br><span class="line">    best_score = <span class="built_in">max</span>(cv_results[<span class="string">&#x27;auc-mean&#x27;</span>])</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Loss must be minimized</span></span><br><span class="line">    loss = <span class="number">1</span> - best_score</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Dictionary with information for evaluation</span></span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="string">&#x27;loss&#x27;</span>: loss, <span class="string">&#x27;params&#x27;</span>: params, <span class="string">&#x27;status&#x27;</span>: STATUS_OK&#125;</span><br></pre></td></tr></table></figure>
 
-<p>注意 Fmin 方法的 <code>&lt;T extends Comparable&lt;T&gt;&gt;</code>，如果Comparable 不能包含 T，即像 min 方法那样，就会丢失接口 Comparable compareTo 方法的参数类型 (变成 Object)，你会收到一个编译器的警告，说你绕过了编译检查直接使用了 raw type（参数化类型擦除后的类型）；详情可参考 F-bounded quantification</p>
-<p>引入了 wildcards，<code>List&lt;? extends Integer&gt;</code> 就是 <code>List&lt;? extends Number&gt;</code> 的子类 （详情参考Wildcards and Subtyping)</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">typeof: (Γ, e) -&gt; t</span><br></pre></td></tr></table></figure>
+<p>we are using <code>early_stopping_rounds</code>to stop the training when validation scores have not improved for 100 estimators</p>
+<h3 id="Domain-Space"><a href="#Domain-Space" class="headerlink" title="Domain Space"></a>Domain Space</h3><p>In Bayesian optimization the idea is the same except this space has <em>probability distributions</em> for each hyperparameter rather than discrete values.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Define the search space</span></span><br><span class="line">space = &#123;</span><br><span class="line">    <span class="string">&#x27;class_weight&#x27;</span>: hp.choice(<span class="string">&#x27;class_weight&#x27;</span>, [<span class="literal">None</span>, <span class="string">&#x27;balanced&#x27;</span>]),</span><br><span class="line">    <span class="string">&#x27;boosting_type&#x27;</span>: hp.choice(<span class="string">&#x27;boosting_type&#x27;</span>, </span><br><span class="line">                               [&#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;gbdt&#x27;</span>, </span><br><span class="line">                                    <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;gdbt_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;, </span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;dart&#x27;</span>, </span><br><span class="line">                                     <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;dart_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;,</span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;goss&#x27;</span>&#125;]),</span><br><span class="line">    <span class="string">&#x27;num_leaves&#x27;</span>: hp.quniform(<span class="string">&#x27;num_leaves&#x27;</span>, <span class="number">30</span>, <span class="number">150</span>, <span class="number">1</span>),</span><br><span class="line">    <span class="string">&#x27;learning_rate&#x27;</span>: hp.loguniform(<span class="string">&#x27;learning_rate&#x27;</span>, np.log(<span class="number">0.01</span>), np.log(<span class="number">0.2</span>)),</span><br><span class="line">    <span class="string">&#x27;subsample_for_bin&#x27;</span>: hp.quniform(<span class="string">&#x27;subsample_for_bin&#x27;</span>, <span class="number">20000</span>, <span class="number">300000</span>, <span class="number">20000</span>),</span><br><span class="line">    <span class="string">&#x27;min_child_samples&#x27;</span>: hp.quniform(<span class="string">&#x27;min_child_samples&#x27;</span>, <span class="number">20</span>, <span class="number">500</span>, <span class="number">5</span>),</span><br><span class="line">    <span class="string">&#x27;reg_alpha&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_alpha&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;reg_lambda&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_lambda&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;colsample_bytree&#x27;</span>: hp.uniform(<span class="string">&#x27;colsample_by_tree&#x27;</span>, <span class="number">0.6</span>, <span class="number">1.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>大写希腊字母  Γ 用于表示当前上下文（typing context, aka typing environment），它就是一个类型绑定关系的  Map，保存了项的类型（即：e 到 t），e 为表达式的 AST（抽象语法树），t 为类型（具体实现时也是一类特殊的 AST  节点），typeof 在数学上的写法为：<code>Γ ├ e: t</code> 读作：在类型上下文 Γ 下，e 的类型为 t；符号 ‘├’ 在数学上是推导，推断的意思，它在这是一种三元关系即：HasType(Γ, e, t)。</p>
-<p>所以只要在当前上下文下，语法项有具体类型，则类型检查就通过，如果无法返回其类型，那么就报错了，也就是我们常常看到的编译不过。</p>
-<p>类型是什么呢？有两种不同的角度，一种是计算的角度（程序员的角度）或者称 Church 的角度，另一种是逻辑的角度，或者叫 Curry 的角度；前者根据所计算的值的性质来对项（语法项）进行分类，你可以把类型比作集合；后者就是对程序行为进行证明的推理工具，所以类型理论常常和证明理论扯上关系。</p>
-<p>####类型系统</p>
-<p>Lambda 演算可以看做是一门微小的函数式编程语言，它的语法构造非常简单，只有变量，函数(aka 抽象)，和函数应用（调用）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;expr&gt; ::= &lt;name&gt; | &lt;function&gt; | &lt;application&gt;</span><br><span class="line">&lt;function&gt; ::= λ&lt;name&gt;.&lt;body&gt;</span><br><span class="line">&lt;body&gt; ::= &lt;expr&gt;</span><br><span class="line">&lt;application&gt; ::= (&lt;expr&gt; &lt;expr&gt;)</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>choice</code>: categorical variables</li>
+<li><code>quniform</code>: discrete uniform (integers spaced evenly)</li>
+<li><code>uniform</code>: continuous uniform (floats spaced evenly)</li>
+<li><code>loguniform</code>: continuous log uniform (floats spaced evenly on a log scale)</li>
+</ul>
+<h3 id="Optimization-Algorithm"><a href="#Optimization-Algorithm" class="headerlink" title="Optimization Algorithm"></a>Optimization Algorithm</h3><p>use the <a target="_blank" rel="noopener" href="https://papers.nips.cc/paper/4443-algorithms-for-hyper-parameter-optimization.pdf">Tree Parzen Estimator</a></p>
+<h3 id="Result-History"><a href="#Result-History" class="headerlink" title="Result History"></a>Result History</h3>
+      
+    </div>
 
-<p>主要是利用函数部分，利用函数式编程中的，一切皆函数</p>
-<h4 id="STLC-Simply-Typed-Lambda-calculus"><a href="#STLC-Simply-Typed-Lambda-calculus" class="headerlink" title="STLC (Simply Typed Lambda calculus)"></a>STLC (Simply Typed Lambda calculus)</h4><p>就是在无类型的 Lambda 演算基础上添加了类型，其语法结构（BNF）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">types:</span><br><span class="line">τ ::= α        base type</span><br><span class="line">    | τ → τ&#x27;   function type</span><br><span class="line"></span><br><span class="line">terms:</span><br><span class="line">e ::= e : τ    annotated term type τ</span><br><span class="line">    | x        variable</span><br><span class="line">    | (e e&#x27;)   application</span><br><span class="line">    | λx.e     lambda abstraction</span><br></pre></td></tr></table></figure>
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/concurrency/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/23/concurrency/" class="post-title-link" itemprop="url">Java Concurrency</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-23 14:22:45" itemprop="dateCreated datePublished" datetime="2019-09-23T14:22:45+08:00">2019-09-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/Fadezed/concurrency">原repo</a></p>
+<p><img src="https://github.com/Fadezed/concurrency/blob/master/media/15603298066863/11e0c64618c04edba52619f41aaa3565.png" alt="思维导图"></p>
+<ul>
+<li>资源的可见性</li>
+<li>操作的原子性</li>
+<li>编译优化带来的有序性问题</li>
+</ul>
+<p>JVM 中的同步是基于进入和退出管程（Monitor）对象实现的。每个对象实例都会有一个 Monitor，Monitor 可以和对象一起创建、销毁。Monitor 是由 ObjectMonitor 实现，而 ObjectMonitor 实现，而 ObjectMonitor 是由C++ 的 ObjectMonitor.hpp 文件实现</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">当多个线程同时访问时，多个线程会被先放在EntryList集合，处于block状态的线程，都会被加入到该列表。接下来当线程获取到对象的Monitor时，Monitor依靠底层操作系统的Mutex Lock来实现互斥，线程申请Mutex成功则持有，其它线程无法获取到Mutex</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ObjectMonitor() &#123;</span><br><span class="line">   _header = NULL;</span><br><span class="line">   _count = 0; // 记录个数</span><br><span class="line">   _waiters = 0,</span><br><span class="line">   _recursions = 0;</span><br><span class="line">   _object = NULL;</span><br><span class="line">   _owner = NULL;</span><br><span class="line">   _WaitSet = NULL; // 处于 wait 状态的线程，会被加入到 _WaitSet</span><br><span class="line">   _WaitSetLock = 0 ;</span><br><span class="line">   _Responsible = NULL ;</span><br><span class="line">   _succ = NULL ;</span><br><span class="line">   _cxq = NULL ;</span><br><span class="line">   FreeNext = NULL ;</span><br><span class="line">   _EntryList = NULL ; // 处于等待锁 block 状态的线程，会被加入到该列表</span><br><span class="line">   _SpinFreq = 0 ;</span><br><span class="line">   _SpinClock = 0 ;</span><br><span class="line">   OwnerIsThread = 0 ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-
-
-
-
+<p>Happens-Before</p>
+<ul>
+<li>程序的顺序性规则</li>
+<li>volatile变量规则</li>
+<li>传递性规则</li>
+<li>管程(synchronized)中锁的规则</li>
+<li>线程start()规则</li>
+<li>线程join()原则</li>
+</ul>
 
       
     </div>
@@ -338,7 +411,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/03/system-performance-telemetry/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/18/knative-eventing/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -352,7 +425,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/03/system-performance-telemetry/" class="post-title-link" itemprop="url">System performance telemetry</a>
+            <a href="/2019/09/18/knative-eventing/" class="post-title-link" itemprop="url">Knative Eventing</a>
         </h2>
 
         <div class="post-meta">
@@ -362,7 +435,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-03 10:25:42" itemprop="dateCreated datePublished" datetime="2019-09-03T10:25:42+08:00">2019-09-03</time>
+              <time title="Created: 2019-09-18 11:26:36" itemprop="dateCreated datePublished" datetime="2019-09-18T11:26:36+08:00">2019-09-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -370,7 +443,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index"><span itemprop="name">system</span></a>
+                  <a href="/categories/knative/" itemprop="url" rel="index"><span itemprop="name">knative</span></a>
                 </span>
             </span>
 
@@ -385,15 +458,26 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/twitter/rezolus">原文repo</a></p>
-<p>rezolus</p>
-<p>Currently, Rezolus collects telemetry from traditional sources (procfs, sysfs), the perf_events subsystem, and from eBPF</p>
-<h3 id="Features"><a href="#Features" class="headerlink" title="Features"></a>Features</h3><ul>
-<li>traditional telemetry sources (procfs, sysfs, …)</li>
-<li>perf_events support for hardware performance counters</li>
-<li>eBPF support to instrument kernel and user space activities</li>
-<li>oversampling and percentile metrics to capture bursts</li>
+          <p><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/docs/eventing">原文链接</a></p>
+<p>Design:</p>
+<ol>
+<li>Knative Eventing services are loosely coupled. These services can be developed and deployed independently on, and across a variety of platforms (for example Kubernetes, VMs, SaaS or FaaS).</li>
+<li>Event producers and event consumers are independent. Any producer (or source), can generate events before there are active event consumers that are listening. Any event consumer can express interest in an event or class of events, before there are producers that are creating those events.</li>
+<li>Other services can be connected to the Eventing system. These services can perform the following functions:<ul>
+<li>Create new applications without modifying the event producer or event consumer.</li>
+<li>Select and target specific subsets of the events from their producers.</li>
 </ul>
+</li>
+<li>Ensure cross-service interoperability. Knative Eventing is consistent with the<a target="_blank" rel="noopener" href="https://github.com/cloudevents/spec/blob/master/spec.md#design-goals">CloudEvents</a>specification that is developed by the<a target="_blank" rel="noopener" href="https://lists.cncf.io/g/cncf-wg-serverless">CNCF Serverless WG</a>.</li>
+</ol>
+<p>A Broker provides a bucket of events which can be selected by attribute. It receives events and forwards them to subscribers defined by one or more matching Triggers.</p>
+<p>A Trigger describes a filter on event attributes which should be delivered to an Addressable. You can create as many Triggers as necessary.</p>
+<p><img src="https://github.com/knative/docs/blob/master/docs/eventing/images/broker-trigger-overview.svg" alt="event broker"></p>
+<img src="https://github.com/knative/docs/blob/master/docs/eventing/images/broker-trigger-overview.svg">
+
+
+
+<p><img src="https://github.com/knative/docs/blob/master/docs/eventing/images/control-plane.png" alt="control plane"></p>
 
       
     </div>
@@ -413,7 +497,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/16/Statefulness-on-K8s/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -427,7 +511,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/02/pprof-for-investigated-memory-leaks/" class="post-title-link" itemprop="url">Pprof for investigated memory leaks</a>
+            <a href="/2019/09/16/Statefulness-on-K8s/" class="post-title-link" itemprop="url">Statefulness on K8s</a>
         </h2>
 
         <div class="post-meta">
@@ -437,7 +521,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-02 22:51:08" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">2019-09-02</time>
+              <time title="Created: 2019-09-16 23:23:14" itemprop="dateCreated datePublished" datetime="2019-09-16T23:23:14+08:00">2019-09-16</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -445,7 +529,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
                 </span>
             </span>
 
@@ -460,118 +544,20 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192">原文链接</a></p>
-<p><strong>memory pressure</strong>issues materialize are:</p>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/capital-one-tech/conquering-statefulness-on-kubernetes-26336d5f4f17">原文链接</a></p>
+<p>This concept is vastly different than the idea of containers being fast and lightweight and easy to deploy anywhere needed at a moments notice. It’s for this reason that persistent state was purposefully left out of container specs, which opted instead for storage plugins; shifting the responsibility of managing persistent state to another party（container不带storage，而以plugins的方式来进行补充)</p>
+<p>There are two key features of an application that require persistent state: </p>
 <ul>
-<li>Too many allocations, incorrect data representation</li>
-<li>Heavy usage of reflection or strings</li>
-<li>Using globals</li>
-<li>Orphaned, never-ending goroutines</li>
+<li>the need to persist data <em>beyond</em>application outages and restarts</li>
+<li> and the need to manage application state <em>across</em>the same outages and restarts. </li>
 </ul>
-<p>利用golang实现blockchain</p>
-<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
-<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
-<p>Go has several built in profiles for us to use in common cases:</p>
-<ul>
-<li>goroutine — stack traces of all current goroutines</li>
-<li>heap — a sampling of memory allocations of live objects</li>
-<li>allocs — a sampling of all past memory allocations</li>
-<li>threadcreate — stack traces that led to the creation of new OS threads</li>
-<li>block — stack traces that led to blocking on synchronization primitives</li>
-<li>mutex — stack traces of holders of contended mutexes</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
+<p>Kubernetes <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes</a>and <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volume Claims</a>provide a way to abstract the details of how storage is provisioned from how it is consumed. </p>
+<p>The .spec.storageClassName can be used to classify the PV as a certain class of storage, which can be leveraged by PVCs to specify a specific class of storage to claim.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">mypvc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">mysc</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="string">—</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">8Gi</span></span><br></pre></td></tr></table></figure>
 
-<ul>
-<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
-<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
-</ul>
-<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
-<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
 
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" class="post-title-link" itemprop="url">Jvm profiler for tracing distributed jvm applications</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-02 20:04:00" itemprop="dateCreated datePublished" datetime="2019-09-02T20:04:00+08:00">2019-09-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://eng.uber.com/jvm-profiler/">原文链接</a></p>
-<p>While Spark makes data technology more accessible, right-sizing the resources allocated to Spark applications<br>and optimizing the operational efficiency of our data infrastructure requires more fine-grained insights about these systems, namely their resource usage patterns.</p>
-<p>Our existing tools could only monitor server-level metrics and did not gauge metrics for individual applications. We needed a solution that could collect metrics for each process and correlate them across processes for each application. Additionally, we do not know when these processes will launch and how long they will take. To be able to collect metrics in this environment,<br>the profiler needs to be launched automatically with each process.</p>
-<h4 id="What-does-the-JVM-Profiler-do"><a href="#What-does-the-JVM-Profiler-do" class="headerlink" title="What does the JVM Profiler do?"></a>What does the JVM Profiler do?</h4><p>The JVM Profiler is composed of three  key features that make it easier to collect performance and resource  usage metrics, and then serve these metrics (e.g. Apache Kafka) to other  systems for further analysis:</p>
-<ul>
-<li><strong>A java agent</strong>:  By incorporating a Java agent into our profiler, users can collect  various metrics (e.g. CPU/memory usage) and stack traces for JVM  processes in a distributed way. </li>
-<li><strong>Advanced profiling capabilities</strong>:  Our JVM Profiler allows us to trace arbitrary Java methods and  arguments in the user code without making any actual code changes. This  feature can be used to trace HDFS NameNode RPC call latency for Spark  applications and identify slow method calls. It can also trace the HDFS  file paths each Spark application reads or writes to identify hot files  for further optimization.</li>
-<li><strong>Data analytics reporting</strong>:  At Uber, we use the profiler to report metrics to Kafka topics and  Apache Hive tables, making data analytics faster and easier.</li>
-</ul>
-<h4 id="Typical-use-cases"><a href="#Typical-use-cases" class="headerlink" title="Typical use cases"></a>Typical use cases</h4><ul>
-<li><strong>Right-size executor:</strong> We use  memory metrics from the JVM Profiler to track actual memory usage for  each executor so we can set the proper value for the Spark  “executor-memory” argument.</li>
-<li><strong>Monitor HDFS NameNode RPC latency:</strong> We profile methods on the class <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB</em>  in a Spark application and identify long latencies on NameNode calls.  We monitor more than 50 thousand Spark applications each day with  several billions of such RPC calls.</li>
-<li><strong>Monitor driver dropped events:</strong> We profile methods like <em>org.apache.spark.scheduler.LiveListenerBus.onDropEvent</em> to trace situations during which the Spark driver event queue becomes too long and drops events.</li>
-<li><strong>Trace data lineage:</strong> We profile file path arguments on the method <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.getBlockLocations</em> and <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.addBlock</em> to trace what files are read and written by the Spark application.</li>
-</ul>
-<p><a href="github.com/uber-common/jvm-profiler">repo地址</a></p>
-<p>入口函数为Agent.java</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">Agent</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AgentImpl agentImpl = <span class="keyword">new</span> AgentImpl();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Agent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">agentmain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        premain(args, instrumentation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">premain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Java Agent &quot;</span> + AgentImpl.VERSION + <span class="string">&quot; premain args: &quot;</span> + args);</span><br><span class="line"></span><br><span class="line">        Arguments arguments = Arguments.parseArgs(args);</span><br><span class="line">        arguments.runConfigProvider();</span><br><span class="line">        agentImpl.run(arguments, instrumentation, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
@@ -593,7 +579,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/31/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/31/">31</a><span class="page-number current">32</span><a class="page-number" href="/page/33/">33</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/33/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/31/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/31/">31</a><span class="page-number current">32</span><a class="page-number" href="/page/33/">33</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/33/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -661,20 +647,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

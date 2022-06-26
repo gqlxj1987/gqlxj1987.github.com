@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/16/golang-map/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/21/git-flight-rules/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/16/golang-map/" class="post-title-link" itemprop="url">Golang Map efficiently vs other language</a>
+            <a href="/2018/10/21/git-flight-rules/" class="post-title-link" itemprop="url">Git Flight Rules</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-16 15:35:13" itemprop="dateCreated datePublished" datetime="2018-09-16T15:35:13+08:00">2018-09-16</time>
+              <time title="Created: 2018-10-21 23:28:36" itemprop="dateCreated datePublished" datetime="2018-10-21T23:28:36+08:00">2018-10-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/git/" itemprop="url" rel="index"><span itemprop="name">git</span></a>
                 </span>
             </span>
 
@@ -200,50 +200,18 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://dave.cheney.net/2018/05/29/how-the-go-runtime-implements-maps-efficiently-without-generics">原文链接</a></p>
-<p>主要是介绍没有泛型的情况下，hashmap实现上的一些高效考虑</p>
-<h3 id="Go’s-map-is-a-hashmap"><a href="#Go’s-map-is-a-hashmap" class="headerlink" title="Go’s map is a hashmap"></a>Go’s map is a hashmap</h3><p>hash function </p>
-<ul>
-<li>The first is <em>stability</em>. The hash function must be stable. Given the same key, your hash function must return the same answer</li>
-<li>The second property is <em>good distribution</em>. Given two near identical keys, the result should be wildly different</li>
-</ul>
-<p> In this case our hashmap has eight buckets (as this is the value that the Go implementation uses) and each bucket can hold up to eight entries each (again drawn from the Go implementation)</p>
-<p><img src="https://dave.cheney.net/wp-content/uploads/2018/05/Gocon-2018-Maps.021-624x351.png"></p>
-<p><img src="https://dave.cheney.net/wp-content/uploads/2018/05/Screen-Shot-2018-05-20-at-20.25.36-624x351.png" alt="insert process"></p>
-<h3 id="a-hash-map-four-properties"><a href="#a-hash-map-four-properties" class="headerlink" title="a hash map four properties"></a>a hash map four properties</h3><ol>
-<li>You need a hash function for the key.</li>
-<li>You need an equality function to compare keys.</li>
-<li>You need to know the size of the key and,</li>
-<li>You need to know the size of the value because these affect the size of the bucket structure, which the compiler needs to know, as you walk or insert into that structure, how far to advance in memory.</li>
-</ol>
-<h4 id="java"><a href="#java" class="headerlink" title="java"></a>java</h4><p>boxing: boolean<code>, </code>int<code>, </code>short<code>, </code>long<code>, </code>byte<code>, </code>char<code>, </code>float<code>, and </code>double  to java.lang.Object</p>
-<h4 id="c-同java实现hashmap的优缺点"><a href="#c-同java实现hashmap的优缺点" class="headerlink" title="c++同java实现hashmap的优缺点"></a>c++同java实现hashmap的优缺点</h4><h5 id="c"><a href="#c" class="headerlink" title="c++"></a>c++</h5><ul>
-<li>key和value的大小，在compile阶段就知道</li>
-<li>可以进行inlineing</li>
-<li>速度快</li>
-<li>编译和代码上慢，要有不同的types</li>
-</ul>
-<h5 id="java-1"><a href="#java-1" class="headerlink" title="java"></a>java</h5><ul>
-<li>天然有泛型的含义，一切都是object</li>
-<li>同样也是缺点，boxing等方式，会增大gc的概率</li>
-<li>Buckets are stored as linked lists, not sequential arrays</li>
-</ul>
-<h3 id="golang的实现"><a href="#golang的实现" class="headerlink" title="golang的实现"></a>golang的实现</h3><p>While we have the <code>container/&#123;list,heap&#125;</code> packages which do use the empty interface, the runtime’s map implementation does not use <code>interface&#123;&#125;</code>.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">v := m[<span class="string">&quot;key&quot;</span>]     → runtime.mapaccess1(m, ”key<span class="string">&quot;, &amp;v)</span></span><br><span class="line"><span class="string">v, ok := m[&quot;</span>key<span class="string">&quot;] → runtime.mapaccess2(m, ”key”, &amp;v, &amp;ok)</span></span><br><span class="line"><span class="string">m[&quot;</span>key<span class="string">&quot;] = 9001   → runtime.mapinsert(m, ”key&quot;</span>, <span class="number">9001</span>)</span><br><span class="line"><span class="built_in">delete</span>(m, <span class="string">&quot;key&quot;</span>)  → runtime.mapdelete(m, “key”)</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://github.com/k88hudson/git-flight-rules">repo地址</a></p>
+<p>提交的信息写错了</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">git commit --amend --only -m <span class="string">&#x27;xxxxxxx&#x27;</span></span></span><br></pre></td></tr></table></figure>
 
-<p>实际上针对channel的操作？</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mapaccess1</span><span class="params">(t *maptype, h *hmap, key unsafe.Pointer)</span> <span class="title">unsafe</span>.<span class="title">Pointer</span></span></span><br></pre></td></tr></table></figure>
+<h3 id="我想要暂存一个新文件的一部分，而不是这个文件的全部"><a href="#我想要暂存一个新文件的一部分，而不是这个文件的全部" class="headerlink" title="我想要暂存一个新文件的一部分，而不是这个文件的全部"></a>我想要暂存一个新文件的一部分，而不是这个文件的全部</h3><p>一般来说, 如果你想暂存一个文件的一部分, 你可这样做:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git add --patch filename.x</span><br></pre></td></tr></table></figure>
 
-<p>在mapaccess中，指明maptype，不同于c++部分针对所有的map有不同的实现，golang部分，在compile阶段生成maptype字段</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> maptype <span class="keyword">struct</span> &#123;</span><br><span class="line">        typ           _type</span><br><span class="line">        key         *_type</span><br><span class="line">        elem        *_type</span><br><span class="line">        bucket        *_type <span class="comment">// internal type representing a hash bucket</span> </span><br><span class="line">        hmap          *_type <span class="comment">// internal type representing a hmap</span></span><br><span class="line">        keysize       <span class="keyword">uint8</span>  <span class="comment">// size of key slot</span></span><br><span class="line">        indirectkey   <span class="keyword">bool</span>   <span class="comment">// store ptr to key instead of key itself</span></span><br><span class="line">        valuesize     <span class="keyword">uint8</span>  <span class="comment">// size of value slot</span></span><br><span class="line">        indirectvalue <span class="keyword">bool</span>   <span class="comment">// store ptr to value instead of value itself</span></span><br><span class="line">        bucketsize    <span class="keyword">uint16</span> <span class="comment">// size of bucket</span></span><br><span class="line">        reflexivekey  <span class="keyword">bool</span>   <span class="comment">// true if k==k for all keys</span></span><br><span class="line">        needkeyupdate <span class="keyword">bool</span>   <span class="comment">// true if we need to update key on overwrite</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>-p</code> 简写。这会打开交互模式， 你将能够用 <code>s</code> 选项来分隔提交(commit)； 然而, 如果这个文件是新的, 会没有这个选择， 添加一个新文件时, 这样做:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git add -N filename.x</span><br></pre></td></tr></table></figure>
 
-<p>mapaccess的功能如下：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// mapaccess1 returns a pointer to h[key].  Never returns nil, instead</span> </span><br><span class="line"><span class="comment">// it will return a reference to the zero object for the value type if</span> </span><br><span class="line"><span class="comment">// the key is not in the map.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mapaccess1</span><span class="params">(t *maptype, h *hmap, key unsafe.Pointer)</span> <span class="title">unsafe</span>.<span class="title">Pointer</span></span> &#123; </span><br><span class="line">        <span class="keyword">if</span> h == <span class="literal">nil</span> || h.count == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> unsafe.Pointer(&amp;zeroVal[<span class="number">0</span>]) </span><br><span class="line">        &#125;</span><br><span class="line">        alg := t.key.alg</span><br><span class="line">        hash := alg.hash(key, <span class="keyword">uintptr</span>(h.hash0))</span><br><span class="line">        m := bucketMask(h.B)</span><br><span class="line">        b := (*bmap)(add(h.buckets, (hash&amp;m)*<span class="keyword">uintptr</span>(t.bucketsize)))</span><br></pre></td></tr></table></figure>
-
-
-
-
-
+<p>然后, 你需要用 <code>e</code> 选项来手动选择需要添加的行，执行 <code>git diff --cached</code> 将会显示哪些行暂存了哪些行只是保存在本地了。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/git-tips/tips">更多的tips</a></p>
 
       
     </div>
@@ -263,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/15/month-conclusion/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/21/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -277,7 +245,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/15/month-conclusion/" class="post-title-link" itemprop="url">又是新的一段旅程</a>
+            <a href="/2018/10/21/one-week/" class="post-title-link" itemprop="url">Wake me up !</a>
         </h2>
 
         <div class="post-meta">
@@ -287,7 +255,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-15 16:03:18" itemprop="dateCreated datePublished" datetime="2018-09-15T16:03:18+08:00">2018-09-15</time>
+              <time title="Created: 2018-10-21 21:48:46" itemprop="dateCreated datePublished" datetime="2018-10-21T21:48:46+08:00">2018-10-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -295,7 +263,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/newlife/" itemprop="url" rel="index"><span itemprop="name">newlife</span></a>
+                  <a href="/categories/weeekly/" itemprop="url" rel="index"><span itemprop="name">weeekly</span></a>
                 </span>
             </span>
 
@@ -310,40 +278,35 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>同样是走过新美的三年，最后的选择，也算是应验了三年前戏言的一句，跟着瀚总干。</p>
-<p>不过，感觉还是自己有点想简单了，就算你是面向工资编程，但是新环境，新技术，新的人，带来的冲击还是很大。。。开始变得有点患得患失，对自己的焦虑，对自己的失望等等。。。</p>
-<p>算是莫名其妙地开启这一段新的旅程，同样的，感觉自己的发展方向又变了，幸好自己还有一些java的底子，还不算太差</p>
-<p>不管那些有的没的负面情绪，以自己为主，去学习，去了解，希望自己能在这段旅程收获一些东西</p>
+          <p>我也一直 都不会是特别的</p>
+<p>虽然如此 但对我来说或许足够了</p>
+<p>虽然知道不能继续如此 但对我来说或许已经满足了</p>
+<p>耳边传来了别人正在唱歌的动听的歌声</p>
+<p>虽然感到了有些沮丧</p>
+<p>明天到来就用这样的态度</p>
+<p>生活下去吧</p>
+<hr>
+<p>本周工作：</p>
 <ul>
-<li>发现新的领域，并能做出一些东西/成绩出来</li>
-<li>规划自己的人生，不管是工作还是生活，想清楚自己的方向</li>
-<li>养成一些好的习惯，戒掉自己的拖延症以及一些其他坏的习惯</li>
-<li>拓宽自己的视野，坚守自己的原则以及信念</li>
+<li>修复dag合并的问题，同时将node部分进行整合，提升相关效率</li>
+<li>人工特征流程部分完成</li>
+<li>整体流程串联成功</li>
 </ul>
-<p>其实，这些想法跟3年前并没有什么不同，就像之前说的那样，旅程上，去见一些人，一些事，做一些事，学一些东西，仅此而已，旅程就也够了</p>
-<p>现在很大的一个问题，还是想的太多，做的还不够，写的不够多，锻炼的不够，有实际的想的不够，总结的不够，学习的不够。。。</p>
-<p>领域方面：</p>
+<p>下周工作：</p>
 <ul>
-<li>业务上，总结一些框架出来，对于系统部分的一些剥离和重构</li>
-<li>机器学习的算法上，各种算法的学习和深入</li>
-<li>内部工具效率方面，能够工具化自己的日常工作，去不断地提升效率</li>
-<li>多写wiki，多写总结，多写想法</li>
+<li>一些边界条件部分的修复</li>
+<li>另起一个实验数据部分</li>
+<li>准备提测的相关事宜</li>
 </ul>
-<p>规划方面：</p>
+<p>本周所得：</p>
 <ul>
-<li>生活上，通过去学习身边人的想法，学习书本以及视频中的想法，去设想自己未来想要的生活</li>
+<li>关于进度的一些把控方面</li>
+<li>同他人的协同方面正在恢复</li>
 </ul>
-<p>习惯上：</p>
-<ul>
-<li>通过每周一总结，去努力地克服掉自己的拖延症，通过贴一些小纸条，来强化自己要做的事情</li>
-</ul>
-<p>视野上：</p>
-<ul>
-<li>接触各种不同的东西，敢于去改变，去接触，去了解不同的事物，改变自己的心态</li>
-</ul>
-<p>其实，也不知道自己这段旅程能坚持多久，说不定还过不了试用期。。哈哈。。。</p>
-<p>要懂得和同事保持距离。要明白你对大多数人来说，只是大多数人之间的一个。你并没有什么特殊的。。。</p>
-<p>但不管怎么样，踏踏实实地走好每一步，也算是经历过，也没啥，放轻松心态。。。</p>
+<p>时间安排上，尽快地安排一下，合理地安排学习和游戏的时间部分，总感觉自己的学习新知识部分，有点拉下来了。。。早日把jenkins部分的源码部分进行阅读，按里面有没有可以借鉴部分</p>
+<p>身体锻炼上，起码恢复了每周一跑，继续坚持，同时在周中的时候，看有没有机会加入5km的跑步环节，节食部分，也要坚持下去，晚上不要吃太多，以水果啥的为主</p>
+<p>目标是架构的设计一些方面，之前做的可能更轻量级，更小众，现在要涉及一些企业级的框架部分，希望自己能够慢慢转向这个方向，去设计一些东西，能够将之前的一些设计完善起来，同时加入自己的理解部分</p>
+<p>正如歌词里提到的，已经知道不能继续如此，应该感到很满足才对，有过这段很珍贵的经历，就已经很足够了。虽然会有些沮丧，但明天还是会继续，就用这样的态度，生活下去吧</p>
 
       
     </div>
@@ -363,7 +326,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/10/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/13/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -377,7 +340,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/10/one-week/" class="post-title-link" itemprop="url">活着</a>
+            <a href="/2018/10/13/one-week/" class="post-title-link" itemprop="url">我们无法成为野兽</a>
         </h2>
 
         <div class="post-meta">
@@ -387,7 +350,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-10 08:10:51" itemprop="dateCreated datePublished" datetime="2018-09-10T08:10:51+08:00">2018-09-10</time>
+              <time title="Created: 2018-10-13 17:18:29" itemprop="dateCreated datePublished" datetime="2018-10-13T17:18:29+08:00">2018-10-13</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -410,36 +373,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <blockquote>
-<p>日剧&lt;&lt;火花&gt;&gt;</p>
-<p>只要还活着</p>
-<p>就不会有坏结局</p>
-<p>我们仍然在故事的中途</p>
-</blockquote>
+          <p>如果可以像野兽一样自由生活就好</p>
+<p>就算是社畜，就算是被人遗弃的zombie，但只要心中有一点点的光亮，也要努力地活下去  —佐贺传奇</p>
 <hr>
 <p>本周工作：</p>
 <ul>
-<li>基本完成增量DAG改造的框架</li>
-<li>模板的导入与导出功能，相关项目开始上手入门</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>手把手教k8s的搭建部分</li>
+<li>dag转换部分的工作</li>
+<li>流程的完善，加入default template的构造</li>
+<li>整个流程的串联</li>
 </ul>
 <p>下周工作：</p>
 <ul>
-<li>串联自动拼表的功能</li>
-<li>部署环境部分的梳理</li>
+<li>整合node到一个节点上去，提升效率，跟进银行的试验部分</li>
+<li>人工选择特征部分的加入</li>
+<li>关于整体流程的运行能够成功</li>
 </ul>
-<p>保持学习的心态，保持谦卑，不要把以前的经验总放在心上，当成一碗白水，重新去适应新的环境，新的文化。。。</p>
-<p>可能是自己习惯了单打独斗，对于协同部分，不是很适应，其实，所谓的做架构，其实就是做人的分配，以及活的分配，可能自己还是达不到这个水平吧，或者说，有点不适应搞这个，达不到所谓的预期吧。。。</p>
-<p>可能还是不适合干这个打交道的事情吧，自己尽量去做，尽量去想吧，至于能不能达到，也不是自己能说清楚的，也没什么大不了的，顶多就是失败了，失败也没什么可怕的，就当是学习/体验一趟，做好心理准备就好了。。。</p>
-<p>你在害怕什么？失败？达不到别人的预期的失望？自己的失望？不过是自己不行的接口罢了。。</p>
-<p>保持输出，不管自己的理解是什么样子的，保证一定的wiki或者blog的编写，对自己的理解以及学习上有更大的帮助。。。</p>
-<p>只要活着，就还在编写故事，不管是好的，还是坏的，都是在体验人生的一部分。。。无畏失败，尽量去体验，尝试就可以了，没什么好失去的，静静地做好自己就好了，尽自己最大的努力去活着，其他的就管不了。。</p>
-<p>锻炼上，开始慢慢恢复，晚上增加keep的选项，保证一定量的运动？</p>
-<p>人一过三十，十二点就变得很困。。。将一些时间点移到早上，在早上进行学习等等。。。</p>
-<p>为自己的行为负责，孤独地活下去。。。</p>
+<p>本周所得：</p>
+<ul>
+<li>关于python脚本的集成部分</li>
+<li>对dag的理解更深了</li>
+</ul>
+<p>这周的时间安排，慢慢在恢复，晚上也能抽点时间来做一些东西，后面就是定一下，每天晚上抽10分钟或者半个小时，学习一下新的知识部分？</p>
+<p>关于身体锻炼部分，还是要加强，不管是跑步还是keep部分，都要保持，现在才知道32是180穿的。。。目标是30才行</p>
+<p>新知识的梳理部分，以及新知识的学习部分，感觉有点缓慢，不妨以深度学习为例，来做一些新知识的入门，在业务的基础上，深入技术去学习一些东西</p>
+<p>感觉刚刚摸到一些头绪，哎。。。尽力去做吧。。。哎，感觉还是有差距，效率上的方式，无法提升，很多的东西就无法把控。。。哎。。。</p>
 
       
     </div>
@@ -459,7 +416,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/09/Kubernetes-Best-Practices-with-Sandeep-Dinesh/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/09/time-speed/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -473,7 +430,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/09/Kubernetes-Best-Practices-with-Sandeep-Dinesh/" class="post-title-link" itemprop="url">Kubernetes Best Practices Tips</a>
+            <a href="/2018/10/09/time-speed/" class="post-title-link" itemprop="url">时间计划</a>
         </h2>
 
         <div class="post-meta">
@@ -483,7 +440,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-09 22:28:26" itemprop="dateCreated datePublished" datetime="2018-09-09T22:28:26+08:00">2018-09-09</time>
+              <time title="Created: 2018-10-09 10:07:19" itemprop="dateCreated datePublished" datetime="2018-10-09T10:07:19+08:00">2018-10-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -491,7 +448,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                  <a href="/categories/time/" itemprop="url" rel="index"><span itemprop="name">time</span></a>
                 </span>
             </span>
 
@@ -506,27 +463,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_140&v=BznjDNxp4Hs">视频地址</a></p>
-<p>主要是介绍weave cloud中k8s的一些实践部分</p>
-<h2 id="building-containers"><a href="#building-containers" class="headerlink" title="building containers"></a>building containers</h2><p>clair, 对镜像的静态分析</p>
-<h4 id="use-the-build-pattern"><a href="#use-the-build-pattern" class="headerlink" title="use the build pattern"></a>use the build pattern</h4><p>build container -&gt; build artifact -&gt; runtime container</p>
-<p>在镜像中，尽量使用非root用户？yaml中有相应的选项</p>
-<h4 id="One-process-per-container"><a href="#One-process-per-container" class="headerlink" title="One process per container"></a>One process per container</h4><p>pod运行所有的process</p>
-<h4 id="Don’t-restart-on-failure-Crash-cleanly-instead"><a href="#Don’t-restart-on-failure-Crash-cleanly-instead" class="headerlink" title="Don’t restart on failure. Crash cleanly instead"></a>Don’t restart on failure. Crash cleanly instead</h4><p>举的例子就是PM2运行nodejs程序，k8s会重启container，只需要返回更高的code让k8s去检测到</p>
-<h4 id="log-to-stdout-and-stderr"><a href="#log-to-stdout-and-stderr" class="headerlink" title="log to stdout and stderr"></a>log to stdout and stderr</h4><h2 id="Deployments"><a href="#Deployments" class="headerlink" title="Deployments"></a>Deployments</h2><h4 id="记录每次deploy的record部分"><a href="#记录每次deploy的record部分" class="headerlink" title="记录每次deploy的record部分"></a>记录每次deploy的record部分</h4><h4 id="关于label的使用"><a href="#关于label的使用" class="headerlink" title="关于label的使用"></a>关于label的使用</h4><h4 id="Use-sidecar-containers-for-proxies-watchers-etc"><a href="#Use-sidecar-containers-for-proxies-watchers-etc" class="headerlink" title="Use sidecar containers for proxies, watchers, etc"></a>Use sidecar containers for proxies, watchers, etc</h4><p>程序只需要跟本地的端口部分打交道，由proxy去同其他部分，进行auth,rate,limiting等等相关的交互</p>
-<h4 id="Don’t-use-sidecars-for-bootstarpping-Just-use-initial-container-instead"><a href="#Don’t-use-sidecars-for-bootstarpping-Just-use-initial-container-instead" class="headerlink" title="Don’t use sidecars for bootstarpping. Just use initial container instead"></a>Don’t use sidecars for bootstarpping. Just use initial container instead</h4><h4 id="Don’t-use-latest-or-no-tag"><a href="#Don’t-use-latest-or-no-tag" class="headerlink" title="Don’t use :latest or no tag"></a>Don’t use :latest or no tag</h4><h4 id="Health-check"><a href="#Health-check" class="headerlink" title="Health check"></a>Health check</h4><ul>
-<li>Readiness-&gt;是否已经启动，并接收流量</li>
-<li>Liveness-&gt;是否还在运行</li>
-</ul>
-<h2 id="Services"><a href="#Services" class="headerlink" title="Services"></a>Services</h2><h4 id="type-NodePort-can-be-“good-enough”"><a href="#type-NodePort-can-be-“good-enough”" class="headerlink" title="type: NodePort can be “good enough”"></a>type: NodePort can be “good enough”</h4><h3 id="map-external-services-to-internal-ones"><a href="#map-external-services-to-internal-ones" class="headerlink" title="map external services to internal ones"></a>map external services to internal ones</h3><p>内部一个点，外部一个点，从而避免内外部混用，配置文件部分也不同</p>
-<h4 id="Use-Helm-Charts"><a href="#Use-Helm-Charts" class="headerlink" title="Use Helm Charts"></a>Use Helm Charts</h4><h4 id="Just-assume-that-all-your-downstream-dependencies-are-unreliable"><a href="#Just-assume-that-all-your-downstream-dependencies-are-unreliable" class="headerlink" title="Just assume that all your downstream dependencies are unreliable"></a>Just assume that all your downstream dependencies are unreliable</h4><h4 id="Use-a-“Service-Mesh”"><a href="#Use-a-“Service-Mesh”" class="headerlink" title="Use a “Service Mesh”"></a>Use a “Service Mesh”</h4><p>istio 或者linkerd部分？可以无缝接到你的container部分</p>
-<h4 id="Use-Namespaces-to-split-up-your-cluster"><a href="#Use-Namespaces-to-split-up-your-cluster" class="headerlink" title="Use Namespaces to split up your cluster"></a>Use Namespaces to split up your cluster</h4><h4 id="Unleash-the-chaos-monkey"><a href="#Unleash-the-chaos-monkey" class="headerlink" title="Unleash the chaos monkey"></a>Unleash the chaos monkey</h4><p>?</p>
-<h2 id="Challenges-on-K8s-Cluster"><a href="#Challenges-on-K8s-Cluster" class="headerlink" title="Challenges on K8s Cluster"></a>Challenges on K8s Cluster</h2><h3 id="Infrastructure的版本控制"><a href="#Infrastructure的版本控制" class="headerlink" title="Infrastructure的版本控制"></a>Infrastructure的版本控制</h3><p>Terraform to configure infrastructure</p>
-<p>Kubediff</p>
-<h3 id="Continuous-Delivery"><a href="#Continuous-Delivery" class="headerlink" title="Continuous Delivery"></a>Continuous Delivery</h3><p>branch and commit Id in the image tag</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/weaveworks/flux">一个工具flux</a></p>
-<p>###关于报警和监控部分</p>
-<p>使用k8s的服务发现，tsdb部分的存储，pull vs push</p>
+          <p>关于一些时间管理上的想法</p>
 
       
     </div>
@@ -546,7 +483,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/09/go-javascript/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/08/RxJava/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -560,7 +497,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/09/09/go-javascript/" class="post-title-link" itemprop="url">Go 兼容Javascript</a>
+            <a href="/2018/10/08/RxJava/" class="post-title-link" itemprop="url">RxJava intro</a>
         </h2>
 
         <div class="post-meta">
@@ -570,7 +507,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-09-09 16:42:05" itemprop="dateCreated datePublished" datetime="2018-09-09T16:42:05+08:00">2018-09-09</time>
+              <time title="Created: 2018-10-08 22:26:41" itemprop="dateCreated datePublished" datetime="2018-10-08T22:26:41+08:00">2018-10-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -578,7 +515,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/RxJava/" itemprop="url" rel="index"><span itemprop="name">RxJava</span></a>
                 </span>
             </span>
 
@@ -593,8 +530,28 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/robertkrimen/otto">repo地址</a></p>
-<p>该repo，相当于实现了一个小型简单的javascript的vm，用于运行javascript</p>
+          <p><a target="_blank" rel="noopener" href="http://baurine.github.io/2017/07/12/rxjava_understand.html">原文链接</a></p>
+<p>关于流式编程的一些说明，Stream API</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// JavaScript</span><br><span class="line">let r = [1,2,3,4,5,6,7,8,9].filter(i=&gt;i&gt;5).map(i=&gt;i*10).reduce((a,b)=&gt;a+b, 0)</span><br><span class="line"></span><br><span class="line">// Ruby</span><br><span class="line">r = [1,2,3,4,5,6,7,8,9].select &#123;|i| i&gt;5&#125;.map &#123;|i| i*10&#125;.reduce(0) &#123;|a,b| a+b&#125;</span><br><span class="line"></span><br><span class="line">// Swift</span><br><span class="line">var r = [1,2,3,4,5,6,7,8,9].filter &#123;$0&gt;5&#125;.map &#123;$0*10&#125;.reduce(0) &#123;$0+$1&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Integer[] numbers = <span class="keyword">new</span> Integer[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>&#125;;</span><br><span class="line">Observable.from(numbers)</span><br><span class="line">        .filter(integer) -&gt; &#123; <span class="keyword">return</span> integer &gt; <span class="number">5</span>; &#125;)</span><br><span class="line">        .map((integer) -&gt; &#123; <span class="keyword">return</span> integer * <span class="number">10</span>; &#125;)</span><br><span class="line">        .reduce(<span class="number">0</span>, (int1, int2) -&gt; &#123; <span class="keyword">return</span> int1 + int2; &#125;)</span><br><span class="line">        .subscribe((integer) -&gt; &#123; Log.i(TAG, <span class="string">&quot;result: &quot;</span> + integer); &#125;);</span><br></pre></td></tr></table></figure>
+
+
+
+<ol>
+<li>流式编程法，每一个单独的步骤，在内部都重新对整体数据进行一次循环，因此它要做很多次小循环，但整体的流程只走一遍。</li>
+<li>Rx，只在数据最源头，对整体数据进行一次循环，取出每一个单独的数据，让它去走一遍整体流程，因此，它只做一次循环，但整个的流程会走很多遍。</li>
+</ol>
+<p>对于 Rx 来说，如果数据源不是固定的，那么它可以监听这个数据来源，当有数据到来时，它就可以把它发射出去把整个流程走一遍。这就是我用来理解 Rx 的观察者模式和响应式编程的方法。</p>
+<p>Rx 比常见流式编程的抽象程度更高，它不光抽象了对数据的操作，还抽象了线程切换操作。</p>
+<p>Rx的Promise和Observable对象：</p>
+<ul>
+<li>Promise 对象，当它被 new 出来后，其中的方法体是立即执行的，不管后面有没有用 <code>.then()</code> 加上回调，执行的结果被存储在对象之中，如果后面再用 <code>.then()</code> 加上回调，之前的结果会马上传递给新的回调。</li>
+<li>Rx 的 Observable 对象，当它被 new 出来后，其中的方法体，只有 <code>.subscribe()</code> 方法被执行的那一刻才会执行，否则，只要没有调用 <code>.subscribe()</code>，其中的变换就永远不会执行，这和 Promise 是完全不一样的。</li>
+</ul>
+<p>只要是 T -&gt; Observable 的变换，就应该用 flatMap</p>
 
       
     </div>
@@ -613,7 +570,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -681,20 +638,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

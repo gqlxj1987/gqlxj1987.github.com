@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/08/error-handling-in-java-stream/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/100ms-in-go-gc/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/11/08/error-handling-in-java-stream/" class="post-title-link" itemprop="url">Error Handling In Java Stream</a>
+            <a href="/2019/12/08/100ms-in-go-gc/" class="post-title-link" itemprop="url">100ms In Go Gc</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,335 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-11-08 10:19:43" itemprop="dateCreated datePublished" datetime="2019-11-08T10:19:43+08:00">2019-11-08</time>
+              <time title="Created: 2019-12-08 16:18:52" itemprop="dateCreated datePublished" datetime="2019-12-08T16:18:52+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MjM5NDcxOTMwNQ==&mid=2247483668&idx=1&sn=021cd9ef605013b71e78596d82f31399&chksm=a682323291f5bb2483df8ed8a79dff6e8cd04dd06ebfec2c2de2c6804714517afa5bee74e465&scene=21#wechat_redirect">原文链接</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -o trace.out &#x27;http://ip:port/debug/pprof/trace?seconds=20&#x27;</span><br><span class="line">    </span><br><span class="line">sz ./trace.out</span><br></pre></td></tr></table></figure>
+
+
+
+<p>有一个GC的wall time为172ms,而本次gc的两个stw阶段,sweep termination和mark termination都在80多ms的样子, 几乎占满了整个GC时间, 这当然很不科学</p>
+<p>猜测的原因：</p>
+<p>容器中Go进程没有正确的设置GOMAXPROCS的个数, 导致可运行的线程过多, 可能出现调度延迟的问题.  正好出现进入gc发起stw的线程把其他线程停止后, 其被调度器切换出去, 很久没有调度该线程,  实质上造成了stw时间变得很长(正常情况0.1ms的处理过程因为调度延迟变成了100ms级别).</p>
+<p>并发50，一共处理8000个请求的perf stat结果对比. 默认CPU核数76个P, 上下文切换13万多次, pidstat查看system cpu消耗9%个核. 而按照quota数设置P的数量后, 上下文切换仅为2万多次, cpu消耗3%个核. </p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pedlax08j31480tydr0.jpg" alt="image-20191208163220373"></p>
+<p>总结：</p>
+<ol>
+<li>容器中进程看到的核数为母机CPU核数，一般这个值比较大&gt;32, 导致go进程把P设置成较大的数，开启了很多P及线程</li>
+<li>一般容器的quota都不大，0.5-4，linux调度器以该容器为一个组，里面的线程的调度是公平，且每个可运行的线程会保证一定的运行时间，因为线程多, 配额小, 虽然请求量很小, 但上下文切换多, 也可能导致发起stw的线程的调度延迟, 引起stw时间升到100ms的级别，极大的影响了请求</li>
+<li>通过使用automaxprocs库, 可根据分配给容器的cpu quota, 正确设置GOMAXPROCS以及P的数量, 减少线程数，使得GC停顿稳定在&lt;1ms了.  且同等CPU消耗情况下, QPS可增大一倍，平均响应时间由200ms减少到100ms. 线程上下文切换减少为原来的1/6</li>
+<li>同时还简单分析了该库的原理. 找到容器的cgroup目录, 计算cpuacct,cpu下cpu.cfs_quota_us/cpu.cfs_period_us, 即为分配的cpu核数.</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/pmml-intro/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/pmml-intro/" class="post-title-link" itemprop="url">PMML Intro</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 16:13:13" itemprop="dateCreated datePublished" datetime="2019-12-08T16:13:13+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/c1481118216/article/details/78411200">原文链接</a></p>
+<p>MML全称预言模型标记模型（Predictive Model Markup Language），以XML 为载体呈现数据挖掘模型。PMML  允许您在不同的应用程序之间轻松共享预测分析模型。因此，您可以在一个系统中定型一个模型，在 PMML  中对其进行表达，然后将其移动到另一个系统中，而不需考虑分析和预测过程中的具体实现细节。使得模型的部署摆脱了模型开发和产品整合的束缚。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pdux9ek5j312m09mgo5.jpg" alt="image-20191208161424594"></p>
+<ul>
+<li>头信息（Header）</li>
+<li>数据字典（DataDictionary）</li>
+<li>挖掘模式(Mining Schema)</li>
+<li>数据转换（Transformations）</li>
+<li>模型定义  (Model Definition)</li>
+<li>评分结果 (Score Result)</li>
+</ul>
+<p>数据字典定义了所有变量的信息，包括预测变量和目标变量。这些信息包括变量名，量度和类型等。 对于分类变量，可能包含各种不同类型的分类值，  包括有效值 (valid value)，遗漏值 (missing value) 和无效值 (invalid value)， 它们由 Value  的“property”属性决定；对于连续变量，可以指定一个或多个有效值范围 (Interval)。</p>
+<p>挖掘模式，定义预测变量和目标变量</p>
+<p>变量的属性由 “usageType” 值决定，该属性未指定或者值为 “active” 代表预测变量， “predicted”代表目标变量。一般来说，一个常见的模型有多个预测变量和一个目标变量</p>
+<p>最新的 PMML 4.0.1 定义了一下十三种模型：</p>
+<ul>
+<li>AssociationModel</li>
+<li>ClusteringModel</li>
+<li>GeneralRegressionModel</li>
+<li>MiningModel</li>
+<li>NaiveBayesModel</li>
+<li>NeuralNetwork</li>
+<li>RegressionModel</li>
+<li>RuleSetModel</li>
+<li>SequenceModel</li>
+<li>SupportVectorMachineModel</li>
+<li>TextModel</li>
+<li>TimeSeriesModel</li>
+<li>TreeModel</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/world-has-gone-mad/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/world-has-gone-mad/" class="post-title-link" itemprop="url">World Has Gone Mad</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 16:04:00" itemprop="dateCreated datePublished" datetime="2019-12-08T16:04:00+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.linkedin.com/pulse/world-has-gone-mad-system-broken-ray-dalio/">原文链接</a></p>
+<p>向信誉良好的人提供贷款的投资者将接受非常低或负的利率，并且不需要在可预见的将来偿还本金，导致更多的人去买金融资产。</p>
+<p>金融资产价格上涨，未来预期收益下降，而经济增长和通货膨胀仍然低迷</p>
+<p>需要政府出售更多的债务-在利率上升的时候，如果不加息就无法自然吸收这些债务</p>
+<p>公共支出更多了，导致无法填补空洞</p>
+<p>对于有钱和信誉的人来说，金钱本质上是免费的，而对于那些没有钱和信誉的人来说，金钱基本上是不可用的，这加剧了财富，机会和政治鸿沟的增加。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/full-cycle-developer-in-netflix/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/full-cycle-developer-in-netflix/" class="post-title-link" itemprop="url">Full Cycle Developer In Netflix</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 14:36:39" itemprop="dateCreated datePublished" datetime="2019-12-08T14:36:39+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/develop/" itemprop="url" rel="index"><span itemprop="name">develop</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/full-cycle-developers-at-netflix-a08c31f83249">原文链接</a></p>
+<p>The gap between code complete and deployed was much longer than today,  with releases happening on the order of weeks rather than days. Feedback went from ops, who directly experienced pains such as lack of  alerting/monitoring or performance issues and increased latencies, to  devs, who were hearing about those problems second-hand.(上线考虑地不仅是code complete)</p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pbixpo7ij317i0cmn0o.jpg" alt="image-20191208145338573"></p>
+<p><strong>“Operate what you build”</strong> puts the devops principles in action by having  the team that develops a system also be responsible for operating and  supporting that system.</p>
+<p>Each development team owns deployment issues, performance bugs, capacity planning, alerting gaps, partner support, and so on.</p>
+<p>In our experience the benefits of finding novel solutions to developer  needs are worth the risk of multiple groups creating parallel solutions  that will need to converge down the road. Communication and alignment are the keys to success. 及时地沟通以及对齐，从而找出某一些路而非是各种并行方案</p>
+<p>Moving to a full cycle developer model requires a mindset(观念模式) shift. </p>
+<p> A full cycle developer thinks and acts like an SWE, SDET, and SRE. </p>
+<p>Knowing the trade-offs before choosing a model can increase the chance of success.</p>
+<p>We mitigate this by having an on-call rotation where developers take  turns handling the deployment + operations + support responsibilities. increase the breadth</p>
+<p>Netflix has a “paved road” set of tools and practices that are formally  supported by centralized teams. We don’t mandate adoption of those paved roads but encourage adoption by ensuring that development and  operations using those technologies is a far better experience than not  using them.提供一条paved road，不是强制而是提供最佳实践</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/null-elegantly-in-java-optional/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/null-elegantly-in-java-optional/" class="post-title-link" itemprop="url">Null Elegantly In Java Optional</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 14:26:53" itemprop="dateCreated datePublished" datetime="2019-12-08T14:26:53+08:00">2019-12-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,343 +528,19 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/swlh/exception-handling-in-java-streams-5947e48f671c">原文链接</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> Consumer&lt;String&gt; <span class="title">exceptionHandledConsumer</span><span class="params">(Consumer&lt;String&gt; unhandledConsumer)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            unhandledConsumer.accept(obj);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (NumberFormatException e) &#123;</span><br><span class="line">            System.err.println(</span><br><span class="line">                    <span class="string">&quot;Can&#x27;t format this string&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; integers = Arrays.asList(<span class="string">&quot;44&quot;</span>, <span class="string">&quot;xyz&quot;</span>, <span class="string">&quot;145&quot;</span>);    integers.forEach(exceptionHandledConsumer(str -&gt; System.out.println(Integer.parseInt(str))));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>采用流式的处理方式，尽可能generics</p>
-<p>进一步：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &lt;Target, ExObj extends Exception&gt; <span class="function">Consumer&lt;Target&gt; <span class="title">handledConsumer</span><span class="params">(Consumer&lt;Target&gt; targetConsumer, Class&lt;ExObj&gt; exceptionClazz)</span> </span>&#123;    <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            targetConsumer.accept(obj);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                ExObj exCast = exceptionClazz.cast(ex);</span><br><span class="line">                System.err.println(</span><br><span class="line">                        <span class="string">&quot;Exception occured : &quot;</span> + exCast.getMessage());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ClassCastException ccEx) &#123;</span><br><span class="line">                <span class="keyword">throw</span> ex;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">List&lt;String&gt; integers = Arrays.asList(<span class="string">&quot;44&quot;</span>, <span class="string">&quot;373&quot;</span>, <span class="string">&quot;xyz&quot;</span>, <span class="string">&quot;145&quot;</span>);integers.forEach(</span><br><span class="line">        handledConsumer(str -&gt; System.out.println(Integer.parseInt(str)), </span><br><span class="line">        NumberFormatException.class));</span><br></pre></td></tr></table></figure>
-
-
-
-<p>采用FunctionalInterface的方式，进一步提升，将函数提升到类?</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FunctionalInterface</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HandlingConsumer</span>&lt;<span class="title">Target</span>, <span class="title">ExObj</span> <span class="keyword">extends</span> <span class="title">Exception</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">accept</span><span class="params">(Target target)</span> <span class="keyword">throws</span> ExObj</span>;    <span class="keyword">static</span> &lt;Target&gt; <span class="function">Consumer&lt;Target&gt; <span class="title">handlingConsumerBuilder</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">            HandlingConsumer&lt;Target, Exception&gt; handlingConsumer)</span> </span>&#123;        <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                handlingConsumer.accept(obj);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(ex);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>要经常性使用stream的方式，利用函数式的思路</p>
-<p>多用lambda表达式</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/07/JDTX-distributed-transaction-midwares/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/11/07/JDTX-distributed-transaction-midwares/" class="post-title-link" itemprop="url">JDTX distributed transaction midwares</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-11-07 23:50:19" itemprop="dateCreated datePublished" datetime="2019-11-07T23:50:19+08:00">2019-11-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/distributed/" itemprop="url" rel="index"><span itemprop="name">distributed</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/BAXzcfjRTcgmKisa7JHm">原文链接</a></p>
-<p>在高并发的性能至上场景中，基于 XA 协议两阶段提交类型的分布式事务</p>
-<p>基于 BASE 事务要素的事务则称为柔性事务。 BASE 是基本可用、柔性状态和最终一致性这 3 个要素的缩写</p>
-<p>设计目标是强一致（支持 ACID 的事务原义）、高性能（甚至强于本地事务）、1PC（完全摒弃两阶段提交和两阶段锁）的完全分布式事务中间件</p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g8pwxenjj8j313a0k246e.jpg" alt="image-20191107235335482"></p>
-<p>将在事务中的数据（称之为活跃数据）和不在事务中的数据（称之为落盘数据）分离。</p>
-<p>活跃数据在落盘至预写日志系统（WAL）之后，并将数据保存至自研的多版本快照（MVCC）内存引擎中。</p>
-<p>落盘数据则是通过异步刷盘的方式，将 MVCC 引擎中的数据以流量可控的方式同步至最终的存储介质中（如：关系型数据库）</p>
-<p>MVCC引擎可以看成一个集中式缓存</p>
-<p>每次事务内查询都是由落盘数据 + 活跃数据归并而成。归并引擎部分参照了 LSM Tree 的设计思想。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/19/quick-and-dirty/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/19/quick-and-dirty/" class="post-title-link" itemprop="url">Quick and Dirty</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-10-19 18:02:17" itemprop="dateCreated datePublished" datetime="2019-10-19T18:02:17+08:00">2019-10-19</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/software/" itemprop="url" rel="index"><span itemprop="name">software</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.ithome.com.tw/voice/133412">原文链接</a></p>
-<p>想要以快而髒作為開始，最重要的原則就是：「別讓它成為結果」</p>
-<p>快速地的實現出功能確實是主要目的，然而謹記另一個原則「令程式碼中的重複易於察覺」</p>
-<p>既然如此，就「令變數值不可變動」，如果是物件，就令「物件狀態不可變」，在這樣的情況下，開發者不得不分解出小而簡短的程式片段，儘管程式碼看來可能快而髒，然而因為程式片段都是小而簡短，很容易察覺重複，對於後續的整理會有很大的幫助。</p>
-<p>抓住变与不变部分</p>
-<p>當快而髒的程式碼演變為具有大量（小）函式的階段，這時可以開始套用語言技術或典範了，支援物件導向的語言就試著將相關功能組織為物件，套用物件導向相關的重構手法，具有lambda特性的語言可以試著用lambda</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/18/hydra-config-framework/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/18/hydra-config-framework/" class="post-title-link" itemprop="url">Hydra Config Framework</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-10-18 16:36:03" itemprop="dateCreated datePublished" datetime="2019-10-18T16:36:03+08:00">2019-10-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index"><span itemprop="name">python</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/facebookresearch/hydra">原repo地址</a></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@hydra.main(<span class="params">config_path=<span class="string">&#x27;config.yaml&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">my_app</span>(<span class="params">cfg</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(cfg.pretty())</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python my_app.py db.user=root db.pass=1234</span></span><br><span class="line">db:</span><br><span class="line">  driver: mysql</span><br><span class="line">  user: root</span><br><span class="line">  pass: 1234</span><br></pre></td></tr></table></figure>
-
-
-
-<p>config group</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python my_app.py db=postgresql</span></span><br><span class="line">db:</span><br><span class="line">  driver: postgresql</span><br><span class="line">  pass: drowssap</span><br><span class="line">  timeout: 10</span><br><span class="line">  user: postgre_user</span><br></pre></td></tr></table></figure>
-
-
-
-<p>multi-run</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python tutorial/50_composition/my_app.py schema=warehouse,support,school db=mysql,postgresql -m</span></span><br><span class="line">[2019-10-01 14:44:16,254] - Launching 6 jobs locally</span><br><span class="line">[2019-10-01 14:44:16,254] - Sweep output dir : multirun/2019-10-01/14-44-16</span><br><span class="line">[2019-10-01 14:44:16,254] -     #0 : schema=warehouse db=mysql</span><br><span class="line">[2019-10-01 14:44:16,321] -     #1 : schema=warehouse db=postgresql</span><br><span class="line">[2019-10-01 14:44:16,390] -     #2 : schema=support db=mysql</span><br><span class="line">[2019-10-01 14:44:16,458] -     #3 : schema=support db=postgresql</span><br><span class="line">[2019-10-01 14:44:16,527] -     #4 : schema=school db=mysql</span><br><span class="line">[2019-10-01 14:44:16,602] -     #5 : schema=school db=postgresql</span><br></pre></td></tr></table></figure>
-
-
-
-<p>更多的配置，更多的任务</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/18/airflow-at-lyft/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/18/airflow-at-lyft/" class="post-title-link" itemprop="url">Airflow at lyft</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-10-18 10:39:24" itemprop="dateCreated datePublished" datetime="2019-10-18T10:39:24+08:00">2019-10-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/airflow/" itemprop="url" rel="index"><span itemprop="name">airflow</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://eng.lyft.com/running-apache-airflow-at-lyft-6e53bb8fccff">原文链接</a></p>
-<ul>
-<li><strong>DAG</strong>: a workflow which glues all tasks with inter-dependecies</li>
-<li><strong>Operator</strong>: a template for a specific type of work to be executed. For example, BashOperator represents how to execute a bash script while PythonOperator represents how to execute a python function, etc.</li>
-<li><strong>Sensor</strong>: a type of special operator which will only execute if a certain condition is met.</li>
-<li><strong>Task</strong>: a parameterized instance of an operator/sensor which represents a unit of actual work to be executed.</li>
-<li><strong>Plugin</strong>: an extension to allow users to easily extend Airflow with various custom hooks, operators, sensors, macros, and web views.</li>
-<li><strong>Pools</strong>: concurrency limit configuration for a set of Airflow tasks</li>
-</ul>
-<p><img src="https://miro.medium.com/max/2280/1*u6duhZD2J_i1zZ0Txq26Cg.png" alt="airflow architecture"></p>
-<p>A celery <a target="_blank" rel="noopener" href="https://airflow.apache.org/concepts.html#queues">queue</a>check by scheduling a dummy task to every queue.</p>
-<p>The “<strong>canary</strong>” DAG helps the oncall to answer the following questions:</p>
-<ul>
-<li>how long it takes for the Airflow scheduler to schedule the task (scheduled execution_time — current_time).</li>
-<li>how long it takes for celery worker to pick up the task.</li>
-<li>how long the task runs.</li>
-</ul>
-<p>monitor 其任务的状态，以及整体队列的挤压情况</p>
-<p>dag dependency部分缺失，以及整体的状态上有缺失，应该是已经有了。。。</p>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/faun/working-on-null-elegantly-with-java-optional-62f5e65869c5">原文链接</a></p>
+<blockquote>
+<p><code>Optional</code> is primarily intended for use as a method return type where there is a clear need to represent “no result,” and where using <code>null</code> is likely to cause errors. A variable whose type is <code>Optional</code> should never itself be <code>null</code>. It should always point to an <code>Optional</code> instance.</p>
+</blockquote>
+<p>多尝试利用流式方式，而非简单的判断</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Reservation reservation = reservationService.findById(<span class="string">&quot;notExistingId&quot;</span>);</span><br><span class="line">Optional&lt;Reservation&gt; optReservation = Optional.ofNullable(reservation);</span><br><span class="line">List&lt;ReservationDetail&gt; reservatonDetails = optServation.map(Reservation::getDetails).orElse(Collections.emptyList())</span><br></pre></td></tr></table></figure>
+
+
+
+<p>a code without null check validation</p>
+<p>To do a null check validation we won’t use <code>if (objects == null)</code> here, instead we use <code>isPresent</code>, <code>ifPresent</code>, <code>orElse</code>, <code>orElseGet</code> and <code>orElseThrow</code>.</p>
+<p>I think <code>Optional</code> class is <code>good</code> when used inside a <code>service</code>, and returns at <code>getter</code> of the class attribute, But I don’t think it’ll be good when <code>passes over parameter</code> because it gives more <code>ambiguity</code> and it <code>ignores the meaning of the parameter itself which is made to be filled</code>.</p>
+<p>可以尝试做一个optionalService？来处理需要判断null的情况，返回各种object或者什么</p>
 
       
     </div>
@@ -555,7 +559,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -623,20 +627,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

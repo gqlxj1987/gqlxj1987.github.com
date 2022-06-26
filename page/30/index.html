@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/automated-ML-hyperparameter-Tuning/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/23/qushe/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/23/automated-ML-hyperparameter-Tuning/" class="post-title-link" itemprop="url">Automated ML Hyperparameter Tuning</a>
+            <a href="/2019/11/23/qushe/" class="post-title-link" itemprop="url">取舍</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-23 15:21:47" itemprop="dateCreated datePublished" datetime="2019-09-23T15:21:47+08:00">2019-09-23</time>
+              <time title="Created: 2019-11-23 12:42:42" itemprop="dateCreated datePublished" datetime="2019-11-23T12:42:42+08:00">2019-11-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ml/" itemprop="url" rel="index"><span itemprop="name">ml</span></a>
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
                 </span>
             </span>
 
@@ -200,117 +200,18 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/automated-machine-learning-hyperparameter-tuning-in-python-dfda59b72f8a">原文链接</a></p>
-<p>a complete example of Bayesian hyperparameter tuning of a gradient boosting machine using the <a target="_blank" rel="noopener" href="https://hyperopt.github.io/hyperopt/">Hyperopt library</a></p>
-<h3 id="Bayesian-Optimization-Methods"><a href="#Bayesian-Optimization-Methods" class="headerlink" title="Bayesian Optimization Methods"></a>Bayesian Optimization Methods</h3><p>Bayesian methods differ from random or grid search in that they <em>use past evaluation results to choose the next values to evaluate</em>.</p>
-<p><strong>limit expensive evaluations of the objective function by choosing the next input values based on those that have done well in the past</strong></p>
-<h3 id="Four-Parts-of-Optimization-Problem"><a href="#Four-Parts-of-Optimization-Problem" class="headerlink" title="Four Parts of Optimization Problem"></a>Four Parts of Optimization Problem</h3><ol>
-<li><strong>Objective Function:</strong> what we want to minimize, in this case the validation error of a machine learning model with respect to the hyperparameters</li>
-<li><strong>Domain Space:</strong> hyperparametervalues to search over</li>
-<li><strong>Optimization algorithm:</strong> method for constructing the surrogate model and choosing the next hyperparameter values to evaluate</li>
-<li><strong>Result history:</strong> stored outcomes from evaluations of the objective function consisting of the hyperparameters and validation loss</li>
-</ol>
-<p>rather than separating training data into a distinct validation set, we use <a target="_blank" rel="noopener" href="https://machinelearningmastery.com/k-fold-cross-validation/">KFold cross validation</a></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> lightgbm <span class="keyword">as</span> lgb</span><br><span class="line"><span class="keyword">from</span> hyperopt <span class="keyword">import</span> STATUS_OK</span><br><span class="line"></span><br><span class="line">N_FOLDS = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create the dataset</span></span><br><span class="line">train_set = lgb.Dataset(train_features, train_labels)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">objective</span>(<span class="params">params, n_folds = N_FOLDS</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Objective function for Gradient Boosting Machine Hyperparameter Tuning&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Perform n_fold cross validation with hyperparameters</span></span><br><span class="line">    <span class="comment"># Use early stopping and evalute based on ROC AUC</span></span><br><span class="line">    cv_results = lgb.cv(params, train_set, nfold = n_folds, num_boost_round = <span class="number">10000</span>, </span><br><span class="line">                        early_stopping_rounds = <span class="number">100</span>, metrics = <span class="string">&#x27;auc&#x27;</span>, seed = <span class="number">50</span>)</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># Extract the best score</span></span><br><span class="line">    best_score = <span class="built_in">max</span>(cv_results[<span class="string">&#x27;auc-mean&#x27;</span>])</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Loss must be minimized</span></span><br><span class="line">    loss = <span class="number">1</span> - best_score</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Dictionary with information for evaluation</span></span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="string">&#x27;loss&#x27;</span>: loss, <span class="string">&#x27;params&#x27;</span>: params, <span class="string">&#x27;status&#x27;</span>: STATUS_OK&#125;</span><br></pre></td></tr></table></figure>
-
-<p>we are using <code>early_stopping_rounds</code>to stop the training when validation scores have not improved for 100 estimators</p>
-<h3 id="Domain-Space"><a href="#Domain-Space" class="headerlink" title="Domain Space"></a>Domain Space</h3><p>In Bayesian optimization the idea is the same except this space has <em>probability distributions</em> for each hyperparameter rather than discrete values.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Define the search space</span></span><br><span class="line">space = &#123;</span><br><span class="line">    <span class="string">&#x27;class_weight&#x27;</span>: hp.choice(<span class="string">&#x27;class_weight&#x27;</span>, [<span class="literal">None</span>, <span class="string">&#x27;balanced&#x27;</span>]),</span><br><span class="line">    <span class="string">&#x27;boosting_type&#x27;</span>: hp.choice(<span class="string">&#x27;boosting_type&#x27;</span>, </span><br><span class="line">                               [&#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;gbdt&#x27;</span>, </span><br><span class="line">                                    <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;gdbt_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;, </span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;dart&#x27;</span>, </span><br><span class="line">                                     <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;dart_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;,</span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;goss&#x27;</span>&#125;]),</span><br><span class="line">    <span class="string">&#x27;num_leaves&#x27;</span>: hp.quniform(<span class="string">&#x27;num_leaves&#x27;</span>, <span class="number">30</span>, <span class="number">150</span>, <span class="number">1</span>),</span><br><span class="line">    <span class="string">&#x27;learning_rate&#x27;</span>: hp.loguniform(<span class="string">&#x27;learning_rate&#x27;</span>, np.log(<span class="number">0.01</span>), np.log(<span class="number">0.2</span>)),</span><br><span class="line">    <span class="string">&#x27;subsample_for_bin&#x27;</span>: hp.quniform(<span class="string">&#x27;subsample_for_bin&#x27;</span>, <span class="number">20000</span>, <span class="number">300000</span>, <span class="number">20000</span>),</span><br><span class="line">    <span class="string">&#x27;min_child_samples&#x27;</span>: hp.quniform(<span class="string">&#x27;min_child_samples&#x27;</span>, <span class="number">20</span>, <span class="number">500</span>, <span class="number">5</span>),</span><br><span class="line">    <span class="string">&#x27;reg_alpha&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_alpha&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;reg_lambda&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_lambda&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;colsample_bytree&#x27;</span>: hp.uniform(<span class="string">&#x27;colsample_by_tree&#x27;</span>, <span class="number">0.6</span>, <span class="number">1.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>choice</code>: categorical variables</li>
-<li><code>quniform</code>: discrete uniform (integers spaced evenly)</li>
-<li><code>uniform</code>: continuous uniform (floats spaced evenly)</li>
-<li><code>loguniform</code>: continuous log uniform (floats spaced evenly on a log scale)</li>
-</ul>
-<h3 id="Optimization-Algorithm"><a href="#Optimization-Algorithm" class="headerlink" title="Optimization Algorithm"></a>Optimization Algorithm</h3><p>use the <a target="_blank" rel="noopener" href="https://papers.nips.cc/paper/4443-algorithms-for-hyper-parameter-optimization.pdf">Tree Parzen Estimator</a></p>
-<h3 id="Result-History"><a href="#Result-History" class="headerlink" title="Result History"></a>Result History</h3>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/concurrency/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/23/concurrency/" class="post-title-link" itemprop="url">Java Concurrency</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-23 14:22:45" itemprop="dateCreated datePublished" datetime="2019-09-23T14:22:45+08:00">2019-09-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/Fadezed/concurrency">原repo</a></p>
-<p><img src="https://github.com/Fadezed/concurrency/blob/master/media/15603298066863/11e0c64618c04edba52619f41aaa3565.png" alt="思维导图"></p>
-<ul>
-<li>资源的可见性</li>
-<li>操作的原子性</li>
-<li>编译优化带来的有序性问题</li>
-</ul>
-<p>JVM 中的同步是基于进入和退出管程（Monitor）对象实现的。每个对象实例都会有一个 Monitor，Monitor 可以和对象一起创建、销毁。Monitor 是由 ObjectMonitor 实现，而 ObjectMonitor 实现，而 ObjectMonitor 是由C++ 的 ObjectMonitor.hpp 文件实现</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">当多个线程同时访问时，多个线程会被先放在EntryList集合，处于block状态的线程，都会被加入到该列表。接下来当线程获取到对象的Monitor时，Monitor依靠底层操作系统的Mutex Lock来实现互斥，线程申请Mutex成功则持有，其它线程无法获取到Mutex</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ObjectMonitor() &#123;</span><br><span class="line">   _header = NULL;</span><br><span class="line">   _count = 0; // 记录个数</span><br><span class="line">   _waiters = 0,</span><br><span class="line">   _recursions = 0;</span><br><span class="line">   _object = NULL;</span><br><span class="line">   _owner = NULL;</span><br><span class="line">   _WaitSet = NULL; // 处于 wait 状态的线程，会被加入到 _WaitSet</span><br><span class="line">   _WaitSetLock = 0 ;</span><br><span class="line">   _Responsible = NULL ;</span><br><span class="line">   _succ = NULL ;</span><br><span class="line">   _cxq = NULL ;</span><br><span class="line">   FreeNext = NULL ;</span><br><span class="line">   _EntryList = NULL ; // 处于等待锁 block 状态的线程，会被加入到该列表</span><br><span class="line">   _SpinFreq = 0 ;</span><br><span class="line">   _SpinClock = 0 ;</span><br><span class="line">   OwnerIsThread = 0 ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>Happens-Before</p>
-<ul>
-<li>程序的顺序性规则</li>
-<li>volatile变量规则</li>
-<li>传递性规则</li>
-<li>管程(synchronized)中锁的规则</li>
-<li>线程start()规则</li>
-<li>线程join()原则</li>
-</ul>
+          <p>距离上一次能够沉下心来思考，感觉已经很久了。也是很久没有静下心来，去复盘，去思考了。。。哎。。</p>
+<p>上一次分享OKR的过城中，其实提到的一个很有意思的词语，取舍。</p>
+<p>人生处处有取舍，你永远都不会有很好的生活，很好的人生。</p>
+<p>有人说过，我们大部分人的人生，是一场从负数努力往零挣扎的竞赛。其实，我们挣扎的不过就是想成为一个普通人，普通地生活，普通地工作，普通地老去，普通地去死去。</p>
+<p>所以，普通的就很好，适合自己的就很好</p>
+<p>确实，前段时间，包括工作，生活的压力，压得自己喘不过气，想着人人都能过上美满的生活，工作上的事情也能有比较好的成果出来，结果，只能是现实不断地打脸，不断地嘲讽着自己，该哭，还是该笑。。。</p>
+<p>之前有想过孑然一身，但回头想想，这又何尝不是一种逃避？当自己去指责别人没有解决问题的时候，自己又何尝想去解决问题了。。。</p>
+<p>既然是挣扎，那笑着挣扎何尝不是一种方式，尝试地去解决、处理各种问题，而不是去逃避，问题始终在那里，避是避不了的。</p>
+<p>不要因为自己去block别人，自己解决好自己的问题，尽最大的努力为别人的决定去兜底就好了，不要去奢求，也不要去强求，普通人的心态</p>
+<p>逃避可耻但有用里，逃避了30多年，最后还是需要去面对，需要去解决，至于解决的结果，尽自己最大的努力就好，顺其自然</p>
+<p>很长时间没写，何尝不是一种逃避？逃避自己需要面对的问题，逃避自己需要解决的问题，假装自己是一个刺猬，在那里自怨自艾，幻想着事情有好的进展，现在想想，有些可笑。。。事情在那里，问题在那里，不是想想就能解决的，不是逃避就能解决的。。。</p>
+<p>不用什么样的豪言壮语，只需要每天的一点一滴去改变，去学习，不要再逃避了。。。</p>
 
       
     </div>
@@ -330,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/18/knative-eventing/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/08/error-handling-in-java-stream/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -344,7 +245,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/18/knative-eventing/" class="post-title-link" itemprop="url">Knative Eventing</a>
+            <a href="/2019/11/08/error-handling-in-java-stream/" class="post-title-link" itemprop="url">Error Handling In Java Stream</a>
         </h2>
 
         <div class="post-meta">
@@ -354,7 +255,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-18 11:26:36" itemprop="dateCreated datePublished" datetime="2019-09-18T11:26:36+08:00">2019-09-18</time>
+              <time title="Created: 2019-11-08 10:19:43" itemprop="dateCreated datePublished" datetime="2019-11-08T10:19:43+08:00">2019-11-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -362,7 +263,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/knative/" itemprop="url" rel="index"><span itemprop="name">knative</span></a>
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
                 </span>
             </span>
 
@@ -377,26 +278,24 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/docs/eventing">原文链接</a></p>
-<p>Design:</p>
-<ol>
-<li>Knative Eventing services are loosely coupled. These services can be developed and deployed independently on, and across a variety of platforms (for example Kubernetes, VMs, SaaS or FaaS).</li>
-<li>Event producers and event consumers are independent. Any producer (or source), can generate events before there are active event consumers that are listening. Any event consumer can express interest in an event or class of events, before there are producers that are creating those events.</li>
-<li>Other services can be connected to the Eventing system. These services can perform the following functions:<ul>
-<li>Create new applications without modifying the event producer or event consumer.</li>
-<li>Select and target specific subsets of the events from their producers.</li>
-</ul>
-</li>
-<li>Ensure cross-service interoperability. Knative Eventing is consistent with the<a target="_blank" rel="noopener" href="https://github.com/cloudevents/spec/blob/master/spec.md#design-goals">CloudEvents</a>specification that is developed by the<a target="_blank" rel="noopener" href="https://lists.cncf.io/g/cncf-wg-serverless">CNCF Serverless WG</a>.</li>
-</ol>
-<p>A Broker provides a bucket of events which can be selected by attribute. It receives events and forwards them to subscribers defined by one or more matching Triggers.</p>
-<p>A Trigger describes a filter on event attributes which should be delivered to an Addressable. You can create as many Triggers as necessary.</p>
-<p><img src="https://github.com/knative/docs/blob/master/docs/eventing/images/broker-trigger-overview.svg" alt="event broker"></p>
-<img src="https://github.com/knative/docs/blob/master/docs/eventing/images/broker-trigger-overview.svg">
+          <p><a target="_blank" rel="noopener" href="https://medium.com/swlh/exception-handling-in-java-streams-5947e48f671c">原文链接</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> Consumer&lt;String&gt; <span class="title">exceptionHandledConsumer</span><span class="params">(Consumer&lt;String&gt; unhandledConsumer)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            unhandledConsumer.accept(obj);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (NumberFormatException e) &#123;</span><br><span class="line">            System.err.println(</span><br><span class="line">                    <span class="string">&quot;Can&#x27;t format this string&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; integers = Arrays.asList(<span class="string">&quot;44&quot;</span>, <span class="string">&quot;xyz&quot;</span>, <span class="string">&quot;145&quot;</span>);    integers.forEach(exceptionHandledConsumer(str -&gt; System.out.println(Integer.parseInt(str))));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p><img src="https://github.com/knative/docs/blob/master/docs/eventing/images/control-plane.png" alt="control plane"></p>
+<p>采用流式的处理方式，尽可能generics</p>
+<p>进一步：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &lt;Target, ExObj extends Exception&gt; <span class="function">Consumer&lt;Target&gt; <span class="title">handledConsumer</span><span class="params">(Consumer&lt;Target&gt; targetConsumer, Class&lt;ExObj&gt; exceptionClazz)</span> </span>&#123;    <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            targetConsumer.accept(obj);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                ExObj exCast = exceptionClazz.cast(ex);</span><br><span class="line">                System.err.println(</span><br><span class="line">                        <span class="string">&quot;Exception occured : &quot;</span> + exCast.getMessage());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ClassCastException ccEx) &#123;</span><br><span class="line">                <span class="keyword">throw</span> ex;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">List&lt;String&gt; integers = Arrays.asList(<span class="string">&quot;44&quot;</span>, <span class="string">&quot;373&quot;</span>, <span class="string">&quot;xyz&quot;</span>, <span class="string">&quot;145&quot;</span>);integers.forEach(</span><br><span class="line">        handledConsumer(str -&gt; System.out.println(Integer.parseInt(str)), </span><br><span class="line">        NumberFormatException.class));</span><br></pre></td></tr></table></figure>
+
+
+
+<p>采用FunctionalInterface的方式，进一步提升，将函数提升到类?</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FunctionalInterface</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HandlingConsumer</span>&lt;<span class="title">Target</span>, <span class="title">ExObj</span> <span class="keyword">extends</span> <span class="title">Exception</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">accept</span><span class="params">(Target target)</span> <span class="keyword">throws</span> ExObj</span>;    <span class="keyword">static</span> &lt;Target&gt; <span class="function">Consumer&lt;Target&gt; <span class="title">handlingConsumerBuilder</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">            HandlingConsumer&lt;Target, Exception&gt; handlingConsumer)</span> </span>&#123;        <span class="keyword">return</span> obj -&gt; &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                handlingConsumer.accept(obj);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(ex);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>要经常性使用stream的方式，利用函数式的思路</p>
+<p>多用lambda表达式</p>
 
       
     </div>
@@ -416,7 +315,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/16/Statefulness-on-K8s/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/07/JDTX-distributed-transaction-midwares/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -430,7 +329,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/16/Statefulness-on-K8s/" class="post-title-link" itemprop="url">Statefulness on K8s</a>
+            <a href="/2019/11/07/JDTX-distributed-transaction-midwares/" class="post-title-link" itemprop="url">JDTX distributed transaction midwares</a>
         </h2>
 
         <div class="post-meta">
@@ -440,7 +339,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-16 23:23:14" itemprop="dateCreated datePublished" datetime="2019-09-16T23:23:14+08:00">2019-09-16</time>
+              <time title="Created: 2019-11-07 23:50:19" itemprop="dateCreated datePublished" datetime="2019-11-07T23:50:19+08:00">2019-11-07</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -448,7 +347,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                  <a href="/categories/distributed/" itemprop="url" rel="index"><span itemprop="name">distributed</span></a>
                 </span>
             </span>
 
@@ -463,23 +362,16 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/capital-one-tech/conquering-statefulness-on-kubernetes-26336d5f4f17">原文链接</a></p>
-<p>This concept is vastly different than the idea of containers being fast and lightweight and easy to deploy anywhere needed at a moments notice. It’s for this reason that persistent state was purposefully left out of container specs, which opted instead for storage plugins; shifting the responsibility of managing persistent state to another party（container不带storage，而以plugins的方式来进行补充)</p>
-<p>There are two key features of an application that require persistent state: </p>
-<ul>
-<li>the need to persist data <em>beyond</em>application outages and restarts</li>
-<li> and the need to manage application state <em>across</em>the same outages and restarts. </li>
-</ul>
-<p>Kubernetes <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes</a>and <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volume Claims</a>provide a way to abstract the details of how storage is provisioned from how it is consumed. </p>
-<p>The .spec.storageClassName can be used to classify the PV as a certain class of storage, which can be leveraged by PVCs to specify a specific class of storage to claim.</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">mypvc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">mysc</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="string">—</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">8Gi</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
+          <p><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/BAXzcfjRTcgmKisa7JHm">原文链接</a></p>
+<p>在高并发的性能至上场景中，基于 XA 协议两阶段提交类型的分布式事务</p>
+<p>基于 BASE 事务要素的事务则称为柔性事务。 BASE 是基本可用、柔性状态和最终一致性这 3 个要素的缩写</p>
+<p>设计目标是强一致（支持 ACID 的事务原义）、高性能（甚至强于本地事务）、1PC（完全摒弃两阶段提交和两阶段锁）的完全分布式事务中间件</p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g8pwxenjj8j313a0k246e.jpg" alt="image-20191107235335482"></p>
+<p>将在事务中的数据（称之为活跃数据）和不在事务中的数据（称之为落盘数据）分离。</p>
+<p>活跃数据在落盘至预写日志系统（WAL）之后，并将数据保存至自研的多版本快照（MVCC）内存引擎中。</p>
+<p>落盘数据则是通过异步刷盘的方式，将 MVCC 引擎中的数据以流量可控的方式同步至最终的存储介质中（如：关系型数据库）</p>
+<p>MVCC引擎可以看成一个集中式缓存</p>
+<p>每次事务内查询都是由落盘数据 + 活跃数据归并而成。归并引擎部分参照了 LSM Tree 的设计思想。</p>
 
       
     </div>
@@ -499,7 +391,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/dataflow-model/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/19/quick-and-dirty/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -513,7 +405,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/09/dataflow-model/" class="post-title-link" itemprop="url">The Dataflow Model</a>
+            <a href="/2019/10/19/quick-and-dirty/" class="post-title-link" itemprop="url">Quick and Dirty</a>
         </h2>
 
         <div class="post-meta">
@@ -523,7 +415,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-09 22:24:07" itemprop="dateCreated datePublished" datetime="2019-09-09T22:24:07+08:00">2019-09-09</time>
+              <time title="Created: 2019-10-19 18:02:17" itemprop="dateCreated datePublished" datetime="2019-10-19T18:02:17+08:00">2019-10-19</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -531,7 +423,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
+                  <a href="/categories/software/" itemprop="url" rel="index"><span itemprop="name">software</span></a>
                 </span>
             </span>
 
@@ -546,84 +438,98 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf">论文地址</a></p>
-<p>针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost</p>
-<p>举的例子，流式视频的广告投放问题</p>
-<p>关于数据处理的几个重点：</p>
-<ul>
-<li>exactly-once semantics</li>
-<li>temporal primitives necessary for windowing, not provide windowing semantics that are limited totuple- or processing-time-based windows</li>
-<li>provide event-time-based windowing either rely on ordering (SQLStream [27]),or have limited window triggering3semantics in event-timemode (Stratosphere/Flink)</li>
-</ul>
-<p>a single unified model</p>
-<ul>
-<li>Allows for the calculation of event-time5ordered re-sults, windowed by features of the data themselves,over an unbounded, unordered data source, with cor-rectness, latency, and cost tunable across a broad spec-trum of combinations</li>
-<li>Decomposes pipeline implementation across four re-lated dimensions, providing clarity, composability, andflexibility:<ul>
-<li>– Whatresults are being computed.</li>
-<li>– Wherein event time they are being computed.</li>
-<li>– Whenin processing time they are materialized.</li>
-<li>– Howearlier results relate to later refinements.</li>
-</ul>
-</li>
-<li>Separates the logical notion of data processing fromthe underlying physical implementation, allowing thechoice of batch, micro-batch, or streaming engine tobecome one of simply correctness, latency, and cost</li>
-</ul>
-<p>那么总结起来：</p>
-<ul>
-<li>a window model</li>
-<li>a triggering model</li>
-<li>a incremental processing model</li>
-<li>scalable implements </li>
-</ul>
-<h3 id="Window"><a href="#Window" class="headerlink" title="Window"></a>Window</h3><p>When dealing with unbounded data,windowing is required for some operations (to delineate fi-nite boundaries in most forms of grouping: aggregation,outer joins, time-bounded operations, etc.), and unneces-sary for others (filtering, mapping, inner joins, etc.).</p>
-<ul>
-<li>Fixed，静态window</li>
-<li>Sliding，滑动窗口</li>
-<li>Sessions，windows that capture some period of activ-ity over a subset of the data，按照key以及timeout来计算</li>
-</ul>
-<p>(particularly time management [28] and semantic models [9], but alsowindowing [22], out-of-order processing [23], punctuations[30], heartbeats [21], watermarks [2], frames)</p>
-<h3 id="DATA-FLOW-MODEL"><a href="#DATA-FLOW-MODEL" class="headerlink" title="DATA FLOW MODEL"></a>DATA FLOW MODEL</h3><p>核心要素：</p>
-<ul>
-<li>ParDo, Each input ele-ment to be processed (which itself may be a finite col-lection) is provided to a user-defined function (calledaDoFnin Dataflow), which can yield zero or more out-put elements per input. (多输出设定？)</li>
-<li>GroupByKey, key-grouping (key, value) pairs</li>
-</ul>
-<p>可map也可以reduce</p>
-<ul>
-<li>support for un-aligned windows, for which there are two key insights. Thefirst is that it is simpler to treat all windowing strategiesas unaligned from the perspective of the model, and allowunderlying implementations to apply optimizations relevantto the aligned cases where applicable. </li>
-<li>windowing can be broken apart into two related operations: assignWindow and mergedWindow</li>
-</ul>
-<p>pass (key, value, eventtime, window) 4-tuples</p>
-<p>window assign-&gt;window merge:</p>
-<ul>
-<li>DropTimestamps- Drops element timestamps, asonly the window is relevant from here on out9.</li>
-<li>GroupByKey- Groups (value, window) tuples by key.</li>
-<li>MergeWindows- Merges the set of currently bufferedwindows for a key. The actual merge logic is definedby the windowing strategy. In this case, the windowsforv1andv4overlap, so the sessions windowing strat-egy merges them into a single new, larger session, asindicated in bold.</li>
-<li>GroupAlsoByWindow- For each key, groups valuesby window. After merging in the prior step,v1andv4are now in identical windows, and thus are groupedtogether at this step</li>
-<li>ExpandToElements- Expands per-key, per-windowgroups of values into (key, value, eventtime, window)tuples, with new per-window timestamps. In this ex-ample, we set the timestamp to the end of the window,but any timestamp greater than or equal to the times-tamp of the earliest event in the window is valid withrespect to watermark correctness</li>
-</ul>
-<img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg" style="zoom:40%" />
+          <p><a target="_blank" rel="noopener" href="https://www.ithome.com.tw/voice/133412">原文链接</a></p>
+<p>想要以快而髒作為開始，最重要的原則就是：「別讓它成為結果」</p>
+<p>快速地的實現出功能確實是主要目的，然而謹記另一個原則「令程式碼中的重複易於察覺」</p>
+<p>既然如此，就「令變數值不可變動」，如果是物件，就令「物件狀態不可變」，在這樣的情況下，開發者不得不分解出小而簡短的程式片段，儘管程式碼看來可能快而髒，然而因為程式片段都是小而簡短，很容易察覺重複，對於後續的整理會有很大的幫助。</p>
+<p>抓住变与不变部分</p>
+<p>當快而髒的程式碼演變為具有大量（小）函式的階段，這時可以開始套用語言技術或典範了，支援物件導向的語言就試著將相關功能組織為物件，套用物件導向相關的重構手法，具有lambda特性的語言可以試著用lambda</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/18/hydra-config-framework/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/10/18/hydra-config-framework/" class="post-title-link" itemprop="url">Hydra Config Framework</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-10-18 16:36:03" itemprop="dateCreated datePublished" datetime="2019-10-18T16:36:03+08:00">2019-10-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index"><span itemprop="name">python</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/facebookresearch/hydra">原repo地址</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@hydra.main(<span class="params">config_path=<span class="string">&#x27;config.yaml&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">my_app</span>(<span class="params">cfg</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(cfg.pretty())</span><br></pre></td></tr></table></figure>
 
 
 
-<p>有关watermarks，too fast or too slow</p>
-<p>A useful insight in addressing the complete-ness problem is that the Lambda Architecture effectivelysidesteps the issue: it does not solve the completeness prob-lem by somehow providing correct answers faster; it simplyprovides the best low-latency estimate of a result that thestreaming pipeline can provide, with the promise of eventualconsistency and correctness once the batch pipeline runs</p>
-<ul>
-<li>Windowing determines where in event time data are grouped together for processing.</li>
-<li>Triggering determines when in processing time the results of groupings are emitted as panes</li>
-</ul>
-<p>trigger同window的结合</p>
-<ul>
-<li>Discarding: Upon triggering, window contents arediscarded, and later results bear no relation to previ-ous results. </li>
-<li>Accumulating: Upon triggering, window contentsare left intact in persistent state, and later results be-come a refinement of previous results.</li>
-<li>Accumulating &amp; Retracting: Upon triggering, inaddition to theAccumulatingsemantics, a copy of theemitted value is also stored in persistent state. Whenthe window triggers again in the future, a retraction forthe previous value will be emitted first, followed by thenew value as a normal datum(反馈+反向更新)</li>
-</ul>
-<p>design principles</p>
-<ul>
-<li>Never rely on any notion of completeness.</li>
-<li>Be flexible, to accommodate the diversity of known usecases, and those to come in the future.</li>
-<li>Not only make sense, but also add value, in the contextof each of the envisioned execution engines.</li>
-<li>Encourage clarity of implementation.•Support robust analysis of data in the context in whichthey occurred</li>
-</ul>
-<p>One particularly large log join pipeline runs in streamingmode on MillWheel by default, but has a separate Flume-Java batch implementation used for large scale backfills.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python my_app.py db.user=root db.pass=1234</span></span><br><span class="line">db:</span><br><span class="line">  driver: mysql</span><br><span class="line">  user: root</span><br><span class="line">  pass: 1234</span><br></pre></td></tr></table></figure>
+
+
+
+<p>config group</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python my_app.py db=postgresql</span></span><br><span class="line">db:</span><br><span class="line">  driver: postgresql</span><br><span class="line">  pass: drowssap</span><br><span class="line">  timeout: 10</span><br><span class="line">  user: postgre_user</span><br></pre></td></tr></table></figure>
+
+
+
+<p>multi-run</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> python tutorial/50_composition/my_app.py schema=warehouse,support,school db=mysql,postgresql -m</span></span><br><span class="line">[2019-10-01 14:44:16,254] - Launching 6 jobs locally</span><br><span class="line">[2019-10-01 14:44:16,254] - Sweep output dir : multirun/2019-10-01/14-44-16</span><br><span class="line">[2019-10-01 14:44:16,254] -     #0 : schema=warehouse db=mysql</span><br><span class="line">[2019-10-01 14:44:16,321] -     #1 : schema=warehouse db=postgresql</span><br><span class="line">[2019-10-01 14:44:16,390] -     #2 : schema=support db=mysql</span><br><span class="line">[2019-10-01 14:44:16,458] -     #3 : schema=support db=postgresql</span><br><span class="line">[2019-10-01 14:44:16,527] -     #4 : schema=school db=mysql</span><br><span class="line">[2019-10-01 14:44:16,602] -     #5 : schema=school db=postgresql</span><br></pre></td></tr></table></figure>
+
+
+
+<p>更多的配置，更多的任务</p>
 
       
     </div>
@@ -642,7 +548,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -710,20 +616,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

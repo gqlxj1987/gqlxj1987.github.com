@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/parse-json-too-fast/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/reactive-programing/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/parse-json-too-fast/" class="post-title-link" itemprop="url">Parse Json too fast</a>
+            <a href="/2019/03/18/reactive-programing/" class="post-title-link" itemprop="url">Reactive Programing</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 22:59:30" itemprop="dateCreated datePublished" datetime="2019-03-10T22:59:30+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-18 19:59:33" itemprop="dateCreated datePublished" datetime="2019-03-18T19:59:33+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/json/" itemprop="url" rel="index"><span itemprop="name">json</span></a>
+                  <a href="/categories/reactive/" itemprop="url" rel="index"><span itemprop="name">reactive</span></a>
                 </span>
             </span>
 
@@ -200,18 +200,27 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://branchfree.org/2019/02/25/paper-parsing-gigabytes-of-json-per-second/">原文链接</a></p>
-<p>The chief point of difference between simdjson and systems such as RapidJSON and sajson lies in the “Stage 1” of simdjson; the part of the system that detects the locations of structural and pseudo-structural characters from the input. This system operates with large scale and regular operations over 64 bytes of the input at once, and can take advantage of both SIMD operations (when examining characters and character classes) as well as 64-bit bitwise operations (when applying transformations on the masks obtained from the SIMD operations). As such, it can achieve “economies of scale” as compared to a step-by-step approach.</p>
-<p>一次性读入64 bytes的数据，然后同时操作？</p>
-<p> Stage 1 proceeds as follows:</p>
-<ol>
-<li>Validation of UTF-8 across the whole input.</li>
-<li>Detection of odd-length sequences of backslashes (that will result in escaping the subsequent character)</li>
-<li>Detection of which characters are “inside” quotes, by filtering out escaped quote characters from the previous step, then doing a parallel prefix sum over XOR (using the PCLMULQDQ instruction with an argument of -1 as the multiplier) to turn our escaped quote mask into a mask showing which bits are between a pair of quotes.</li>
-<li>Detection of structural characters and whitespace via table-based lookup (implemented with a pair of VPSHUFB instructions).</li>
-<li>Detection of pseudo-structural characters (those characters I talked about in the summary of stage 1 that need to be exposed to the subsequent stage 2 for error detection and atom handling).</li>
-<li>Conversion of the bitmask containing structural and pseudo-structural characters into a series of indexes.</li>
-</ol>
+          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2018/03/10/functional-reactive-programming/">原文链接</a></p>
+<p>因为<strong>无状态是微服务的潜在要求</strong>也是最重要的一个要求之一； 函数式编程相较于其他编程范式更强调无副作用的编程思维，和微服务的基本要求自然契合的很好</p>
+<p>函数式编程的基本思路是将<strong>程序的执行看作是一堆函数的组合处理和求值</strong>过程；纯粹的函数式编程要求数据是不可变的， 同样的数值输入在流经同样的函数处理的时候必须得到确定的输出，不容许有预料之外的副作用产生。(数据的不变性)</p>
+<p>流+函数式-&gt;响应式</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">requestStream.subscribe(<span class="function"><span class="keyword">function</span>(<span class="params">requestUrl</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// execute the request</span></span><br><span class="line">    <span class="keyword">var</span> responseStream = Rx.Observable.create(<span class="function"><span class="keyword">function</span> (<span class="params">observer</span>) </span>&#123;</span><br><span class="line">        jQuery.getJSON(requestUrl)</span><br><span class="line">            .done(<span class="function"><span class="keyword">function</span>(<span class="params">response</span>) </span>&#123; observer.onNext(response); &#125;)</span><br><span class="line">            .fail(<span class="function"><span class="keyword">function</span>(<span class="params">jqXHR, status, error</span>) </span>&#123; observer.onError(error); &#125;)</span><br><span class="line">            .always(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123; observer.onCompleted(); &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    responseStream.subscribe(<span class="function"><span class="keyword">function</span>(<span class="params">response</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// do something with the response</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>处理这些响应数据的代码放在第二个subscribe中</p>
+<p>Java8采用<code>stream()</code>接口来引入</p>
+<p>RxJava扩展观察者模式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.reactivex.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWorld</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Flowable.just(<span class="string">&quot;Hello world&quot;</span>).subscribe(System.out::println);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>数据流传递给方法</p>
+<p>使用并发的方式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .flatMap(v -&gt;</span><br><span class="line">    Flowable.just(v)</span><br><span class="line">      .subscribeOn(Schedulers.computation())</span><br><span class="line">      .map(w -&gt; w * w)</span><br><span class="line">  ).blockingSubscribe(System.out::println);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .parallel()</span><br><span class="line">  .runOn(Schedulers.computation())</span><br><span class="line">  .map(v -&gt; v * v)</span><br><span class="line">  .sequential()</span><br><span class="line">  .blockingSubscribe(System.out::println);</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Assume the record values represent lines of text.  For the sake of this example, you can ignore</span></span><br><span class="line"><span class="comment">// whatever may be stored in the record keys.</span></span><br><span class="line">KStream&lt;String, String&gt; textLines = ...;</span><br><span class="line"></span><br><span class="line">KStream&lt;String, Long&gt; wordCounts = textLines</span><br><span class="line">    <span class="comment">// Split each text line, by whitespace, into words.  The text lines are the record</span></span><br><span class="line">    <span class="comment">// values, i.e. you can ignore whatever data is in the record keys and thus invoke</span></span><br><span class="line">    <span class="comment">// `flatMapValues` instead of the more generic `flatMap`.</span></span><br><span class="line">    .flatMapValues(value -&gt; Arrays.asList(value.toLowerCase().split(<span class="string">&quot;\\W+&quot;</span>)))</span><br><span class="line">    <span class="comment">// Group the stream by word to ensure the key of the record is the word.</span></span><br><span class="line">    .groupBy((key, word) -&gt; word)</span><br><span class="line">    <span class="comment">// Count the occurrences of each word (record key).</span></span><br><span class="line">    <span class="comment">// This will change the stream type from `KGroupedStream&lt;String, String&gt;` to</span></span><br><span class="line">    <span class="comment">// `KTable&lt;String, Long&gt;` (word -&gt; count).</span></span><br><span class="line">    .count()</span><br><span class="line">    <span class="comment">// Convert the `KTable&lt;String, Long&gt;` into a `KStream&lt;String, Long&gt;`.</span></span><br><span class="line">    .toStream();</span><br></pre></td></tr></table></figure>
+
 
       
     </div>
@@ -231,7 +240,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/fully-utilise-docker/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/clean-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -245,7 +254,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/fully-utilise-docker/" class="post-title-link" itemprop="url">Fully Utilise Docker in development</a>
+            <a href="/2019/03/18/clean-architecture/" class="post-title-link" itemprop="url">Clean Architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -255,7 +264,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 15:50:32" itemprop="dateCreated datePublished" datetime="2019-03-10T15:50:32+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-18 19:28:15" itemprop="dateCreated datePublished" datetime="2019-03-18T19:28:15+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -263,7 +272,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/docker/" itemprop="url" rel="index"><span itemprop="name">docker</span></a>
+                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
                 </span>
             </span>
 
@@ -278,11 +287,41 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/tsftech/how-to-fully-utilise-docker-during-development-42bb3cdc3017">原文链接</a></p>
-<p>主要是针对node环境？</p>
-<p>wiki搭建环境</p>
-<p>本地测试很长时间？ci环境不是很好部署？</p>
-<p>Multistage builds is a Docker feature that neatly allows us to build one container to encapsulate the build and then copy artefacts into a new container optimised for Production.</p>
+          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2019/01/26/clean-architecture-notes/">原文链接</a></p>
+<p>软件架构师的主要核心职责<strong>不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构</strong>使得添加新的功能保持简单、经济和高效。</p>
+<p>真正<strong>本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化</strong></p>
+<p>相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用<strong>间接控制流转移</strong>的方法来提高可维护性</p>
+<p>函数式编程-&gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时数据一旦产生就不能被修改了，否则就会有副作用。 流行起来的原因，在于数据的隔离性</p>
+<p>软件架构师的任务就是需要清楚地认识到这些编程范式<strong>只是在不同的维度上对程序员加了各种各样的约束</strong>，以解决它所适应的场景的问题而已。 理顺问题的场景然后清楚地了解编程实现和交付中的各种困难，减小软件扩展和维护的成本，是架构师所面临的最根本的挑战</p>
+<p>设计的目标：</p>
+<ul>
+<li><strong>变更它们的成本很低</strong>，因为软件系统总是要添加新功能才更有生命力，修改困难的软件就会被慢慢放弃了</li>
+<li><strong>理解起来容易</strong>，因为维护软件总是需要人来做，而参与其中的人总是在流动的</li>
+<li><strong>可以被轻易地重用在合适的地方</strong>，因为永远也没有人可以预测未来的软件项目需求；重头再写类似的代码的代价又过于高昂</li>
+</ul>
+<p>单一原则</p>
+<p> <strong>一个模块和他相关联交互的Actor只有一个</strong>，这样用UML描述模块关系的时候就比较清楚的看出这一原则有没有呗违反了。</p>
+<p>使用UML描述</p>
+<p>核心的业务规则可以保持稳定，<strong>核心业务逻辑层的稳定提炼需要依赖于领域知识</strong></p>
+<p>现在我们可以支持在程序执行的过程中，<strong>不重启主要系统，而将新开发的功能插入运行的系统中的办法</strong>来实现功能的实时更新和扩展， 这种插件化技术甚至在很多开发环境中成为默认的扩展方式；这一技术能够工作的前提是系统的架构必须有良好的考虑和组织</p>
+<p>组件内聚原则：</p>
+<ul>
+<li>重用和发布等同原则 (Common Resue/Release Equivalence Principle)</li>
+<li>通用闭合原则 (Common Closure Principle)</li>
+<li>通用重用原则 (Common Reuse Principle)</li>
+</ul>
+<p>那么我们需要保证，在组件依赖关系图上，<strong>沿着依赖方向组件的稳定性值需要保持递减</strong>。 对于违反了这一原则的组件，一个简单的处理方法依然是<strong>使用依赖倒置原则创建新的抽象组件</strong>，从而避免稳定的组件依赖于不稳定的组件。</p>
+<p><strong>策略一旦选定变化起来就比较困难，而细节实现的变化往往容易</strong>。 策略的部分包括这些业务规则和过程，而细节则是具体的技术实现、数据库、通信协议、框架、库等。 由于<strong>商业业务规则比较稳定而技术的变化比较快，我们需要保持这些稳定的部分</strong>，而尽可能的不写死具体实现这些业务规则的技术细节。(关于策略的选取部分)</p>
+<p>好的边界划分方法是<strong>尽可能降低一些不成熟的决策产生的影响，降低对这些容易变化的决策的依赖</strong>。 我们需要在在重要的模块或者子系统和不太重要的子系统之间划分出清晰的边界(边界的制定，又有利于第三方组件的实现)</p>
+<p>整洁架构的特征：</p>
+<ul>
+<li>框架独立性：不依赖于任何库或者软件架构</li>
+<li>可测试性，各个部分可以独立测试</li>
+<li>界面隔离和独立，不管是命令行界面系统还是桌面客户端或者是浏览器等技术</li>
+<li>数据库独立性，可以替换各种SQL数据库，或者是文档数据库等，核心的业务逻辑不依赖于这些具体技术</li>
+<li>外部代理独立性，核心的业务系统并不知道外围的接口和协议</li>
+</ul>
+<p>一定的框架独立性，非常好的可测试性部分，很值得去探究</p>
 
       
     </div>
@@ -302,7 +341,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/frontend-bootcamp/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/oracle-jfr/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -316,7 +355,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/frontend-bootcamp/" class="post-title-link" itemprop="url">Frontend Bootcamp</a>
+            <a href="/2019/03/18/oracle-jfr/" class="post-title-link" itemprop="url">oracle JFR</a>
         </h2>
 
         <div class="post-meta">
@@ -326,7 +365,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 14:56:20" itemprop="dateCreated datePublished" datetime="2019-03-10T14:56:20+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-18 10:36:58" itemprop="dateCreated datePublished" datetime="2019-03-18T10:36:58+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -334,7 +373,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/frontend/" itemprop="url" rel="index"><span itemprop="name">frontend</span></a>
+                  <a href="/categories/jfr/" itemprop="url" rel="index"><span itemprop="name">jfr</span></a>
                 </span>
             </span>
 
@@ -349,17 +388,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://microsoft.github.io/frontend-bootcamp/">原文链接</a></p>
-<p><img src="https://raw.githubusercontent.com/Microsoft/frontend-bootcamp/master/assets/css-syntax.png" alt="css选择器"></p>
-<p><a target="_blank" rel="noopener" href="https://reactjs.org/docs/introducing-jsx.html">JSX介绍</a></p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> element = <span class="xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello, world!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span>;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://zhouhai02.com/post/flink-internals/flink-application-profile-by-jfr-jmc-flame-graph/">原文链接</a></p>
+<p>和传统的JProfiler/VisualVM这些基于JMX的工具所不同的是，JFR记录的信息是<strong>近似而非精确</strong>的；当然大部分情况下这些<strong>模糊性信息就足够说明问题</strong>了。 对于大部分场景下，这些近似信息反而可以更容易发现一些真正的问题。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">env.java.opts: &quot;-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints&quot;</span><br></pre></td></tr></table></figure>
+
+<p>加入java opts</p>
+<p>开启jfr</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash">/usr/<span class="built_in">local</span>/jdk1.8.0_112/bin/jcmd 47897 JFR.start name=MyRecording settings=/home/zhouhai02/flink_profiler.jfc delay=5s duration=10m</span></span><br></pre></td></tr></table></figure>
 
 
 
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ReactDOM.render(</span><br><span class="line">  <span class="xml"><span class="tag">&lt;<span class="name">div</span>&gt;</span></span></span><br><span class="line"><span class="xml">    <span class="tag">&lt;<span class="name">App</span> <span class="attr">text</span>=<span class="string">&quot;Hello World&quot;</span> /&gt;</span></span></span><br><span class="line"><span class="xml">    <span class="tag">&lt;<span class="name">App</span> <span class="attr">text</span>=<span class="string">&quot;How are you doing?&quot;</span> /&gt;</span></span></span><br><span class="line"><span class="xml">  <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span>,</span><br><span class="line">  <span class="built_in">document</span>.getElementById(<span class="string">&#x27;app&#x27;</span>)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>check</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.check</span><br></pre></td></tr></table></figure>
 
-<p>React allows each control to specify its own data store, called <strong>state</strong>.</p>
-<p>首先是组件的思想，然后有组件的话，必然会涉及到状态</p>
+
+
+<p>导出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.dump name=MyRecording filename=dump.jfr</span><br></pre></td></tr></table></figure>
+
+
+
+<p>导入到JMC上去分析</p>
+<p><strong>Java Mission Control</strong></p>
+<p>热点线程</p>
+<p><img src="https://skyscribe.github.io/assets/images/jfr/jfr_threads_hot_threads.jpg" alt="hot thread"></p>
+<p>给出线程上下文切换的频率。同样，也可以类似得出相应的切换时间</p>
+<p>同时，火焰图部分</p>
+<p><img src="https://zhouhai02.com/img/troubleshooting/flink-jm-dump.svg" alt="火焰图"></p>
+<p>火焰图展示了在采样周期内，code-path被执行的时间占比，纵轴是code-path，从下至上一般就是调用栈，相同的采样调用栈会被合并，栈顶元素就是采样的时候CPU运行的stack，横轴是某个stack的占用时间，跨度越大说明其占CPU比重越高，也就是最耗费CPU的，stack在横轴上是按照字母序排列的，颜色深浅仅仅是为了区分，并没特殊意义。我只需要关注火焰图中的“平顶山”，这往往代表着某段代码的调用占用CPU过多。</p>
 
       
     </div>
@@ -379,7 +435,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/javascript-callback/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/time-plan/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -393,7 +449,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/javascript-callback/" class="post-title-link" itemprop="url">Javascript Callback</a>
+            <a href="/2019/03/17/time-plan/" class="post-title-link" itemprop="url">2019时间的安排</a>
         </h2>
 
         <div class="post-meta">
@@ -403,7 +459,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 14:42:48" itemprop="dateCreated datePublished" datetime="2019-03-10T14:42:48+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-17 22:16:29" itemprop="dateCreated datePublished" datetime="2019-03-17T22:16:29+08:00">2019-03-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -411,7 +467,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/javascript/" itemprop="url" rel="index"><span itemprop="name">javascript</span></a>
+                  <a href="/categories/time/" itemprop="url" rel="index"><span itemprop="name">time</span></a>
                 </span>
             </span>
 
@@ -426,10 +482,8 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://codeburst.io/javascript-what-the-heck-is-a-callback-aba4da2deced">原文链接</a></p>
-<p><strong>Simply put:</strong> <em>A callback is a function that is to be executed</em> <strong>after</strong> <em>another function has finished executing — hence the name ‘call back’.</em></p>
-<p><strong>More complexly put:</strong> <em>In JavaScript, functions are objects. Because of this, functions can take functions as arguments, and can be returned by other functions. Functions that do this are called</em> <strong>higher-order functions</strong>. Any function that is passed as an argument is called a* <strong>callback function</strong>.</p>
-<p><a target="_blank" rel="noopener" href="https://codeburst.io/build-a-simple-twitter-bot-with-node-js-in-just-38-lines-of-code-ed92db9eb078">twitter bot code</a></p>
+          <p>尝试更严格的自律。。。</p>
+<hr>
 
       
     </div>
@@ -449,7 +503,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/05/akka-anti-patterns/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/2019-plan/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -463,7 +517,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/05/akka-anti-patterns/" class="post-title-link" itemprop="url">Akka anti-atterns</a>
+            <a href="/2019/03/17/2019-plan/" class="post-title-link" itemprop="url">2019活下去</a>
         </h2>
 
         <div class="post-meta">
@@ -473,7 +527,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-05 22:09:56" itemprop="dateCreated datePublished" datetime="2019-03-05T22:09:56+08:00">2019-03-05</time>
+              <time title="Created: 2019-03-17 15:17:17" itemprop="dateCreated datePublished" datetime="2019-03-17T15:17:17+08:00">2019-03-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -481,7 +535,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
                 </span>
             </span>
 
@@ -496,12 +550,37 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://manuel.bernhardt.io/2018/08/06/akka-anti-patterns-many-actors/">原文链接</a></p>
-<p>The line of thinking goes roughly like this: “We have actors, therefore everything must be an actor”.</p>
-<p>not everything needs to be done asynchronously</p>
-<p>The actor model makes it easier to write asynchronous applications.</p>
-<p>####too many actor types</p>
-<h4 id="too-many-runtime-actors-for-the-use-case"><a href="#too-many-runtime-actors-for-the-use-case" class="headerlink" title="too many runtime actors for the use-case"></a>too many runtime actors for the use-case</h4><p>actors reuse</p>
+          <p>方向的变化，外界的压力，莫名其妙的情绪，很容易让人很丧气，不知道目标和方向在哪里，今天的自己，能否撑到明天。。。</p>
+<p>有时候，挺丧气的，不再是一人吃饱，全家不饿的状态，但是自己不管是状态上，还是心理上，完全没达到相应的状态，很是苦笑。。。</p>
+<p>但不管怎么样，活下去，认真地活下去，不用管后面是什么样，想着可以为现在做一些事情，为后面的人留下一些东西，就够了，这才是应该有的野望。。</p>
+<hr>
+<p>工作上：</p>
+<ul>
+<li>方向上的转换有点快，但是一些主线上的东西，不会变，看能不能基于akka部分，将整套流程能够实现出来</li>
+<li>基础上，尝试运用重构的一些概念理论去重构下整个项目，作为一个实践的课题</li>
+<li>语言上，尝试下rust的学习，例如rust os部分，起码可以尝试去学习一下</li>
+<li>作为转型的机器学习部分，能不能找一些例子，在现有的资源上，做一些东西出来(资源不能浪费)</li>
+</ul>
+<p>业余上：</p>
+<ul>
+<li>rust部分，看能不能按照os的路子，写出来</li>
+<li>blog部分，要保持更新的节奏，尤其是技术上，多写写读后感。。看能不能到550大关，加油</li>
+<li>leetcode。。。<a target="_blank" rel="noopener" href="https://github.com/gqlxj1987/leetcode-daily">leetcode daily</a></li>
+</ul>
+<p>生活上：</p>
+<ul>
+<li>下江南，走西北，去东南亚过年？</li>
+<li>身体锻炼，要恢复起来，周末的跑步，周中的keep以及跳舞部分，要逐渐地恢复起来。。</li>
+<li>电影和书上，要保持频率，是不是可以把布袋戏捡起来了，作为保持节奏的一种？</li>
+<li>相机要重新拿起来，拍一些有意思的东西出来。。</li>
+</ul>
+<p>待人处物上：</p>
+<ul>
+<li>也没有什么小心翼翼的了，既然都做好了打算，没什么好失去的，能留下一点是一点，做好自己就可以了</li>
+<li>尝试去沟通，多去陪伴，不要懒</li>
+<li>身外之物，尝试去长期去看待，起码今年的形势会比去年好，慢慢来，ps4没有的话，换一个显示器+手柄也是可以的</li>
+</ul>
+<p>活下去，认真地活下去，全力以赴，但又不报任何希望，有付出就可以了</p>
 
       
     </div>
@@ -520,7 +599,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -588,20 +667,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

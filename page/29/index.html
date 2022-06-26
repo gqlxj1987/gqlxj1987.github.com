@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/16/new-goroutine/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/use-mysql-in-grafana/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/10/16/new-goroutine/" class="post-title-link" itemprop="url">Build New Goroutine</a>
+            <a href="/2019/12/08/use-mysql-in-grafana/" class="post-title-link" itemprop="url">Use Mysql In Grafana</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-10-16 22:51:28" itemprop="dateCreated datePublished" datetime="2019-10-16T22:51:28+08:00">2019-10-16</time>
+              <time title="Created: 2019-12-08 13:59:33" itemprop="dateCreated datePublished" datetime="2019-12-08T13:59:33+08:00">2019-12-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/goroutine/" itemprop="url" rel="index"><span itemprop="name">goroutine</span></a>
+                  <a href="/categories/grafana/" itemprop="url" rel="index"><span itemprop="name">grafana</span></a>
                 </span>
             </span>
 
@@ -200,59 +200,95 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://taohuawu.club/high-performance-implementation-of-goroutine-pool">原文链接</a></p>
-<p>现在主流的线程模型分三种：内核级线程模型、用户级线程模型和两级线程模型（也称混合型线程模型），传统的协程库属于<strong>用户级线程模型</strong>，而goroutine和它的<code>Go Scheduler</code>在底层实现上其实是属于<strong>两级线程模型</strong></p>
-<p>内核调度实体（KSE，Kernel Scheduling Entity）</p>
-<p>用户线程与内核线程KSE是多对一（N : 1）的映射模型，多个用户线程的一般从属于单个进程并且多线程的调度是由用户自己的线程库来完成，线程的创建、销毁以及多线程之间的协调等操作都是由用户自己的线程库来负责而无须借助系统调用来实现。一个进程中所有创建的线程都只和同一个KSE在运行时动态绑定。但是，该模型有个原罪：并不能做到真正意义上的并发，假设在某个用户进程上的某个用户线程因为一个阻塞调用（比如I/O阻塞）而被CPU给中断（抢占式调度）了，那么该进程内的所有线程都被阻塞（因为单个用户进程内的线程自调度是没有CPU时钟中断的，从而没有轮转调度），整个进程被挂起。所以，很多的<strong>协程库</strong>会把自己一些阻塞的操作重新封装为完全的非阻塞形式，然后在以前要阻塞的点上，主动让出自己，并通过某种方式通知或唤醒其他待执行的用户线程在该KSE上运行，从而避免了内核调度器由于KSE阻塞而做上下文切换，这样整个进程也不会被阻塞了</p>
-<p>两级线程模型是博采众长之后的产物，充分吸收前两种线程模型的优点且尽量规避它们的缺点。在此模型下，用户线程与内核KSE是多对多（N : M）的映射模型：首先，区别于用户级线程模型，两级线程模型中的一个进程可以与多个内核线程KSE关联，也就是说一个进程内的多个线程可以分别绑定一个自己的KSE，这点和内核级线程模型相似；其次，又区别于内核级线程模型，它的进程里的线程并不与KSE唯一绑定，而是可以多个用户线程映射到同一个KSE，当某个KSE因为其绑定的线程的阻塞操作被内核调度出CPU时，其关联的进程中其余用户线程可以重新与其他KSE绑定运行。</p>
-<p>###G-P-M</p>
-<ul>
-<li>G: 表示Goroutine，每个Goroutine对应一个G结构体，G存储Goroutine的运行堆栈、状态以及任务函数，可重用。G并非执行体，每个G需要绑定到P才能被调度执行。</li>
-<li>P: Processor，表示逻辑处理器， 对G来说，P相当于CPU核，G只有绑定到P(在P的local runq中)才能被调度。对M来说，P提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等，P的数量决定了系统内最大可并行的G的数量（前提：物理CPU核数 &gt;= P的数量），P的数量由用户设置的GOMAXPROCS决定，但是不论GOMAXPROCS设置为多大，P的数量最大为256。</li>
-<li>M: Machine，OS线程抽象，代表着真正执行计算的资源，在绑定有效的P后，进入schedule循环；而schedule循环的机制大致是从Global队列、P的Local队列以及wait队列中获取G，切换到G的执行栈上并执行G的函数，调用goexit做清理工作并回到M，如此反复。M并不保留G状态，这是G可以跨M调度的基础，M的数量是不定的，由Go Runtime调整，为了防止创建过多OS线程导致系统调度不过来，目前默认最大限制为10000个。</li>
-</ul>
-<p><a target="_blank" rel="noopener" href="https://supertech.csail.mit.edu/papers/steal.pdf"><em>work-stealing</em></a>的调度算法：</p>
-<ul>
-<li>每个P维护一个G的本地队列；</li>
-<li>当一个G被创建出来，或者变为可执行状态时，就把他放到P的可执行队列中；</li>
-<li>当一个G在M里执行结束后，P会从队列中把该G取出；如果此时P的队列为空，即没有其他G可以执行， M就随机选择另外一个P，从其可执行的G队列中取走一半。</li>
-</ul>
-<p><strong>G-P-M模型的定义放在<code>src/runtime/runtime2.go</code>里面，而调度过程则放在了<code>src/runtime/proc.go</code>里。</strong></p>
-<p>起因：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(srv *Server)</span> <span class="title">Serve</span><span class="params">(l net.Listener)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> l.Close()</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 不断循环取出TCP连接</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// 看我看我！！！</span></span><br><span class="line">		rw, e := l.Accept()</span><br><span class="line">        ...</span><br><span class="line">        <span class="comment">// 再看我再看我！！！</span></span><br><span class="line">		<span class="keyword">go</span> c.serve(ctx)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://grafana.com/docs/features/datasources/mysql/">原文链接</a></p>
+<p>将mysql当成TSDB来使用</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">  title <span class="keyword">as</span> <span class="string">&#x27;Title&#x27;</span>,</span><br><span class="line">  user.login <span class="keyword">as</span> <span class="string">&#x27;Created By&#x27;</span> ,</span><br><span class="line">  dashboard.created <span class="keyword">as</span> <span class="string">&#x27;Created On&#x27;</span></span><br><span class="line"> <span class="keyword">FROM</span> dashboard</span><br><span class="line"><span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="keyword">user</span> <span class="keyword">on</span> user.id <span class="operator">=</span> dashboard.created_by</span><br><span class="line"><span class="keyword">WHERE</span> $__timeFilter(dashboard.created)</span><br></pre></td></tr></table></figure>
 
-<p>请求大量，goroutine，起大量</p>
-<p>goroutine池化是有其现实意义的</p>
-<p>目的：实现一个Goroutine Pool，复用goroutine，减轻runtime的调度压力以及缓解内存压力，依托这些优化，在大规模goroutine并发的场景下可以极大地提高并发性能。</p>
+
+
+<p>Another option is a query that can create a key/value variable. The query should return two columns that are named <code>__text</code> and <code>__value</code></p>
+<p>在sql的基础上，掺杂了一些自定义的time函数，来支持TSDB</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/05/jvm-handle-method-overloading-and-overriding/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/05/jvm-handle-method-overloading-and-overriding/" class="post-title-link" itemprop="url">Jvm Handle Method overloading and overriding</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-05 12:14:59" itemprop="dateCreated datePublished" datetime="2019-12-05T12:14:59+08:00">2019-12-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/programmingmitra-com/how-does-jvm-handle-method-overloading-and-overriding-internally-967abde52107">原文链接</a></p>
+<p>We know that overloaded methods are not called polymorphic and get  resolved at compile time and this is why sometime method overloading is  also known as <strong>compile time polymorphism or early/static binding</strong>.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javap -verbose OverridingInternalExample</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://miro.medium.com/max/2610/0*I5BCjfKMXIxHwEhm.png" alt="programe bytecode"></p>
+<p>Bytecode for<code> anyMammal.speak()</code> and<code> humanMammal.speak()</code> are the same (<code> invokevirtual #4 // Method org/programming/mitra/exercises/OverridingInternalExample$Mammal.speak:()V</code> ) because according to compiler both methods are called on<code> Mammal</code> reference. </p>
+<p>JVM uses the<code> invokevirtual</code> instruction to invoke Java equivalent of the C++ virtual methods.</p>
 <blockquote>
-<p>启动服务之时先初始化一个 Goroutine Pool 池，这个Pool维护了一个类似栈的LIFO队列 ，里面存放负责处理任务的Worker，然后在client端提交task到Pool中之后，在Pool内部，接收task之后的核心操作是：</p>
-<ol>
-<li>检查当前Worker队列中是否有可用的Worker，如果有，取出执行当前的task；</li>
-<li>没有可用的Worker，判断当前在运行的Worker是否已超过该Pool的容量：{是 —&gt; 再判断工作池是否为非阻塞模式：[是 ——&gt; 直接返回 nil，否 ——&gt; 阻塞等待直至有Worker被放回Pool]，否 —&gt; 新开一个Worker（goroutine）处理}；</li>
-<li>每个Worker执行完任务之后，放回Pool的队列中等待。</li>
-</ol>
+<p><em>The Java virtual machine does not mandate any particular internal structure for objects 4.</em></p>
 </blockquote>
-<p>该任务在初始化一个Pool之时启动，每隔一定的时间间隔去检查空闲Worker队列中是否有已经过期的Worker，有则清理掉，通过定时清理过期worker，进一步节省系统资源。</p>
-<p>pool结构</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> sig <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> f <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Pool accept the tasks from client,it limits the total</span></span><br><span class="line"><span class="comment">// of goroutines to a given number by recycling goroutines.</span></span><br><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// capacity of the pool.</span></span><br><span class="line">	capacity <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// running is the number of the currently running goroutines.</span></span><br><span class="line">	running <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// expiryDuration set the expired time (second) of every worker.</span></span><br><span class="line">	expiryDuration time.Duration</span><br><span class="line"></span><br><span class="line">	<span class="comment">// workers is a slice that store the available workers.</span></span><br><span class="line">	workers []*Worker</span><br><span class="line"></span><br><span class="line">	<span class="comment">// release is used to notice the pool to closed itself.</span></span><br><span class="line">	release <span class="keyword">chan</span> sig</span><br><span class="line"></span><br><span class="line">	<span class="comment">// lock for synchronous operation.</span></span><br><span class="line">	lock sync.Mutex</span><br><span class="line"></span><br><span class="line">	once sync.Once</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// get worker</span></span><br><span class="line"><span class="comment">// getWorker returns a available worker to run the tasks.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">getWorker</span><span class="params">()</span> *<span class="title">Worker</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> w *Worker</span><br><span class="line">	<span class="comment">// 标志变量，判断当前正在运行的worker数量是否已到达Pool的容量上限</span></span><br><span class="line">	waiting := <span class="literal">false</span></span><br><span class="line">	<span class="comment">// 加锁，检测队列中是否有可用worker，并进行相应操作</span></span><br><span class="line">	p.lock.Lock()</span><br><span class="line">	idleWorkers := p.workers</span><br><span class="line">	n := <span class="built_in">len</span>(idleWorkers) - <span class="number">1</span></span><br><span class="line">	<span class="comment">// 当前队列中无可用worker</span></span><br><span class="line">	<span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 判断运行worker数目已达到该Pool的容量上限，置等待标志</span></span><br><span class="line">		waiting = p.Running() &gt;= p.Cap()</span><br><span class="line">        </span><br><span class="line">	<span class="comment">// 当前队列有可用worker，从队列尾部取出一个使用</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		w = idleWorkers[n]</span><br><span class="line">		idleWorkers[n] = <span class="literal">nil</span></span><br><span class="line">		p.workers = idleWorkers[:n]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 检测完成，解锁</span></span><br><span class="line">	p.lock.Unlock()</span><br><span class="line">	<span class="comment">// Pool容量已满，新请求等待</span></span><br><span class="line">	<span class="keyword">if</span> waiting &#123;</span><br><span class="line">		<span class="comment">// 利用锁阻塞等待直到有空闲worker</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			p.lock.Lock()</span><br><span class="line">			idleWorkers = p.workers</span><br><span class="line">			l := <span class="built_in">len</span>(idleWorkers) - <span class="number">1</span></span><br><span class="line">			<span class="keyword">if</span> l &lt; <span class="number">0</span> &#123;</span><br><span class="line">				p.lock.Unlock()</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			w = idleWorkers[l]</span><br><span class="line">			idleWorkers[l] = <span class="literal">nil</span></span><br><span class="line">			p.workers = idleWorkers[:l]</span><br><span class="line">			p.lock.Unlock()</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	<span class="comment">// 当前无空闲worker但是Pool还没有满，</span></span><br><span class="line">	<span class="comment">// 则可以直接新开一个worker执行任务</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> w == <span class="literal">nil</span> &#123;</span><br><span class="line">		w = &amp;Worker&#123;</span><br><span class="line">			pool: p,</span><br><span class="line">			task: <span class="built_in">make</span>(<span class="keyword">chan</span> f, <span class="number">1</span>),</span><br><span class="line">		&#125;</span><br><span class="line">		w.run()</span><br><span class="line">        <span class="comment">// 运行worker数加一</span></span><br><span class="line">		p.incRunning()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> w</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>定期清理goroutine</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// clear expired workers periodically.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">periodicallyPurge</span><span class="params">()</span></span> &#123;</span><br><span class="line">	heartbeat := time.NewTicker(p.expiryDuration)</span><br><span class="line">	<span class="keyword">for</span> <span class="keyword">range</span> heartbeat.C &#123;</span><br><span class="line">		currentTime := time.Now()</span><br><span class="line">		p.lock.Lock()</span><br><span class="line">		idleWorkers := p.workers</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(idleWorkers) == <span class="number">0</span> &amp;&amp; p.Running() == <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(p.release) &gt; <span class="number">0</span> &#123;</span><br><span class="line">			p.lock.Unlock()</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		n := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> i, w := <span class="keyword">range</span> idleWorkers &#123;</span><br><span class="line">			<span class="keyword">if</span> currentTime.Sub(w.recycleTime) &lt;= p.expiryDuration &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			n = i</span><br><span class="line">			w.task &lt;- <span class="literal">nil</span></span><br><span class="line">			idleWorkers[i] = <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		n++</span><br><span class="line">		<span class="keyword">if</span> n &gt;= <span class="built_in">len</span>(idleWorkers) &#123;</span><br><span class="line">			p.workers = idleWorkers[:<span class="number">0</span>]</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			p.workers = idleWorkers[n:]</span><br><span class="line">		&#125;</span><br><span class="line">		p.lock.Unlock()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>Goroutine Pool真正的价值还是在：</p>
-<ol>
-<li>限制并发的goroutine数量；</li>
-<li>复用goroutine，减轻runtime调度压力，提升程序性能；</li>
-<li>规避过多的goroutine侵占系统资源（CPU&amp;内存）。</li>
-</ol>
+<p>根据vstable来算，</p>
+<p>There is only one<code> vtable</code> per class means it is unique and same for all objects of a class similar to <code>Class</code> object. </p>
+<p>Now instead of creating new entries for these methods with updated  references. JVM will modify the references to the already present  methods on the same index where they were present earlier and will keep  the same method names.</p>
 
       
     </div>
@@ -272,7 +308,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/09/build-trust-infra/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/05/java-stream-api/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -286,7 +322,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/10/09/build-trust-infra/" class="post-title-link" itemprop="url">Build trust infra</a>
+            <a href="/2019/12/05/java-stream-api/" class="post-title-link" itemprop="url">Java Stream Api</a>
         </h2>
 
         <div class="post-meta">
@@ -296,7 +332,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-10-09 11:09:08" itemprop="dateCreated datePublished" datetime="2019-10-09T11:09:08+08:00">2019-10-09</time>
+              <time title="Created: 2019-12-05 11:52:18" itemprop="dateCreated datePublished" datetime="2019-12-05T11:52:18+08:00">2019-12-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -304,7 +340,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
                 </span>
             </span>
 
@@ -319,51 +355,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/phodal/trusted">原文链接</a></p>
-<p><strong>先自顶向下设计，再自底向上实践</strong></p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g7rrz26eo0j31fq0qw10w.jpg" alt="image-20191009111258731"></p>
-<p>设计系统的时候，也会有一些偏好：</p>
-<ul>
-<li>不多也不少：即不做多余的设计，也不缺少关键部分的设计。</li>
-<li>演进式：不断让架构适应当前的环境。</li>
-<li>持续性：长期的架构改进，比什么都重要。</li>
-</ul>
-<p>演进式+持续性</p>
-<p>C4模型</p>
+          <p><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7">原文链接</a></p>
 <blockquote>
-<p>C4 代表上下文（Context）、容器（Container）、组件（Component）和代码（Code）——一系列分层的图表，可以用这些图表来描述不同缩放级别的软件架构，每种图表都适用于不同的受众。—— Simon Brown 《程序员必读之软件架构》</p>
+<p>While using <strong>Imperative Programming</strong>, the developer uses the language constructs to write both <strong>what to do and how to do</strong>. Whereas while using <strong>Declarative Programming</strong>, developer has to focus only on defining <strong>what to do</strong> and the language or the framework takes care of the <strong>how to do</strong> part. Hence in Declarative Programming, the code is concise and less error-prone.</p>
 </blockquote>
-<p>高度自动化的工作流以及可视化</p>
-<p>设计架构的适应度部分，</p>
-<p>一个合理的 README 应该包含：</p>
 <ul>
-<li>项目简介：用一两句话简单描述该项目所实现的业务功能；</li>
-<li>技术选型：列出项目的技术栈，包括语言、框架和中间件等；</li>
-<li>本地构建：列出本地开发过程中所用到的工具命令；</li>
-<li>领域模型：核心的领域概念，比如对于示例电商系统来说有Order、Product等；</li>
-<li>测试策略：自动化测试如何分类，哪些必须写测试，哪些没有必要写测试；</li>
-<li>技术架构：技术架构图；</li>
-<li>部署架构：部署架构图；</li>
-<li>外部依赖：项目运行时所依赖的外部集成方，比如订单系统会依赖于会员系统；</li>
-<li>环境信息：各个环境的访问方式，数据库连接等；</li>
-<li>编码实践：统一的编码实践，比如异常处理原则、分页封装等；</li>
-<li>FAQ：开发过程中常见问题的解答。</li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#0b4d">Transforming</a></li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#f596">Filtering</a></li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#4be6">Searching</a></li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#461b">Reordering</a></li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#78fa">Summarizing</a></li>
+<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#59ac">Grouping</a></li>
 </ul>
-<p>边界限定的系统架构</p>
-<p>过去，我们采用模块化来划定包之间依赖关系；现在采用的是微服务化取代了部分内部包依赖。即以 HTTP 请求代替来函数调用。</p>
-<p>所以，我们将<strong>巨型单体应用</strong>（陷阱 11 ）视为一种毒瘤，顺带强调一下<strong>巨型！巨型！巨型！</strong></p>
-<p>适配层，而非被接口适配</p>
 <blockquote>
-<p>事件风暴（Event Stroming）是一项团队活动，旨在通过领域事件识别出聚合根，进而划分微服务的限界上下文。</p>
+<p>Unlike other operations we have seen till now, the <code>sorted</code> operation is stateful. It means that the operator will have to see all  the elements in the stream before the result of sorting can be provided  to further intermediate or terminal operator. Another example of such an operator is <code>distinct</code></p>
 </blockquote>
-<p>通过领域事件来划分边界</p>
-<p>应用微化架构</p>
-<p>实现上它是一种：</p>
-<ul>
-<li><strong>构建时拆分架构</strong>。</li>
-<li><strong>代码删除架构</strong>。笑，以删代码的方式，来形成每个前端应用。</li>
-<li><strong>微前端准备式架构</strong>。即，随时可以拆分为多个前端应用。</li>
-</ul>
+<p>In <code>Stream</code> API, this is achieved using <strong>terminal operators</strong>. <code>reduce</code> and <code>collect</code> are the generic terminal operators provided for this purpose.</p>
 
       
     </div>
@@ -383,7 +390,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/08/Java-meets-reactive-programing/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/26/hudi-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -397,7 +404,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/10/08/Java-meets-reactive-programing/" class="post-title-link" itemprop="url">Java meets reactive programing</a>
+            <a href="/2019/11/26/hudi-intro/" class="post-title-link" itemprop="url">Hudi Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -407,7 +414,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-10-08 17:28:31" itemprop="dateCreated datePublished" datetime="2019-10-08T17:28:31+08:00">2019-10-08</time>
+              <time title="Created: 2019-11-26 11:09:59" itemprop="dateCreated datePublished" datetime="2019-11-26T11:09:59+08:00">2019-11-26</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -415,7 +422,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/reactive/" itemprop="url" rel="index"><span itemprop="name">reactive</span></a>
+                  <a href="/categories/hudi/" itemprop="url" rel="index"><span itemprop="name">hudi</span></a>
                 </span>
             </span>
 
@@ -430,23 +437,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/wolox-driving-innovation/reactor-java-meets-reactive-programming-16105c026fc3">原文链接</a></p>
-<p><em>Reactor</em> is a reactive programming library for the Java language which provides the basis for developing non-blocking applications, thus representing a change in how we think about an application’s execution model.</p>
-<p>Reactive Programming follows the <em>Observer</em>design pattern which means that when an object’s status changes, the other objects are notified and updated, thus reducing the inefficient use of resources.</p>
-<p>Backpressure grants the <em>Consumer</em>of an asynchronous stream the ability to tell the <em>Producer</em>the amount of data that must be sent to prevent the issuance of events at a rate that is faster than the processing capabilities.  反向驱动？</p>
-<p>Reactor has two reactive types that implement the Publisher interface, but also provide a broad set of operators: *Flux<T>*and <em>Mono<T>.</em></p>
-<p>A <em>Mono</em>object represents a single or empty value result (0..1) and allows deterministic generation from scratch or a sequence from arbitrary callback types. 相比较，多一个callback</p>
-<p>drawbacks:</p>
-<ul>
-<li><p>More intensive memory usage is needed to store large data-flows as they are maintained for a long time.</p>
-</li>
-<li><p>It may be a little different from conventional programming, and it may be hard to understand in the beginning.</p>
-</li>
-<li><p>Most of the complexities must be dealt with at the time of declaring the service.</p>
-</li>
-<li><p>It doesn’t work well for applications that have very little data flow, as it can deem simple programming unnecessarily complex, or possibly even affect the performance.</p>
-</li>
-</ul>
+          <p><a target="_blank" rel="noopener" href="https://eng.uber.com/hoodie/">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Lambda_architecture">Lambda architecture</a> is a common data processing architecture that proposes double compute with streaming and batch layer. </p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pqv2xr3uj31120ge41i.jpg" alt="image-20191208234421238"></p>
 
       
     </div>
@@ -466,7 +459,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/08/write-code-easy-to-delete/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/25/jvm-performance/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -480,7 +473,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/10/08/write-code-easy-to-delete/" class="post-title-link" itemprop="url">Write code easy to delete</a>
+            <a href="/2019/11/25/jvm-performance/" class="post-title-link" itemprop="url">Jvm Performance</a>
         </h2>
 
         <div class="post-meta">
@@ -490,7 +483,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-10-08 16:58:58" itemprop="dateCreated datePublished" datetime="2019-10-08T16:58:58+08:00">2019-10-08</time>
+              <time title="Created: 2019-11-25 14:47:55" itemprop="dateCreated datePublished" datetime="2019-11-25T14:47:55+08:00">2019-11-25</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -498,7 +491,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/code/" itemprop="url" rel="index"><span itemprop="name">code</span></a>
+                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
                 </span>
             </span>
 
@@ -513,105 +506,20 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to">原文链接</a></p>
-<p>Instead of building re-usable software, we should try to build disposable software.</p>
-<p>To write code that’s easy to delete: repeat yourself to avoid creating dependencies, but don’t repeat yourself to manage them. </p>
-<p>Layer your code too: build simple-to-use APIs out of simpler-to-implement but clumsy-to-use parts. </p>
-<p>Split your code: isolate the hard-to-write and the likely-to-change parts from the rest of the code, and each other. </p>
-<p>Don’t hard code every choice, and maybe allow changing a few at runtime. </p>
-<p>Don’t try to do all of these things at the same time, and maybe don’t write so much code in the first place.</p>
-<ul>
-<li>the easiest code to delete is the code you avoided writing in the first place.</li>
-<li>It’s good to copy-paste code a couple of times, rather than making a library function, just to get a handle on how it will be used. Once you make something a shared API, you make it harder to change.</li>
-<li>Instead of making code easy-to-delete, we are trying to keep the hard-to-delete parts as far away as possible from the easy-to-delete parts. use utils</li>
-<li>Boiler plate is a lot like copy-pasting, but you change some of the code in a different place each time, rather than the same bit over and over. write more boilerplate</li>
-<li>don’t write boilerplate. good api, 足够多的封装</li>
-<li>Everything should be built top-down, except the first time</li>
-<li>Instead of breaking code into parts with common functionality, we break code apart by what it does not share with the rest. We isolate the most frustrating parts to write, maintain, or delete away from each other.</li>
-</ul>
-<p>Error handling, and recovery are best done at the outer layers of your code base. This is known as the end-to-end principle.</p>
-<p>Good examples of loose coupling are often examples of uniform interfaces.</p>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@MaartenSmeetsNL/comparing-jvm-performance-zulu-openjdk-openjdk-oracle-jdk-graalvm-ce-48b012c9a8d">原文链接</a></p>
+<p>My test application consisted of a reactive (non-blocking) Spring Boot  REST application and I’ve used Prometheus to poll the JVMs and Grafana  for visualization.</p>
+<p>Using docker-compose to configure a specific CPU for a process is challenging. </p>
+<p>关于measure的不确定性？</p>
+<p>My setup consisted of a docker-compose file which allowed me to easily  start 4 times a reactive Spring Boot application running on the  different JVMs. In front of the 4 JDKs I’ve put an haproxy instance to  load balance requests.</p>
+<p><code>localhost:8080/actuator/env</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it store/oracle/serverjre:8 java -version</span><br></pre></td></tr></table></figure>
 
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/istio-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/23/istio-intro/" class="post-title-link" itemprop="url">Istio Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-23 16:14:05" itemprop="dateCreated datePublished" datetime="2019-09-23T16:14:05+08:00">2019-09-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/istio/" itemprop="url" rel="index"><span itemprop="name">istio</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/avitotech/running-istio-on-kubernetes-in-production-part-i-a8bbf7fec18e">原文链接</a></p>
-<p><img src="https://miro.medium.com/max/2596/1*Qz-ejoBJsCHU7Xnxunn50w.png" alt="istio components"></p>
-<ul>
-<li>Pilot is the main control component that distributes all information about what we keep inside the cluster — services, their endpoints and routing rules (for example, the rules of canary deployment or the circuit breaker rules).</li>
-<li>Mixer is an optional control plane component that provides the ability to collect metrics, logs, and any information about network interactions. It also monitors compliance with policy rules and compliance with the rate limits.</li>
-<li>The data plane component is implemented using sidecar proxy containers.By default, a powerful <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">proxy server envoy</a>is used</li>
-</ul>
-<p>整体的流程：</p>
-<ol>
-<li>We deploy a new version of the service.</li>
-<li>Depending on the sidecar container injection type, an istio-init container and istio-agent container (envoy) are added during the configuration phase, or they can be manually inserted into the pod description of the kubernetes entity.</li>
-<li>The istio-init container is a script that applies the iptables rules for a pod. There are two ways to configure traffic redirecting to an istio-agent container: using redirect iptables rules or <a target="_blank" rel="noopener" href="https://github.com/kristrev/tproxy-example/blob/master/tproxy_example.c">TPROXY</a>. At the writing moment, the default is using redirect rules. In istio-init, it is possible to configure which traffic will be intercepted and sent to istio-agent. For example, in order to intercept all incoming and all outgoing traffic, you need to set the parameters <code>-i</code>and <code>-b</code>to <code>*</code>. You can specify specific ports to be intercepted. To avoid intercepting a certain subnet, you can specify it using the <code>-x</code>flag.</li>
-<li>After init execution, the containers, including pilot-agent (envoy), are launched. It connects to the deployed Pilot by GRPC and gets information about all existing services and routing policies in the cluster. According to the received data, it configures the cluster and maps these directly to the application endpoints in the k8s cluster. There is an important moment: envoy dynamically configures listeners (IP, port pairs) that start listening. Therefore, when requests enter the pod and are redirected using iptables rules to sidecar, envoy is prepared to handle these connections and understands where to forward the proxy traffic. In this step, the information is sent to the Mixer, which we will be described below.</li>
-</ol>
-<p>Mixer has two components: istio-telemetry, istio-policy (up to version 0.8, it used to be a single component istio-mixer). Both are a mixer. Istio telemetry receives GRPC from sidecar containers and reports information about service interactions and parameters. Istio-policy accepts check requests to verify compliance with Policy rules. </p>
+<p>分别从CPU usage/response times/garbage collection/memory usage</p>
+<p>Zulu OpenJDK uses least memory of the compared JVMs. Zulu OpenJDK and  GraalVM are more stable in their memory usage when comparing to Oracle  JDK and OpenJDK.</p>
+<p>GraalVM allows code to be compiled to a native executable. 热执行？</p>
+<p>还有待优化，以及default parameters部分</p>
 
       
     </div>
@@ -630,7 +538,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -698,20 +606,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

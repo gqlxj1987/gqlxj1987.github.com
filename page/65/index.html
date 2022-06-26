@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/05/baseline-env/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/redis-cluster/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/05/baseline-env/" class="post-title-link" itemprop="url">baseline 开发</a>
+            <a href="/2018/12/18/redis-cluster/" class="post-title-link" itemprop="url">redis集群下key的一些策略</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-05 23:13:04" itemprop="dateCreated datePublished" datetime="2018-12-05T23:13:04+08:00">2018-12-05</time>
+              <time title="Created: 2018-12-18 19:55:23" itemprop="dateCreated datePublished" datetime="2018-12-18T19:55:23+08:00">2018-12-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/devops/" itemprop="url" rel="index"><span itemprop="name">devops</span></a>
+                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
                 </span>
             </span>
 
@@ -200,343 +200,471 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>针对先知多模块，多依赖的问题，通过DNS fallback的方式，针对流量进行导流，从而能够导流到自己开发的模块上</p>
-<p>前端有一个gateway的来进行拦截</p>
-<p>mirror的方式，其实是借鉴docker的volumes的方式，mount本地的目录</p>
-<p>intercept的方式，将流量进行导流？使用到了k8s的svc的功能</p>
-<p>存在的几点疑问：</p>
+          <table>
+<thead>
+<tr>
+<th>压测client</th>
+<th>压测server</th>
+<th>线程/进程</th>
+<th>最大qps</th>
+<th>command</th>
+<th>args</th>
+<th>是否pipeline</th>
+<th>集群是否指定slot</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>20</td>
+<td>522</td>
+<td>mget</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>7200</td>
+<td>mget</td>
+<td>700</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>1418</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11435</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11295</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12300</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>15354</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12378</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>y</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>13618</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>y</td>
+</tr>
+</tbody></table>
+<p>测试主要集中在mget以及lrange部分</p>
+<p>mget部分</p>
+<p>对于mget命令，在集群执行时，相比对单点redis执行，会增加了拆分成get的多次网络连接成本，因此效率会大大降低。解决方案是将需要再同一条mget命令出现的key写在同一个slot上，这样的话jedis客户端会将mget保留并传给对应的redis node，而不是拆分成多个get</p>
+<p>关于slot的使用</p>
+<p>因此对于需要mget的key需要手动分配到同一个slot上，官方给出的具体方式是使用{}将需要hash计算的部分扩起来，这样只要{} 内包含的字段一样的key，都会被分配到同一个slot上，例如下面这三条会被分配到同一个slot上</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;recom:item_123:i2i&#125;:xxxxxxxxxxxxx</span><br><span class="line">&#123;recom:item_123:i2i&#125;:qqqqqqqqqqqqq</span><br><span class="line">&#123;recom:item_123:i2i&#125;:fffffffffffff</span><br></pre></td></tr></table></figure>
+
+<p>扩起来的话，具体的写法是什么样的？</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;5400&quot;       #查看key存在于哪个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br><span class="line"> </span><br><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;421&quot;        #括号部分内容一样的key会被hash到同一个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这样写的情况下，手动指定的情况下，与codis的区别是？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/spring-boot-actuator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/18/spring-boot-actuator/" class="post-title-link" itemprop="url">Spring Boot Actuator</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-18 19:40:52" itemprop="dateCreated datePublished" datetime="2018-12-18T19:40:52+08:00">2018-12-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring-boot/" itemprop="url" rel="index"><span itemprop="name">spring boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready.html">原文链接</a></p>
+<p>You can choose to manage and monitor your application by using HTTP endpoints or with JMX. Auditing, health, and metrics gathering can also be automatically applied to your application</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>exposing endpoints</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">management.endpoints.web.exposure.include</span>=<span class="string">*</span></span><br><span class="line"><span class="meta">management.endpoints.web.exposure.exclude</span>=<span class="string">env,beans</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>注意有JMX和web的两种不同类型</p>
+<p>CORS Support</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">management.endpoints.web.cors.allowed-origins</span>=<span class="string">http://example.com</span></span><br><span class="line"><span class="meta">management.endpoints.web.cors.allowed-methods</span>=<span class="string">GET,POST</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>实现一些自定义的endpoints</p>
+<p>You can also write technology-specific endpoints by using <code>@JmxEndpoint</code> or <code>@WebEndpoint</code>. These endpoints are restricted to their respective technologies. For example, <code>@WebEndpoint</code> is exposed only over HTTP and not over JMX.</p>
+<p>You can write technology-specific extensions by using <code>@EndpointWebExtension</code> and <code>@EndpointJmxExtension</code>. These annotations let you provide technology-specific operations to augment an existing endpoint.</p>
+<p>To provide custom health information, you can register Spring beans that implement the <a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-boot/tree/v2.1.1.RELEASE/spring-boot-project/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java"><code>HealthIndicator</code></a> interface. You need to provide an implementation of the <code>health()</code> method and return a <code>Health</code> response.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.Health;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.HealthIndicator;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyHealthIndicator</span> <span class="keyword">implements</span> <span class="title">HealthIndicator</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Health <span class="title">health</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">int</span> errorCode = check(); <span class="comment">// perform some specific health check</span></span><br><span class="line">		<span class="keyword">if</span> (errorCode != <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> Health.down().withDetail(<span class="string">&quot;Error Code&quot;</span>, errorCode).build();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> Health.up().build();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>引出来一个reactive health indicators部分，如何监控</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyReactiveHealthIndicator</span> <span class="keyword">implements</span> <span class="title">ReactiveHealthIndicator</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Mono&lt;Health&gt; <span class="title">health</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> doHealthCheck() <span class="comment">//perform some specific health check that returns a Mono&lt;Health&gt;</span></span><br><span class="line">			.onErrorResume(ex -&gt; Mono.just(<span class="keyword">new</span> Health.Builder().down(ex).build())));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>类似流式的方式</p>
+<p>http的management配置</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">management.server.port</span>=<span class="string">8081</span></span><br><span class="line"><span class="meta">management.server.address</span>=<span class="string">127.0.0.1</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>Jmx的配置</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">spring.jmx.unique-names</span>=<span class="string">true</span></span><br><span class="line"><span class="meta">management.endpoints.jmx.domain</span>=<span class="string">com.example.myapp</span></span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-plugin-manager/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/jenkins-plugin-manager/" class="post-title-link" itemprop="url">Jenkins plugin manager(1)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 18:47:50" itemprop="dateCreated datePublished" datetime="2018-12-15T18:47:50+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-build/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/jenkins-build/" class="post-title-link" itemprop="url">Jenkins Build</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 18:43:11" itemprop="dateCreated datePublished" datetime="2018-12-15T18:43:11+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/graphql-api/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/graphql-api/" class="post-title-link" itemprop="url">GraphQL Api</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 11:51:05" itemprop="dateCreated datePublished" datetime="2018-12-15T11:51:05+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/graphQL/" itemprop="url" rel="index"><span itemprop="name">graphQL</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/Shopify/graphql-design-tutorial/blob/master/TUTORIAL.md?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_145">原文链接</a></p>
+<p>针对collection-&gt;product的多对多关系</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">interface Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  rules: [AutomaticCollectionRule!]!</span><br><span class="line">  rulesApplyDisjunctively: Bool!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  memberships: [CollectionMembership!]!</span><br><span class="line">  title: String!</span><br><span class="line">  imageId: ID</span><br><span class="line">  bodyHtml: String</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule &#123;</span><br><span class="line">  column: String!</span><br><span class="line">  relation: String!</span><br><span class="line">  condition: String!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionMembership &#123;</span><br><span class="line">  collectionId: ID!</span><br><span class="line">  productId: ID!</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>针对er模型</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">interface Collection &#123;</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection &#123;</span><br><span class="line">  [AutomaticCollectionRule]</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection &#123;</span><br><span class="line">  Image</span><br><span class="line">  [CollectionMembership]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule &#123; &#125;</span><br><span class="line"></span><br><span class="line">type CollectionMembership &#123;</span><br><span class="line">  Collection</span><br><span class="line">  Product</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><em>Rule #1: Always start with a high-level view of the objects and their relationships before you deal with specific fields.</em></p>
+<p>对于状态进行clean</p>
+<p>去掉了collectionMembership部分，替换成为product</p>
+<p><em>Rule #2: Never expose implementation details in your API design.</em></p>
+<p><em>Rule #3: Design your API around the business domain, not the implementation, user-interface, or legacy APIs.</em></p>
+<p>Most of your major identifiable business objects (e.g. products, collections, etc) should implement <code>Node</code>.</p>
+<p><em>Rule #7: Always check whether list fields should be paginated or not.</em></p>
+<h3 id=""><a href="#" class="headerlink" title=""></a></h3><p>针对每一个field去判断其合适的一个展现形式，以及继承方式等，这样在后面的扩展的时候，能够随时添加，游刃有余</p>
+<p><em>Rule #8: Always use object references instead of ID fields.</em></p>
+<p><em>Rule #9: Choose field names based on what makes sense, not based on the implementation or what the field is called in legacy APIs.</em></p>
+<p>最终版的schema如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">type Collection implements Node &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  ruleSet: CollectionRuleSet</span><br><span class="line">  products: ProductConnection!</span><br><span class="line">  title: String!</span><br><span class="line">  image: Image</span><br><span class="line">  description: HTML!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionRuleSet &#123;</span><br><span class="line">  rules: [CollectionRule!]!</span><br><span class="line">  appliesDisjunctively: Bool!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type CollectionRule &#123;</span><br><span class="line">  field: CollectionRuleField!</span><br><span class="line">  relation: CollectionRuleRelation!</span><br><span class="line">  value: String!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">enum CollectionRuleField &#123;</span><br><span class="line">  TAG</span><br><span class="line">  TITLE</span><br><span class="line">  TYPE</span><br><span class="line">  INVENTORY</span><br><span class="line">  PRICE</span><br><span class="line">  VENDOR</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">enum CollectionRuleRelation &#123;</span><br><span class="line">  CONTAINS</span><br><span class="line">  ENDS_WITH</span><br><span class="line">  EQUALS</span><br><span class="line">  GREATER_THAN</span><br><span class="line">  LESS_THAN</span><br><span class="line">  NOT_CONTAINS</span><br><span class="line">  NOT_EQUALS</span><br><span class="line">  STARTS_WITH</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="考虑接口部分的问题"><a href="#考虑接口部分的问题" class="headerlink" title="考虑接口部分的问题:"></a>考虑接口部分的问题:</h4><p>在考虑关系membership部分的时候，考虑的几个点：</p>
 <ul>
-<li>所谓的导流到本地IDE的开发是指？</li>
-<li>传jar，然后重启pod的方式，是否还是有些繁琐</li>
+<li>整个关系是否适合crud</li>
+<li>对于关联field部分，有一些delta的修改，关系是否需要改变</li>
+<li>关系是否large或者需要分页</li>
+<li>Is the relationship ordered</li>
+<li>Is the relationship mandatory</li>
+<li>Do both sides have IDs</li>
 </ul>
-<p>关于dns fallback的机制？</p>
-<p>嵌入到k8s的svc机制中去了？</p>
-<h3 id="针对automl的开发？"><a href="#针对automl的开发？" class="headerlink" title="针对automl的开发？"></a>针对automl的开发？</h3><p>考虑真正的service mesh部分？</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">type Mutation &#123;</span><br><span class="line">  collectionDelete(id: ID!)</span><br><span class="line">  collectionPublish(collectionId: ID!)</span><br><span class="line">  collectionUnpublish(collectionId: ID!)</span><br><span class="line">  collectionAddProducts(collectionId: ID!, productIds: [ID!]!)</span><br><span class="line">  collectionRemoveProducts(collectionId: ID!, productIds: [ID!])</span><br><span class="line">  collectionCreate(title: String!, ruleSet: CollectionRuleSetInput, image: ImageInput, description: HTML!)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">input CollectionRuleSetInput &#123;</span><br><span class="line">  rules: [CollectionRuleInput!]!</span><br><span class="line">  appliesDisjunctively: Bool!</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">input CollectionRuleInput &#123;</span><br><span class="line">  field: CollectionRuleField!</span><br><span class="line">  relation: CollectionRuleRelation!</span><br><span class="line">  value: String!</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/05/scala-trait/">
+<p><em>Rule #16: When writing separate mutations for relationships, consider whether it would be useful for the mutations to operate on multiple elements at once.</em></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type CollectionUpdatePayload &#123;</span><br><span class="line">  userErrors: [UserError!]!</span><br><span class="line">  collection: Collection</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/05/scala-trait/" class="post-title-link" itemprop="url">scala trait</a>
-        </h2>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-05 22:52:51" itemprop="dateCreated datePublished" datetime="2018-12-05T22:52:51+08:00">2018-12-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/scala/" itemprop="url" rel="index"><span itemprop="name">scala</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://weinan.io/2018/11/05/scala.html">原文链接</a></p>
-<p>trait并不是interface，而是一个功能模块，允许用户把这个模块插入到class中</p>
-<p>trait本身也可以继承，方法也可以直接在trait里实现</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">scala&gt;</span><span class="bash"> val service2 = new ServiceImportante(<span class="string">&quot;dos&quot;</span>) with StdoutLogging &#123;</span></span><br><span class="line">     |   override def work(i: Int): Int = &#123;</span><br><span class="line">     |     info(s&quot;Starting work: i = $i&quot;)</span><br><span class="line">     |     val result = super.work(i)</span><br><span class="line">     |     info(s&quot;Ending work: i = $i, result = $result&quot;)</span><br><span class="line">     |     result</span><br><span class="line">     |   &#125;</span><br><span class="line">     | &#125;</span><br><span class="line">service2: ServiceImportante with StdoutLogging = $anon$1@674fee6d</span><br></pre></td></tr></table></figure>
-
-
-
-<p>当然也可以重复使用<code>ServiceImportante with StdoutLogging</code>，定义一个新的class</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/03/AUTO-INCREMENT-Handling-in-InnoDB/" class="post-title-link" itemprop="url">AUTO_INCREMENT Handling in InnoDB</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-03 23:56:33" itemprop="dateCreated datePublished" datetime="2018-12-03T23:56:33+08:00">2018-12-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html">原文链接</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/03/pointers-in-C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/03/pointers-in-C/" class="post-title-link" itemprop="url">Pointers in C</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-03 22:08:37" itemprop="dateCreated datePublished" datetime="2018-12-03T22:08:37+08:00">2018-12-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://boredzo.org/pointers/">原文链接</a></p>
-<p><img src="https://boredzo.org/pointers/boxes.png" alt="The box named foo_ptr (an int *) is a pointer to a box named foo (an int)."></p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span>* ptr_a, ptr_b;</span><br></pre></td></tr></table></figure>
-
-<p>同</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> *ptr_a;</span><br><span class="line"><span class="keyword">int</span>  ptr_b;</span><br></pre></td></tr></table></figure>
-
-<p>相等</p>
-<p><a target="_blank" rel="noopener" href="http://ieng9.ucsd.edu/~cs30x/rt_lt.rule.html">The right-left rule for reading C declarations</a></p>
-<p>指针的加减部分</p>
-<p>Well, the type of a pointer matters. The type of the pointer here is int. When you add to or subtract from a pointer, the amount by which you do that is multiplied by the size of the type of the pointer. In the case of our three increments, each 1 that you added was multiplied by <code>sizeof(int)</code>.</p>
-<h2 id="Multiple-indirection"><a href="#Multiple-indirection" class="headerlink" title="Multiple indirection"></a>Multiple indirection</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span>    a =  <span class="number">3</span>;</span><br><span class="line"><span class="keyword">int</span>   *b = &amp;a;</span><br><span class="line"><span class="keyword">int</span>  **c = &amp;b;</span><br><span class="line"><span class="keyword">int</span> ***d = &amp;c;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>There is no string type in C.</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str[] = <span class="string">&quot;I am the Walrus&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>This array is 16 bytes in length: 15 characters for “I am the Walrus”, plus a NUL (byte value 0) terminator. In other words, <code>str[15]</code> (the last element) is 0. This is how the end of the “string” is signaled.</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">size_t</span> <span class="title">strlen</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *str)</span> </span>&#123; Note the pointer syntax here</span><br><span class="line">	<span class="keyword">size_t</span> len = <span class="number">0U</span>;</span><br><span class="line">	<span class="keyword">while</span>(*(str++)) ++len;</span><br><span class="line">	<span class="keyword">return</span> len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>Note the use of pointer arithmetic and dereferencing. That’s because, despite the function’s name, there is no “string” here; there is merely a pointer to at least one character, the last one being 0.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/02/generate-ID/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/02/generate-ID/" class="post-title-link" itemprop="url">ID发生器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-02 15:11:37" itemprop="dateCreated datePublished" datetime="2018-12-02T15:11:37+08:00">2018-12-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/vesta/" itemprop="url" rel="index"><span itemprop="name">vesta</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/cloudatee/vesta-id-generator">原repo</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── LICENSE</span><br><span class="line">├── README.md</span><br><span class="line">├── assembly.xml</span><br><span class="line">├── brief.txt</span><br><span class="line">├── deploy-maven.sh</span><br><span class="line">├── make-release.sh</span><br><span class="line">├── pom.xml</span><br><span class="line">├── todo</span><br><span class="line">│   ├── todo.txt</span><br><span class="line">│   └── �\210\206�\203�\217�\217\221�\217��\231�设计�\210�\203��\210\206�\211_�\216\211�\215\216.doc</span><br><span class="line">├── vesta-client</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">├── vesta-doc</span><br><span class="line">│   ├── API�\226\207档.md</span><br><span class="line">│   ├── REST�\217\221�\203模�\217使�\224��\220\221导.md</span><br><span class="line">│   ├── �\213�\215.pptx</span><br><span class="line">│   ├── �\236��\236\204设计.md</span><br><span class="line">│   ├── �\200��\203��\216\213�\213�\212��\221\212.md</span><br><span class="line">│   ├── �\214�\205��\217\221�\203模�\217使�\224��\220\221导.md</span><br><span class="line">│   └── 中�\203�\234\215�\212��\231��\217\221�\203模�\217使�\224��\220\221导.md</span><br><span class="line">├── vesta-intf</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">├── vesta-rest</span><br><span class="line">│   ├── assembly.xml</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">├── vesta-rest-netty</span><br><span class="line">│   ├── assembly.xml</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">├── vesta-sample</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   ├── vesta-sample-client</span><br><span class="line">│   └── vesta-sample-embed</span><br><span class="line">├── vesta-server</span><br><span class="line">│   ├── assembly.xml</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">├── vesta-service</span><br><span class="line">│   ├── db</span><br><span class="line">│   ├── pom.xml</span><br><span class="line">│   └── src</span><br><span class="line">└── vesta-theme</span><br><span class="line">    └── �\210\221�\232\204微信QR.jpeg</span><br></pre></td></tr></table></figure>
-
-<p>相关的项目结构如上所示。</p>
-<p>入口模块为vesta-rest部分，还是vesta-rest-netty部分？</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">// Configure the server.</span></span><br><span class="line">    EventLoopGroup bossGroup = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">    EventLoopGroup workerGroup = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ServerBootstrap b = <span class="keyword">new</span> ServerBootstrap();</span><br><span class="line">        b.option(ChannelOption.SO_BACKLOG, <span class="number">1024</span>);</span><br><span class="line">        b.group(bossGroup, workerGroup)</span><br><span class="line">            .channel(NioServerSocketChannel.class)</span><br><span class="line">            .childHandler(<span class="keyword">new</span> VestaRestNettyServerInitializer());</span><br><span class="line"></span><br><span class="line">        Channel ch = b.bind(<span class="keyword">new</span> InetSocketAddress(<span class="string">&quot;0.0.0.0&quot;</span>,port)).sync().channel();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (log.isDebugEnabled())</span><br><span class="line">            log.debug(<span class="string">&quot;VestaRestNettyServer is started.&quot;</span>);</span><br><span class="line"></span><br><span class="line">        ch.closeFuture().sync();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        bossGroup.shutdownGracefully();</span><br><span class="line">        workerGroup.shutdownGracefully();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>使用NioEventLoopGroup</p>
-<p>核心的代码都在vesta-service中？</p>
-<p>产生ID部分的代码</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">genId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Id id = <span class="keyword">new</span> Id();</span><br><span class="line"></span><br><span class="line">    id.setMachine(machineId);</span><br><span class="line">    id.setGenMethod(genMethod);</span><br><span class="line">    id.setType(idType.value());</span><br><span class="line">    id.setVersion(version);</span><br><span class="line"></span><br><span class="line">    populateId(id);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> ret = idConverter.convert(id, <span class="keyword">this</span>.idMeta);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Use trace because it cause low performance</span></span><br><span class="line">    <span class="keyword">if</span> (log.isTraceEnabled())</span><br><span class="line">        log.trace(String.format(<span class="string">&quot;Id: %s =&gt; %d&quot;</span>, id, ret));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">populateId</span><span class="params">(Id id)</span> </span>&#123;</span><br><span class="line">    idPopulator.populateId(timer, id, idMeta);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>根据类型，分为几种产生ID的方式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initPopulator</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (idPopulator != <span class="keyword">null</span>)&#123;</span><br><span class="line">        log.info(<span class="string">&quot;The &quot;</span> + idPopulator.getClass().getCanonicalName() + <span class="string">&quot; is used.&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (CommonUtils.isPropKeyOn(SYNC_LOCK_IMPL_KEY)) &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The SyncIdPopulator is used.&quot;</span>);</span><br><span class="line">        idPopulator = <span class="keyword">new</span> SyncIdPopulator();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (CommonUtils.isPropKeyOn(ATOMIC_IMPL_KEY)) &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The AtomicIdPopulator is used.&quot;</span>);</span><br><span class="line">        idPopulator = <span class="keyword">new</span> AtomicIdPopulator();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The default LockIdPopulator is used.&quot;</span>);</span><br><span class="line">        idPopulator = <span class="keyword">new</span> LockIdPopulator();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>基本的Id分布为</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">long</span> <span class="title">doConvert</span><span class="params">(Id id, IdMeta idMeta)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> ret = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    ret |= id.getMachine();</span><br><span class="line"></span><br><span class="line">    ret |= id.getSeq() &lt;&lt; idMeta.getSeqBitsStartPos();</span><br><span class="line"></span><br><span class="line">    ret |= id.getTime() &lt;&lt; idMeta.getTimeBitsStartPos();</span><br><span class="line"></span><br><span class="line">    ret |= id.getGenMethod() &lt;&lt; idMeta.getGenMethodBitsStartPos();</span><br><span class="line"></span><br><span class="line">    ret |= id.getType() &lt;&lt; idMeta.getTypeBitsStartPos();</span><br><span class="line"></span><br><span class="line">    ret |= id.getVersion() &lt;&lt; idMeta.getVersionBitsStartPos();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>其他可变部分的产生逻辑</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">populateId</span><span class="params">(Timer timer, Id id, IdMeta idMeta)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> timestamp = timer.genTime();</span><br><span class="line">    timer.validateTimestamp(lastTimestamp, timestamp);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (timestamp == lastTimestamp) &#123;</span><br><span class="line">        sequence++;</span><br><span class="line">        sequence &amp;= idMeta.getSeqBitsMask();</span><br><span class="line">        <span class="keyword">if</span> (sequence == <span class="number">0</span>) &#123;</span><br><span class="line">            timestamp = timer.tillNextTimeUnit(lastTimestamp);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        lastTimestamp = timestamp;</span><br><span class="line">        sequence = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    id.setSeq(sequence);</span><br><span class="line">    id.setTime(timestamp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>采用sequence以及timestamp部分来产生</p>
-<p>但atomicId有所不同</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">populateId</span><span class="params">(Timer timer, Id id, IdMeta idMeta)</span> </span>&#123;</span><br><span class="line">    Variant varOld, varNew;</span><br><span class="line">    <span class="keyword">long</span> timestamp, sequence;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Save the old variant</span></span><br><span class="line">        varOld = variant.get();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// populate the current variant</span></span><br><span class="line">        timestamp = timer.genTime();</span><br><span class="line">        timer.validateTimestamp(varOld.lastTimestamp, timestamp);</span><br><span class="line"></span><br><span class="line">        sequence = varOld.sequence;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (timestamp == varOld.lastTimestamp) &#123;</span><br><span class="line">            sequence++;</span><br><span class="line">            sequence &amp;= idMeta.getSeqBitsMask();</span><br><span class="line">            <span class="keyword">if</span> (sequence == <span class="number">0</span>) &#123;</span><br><span class="line">                timestamp = timer.tillNextTimeUnit(varOld.lastTimestamp);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sequence = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Assign the current variant by the atomic tools</span></span><br><span class="line">        varNew = <span class="keyword">new</span> Variant();</span><br><span class="line">        varNew.sequence = sequence;</span><br><span class="line">        varNew.lastTimestamp = timestamp;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (variant.compareAndSet(varOld, varNew)) &#123;</span><br><span class="line">            id.setSeq(sequence);</span><br><span class="line">            id.setTime(timestamp);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过variant的方式？</p>
+<p><em>Rule #23: Most payload fields for a mutation should be nullable, unless there is really a value to return in every possible error case.</em> 关于这条的理解，大部分的payload都是nullable</p>
+<p>tips:</p>
+<ul>
+<li>graphQL，更体现domain部分</li>
+</ul>
 
       
     </div>
@@ -555,7 +683,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/64/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/64/">64</a><span class="page-number current">65</span><a class="page-number" href="/page/66/">66</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/66/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/64/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/64/">64</a><span class="page-number current">65</span><a class="page-number" href="/page/66/">66</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/66/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -623,20 +751,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

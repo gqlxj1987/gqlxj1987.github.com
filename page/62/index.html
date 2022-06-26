@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/23/yarn-schedule/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/08/k8s-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/23/yarn-schedule/" class="post-title-link" itemprop="url">Yarn Schedule</a>
+            <a href="/2019/01/08/k8s-intro/" class="post-title-link" itemprop="url">k8s 概念Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-23 10:45:39" itemprop="dateCreated datePublished" datetime="2018-12-23T10:45:39+08:00">2018-12-23</time>
+              <time title="Created: 2019-01-08 19:31:56" itemprop="dateCreated datePublished" datetime="2019-01-08T19:31:56+08:00">2019-01-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/yarn/" itemprop="url" rel="index"><span itemprop="name">yarn</span></a>
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
                 </span>
             </span>
 
@@ -200,30 +200,44 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/double-kill/articles/8979779.html">原文链接</a></p>
-<p>FairScheduler/CapacityScheduler</p>
-<p>采用层级树的方式，FairScheduler通过这样一棵资源树，维护了整个集群的资源使用情况。资源树中的每一个叶子节点都挂载了此时正在这个队列上运行、或者正在申请运行的应用。FairScheduler只需要对这个树进行适当遍历，就可以知道任何一个资源队列当前有哪些应用在运行、队列当前还剩下多少资源、已经使用多少资源等</p>
-<p>###心跳调度</p>
-<p>NM通过心跳的方式定期向RM汇报自身状态，</p>
-<p>###持续调度</p>
-<p>不用等待NodeManager向ResourceManager发送心跳才进行任务调度，而是由一个独立的线程进行<strong>实时</strong>的资源分配等调度，与NodeManager的心跳出发的调度相互异步并行进行。当心跳到来，只需要把调度结果通过心跳响应告诉对应的NodeManager即可</p>
-<p>两种触发机制不同的地方只有两个：</p>
-<p>调度时机：心跳调度仅仅发生在收到了某个NodeManager的心跳信息的情况下，持续调度则不依赖与NodeManager的心跳通信，是连续发生的，当心跳到来，会将调度结果直接返回给NodeManager；</p>
-<p>调度范围：心跳调度下，当收到某个节点的心跳，就对这个节点且仅仅对这个节点进行一次调度。持续调度的每一轮，是会遍历当前集群的所有节点，每个节点依次进行一次调度，保证一轮下来每个节点都被公平的调度一次</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">continuousSchedulingAttempt</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> start = getClock().getTime();</span><br><span class="line">  List&lt;NodeId&gt; nodeIdList = <span class="keyword">new</span> ArrayList&lt;NodeId&gt;(nodes.keySet());</span><br><span class="line">  <span class="comment">//进行调度以前，先对节点根据剩余资源的多少进行排序，从而让资源更充裕的节点先得到调度</span></span><br><span class="line">  <span class="comment">//这样我们更容易让所有节点的资源能够被均匀分配，而不会因为某些节点总是先被调度所以总是比</span></span><br><span class="line">  <span class="comment">//后调度的节点的资源使用率更高</span></span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    Collections.sort(nodeIdList, nodeAvailableResourceComparator);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 遍历所有节点，依次对每一个节点进行一次调度</span></span><br><span class="line">  <span class="keyword">for</span> (NodeId nodeId : nodeIdList) &#123;</span><br><span class="line">    <span class="comment">//FSSchedulerNode是FairScheduler视角下的一个节点</span></span><br><span class="line">    FSSchedulerNode node = getFSSchedulerNode(nodeId);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//判断</span></span><br><span class="line">      <span class="keyword">if</span> (node != <span class="keyword">null</span> &amp;&amp; Resources.fitsIn(minimumAllocation,</span><br><span class="line">          node.getAvailableResource())) &#123;</span><br><span class="line">        attemptScheduling(node);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ex) &#123; <span class="comment">//这每次调度过程中如果发生异常，这个异常将被捕获，因此不会影响在其它节点上进行调度</span></span><br><span class="line">      <span class="comment">//异常处理，略</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> duration = getClock().getTime() - start;</span><br><span class="line">  fsOpDurations.addContinuousSchedulingRunDuration(duration);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>比较器部分，实际上只是比较了内存</p>
-<p>预留资源同非预留资源的区别对待</p>
-<p>剥离预留/尝试分配资源</p>
-<p>适合在这个节点运行</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span> <span class="title">NodeType</span> </span>&#123;</span><br><span class="line">    NODE_LOCAL(<span class="number">0</span>), <span class="comment">//请求规定了必须运行在某个的服务器节点</span></span><br><span class="line">    RACK_LOCAL(<span class="number">1</span>), <span class="comment">//请求规定了必须运行在某个机架上</span></span><br><span class="line">    OFF_SWITCH(<span class="number">2</span>); <span class="comment">//这个请求对本地化没有要求</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> index;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">NodeType</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.index = index;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
+          <p><a target="_blank" rel="noopener" href="https://enqueuezero.com/kubernetes-in-a-nutshell.html">原文链接</a></p>
+<p>master-&gt;node-&gt;pod-&gt;replicaSet-&gt;deployment</p>
+<p>As a Kubernetes user, you might most want to ask Kubernetes to <strong>run a container</strong> via HTTP APIs or CLI.</p>
+<p>In other words, you set a desired state to the <strong>Master</strong> server.</p>
+<p>The <strong>Master</strong> server compares the desired state to the current state in the cluster and decides which node to run.</p>
+<p><strong>Node</strong> servers receive instructions from the <strong>Master</strong> server and then starts a container in the runtime.</p>
+<p>Except the container runtime, the <strong>Node</strong> server runs <strong>kubelet</strong> and <strong>kube-proxy</strong>.</p>
+<p><strong>Kubelet</strong> communicates to the <strong>master</strong> to receive desired states.</p>
+<p><strong>Kubelet</strong> controls the <strong>container runtime</strong> to launch or destroy containers to match the desired states.</p>
+<p><strong>Kube-proxy</strong> forwards requests to the containers, either in localhost or other hosts.</p>
+<p>A <strong>Pod</strong> is one or more containers in a group that should always run on the same <strong>node</strong>.</p>
+<p>All containers in a <strong>pod</strong> are launched and destroyed together, or share a life cycle.</p>
+<p>All containers in a <strong>pod</strong> share their environments, volumes, and IP space.</p>
+<p>Usually, there is one main container and some optional <strong>sidecar containers</strong> in a <strong>pod</strong>.</p>
+<p>A <strong>ReplicaSet</strong> is one or more pod replicas that are running at any given time.</p>
+<p>A <strong>Deployment</strong> is a desired state for <strong>ReplicaSets</strong>.</p>
+<p>The <strong>deployment controller</strong> creates new replicasets for the rolling updates and then replaces the current replicaset.</p>
+<hr>
+<p>order kill</p>
+<p>To support the ordering and uniqueness of Pods, Kubernetes offers <strong>StatefulSet</strong>.</p>
+<hr>
+<p>For applications like logging agents, we want to deploy them per host.</p>
+<p>To support such feature, Kubernetes offers <strong>DaemonSet</strong>.</p>
+<p>It ensures that all (or some) Nodes run a copy of a Pod.</p>
+<p>As nodes are added to the cluster, Pods are added to them.</p>
+<p>As nodes are removed from the cluster, those Pods are garbage collected.</p>
+<p>Deleting a DaemonSet will clean up the Pods it created.</p>
+<hr>
+<p>In case you have one-off jobs, Kubernetes offers <strong>Jobs</strong>.</p>
+<p>A <strong>job</strong> creates one or more pods and ensures that a specified number of them successfully terminate.</p>
+<p>When a specified number of successful completion is reached, the job itself is complete.</p>
+<p>Deleting a Job will clean up the pods it created.</p>
+<hr>
+<p>pods communicate to other pods use <strong>Services</strong></p>
+<p>A <strong>Service</strong> is a component that acts as a basic internal load balancer for pods.</p>
+<p>The <strong>Service</strong> exposes a group of pods as a single entity. When one pod communicates to a service, the service proxies the request to one of the backend pods.</p>
+<p>service -&gt; dns -&gt; pod</p>
+<p>What if one service wants to expose itself to the external world? Kubernetes offers <strong>Ingress</strong>.</p>
 
       
     </div>
@@ -243,7 +257,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/birthday/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/06/argo/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -257,7 +271,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/20/birthday/" class="post-title-link" itemprop="url">没钱的31岁</a>
+            <a href="/2019/01/06/argo/" class="post-title-link" itemprop="url">Argo</a>
         </h2>
 
         <div class="post-meta">
@@ -267,84 +281,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-20 19:53:47" itemprop="dateCreated datePublished" datetime="2018-12-20T19:53:47+08:00">2018-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/birthday/" itemprop="url" rel="index"><span itemprop="name">birthday</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>祝自己31岁生日快乐！</p>
-<p>以一个借5K来作为自己生日礼物，最后还感觉像吃了X一样难受，也是给自己见识了，只能说，人变化地太快。。。</p>
-<p>上半年，以突然的资金崩裂开始，让人来不及反应。而且，相比较别人稍微有个好结果来算，资金估计也是打水漂了，也就值这么点亲戚关系了。而且，你也不知道他到底是干了什么。。。</p>
-<p>借用友邻的一句话，没钱可以省着花，慢慢积累，哪怕再也不足以改变自己的生活。少一点悲春伤秋，把脚下的路走好，把眼前的事情办好。但很显然，事情并不如你想的那样。</p>
-<p>但这个也是给自己的警示，对自己诚实，知道自己并不是怎样的人，不要有太多的奢求和野望。</p>
-<p>今年算是开始真正照顾他人的第一年，但感觉有的时候，无论是心理上，还是行动上，自己感觉到有点厌倦，可能是因为自己的坚持不够，性格上多多少少会有点没那么有耐心，也有可能是，还是没找到很好相处的方式，自己不由自主地就变成了保姆角色？但谁来保姆我。。。</p>
-<p>看到低欲望的社会一书上写的，对未来的不安，导致了一部分的低欲望，觉得未来很可能发生突变，所以不愿意去尝试或者改变一些东西。其实，这也不是在说我。。内心对未来的极度不确定，自己都照顾不来，怎么能照顾别人，怎么能给别人带来幸福。。可拉到吧。。</p>
-<p>所以，既然内心的不确定，那就可以考虑我能留下些什么。放弃治疗，不要想着什么都要抓，从加法做到减法，生命从博识走向专精。既然决定留下些什么，那关于自己的行动，就要专起来，不要贪多，做好自己力所能及的，留下些美好的回忆就可以了。</p>
-<p>有时候，会想自己突然死亡的话，结果也要尽量不会给别人带来困扰，朝着这样的目标，去掉那些负面的情绪，没有必要，珍视美好的东西就行，尽自己最大的努力。。。</p>
-<p>或许，现在才是开始知天命的时候。。。</p>
-<p>成家立业的什么的不用想了。。能够修身就可以了，也应该努力地去修身。。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/argo-architecture/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/20/argo-architecture/" class="post-title-link" itemprop="url">Argo Architecture</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-20 19:26:27" itemprop="dateCreated datePublished" datetime="2018-12-20T19:26:27+08:00">2018-12-20</time>
+              <time title="Created: 2019-01-06 14:30:21" itemprop="dateCreated datePublished" datetime="2019-01-06T14:30:21+08:00">2019-01-06</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -367,22 +304,25 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/argoproj/argo">repo地址</a></p>
-<p>argo是一个Open source Kubernetes native workflows, events, CI and CD</p>
-<p>这里主要是介绍它的events机制，也就是所谓的事件驱动？</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/argoproj/argo">原repo</a></p>
+<p>Argo is a robust workflow engine for Kubernetes that enables the implementation of each step in a workflow as a container. It provides simple, flexible mechanisms for specifying constraints between the steps in a workflow and artifact management for linking the output of any step as an input to subsequent steps</p>
 <ul>
-<li><code>gateways</code> which are implemented as a Kubernetes-native Custom Resource Definition that either produce the events internally or process the events that originate from outside the gateways</li>
-<li><code>sensors</code> which are implemented as a Kubernetes-native Custom Resource Definition that define a set of dependencies and trigger actions.<ul>
-<li>Define multiple dependencies from a variety of gateway sources</li>
-<li>Build custom gateways to support business-level constraint logic</li>
-<li>Trigger messages and Kubernetes object creation after successful dependency resolution</li>
-<li>Trigger escalation after errors, or dependency constraint failures</li>
-<li>Build and manage a distributed, cross-team, event-driven architecture</li>
-<li>Easily leverage Kubernetes-native APIs to monitor dependencies</li>
+<li>Step level input &amp; outputs (artifacts/parameters)</li>
+<li>Timeouts (step &amp; workflow level)</li>
+<li>Retry (step &amp; workflow level)</li>
+<li>Garbage collection of completed workflow</li>
+<li>Scheduling (affinity/tolerations/node selectors)</li>
 </ul>
-</li>
-</ul>
-<p>gateways作为producer，sensors的作用？</p>
+<p>With Argo and Kubernetes, a user not only can create a “pipeline” for building an application, but the pipeline itself can be specified as code and built or upgraded using containers. In other words, you can use CI to manage your CI infrastructure :)</p>
+<p>利用argo workflow形成这个？</p>
+<p><a target="_blank" rel="noopener" href="https://dzone.com/articles/parallel-workflows-on-kubernetes">parallel workflow</a></p>
+<p>We create a Job object with 5 completions and 5 parallelism that will launch 5 pods in parallel to search for a solution. A Redis queue service is used for pubsub. The pod that finishes first will publish a message on a channel on the Redis server. All workers are subscribed to the channel. On receiving “finished” message, all other workers stop the search and exit</p>
+<p>The workflow then consists of the following steps:</p>
+<ol>
+<li>Create a parallelized Kubernetes Job which launches 5 parallel workers. Once any pod has exited with success, no other pod will be doing any work. Return the job name and job uid as output parameters.</li>
+<li>Using the uid of the job, query any of its associated pods and print the result to the stdout.</li>
+<li>Delete the job using the job name.</li>
+</ol>
 
       
     </div>
@@ -402,7 +342,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/sofa-ark/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/06/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -416,7 +356,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/18/sofa-ark/" class="post-title-link" itemprop="url">sofa ark</a>
+            <a href="/2019/01/06/one-week/" class="post-title-link" itemprop="url">不做错</a>
         </h2>
 
         <div class="post-meta">
@@ -426,64 +366,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-18 20:07:15" itemprop="dateCreated datePublished" datetime="2018-12-18T20:07:15+08:00">2018-12-18</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/redis-cluster/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/18/redis-cluster/" class="post-title-link" itemprop="url">redis集群下key的一些策略</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-18 19:55:23" itemprop="dateCreated datePublished" datetime="2018-12-18T19:55:23+08:00">2018-12-18</time>
+              <time title="Created: 2019-01-06 14:29:31" itemprop="dateCreated datePublished" datetime="2019-01-06T14:29:31+08:00">2019-01-06</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -491,7 +374,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
                 </span>
             </span>
 
@@ -506,123 +389,189 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <table>
-<thead>
-<tr>
-<th>压测client</th>
-<th>压测server</th>
-<th>线程/进程</th>
-<th>最大qps</th>
-<th>command</th>
-<th>args</th>
-<th>是否pipeline</th>
-<th>集群是否指定slot</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>20</td>
-<td>522</td>
-<td>mget</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>7200</td>
-<td>mget</td>
-<td>700</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>1418</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>11435</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>11295</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>12300</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>15354</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>12378</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>y</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>13618</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>y</td>
-</tr>
-</tbody></table>
-<p>测试主要集中在mget以及lrange部分</p>
-<p>mget部分</p>
-<p>对于mget命令，在集群执行时，相比对单点redis执行，会增加了拆分成get的多次网络连接成本，因此效率会大大降低。解决方案是将需要再同一条mget命令出现的key写在同一个slot上，这样的话jedis客户端会将mget保留并传给对应的redis node，而不是拆分成多个get</p>
-<p>关于slot的使用</p>
-<p>因此对于需要mget的key需要手动分配到同一个slot上，官方给出的具体方式是使用{}将需要hash计算的部分扩起来，这样只要{} 内包含的字段一样的key，都会被分配到同一个slot上，例如下面这三条会被分配到同一个slot上</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;recom:item_123:i2i&#125;:xxxxxxxxxxxxx</span><br><span class="line">&#123;recom:item_123:i2i&#125;:qqqqqqqqqqqqq</span><br><span class="line">&#123;recom:item_123:i2i&#125;:fffffffffffff</span><br></pre></td></tr></table></figure>
+          <p>首先是不做错，只有在这个基础上，才能做对，才能做好</p>
+<hr>
+<p>还是心累，照顾不好。。。就连生病这种，也懒得争执了。希望能快点好起来吧，快点结束吧。。。当好自己的acer，是什么就是什么</p>
 
-<p>扩起来的话，具体的写法是什么样的？</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;5400&quot;       #查看key存在于哪个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br><span class="line"> </span><br><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;421&quot;        #括号部分内容一样的key会被hash到同一个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/06/23-great-pandas-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/06/23-great-pandas-code/" class="post-title-link" itemprop="url">23 great pandas code</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-06 14:01:19" itemprop="dateCreated datePublished" datetime="2019-01-06T14:01:19+08:00">2019-01-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pandas/" itemprop="url" rel="index"><span itemprop="name">pandas</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/23-great-pandas-codes-for-data-scientists-cca5ed9d8a38">原文链接</a></p>
+<h4 id="Convert-data-frame-to-numpy-array"><a href="#Convert-data-frame-to-numpy-array" class="headerlink" title="Convert data frame to numpy array"></a>Convert data frame to numpy array</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df.as_matrix()</span><br></pre></td></tr></table></figure>
 
 
 
-<p>这样写的情况下，手动指定的情况下，与codis的区别是？</p>
+<h4 id="Apply-a-function-to-a-data-frame"><a href="#Apply-a-function-to-a-data-frame" class="headerlink" title="Apply a function to a data frame"></a>Apply a function to a data frame</h4><p>This one will multiple all values in the “height” column of the data frame by 2</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df[<span class="string">&quot;height&quot;</span>].apply(<span class="keyword">lambda</span> height: <span class="number">2</span> * height)</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/03/building-reactive-application-with-akka/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/03/building-reactive-application-with-akka/" class="post-title-link" itemprop="url">Building reactive application with Akka</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-03 23:47:56" itemprop="dateCreated datePublished" datetime="2019-01-03T23:47:56+08:00">2019-01-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.infoq.com/articles/Building-Reactive-Applications-with-Akka">原文链接</a></p>
+<p>The actor model provides the core functionality of reactive systems, defined in the Reactive Manifesto as responsive, resilient, elastic, and message driven.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Counter</span> <span class="keyword">extends</span> <span class="title">AbstractLoggingActor</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Message</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> counter = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    &#123;</span><br><span class="line">      receive(ReceiveBuilder</span><br><span class="line">        .match(Message.class, <span class="keyword">this</span>::onMessage)</span><br><span class="line">        .build()</span><br><span class="line">      );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message message)</span> </span>&#123;</span><br><span class="line">      counter++;</span><br><span class="line">      log().info(<span class="string">&quot;Increased counter &quot;</span> + counter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>send message</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">counter.tell(<span class="keyword">new</span> Counter.Message(), ActorRef.noSender());</span><br></pre></td></tr></table></figure>
+
+
+
+<p>change actor behaviour</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onEnable</span><span class="params">(Enable enable)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> (password.equals(enable.password)) &#123;</span><br><span class="line">     log().info(<span class="string">&quot;Alarm enable&quot;</span>);</span><br><span class="line">     getContext().become(enabled);</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     log().info(<span class="string">&quot;Someone failed to enable the alarm&quot;</span>);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">ActorSystem system = ActorSystem.create();</span><br><span class="line">    <span class="keyword">final</span> ActorRef alarm = system.actorOf(Alarm.props(<span class="string">&quot;cat&quot;</span>), <span class="string">&quot;alarm&quot;</span>);</span><br><span class="line"></span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Enable(<span class="string">&quot;dogs&quot;</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Enable(<span class="string">&quot;cat&quot;</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Disable(<span class="string">&quot;dogs&quot;</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Disable(<span class="string">&quot;cat&quot;</span>), ActorRef.noSender());</span><br><span class="line">alarm.tell(<span class="keyword">new</span> Alarm.Activity(), ActorRef.noSender());</span><br></pre></td></tr></table></figure>
+
+
+
+<p>Actors may create other actors. When one actor creates another actor, the <em>creator</em> is known as the <em>supervisor</em> and the <em>created actor</em> is known as the <em>worker</em>.</p>
+<p>但是这种方式不被推荐？</p>
+<p>If one actor does not have the means for dealing with a certain situation, it sends a corresponding failure message to its supervisor, asking for help. The supervisor has four different options for reacting to a failure:</p>
+<ul>
+<li><strong>Resume</strong> the child, keeping its accumulated internal state but ignoring the message that lead to the failure.</li>
+<li><strong>Restart</strong> the child, clearing out its accumulated internal state by starting a new instance.</li>
+<li><strong>Stop</strong> the child permanently and send all future messages for the child to the <a target="_blank" rel="noopener" href="http://doc.akka.io/docs/akka/current/general/message-delivery-reliability.html#Dead_Letters">Dead-Letter Office</a>.</li>
+<li><strong>Escalate</strong> the failure, thereby failing the supervisor itself</li>
+</ul>
+<p>针对actor的策略？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Supervisor</span> <span class="keyword">extends</span> <span class="title">AbstractLoggingActor</span> </span>&#123;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">final</span> ActorRef child = getContext().actorOf(NonTrustWorthyChild.props(), <span class="string">&quot;child&quot;</span>);</span><br><span class="line"></span><br><span class="line">    receive(ReceiveBuilder</span><br><span class="line">      .matchAny(command -&gt; child.forward(command, getContext()))</span><br><span class="line">      .build()</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//…</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>supervisor是child？</p>
+<p>Akka provides two classes of supervision strategies: <code>OneForOneStrategy</code> and <code>AllForOneStrategy.</code>The difference between them is that the former applies the obtained directive only to the failed child, whereas the latter applies it to all siblings as well. Normally, you should use the <code>OneForOneStrategy</code>, which is the default if none is explicitly specified. It is defined by overriding the <code>SupervisorStrategy</code> method.</p>
+<p>The output shows, that after four messages the exception gets escalated to the <code>Supervisor</code> and the remaining messages are sent to the <code>deadLetters</code> box. If the <code>SupervisorStrategy</code> would have been defined to <code>restart()</code>instead of <code>stop()</code>, a new instance of the <code>NonTrustWorthyChild</code> actor would have been started.</p>
+<p>关于子actor的策略，是restart还是stop</p>
 
       
     </div>
@@ -641,7 +590,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/129/">129</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -709,20 +658,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">645</span>
+          <span class="site-state-item-count">656</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">236</span>
+        <span class="site-state-item-count">239</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-count">245</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
