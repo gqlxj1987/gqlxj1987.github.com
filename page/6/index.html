@@ -153,6 +153,271 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/02/04/fengkong/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/02/04/fengkong/" class="post-title-link" itemprop="url">风控系统</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-02-04 14:30:24" itemprop="dateCreated datePublished" datetime="2021-02-04T14:30:24+08:00">2021-02-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/recommend/" itemprop="url" rel="index"><span itemprop="name">recommend</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzIxMzEzMjM5NQ==&mid=2651045354&idx=1&sn=b5e458288be29edb3ad69950ab091ce1&chksm=8c4c68eebb3be1f8890fac75407cb01ec1bd0681b35825ba498ef07cd6e6612dd55204f7a97c&mpshare=1&scene=1&srcid=02048GiqWk4hgM1HV8YBQSCN&sharer_sharetime=1612402771705&sharer_shareid=f9aa486bc359e0e3481fb25984021a90&version=3.0.31.2308&platform=mac#rd">原文链接</a></p>
+<p>规则配置抽象化</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbhpooaa9j30lu09r40w.jpg" alt="图片" style="zoom: 50%;" />
+
+
+
+<p>决策树同决策矩阵部分？</p>
+<p>首先确定规则集，然后再确定决策树</p>
+<p>pipeline模型，用链式串联不同节点组件，组成直线工作流</p>
+<p>Rete模型，构建成网络，区分alpha网络和beta网络</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbhyzfeldj30nq0ckgmz.jpg" alt="图片" style="zoom:50%;" />
+
+
+
+<p>实现决策树和决策矩阵是把每个可选的条件都置为单独规则处理，而rule_1和rule_2存在互斥关系，如果一个为true，另一个则无需计算，rule_3和rule_4也是如此。如果决策树更加复杂，一个选择即一个分支，将存在更多无需计算的规则。为了提高决策效率，一个简单的实现方案：可将互斥的规则增加个属性标签“规则组”，将决策上下文缓存，已获得true结果的规则组下规则不再参与重复匹配计算。</p>
+<p>实际上，是一个模式匹配的问题，如何更高效地匹配和轮转</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbi1v93tqj30gx0bsq3y.jpg" alt="图片" style="zoom:50%;" />
+
+
+
+<p>rete模型</p>
+<p><strong>构建rete网络流程：</strong></p>
+<ol>
+<li>网络的构建始于根节点Root Node（黑色）</li>
+<li>构建Alpha网络，根据rule_1获取执行条件（module模式）中参数类型，添加Type Node节点（Object Type Node），并将module作为AlphaNode加入网络（已添加忽略），重复执行所有rule下的module，构建Alpha内存表 （Alpha Memory 黄色节点）。</li>
+<li>构建Beta网络，Beta Node节点，Beta(i)左输入节点为Beta(i-1)，右输入节点为Alpha(i)，连接节点Join Node（绿色节点）</li>
+<li>规则执行部分封装成Terminal Node（灰色节点）</li>
+</ol>
+<p>有向图结构（如有向无环图DAG），图的解析主要是进行深度或广度遍历，可以执行每条分支流程，因此图的遍历更适合做并行网关，而决策流是排它网关语义，同时有且只有一个分支满足执行条件，使用图结构并不合适，一次决策的执行流程，更像一个链式流程，更适合单向链表结构。</p>
+<p>关于flink的原子粒度的问题，采用滑动窗口的问题</p>
+<p>如果要看 10 分钟、15 分钟数据，只要把结果数据再做一次聚合即可。这样可以避免因调整聚合窗口时间，导致监控服务重启不可用。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/02/04/Q-learnning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/02/04/Q-learnning/" class="post-title-link" itemprop="url">Q-learning</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-02-04 11:01:19" itemprop="dateCreated datePublished" datetime="2021-02-04T11:01:19+08:00">2021-02-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/itplus/article/details/9361915">原文链接</a></p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbcduzlwfj30mw0dcq4c.jpg" alt="image-20210204112953710" style="zoom: 33%;" />
+
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbcm6h0mtj30o40e6jt6.jpg" alt="image-20210204113757023" style="zoom:33%;" />
+
+<p>通过reward值，可以形成矩阵</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbcmv2cukj30im0a0q3p.jpg" alt="image-20210204113837798" style="zoom:33%;" />
+
+<p>将agent的每一次探索称为一个episode，即从任意初始状态到达目标状态</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbctnj96vj31800ekwi8.jpg" alt="image-20210204114509095" style="zoom: 33%;" />
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/02/01/rust-borrow-checker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/02/01/rust-borrow-checker/" class="post-title-link" itemprop="url">borrow checker</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-02-01 19:48:09" itemprop="dateCreated datePublished" datetime="2021-02-01T19:48:09+08:00">2021-02-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://smallcultfollowing.com/babysteps/blog/2018/04/27/an-alias-based-formulation-of-the-borrow-checker/">原文链接</a></p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">main</span></span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> x: <span class="built_in">i32</span> = <span class="number">22</span>;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> v: <span class="built_in">Vec</span>&lt;&amp;<span class="built_in">i32</span>&gt; = <span class="built_in">vec!</span>[];</span><br><span class="line">  <span class="keyword">let</span> r: &amp;<span class="keyword">mut</span> <span class="built_in">Vec</span>&lt;&amp;<span class="built_in">i32</span>&gt; = &amp;<span class="keyword">mut</span> v;</span><br><span class="line">  <span class="keyword">let</span> p: &amp;<span class="built_in">i32</span> = &amp;x; <span class="comment">// 1. `x` is borrowed here to create `p`</span></span><br><span class="line">  r.push(p);        <span class="comment">// 2. `p` is stored into `v`, but through `r`</span></span><br><span class="line">  x += <span class="number">1</span>;           <span class="comment">// &lt;-- Error! can&#x27;t mutate `x` while borrowed</span></span><br><span class="line">  take(v);          <span class="comment">// 3. the reference to `x` is later used here</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">take</span></span>&lt;T&gt;(p: T) &#123; .. &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>if you have a mutable loan like <code>r = &amp;mut v</code>, then you can only access the value <code>v</code> through the reference <code>r</code>. Accessing <code>v</code> directly in any way – read, write, or move – would invalidate the loan. </p>
+<p>Datalog rules</p>
+<p><a target="_blank" rel="noopener" href="https://crates.io/crates/differential-dataflow">differential-dataflow</a></p>
+<p>Differential dataflow is a data-parallel programming framework designed to efficiently process large volumes of data and to quickly respond to arbitrary changes in input collections.</p>
+<p>using familiar operators like <code>map</code>, <code>filter</code>, <code>join</code>, and <code>group</code>. </p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// create a degree counting differential dataflow</span></span><br><span class="line"><span class="keyword">let</span> (<span class="keyword">mut</span> input, probe) = worker.dataflow(|scope| &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create edge input, count a few ways.</span></span><br><span class="line">    <span class="keyword">let</span> (input, edges) = scope.new_collection();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> out_degr_distr =</span><br><span class="line">    edges.map(|(src, _dst)| src)    <span class="comment">// extract source</span></span><br><span class="line">         .count();                  <span class="comment">// count occurrences of source</span></span><br><span class="line">         .map(|(_src, deg)| deg)    <span class="comment">// extract degree</span></span><br><span class="line">         .count();                  <span class="comment">// count occurrences of degree</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// show us something about the collection, notice when done.</span></span><br><span class="line">    <span class="keyword">let</span> probe =</span><br><span class="line">    out_degr_distr</span><br><span class="line">        .inspect(|x| <span class="built_in">println!</span>(<span class="string">&quot;observed: &#123;:?&#125;&quot;</span>, x))</span><br><span class="line">        .probe();</span><br><span class="line"></span><br><span class="line">    (input, probe)</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>subsets relationships</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">main</span></span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> x: <span class="built_in">i32</span> = <span class="number">22</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut</span> v: <span class="built_in">Vec</span>&lt;&amp;&#x27;<span class="number">0</span> <span class="built_in">i32</span>&gt; = <span class="built_in">vec!</span>[];</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">let</span> r: &amp;&#x27;<span class="number">1</span> <span class="keyword">mut</span> <span class="built_in">Vec</span>&lt;&amp;&#x27;<span class="number">2</span> <span class="built_in">i32</span>&gt; = &amp;&#x27;<span class="number">3</span> <span class="keyword">mut</span> v;</span><br><span class="line">  <span class="comment">// requires: &amp;&#x27;3 mut Vec&lt;&amp;&#x27;0 i32&gt; &lt;: &amp;&#x27;1 mut Vec&lt;&amp;&#x27;2 i32&gt;</span></span><br><span class="line">  <span class="comment">//        =&gt; &#x27;3: &#x27;1, &#x27;0: &#x27;2, &#x27;2: &#x27;0</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">let</span> p: &amp;&#x27;<span class="number">5</span> <span class="built_in">i32</span> = &amp;&#x27;<span class="number">4</span> x;</span><br><span class="line">  <span class="comment">// requires: &amp;&#x27;4 i32 &lt;: &amp;&#x27;5 i32</span></span><br><span class="line">  <span class="comment">//        =&gt; &#x27;4: &#x27;5</span></span><br><span class="line"></span><br><span class="line">  r.push(p);</span><br><span class="line">  <span class="comment">// requires: &amp;&#x27;5 i32 &lt;: &amp;&#x27;2 i32</span></span><br><span class="line">  <span class="comment">//        =&gt; &#x27;5: &#x27;2</span></span><br><span class="line">  </span><br><span class="line">  x += <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  take::&lt;<span class="built_in">Vec</span>&lt;&amp;&#x27;<span class="number">6</span> <span class="built_in">i32</span>&gt;&gt;(v);</span><br><span class="line">  <span class="comment">// requires: Vec&lt;&amp;&#x27;0 i32&gt; &lt;: Vec&lt;&amp;&#x27;6 i32&gt;</span></span><br><span class="line">  <span class="comment">//        =&gt; &#x27;0: &#x27;6</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>base_subset概念</p>
+<p>This input is defined for each borrow expression (e.g., <code>&amp;x</code> or <code>&amp;mut v</code>) in the program. </p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/02/01/2020-2021/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -283,227 +548,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/01/18/GAN-Intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/01/18/GAN-Intro/" class="post-title-link" itemprop="url">GTN Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2021-01-18 11:14:25" itemprop="dateCreated datePublished" datetime="2021-01-18T11:14:25+08:00">2021-01-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://eng.uber.com/generative-teaching-networks/">原文链接</a></p>
-<p>we show that such algorithms are possible via <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1912.07768">Generative Teaching Networks</a> (GTNs). </p>
-<p>That allowed us to search for new neural network architectures <strong>nine times faster than when using real data.</strong> </p>
-<p>The architecture of a neural network refers to some of its design choices (e.g., how many layers it should have, how many neurons should be in each layer, which layers should connect to which, etc.).</p>
-<p>We instead asked whether the process could be accelerated by a more radical idea: allowing machine learning to <em>create the training data itself</em>. 训练速度提不上去，采用一种造数的方式来自我加速</p>
-<p>GTNs involve an exciting type of machine learning called meta-learning, here harnessed for architecture search. </p>
-<p>We adopt the ideas of <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1611.01578">numerous</a> <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1802.03268">papers</a> <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1808.07233">that</a> search for a small architectural module that is then repeatedly combined through a predetermined blueprint to create architectures of various sizes. Once a high-quality module is discovered, it can be used to create a larger network, which is then trained on real data to convergence for the target task.  采用不同的角度去生成数据，然后找到一个比较高质量的，然后再灌入最终的真实数据来收敛</p>
-<p>However, generating problems requires defining an environment search space, meaning a way to encode a rich space of environments to search through. 需要确定搜索空间</p>
-<p>GTNs could help us move towards <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1905.10985">AI-generating algorithms</a> that automatically create powerful forms of AI by (1) meta-learning architectures, (2) meta-learning the learning algorithms themselves, and (3) automatically generating training environments. </p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/01/15/tensorbase-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/01/15/tensorbase-intro/" class="post-title-link" itemprop="url">Tensorbase intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2021-01-15 11:18:41" itemprop="dateCreated datePublished" datetime="2021-01-15T11:18:41+08:00">2021-01-15</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://tensorbase.io/2021/01/05/rust_china_conf_2020.html">原文链接</a></p>
-<p>first principle：不基于任何假设</p>
-<p>shared something: </p>
-<p>JIT Compiler</p>
-<p>Relational Algebra</p>
-<p>All-in-four Math -&gt;(map), + (union/agg), *(join), &lt;&gt;(sort/top)</p>
-<p>简化SQL部分的语法糖</p>
-<p>打满throughput，内存带宽跑满的话，内存的使用率？</p>
-<p>rust share nothing的问题</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/01/12/juicefs/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/01/12/juicefs/" class="post-title-link" itemprop="url">Juicefs intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2021-01-12 19:43:42" itemprop="dateCreated datePublished" datetime="2021-01-12T19:43:42+08:00">2021-01-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/juicefs/" itemprop="url" rel="index"><span itemprop="name">juicefs</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/juicedata/juicefs">repo地址</a></p>
-<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gmof93x8fdj314v0u0wi6.jpg" alt="image-20210115154107820" style="zoom:33%;" />
-
-<p>从vfs部分入手</p>
-<p>vfs.go，主要是posix的相关操作，代码里的默认实现，通过redisMeta来实现</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -575,7 +619,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -588,7 +632,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

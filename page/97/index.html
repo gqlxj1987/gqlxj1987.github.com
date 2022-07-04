@@ -153,6 +153,306 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/GAN-example/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/03/GAN-example/" class="post-title-link" itemprop="url">GAN Example on Keras</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-03 10:57:11" itemprop="dateCreated datePublished" datetime="2018-04-03T10:57:11+08:00">2018-04-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0">原文链接</a></p>
+<p>GAN is almost always explained like the case of a counterfeiter (Generative) and the police (Discriminator). Initially, the counterfeiter will show the police a fake money. The police says it is fake. The police gives feedback to the counterfeiter why the money is fake. The counterfeiter attempts to make a new fake money based on the feedback it received. The police says the money is still fake and offers a new set of feedback. The counterfeiter attempts to make a new fake money based on the latest feedback. The cycle continues indefinitely until the police is fooled by the fake money because it looks real</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*QHMGABbwL04x5VGYc_UWSA.png" alt="discriminator"></p>
+<p>Figure 1. Discriminator of DCGAN tells how real an input image of a digit is. MNIST Dataset is used as ground truth for real images. Strided convolution instead of max-pooling down samples the image.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">self.D = Sequential()</span><br><span class="line">depth = <span class="number">64</span></span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line"><span class="comment"># In: 28 x 28 x 1, depth = 1</span></span><br><span class="line"><span class="comment"># Out: 14 x 14 x 1, depth=64</span></span><br><span class="line">input_shape = (self.img_rows, self.img_cols, self.channel)</span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">1</span>, <span class="number">5</span>, strides=<span class="number">2</span>, input_shape=input_shape, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">2</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">4</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">8</span>, <span class="number">5</span>, strides=<span class="number">1</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 1-dim probability</span></span><br><span class="line">self.D.add(Flatten())</span><br><span class="line">self.D.add(Dense(<span class="number">1</span>))</span><br><span class="line">self.D.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.D.summary()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*gvBT3h4JD7eUN0GexHwx2w.png" alt="generator"></p>
+<p>Figure 2. Generator model synthesizes fake MNIST images from noise. Upsampling is used instead of fractionally-strided transposed convolution.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">self.G = Sequential()</span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line">depth = <span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span></span><br><span class="line">dim = <span class="number">7</span></span><br><span class="line"><span class="comment"># In: 100</span></span><br><span class="line"><span class="comment"># Out: dim x dim x depth</span></span><br><span class="line">self.G.add(Dense(dim*dim*depth, input_dim=<span class="number">100</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line">self.G.add(Reshape((dim, dim, depth)))</span><br><span class="line">self.G.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># In: dim x dim x depth</span></span><br><span class="line"><span class="comment"># Out: 2*dim x 2*dim x depth/2</span></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">2</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">4</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">8</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 28 x 28 x 1 grayscale image [0.0,1.0] per pix</span></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="number">1</span>, <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.G.summary()</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*PIpd1jHbPc2QrTOPhvxoaw.png" alt="model"></p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/1*N3nT9AXVnsFBta2R1eEMjg.png" alt="train model"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">images_train = self.x_train[np.random.randint(<span class="number">0</span>,</span><br><span class="line">     self.x_train.shape[<span class="number">0</span>], size=batch_size), :, :, :]</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> images_fake = self.generator.predict(noise)</span><br><span class="line"> x = np.concatenate((images_train, images_fake))</span><br><span class="line"> y = np.ones([<span class="number">2</span>*batch_size, <span class="number">1</span>])</span><br><span class="line"> y[batch_size:, :] = <span class="number">0</span></span><br><span class="line"> d_loss = self.discriminator.train_on_batch(x, y)</span><br><span class="line"></span><br><span class="line"> y = np.ones([batch_size, <span class="number">1</span>])</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> a_loss = self.adversarial.train_on_batch(noise, y)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="Some-tips"><a href="#Some-tips" class="headerlink" title="Some tips"></a>Some tips</h3><p>Training GAN models requires a lot of patience due to its depth. Here are some pointers:</p>
+<ol>
+<li>Problem: generated images look like noise. Solution: use dropout on both Discriminator and Generator. Low dropout values (0.3 to 0.6) generate more realistic images.</li>
+<li>Problem: Discriminator loss converges rapidly to zero thus preventing the Generator from learning. Solution: Do not pre-train the Discriminator. Instead make its learning rate bigger than the Adversarial model learning rate. Use a different training noise sample for the Generator.</li>
+<li>Problem: generator images still look like noise. Solution: check if the activation, batch normalization and dropout are applied in the correct sequence.</li>
+<li>Problem: figuring out the correct training/model parameters. Solution: start with some known working values from published papers and codes and adjust one parameter at a time. Before training for 2000 or more steps, observe the effect of parameter value adjustment at about 500 or 1000 steps.</li>
+</ol>
+<p>尝试使用kaggle来做下试验？</p>
+<h2 id="tips"><a href="#tips" class="headerlink" title="tips:"></a>tips:</h2><p>在进行深度学习的时候，先尝试将相关图能画出来，讲流程图能画出来</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/go101/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/03/go101/" class="post-title-link" itemprop="url">Go101</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-03 10:27:12" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">2018-04-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/go/" itemprop="url" rel="index"><span itemprop="name">go</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://go101.org/article/101.html">原文链接</a></p>
+<h3 id="value-parts"><a href="#value-parts" class="headerlink" title="value parts"></a>value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
+<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
+<p>Two kinds points</p>
+<ul>
+<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
+<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
+</ul>
+<p>Internal Definitions of the types</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// map types</span></span><br><span class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></span><br><span class="line">                         <span class="comment">// Go maps are hashtables actually.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// channel types</span></span><br><span class="line"><span class="keyword">type</span> _channel *channelImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// function types</span></span><br><span class="line"><span class="keyword">type</span> _function *functionImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// slice types</span></span><br><span class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>            <span class="comment">// number of elements</span></span><br><span class="line">	<span class="built_in">cap</span>      <span class="keyword">int</span>            <span class="comment">// capacity</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// string types</span></span><br><span class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements *<span class="keyword">byte</span> <span class="comment">// underlying bytes</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="keyword">int</span>   <span class="comment">// number of bytes</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// general interface types</span></span><br><span class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</span><br><span class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</span><br><span class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></span><br><span class="line">		methods     []*_function <span class="comment">// implemented methods</span></span><br><span class="line">	&#125;</span><br><span class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>underlying value parts are not copied in value assignments</strong></p>
+<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
+<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
+<ul>
+<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
+<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
+<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
+</ul>
+<h3 id="line-break-rules-in-go"><a href="#line-break-rules-in-go" class="headerlink" title="line break rules in go"></a>line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>&#123;</code>) of the explicit code block of a <a target="_blank" rel="noopener" href="https://go101.org/article/control-flow.html">control flow block</a> on a new line.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// do something ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>活用<code>;</code></p>
+<h3 id="Some-Panic-Recover-Use-Cases"><a href="#Some-Panic-Recover-Use-Cases" class="headerlink" title="Some Panic/Recover Use Cases"></a>Some Panic/Recover Use Cases</h3><p>avoid panics crashing programs</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;errors&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;net&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listener, err := net.Listen(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;:12345&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalln(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></span><br><span class="line">		<span class="keyword">go</span> ClientHandler(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;client handler panic:&quot;</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">		c.Close()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">&quot;just a demo.&quot;</span>)) <span class="comment">// a demo-purpose panic</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>automatically restart a crash goroutine</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></span><br><span class="line">		<span class="comment">// Simultate an unexpected panic.</span></span><br><span class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">&quot;unexpected situation&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="keyword">string</span>, f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></span><br><span class="line">			log.Println(name, <span class="string">&quot;is crashed. Restart it now.&quot;</span>)</span><br><span class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.SetFlags(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#A&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#B&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>use panic/recover to reduce error checkings</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Create a demo-purpose panic.</span></span><br><span class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">&quot;bad number: %v&quot;</span>, n))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></span><br><span class="line">		<span class="comment">// a panic will be created if no errors occur.</span></span><br><span class="line">		err, _ = <span class="built_in">recover</span>().(error)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	doTask(<span class="number">22</span>)</span><br><span class="line">	doTask(<span class="number">98</span>)</span><br><span class="line">	doTask(<span class="number">100</span>)</span><br><span class="line">	doTask(<span class="number">53</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="close-channel"><a href="#close-channel" class="headerlink" title="close channel"></a>close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/02/flipkart-data-platform/" class="post-title-link" itemprop="url">Flipkart Data Platform</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-02 16:59:43" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">2018-04-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/data-platform/" itemprop="url" rel="index"><span itemprop="name">data platform</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196">原文链接</a></p>
+<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
+<p>Overall FDP can be broken down into following high level components.</p>
+<ol>
+<li>Ingestion System</li>
+<li>Batch Data Processing System</li>
+<li>Real time Processing System</li>
+<li>Report Visualization</li>
+<li>Query Platform</li>
+</ol>
+<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
+<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
+<p><a target="_blank" rel="noopener" href="https://lens.apache.org/">Apache Lens</a> 接入hive等</p>
+<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
+<hr>
+<h2 id="ETL"><a href="#ETL" class="headerlink" title="ETL"></a>ETL</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d">原文链接</a></p>
+<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
+<p>mapreduce vs cascading</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
+<hr>
+<h2 id="REAL-TIME-SEACH-INDEX"><a href="#REAL-TIME-SEACH-INDEX" class="headerlink" title="REAL TIME SEACH INDEX"></a>REAL TIME SEACH INDEX</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d">原文链接</a></p>
+<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=05rX0mJ2N4U">video</a></p>
+<p>高频繁的更新操作，</p>
+<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
+<p><a target="_blank" rel="noopener" href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart">sides</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -306,265 +606,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/02/one-week/" class="post-title-link" itemprop="url">大佛普拉斯</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-02 09:39:33" itemprop="dateCreated datePublished" datetime="2018-04-02T09:39:33+08:00">2018-04-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>有钱人的世界是彩色的，孤独流浪的人，最后可能连个线都没有</p>
-<p>释迦，孑然一身，孤独地在世间逛一逛</p>
-<hr>
-<p>本周：</p>
-<ul>
-<li>接入几家agency</li>
-<li>继续理解ml中关于lstm部分知识</li>
-</ul>
-<p>本周所学：</p>
-<ul>
-<li>lstm中bucket部分，关于前后变换的长度限制</li>
-<li>conda的部分使用</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>尝试将lstm部分写出来，开始训练，写代码</li>
-<li>整理一下，开始进行leetcode的训练</li>
-</ul>
-<p>锻炼部分，恢复的不错，继续坚持和保持下去，关于跑步的里程数方面，提高到一周15km，定一个全年跑步里程数，加油！</p>
-<p>烦恼什么，不过是在哪里什么都不动的自我逃避，行动起来，不管是什么样，行动</p>
-<p>时间分配上，开始找到一些感觉，但还不够，回家的那几个小时，要抓起来，调整下作息，早上的时候，可以来段英语学习。。</p>
-<p>相处上，还是按部就班，尽量保持独立吧，还是抓不住什么，自己要控制lol。。简直像是精虫上脑一样。。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/03/27/Data-Engineering-quick-start/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/03/27/Data-Engineering-quick-start/" class="post-title-link" itemprop="url">Data Engineering初探</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-03-27 17:08:00" itemprop="dateCreated datePublished" datetime="2018-03-27T17:08:00+08:00">2018-03-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@richard534/getting-started-with-data-engineering-3d2e728d0c1f">原文链接</a></p>
-<p><em>While it is true that Redshift is based off</em> PostgreSQL it has been so heavily modified </p>
-<p>There are 3 important aspects in big data architecture: Scalability, Scalability and Scalability (maintaining performance despite ever increasing volumes of data)</p>
-<p>Such “trends” include:</p>
-<ul>
-<li>The rise of noSQL database management systems (To solve the inherent scalability problems of relational databases)</li>
-<li>The rise of functional programming paradigms (Make concurrency easier to reason with. Big data processing systems are often — by there very nature — distributed and highly concurrent)</li>
-</ul>
-<p><img src="https://cdn-images-1.medium.com/max/2000/1*s59RqCor-mnLmqHdlYv_9A.png" alt="big data landscape"></p>
-<p>Spark: It also uses a DAG (Directed Acyclic Graph) Engine to optimize workflows. The DAG engine essentially takes the tasks that needs to be completed and works backwards to determine the most optimum way to carry them out.</p>
-<p>Hadoop was designed for storing large amounts of data and running batch processing applications against said data (known as an <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Online_transaction_processing">OLAP</a> system). As such It is unsuitable for serving customer facing applications such as web applications (<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Online_analytical_processing">OLTP</a> system).</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*2WIMd5xn2SGg-52vTncThQ.png" alt="CAP theorem"></p>
-<p>最新的是解决CA问题的是google的spannr服务。类似于Tidb</p>
-<p>As a Data Engineer you may be involved in projects such as the following:</p>
-<ul>
-<li><strong>Building ETL (Extract-Transform-Load) pipelines:</strong> Not to be confused with “data ingestion” which is simply moving data from one place to another. ETL pipelines are a fundamental component of any data system. They <strong>extract</strong> data from many disparate sources, <strong>transform</strong> (aka wrangling) the data (often making it fit the data model defined by your data warehouse) then <strong>load</strong> said data into your data warehouse. These are systems built from scratch using programming languages such as Python, Java, Scala, Go, etc.</li>
-<li><strong>Building metric analysis tools:</strong> Tools used to query the data pipeline for statistics such as customer engagement, growth or operational efficiency.</li>
-<li><strong>Building/Maintaining Data Warehouse/Lake:</strong> Data engineers are the “librarians” of the data warehouse, cataloguing and organizing metadata. They must also define the processes by which other people in your organisation load or extract data to/from the warehouse (As a gatekeeper of sorts).</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/03/27/Kubernetes-quick-start/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/03/27/Kubernetes-quick-start/" class="post-title-link" itemprop="url">Kubernetes 简介</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-03-27 16:33:48" itemprop="dateCreated datePublished" datetime="2018-03-27T16:33:48+08:00">2018-03-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blog.sourcerer.io/a-kubernetes-quick-start-for-people-who-know-just-enough-about-docker-to-get-by-71c5933b4633">原文链接</a></p>
-<blockquote>
-<p>Kubernetes is a portable, extensible open-source platform for managing containerized workloads and services, that facilitates both declarative configuration and automation.</p>
-</blockquote>
-<p>掌握一些 Kubernetes 的核心概念：</p>
-<ul>
-<li>Cluster: 一个容器网络，它们之间可以互相通信。</li>
-<li>Nodes: Cluster 里面跑的的节点。</li>
-<li>Master：可以控制其他节点，所有操作命令跑在 master 上，Master 决定 Cluster 里面的哪个节点跑应用。</li>
-<li>Network: Kubernetes 假设你搞好了网络可以让节点互相通信。有很多开源方案可以选择。</li>
-<li>Kubernetes API: Master 开放出来的接口</li>
-<li>Kubelet: 每个 Node 上跑着 Kubelet，负责管理当前 Node，以及和 Master 通信。通信使用 Kubernetes API。</li>
-<li>kubectl: 一个命令行工具，调用 Kubernetes API 和 Master 通信用来管理。</li>
-<li>kubeadm: 一个用来初始化 cluster 的程序，能给 Cluster 配置好所需要的 add-ons。</li>
-<li>etcd: 一个分布式 key-value 数据仓库。存储了所有 Cluster Nodes 的信息。</li>
-<li>Kubernetes objects: 是 cluster 中操作的基本对象，也是会在 Kubernetes 中存储的数据。这些数据用来描述 Cluster 应该处于的状态。包括 deployments, replica sets, services, pods, etc.</li>
-<li>Pod: 一组容器(比如 docker containers)以及它们之间的关系；它们之间有共享的网络和存储。在网络上，这组容器可以通过一个独立 IP 地址访问。</li>
-<li>Service: 定义了 Pods 的逻辑分组 以及如何访问它们。因为 Pod 很容易被创建和销毁，Kubernetes 引入了 Service，只要给 Pods 给一个标签，所以流量都会由标签指定的 Service 处理。</li>
-<li>Deployment: 设定预期状态，如果不符合，Kubernetes 会保证 Cluster 达到这个状态。Deployment 告诉了 Kubernetes 如何创建和更新应用的实例。</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -636,7 +677,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -649,7 +690,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

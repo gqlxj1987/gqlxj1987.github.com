@@ -153,6 +153,261 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/30/Achieving-concurrency-in-Go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/30/Achieving-concurrency-in-Go/" class="post-title-link" itemprop="url">Achieving concurrency in Go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-30 10:37:17" itemprop="dateCreated datePublished" datetime="2019-07-30T10:37:17+08:00">2019-07-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/rungo/achieving-concurrency-in-go-3f84cbf870ca">原文链接</a></p>
+<table>
+<thead>
+<tr>
+<th>thread</th>
+<th>goroutine</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Os threads are managed by kernal and has hardware dependencies.</td>
+<td>goroutines are managed by go runtime and has no hardware dependencies.</td>
+</tr>
+<tr>
+<td>Os threads generally have fixed stack size of 1-2MB</td>
+<td>goroutines typically have 8KB (2KB since Go 1.4) of stack size in newer versions of go</td>
+</tr>
+<tr>
+<td>Stack size is determined during compile time and can not grow</td>
+<td>Stack size of go is managed in run-time and can grow up to 1GB which is possible by allocating and freeing heap storage</td>
+</tr>
+<tr>
+<td>There is no easy communication medium between threads. There is huge latency between inter-thread communication.</td>
+<td>goroutine use <code>channels</code> to communicate with other goroutines with low latency (<a target="_blank" rel="noopener" href="https://blog.twitch.tv/gos-march-to-low-latency-gc-a6fa96f06eb7">read more</a>).</td>
+</tr>
+<tr>
+<td>Threads have identity. There is TID which identifies each thread in a process.</td>
+<td>goroutine do not have any identity. go implemented this because go does not have TLS(<a target="_blank" rel="noopener" href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms686749(v=vs.85).aspx">Thread Local Storage</a>).</td>
+</tr>
+<tr>
+<td>Threads have significant setup and teardown cost as a thread has to request lots of resources from Os and return once it’s done.</td>
+<td>goroutines are created and destoryed by the go’s runtime. These operations are very cheap compared to threads as go runtime already maintain pool of threads for goroutines. In this case Os is not aware of goroutines.</td>
+</tr>
+<tr>
+<td>Threads are preemptively scheduled (<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/4147221/preemptive-threads-vs-non-preemptive-threads">read here</a>). Switching cost between threads is high as scheduler needs to save/restore more than 50 registers and states. This can be quite significant when there is rapid switching between threads.</td>
+<td>goroutines are coopertively scheduled (<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/37469995/goroutines-are-cooperatively-scheduled-does-that-mean-that-goroutines-that-don">read more</a>). When a goroutine switch occurs, only 3 registers need to be saved or restored.</td>
+</tr>
+</tbody></table>
+<p><a target="_blank" rel="noopener" href="https://medium.com/rungo/anatomy-of-goroutines-in-go-concurrency-in-go-a4cb9272ff88">原文链接2</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> start time.Time</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	start = time.Now()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getChars</span><span class="params">(s <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, c := <span class="keyword">range</span> s &#123;</span><br><span class="line">		fmt.Printf(<span class="string">&quot;%c at time %v\n&quot;</span>, c, time.Since(start))</span><br><span class="line">		time.Sleep(<span class="number">10</span> * time.Millisecond)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getDigits</span><span class="params">(s []<span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, d := <span class="keyword">range</span> s &#123;</span><br><span class="line">		fmt.Printf(<span class="string">&quot;%d at time %v\n&quot;</span>, d, time.Since(start))</span><br><span class="line">		time.Sleep(<span class="number">30</span> * time.Millisecond)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">&quot;main execution started at time&quot;</span>, time.Since(start))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// getChars goroutine</span></span><br><span class="line">	<span class="keyword">go</span> getChars(<span class="string">&quot;Hello&quot;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// getDigits goroutine</span></span><br><span class="line">	<span class="keyword">go</span> getDigits([]<span class="keyword">int</span>&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// schedule another goroutine</span></span><br><span class="line">	time.Sleep(<span class="number">200</span> * time.Millisecond)</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;\nmain execution stopped at time&quot;</span>, time.Since(start))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/29/event-build-evolutionary-architectures/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/29/event-build-evolutionary-architectures/" class="post-title-link" itemprop="url">Event Build Evolutionary Architectures</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-29 20:43:00" itemprop="dateCreated datePublished" datetime="2019-07-29T20:43:00+08:00">2019-07-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.usejournal.com/using-events-to-build-evolutionary-architectures-2b4ab8146e0a">原文链接</a></p>
+<h3 id="events-vs-messages"><a href="#events-vs-messages" class="headerlink" title="events vs messages"></a>events vs messages</h3><p>An  event is a record of a certain action having happened in a system and  is therefore defined in the language of the publishing system. The  publisher cares not at all about who might be listening and merely  guarantees that a certain set of event data will be emitted over a  certain medium of transmission.</p>
+<p>A  message, on the other hand, is a peer-to-peer construct. The publisher  of the message targets the message at a specific consumer system and the  contents must be defined in the language of the consumer. Such a  message would not be meaningful to others, even if they were to listen  in. In a sense, a message sent by system A to system B is API invocation  done asynchronously.</p>
+<h3 id="event-base-architecture"><a href="#event-base-architecture" class="headerlink" title="event base architecture"></a>event base architecture</h3><p>If we use events to propagate information across our distributed system, we come up with a very loosely coupled architecture where there is minimal knowledge of each other across systems. All systems either broadcast events corresponding to activities in their world or consume events from other systems to trigger workflows in their own world. As a publisher, a system does not know who will consume its events. As a consumer, a system is not aware of where the event came from, just that it should perform something when it receives such an event. (event的publish/consume的不确定性)</p>
+<p>In the micro-service world, events give rise to the <em>choreography style</em>of building workflows. Essentially, this is no explicitly defined<br>workflow at all but service are mapped to respond to certain set of events. The interaction described above is an example. An end-to-end workflow is achieved without describing it as such because we are able to compose it from independent event-service interations. No one needs to know the <em>complete</em> flow as it does not really exist.</p>
+<h3 id="message-base-architecture"><a href="#message-base-architecture" class="headerlink" title="message base architecture"></a>message base architecture</h3><p>In the micro-service world, messages give rise to <em>orchestration style workflows</em>. A service or an orchestrating system (often a worflow engine like JBPM or its more modern avatars like <a target="_blank" rel="noopener" href="https://netflix.github.io/conductor/intro/?source=post_page---------------------------">Conductor</a> and <a target="_blank" rel="noopener" href="https://github.com/uber/cadence?source=post_page---------------------------">Cadence</a>) captures the sequence in which a set of services should be invoked to achieve an end-to-end output and it invokes them via messages (or APIs, as the case may be). ESB based systems are a version of messaging architectures</p>
+<p>event更符合OCP(open-closed principle)</p>
+<p>the event stream <em>IS</em> the fact of life, and as long as the events continue to flow in, it doesn’t mater to them whether they are coming from the same system or from the next version of it or from a entirely new system. </p>
+<p>A widely employed strategy for building new versions of software is the <a target="_blank" rel="noopener" href="https://www.martinfowler.com/bliki/StranglerApplication.html?source=post_page---------------------------">strangler pattern</a><br>where you progressively migrate and deploy functionality from one version of a software to the next one, all the while keeping the<br>structure of the events same</p>
+<h3 id="Event-ful-pitfalls"><a href="#Event-ful-pitfalls" class="headerlink" title="Event-ful pitfalls"></a>Event-ful pitfalls</h3><p>The most important problem is one of tracking business workflows. Since systems do not collborate with each other but rather with events, it becomes difficult to track what the status of any business process is. Long pipelines like order processing become very difficult to track and manage. Answering “define the complete process of order fulfilment” can have you running all over the engineering department!</p>
+<p>The other, lesser problem is around error handling. If one system suffers from an outage and loses some messages, there is no<br>straightforward way to re-generate/replay them. The publisher gives no guarantee that it can re-publish them. Persistent messaging system like Kafka help to a certain extent, but guaranteeing their uptime and resilience, even more than the core services, becomes a mission critical problem for the whole company</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/15/akka-cluster-k8s/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/15/akka-cluster-k8s/" class="post-title-link" itemprop="url">Akka Cluster & K8s</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-15 11:59:50" itemprop="dateCreated datePublished" datetime="2019-07-15T11:59:50+08:00">2019-07-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.slideshare.net/JontheBeach/cloud-native-akka-kubernetes-the-holy-grail-to-elasticity">slide</a></p>
+<p>需要有seed node部分，master/worker的结构</p>
+<p>http vs remote actor messaging</p>
+<p>remote actor message performance 更好？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/12/k8s-structures/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -340,289 +595,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/12/flink-intro1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/12/flink-intro1/" class="post-title-link" itemprop="url">Flink Intro1</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-07-12 10:54:19" itemprop="dateCreated datePublished" datetime="2019-07-12T10:54:19+08:00">2019-07-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/flink/" itemprop="url" rel="index"><span itemprop="name">flink</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/fRt1RF1pxu_ZtmeObOoJ">原文链接</a></p>
-<p>包含部分：</p>
-<ul>
-<li>streams</li>
-<li>state</li>
-<li>time，包括Event time、Ingestion time、Processing time</li>
-<li>api</li>
-</ul>
-<p>极致的流式处理性能。Flink 相对于 Storm 最大的特点是将状态语义完全抽象到框架中，支持本地状态读取，避免了大量网络 IO，可以极大提升状态存取的性能。</p>
-<p>stateful stream processing</p>
-<p>有状态的分布式流式处理</p>
-<ul>
-<li>如何确保状态拥有精确一次（Exactly-once guarantee）的容错保证？</li>
-<li>如何在分散式场景下替多个拥有本地状态的运算子产生一个全域一致的快照（Global consistent snapshot）？</li>
-<li>更重要的是，如何在不中断运算的前提下产生快照？</li>
-</ul>
-<p>关于 Flink 如何在不中断运算的状况下持续产生 Global consistent snapshot，其方式是基于用 simple lamport 演算法机制下延伸的。已知的一个点 Checkpoint barrier， Flink 在某个 Datastream 中会一直安插Checkpoint barrier，Checkpoint barrier 也会 N — 1 等等，Checkpoint barrier N 代表着所有在这个范围里面的数据都是 Checkpoint barrier N。</p>
-<p>Flink 目前支持以上两种状态后端，一种是纯 memory 的状态后端(java object read/write)，另一种是有资源磁盘的状态后端(rocks db)</p>
-<p>Watermarks</p>
-<p>其精髓在于当某个运算值收到带有时间戳“ T ”的 watermarks 时就意味着它不会接收到新的数据了。使用 watermarks 的好处在于可以准确预估收到数据的截止时间。谁来赋予这个watermarks？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/07/vitess/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/07/vitess/" class="post-title-link" itemprop="url">Vitess</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-07-07 17:23:15" itemprop="dateCreated datePublished" datetime="2019-07-07T17:23:15+08:00">2019-07-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/vitess/" itemprop="url" rel="index"><span itemprop="name">vitess</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://vitess.io/docs/">原repo</a></p>
-<p>Vitess is a database solution for deploying, scaling and managing large clusters of MySQL instances.</p>
-<ul>
-<li>Performance<ul>
-<li>Connection pooling - Multiplex front-end application queries onto a pool of MySQL connections to optimize performance.</li>
-<li>Query de-duping – Reuse results of an in-flight query for any identical requests received while the in-flight query was still executing.</li>
-<li>Transaction manager – Limit number of concurrent transactions and manage deadlines to optimize overall throughput.</li>
-</ul>
-</li>
-<li>Protection<ul>
-<li>Query rewriting and sanitization – Add limits and avoid non-deterministic updates.</li>
-<li>Query blacklisting – Customize rules to prevent potentially problematic queries from hitting your database.</li>
-<li>Query killer – Terminate queries that take too long to return data.</li>
-<li>Table ACLs – Specify access control lists (ACLs) for tables based on the connected user.</li>
-</ul>
-</li>
-<li>Monitoring<ul>
-<li>Performance analysis: Tools let you monitor, diagnose, and analyze your database performance.</li>
-<li>Query streaming – Use a list of incoming queries to serve OLAP workloads.</li>
-<li>Update stream – A server streams the list of rows changing in the database, which can be used as a mechanism to propagate changes to other data stores.</li>
-</ul>
-</li>
-<li>Topology Management Tools<ul>
-<li>Master management tools (handles reparenting)</li>
-<li>Web-based management GUI</li>
-<li>Designed to work in multiple data centers / regions</li>
-</ul>
-</li>
-<li>Sharding<ul>
-<li>Virtually seamless dynamic re-sharding</li>
-<li>Vertical and Horizontal sharding support</li>
-<li>Multiple sharding schemes, with the ability to plug-in custom ones</li>
-</ul>
-</li>
-</ul>
-<p>同Tidb的区别？</p>
-<p>相当于proxy部分，基于mysql，proxy部分做的比较多，</p>
-<p><img src="http://ww4.sinaimg.cn/large/006tNc79ly1g4roj15wb3j30o90cfjs2.jpg" alt="architecture"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/07/why-fuck-templating-yaml/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/07/why-fuck-templating-yaml/" class="post-title-link" itemprop="url">Why Fuck Templating Yaml</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-07-07 16:47:23" itemprop="dateCreated datePublished" datetime="2019-07-07T16:47:23+08:00">2019-07-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/yaml/" itemprop="url" rel="index"><span itemprop="name">yaml</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://leebriggs.co.uk/blog/2019/02/07/why-are-we-templating-yaml.html">原文链接</a></p>
-<p>At some point, we decided it was okay for us to template yaml. When did this happen? How is this acceptable?</p>
-<p> It’s incredibly likely that the reason you have multiple configuration files is because the $thing that uses that config is slightly different from its companions. Examples of this include:</p>
-<ul>
-<li>Applications deployed in different environments, like dev, stg and prod</li>
-<li>Applications deployed in different regions, like Europe or North American</li>
-</ul>
-<h4 id="Helm-Charts"><a href="#Helm-Charts" class="headerlink" title="Helm Charts"></a>Helm Charts</h4><p>Optional values just make things ugly in templating languages, and you can’t just leave the value blank, so you have to resort to ugly loops and conditionals that are probably going to bite you later.</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;&#123;<span class="bullet">-</span> <span class="string">with</span> <span class="string">.Values.podAnnotations</span>  &#125;&#125;</span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">&#123;&#123; <span class="string">toYaml</span> <span class="string">.</span> <span class="string">|</span> <span class="string">indent</span> <span class="number">8</span>  &#125;&#125;</span><br><span class="line">&#123;&#123;<span class="bullet">-</span> <span class="string">end</span>  &#125;&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">something:</span> <span class="string">nothing</span></span><br><span class="line">  <span class="attr">hello:</span> <span class="string">goodbye</span></span><br></pre></td></tr></table></figure>
-
-<p>这段yaml可能不是valid</p>
-<p>yaml部分，关于indent部分，很让人get confused</p>
-<h3 id="JSON-Jsonnet-amp-YAML"><a href="#JSON-Jsonnet-amp-YAML" class="headerlink" title="JSON, Jsonnet &amp; YAML"></a>JSON, Jsonnet &amp; YAML</h3><p><a target="_blank" rel="noopener" href="https://yaml.org/spec/1.2/spec.html#id2759572">YAML is a superset of JSON</a> and converting between the two is trivial. Many applications and programming languages will parse JSON and YAML natively, and many can convert between the two very simple</p>
-<p>采用json的方式，去定义yaml部分</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">local annotations = &#123;</span><br><span class="line">  &#x27;nginx.ingress.kubernetes.io/app-root&#x27;: &#x27;/&#x27;,</span><br><span class="line">  &#x27;nginx.ingress.kubernetes.io/enable-cors&#x27;: true,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  metadata: &#123;</span><br><span class="line">    annotations: annotations,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125; + &#123; // this adds another JSON object</span><br><span class="line">  metadata+: &#123; // I&#x27;m using the + operator, so we&#x27;ll append to the existing metadata</span><br><span class="line">    annotations+: &#123; // same as above</span><br><span class="line">      something: &#x27;nothing&#x27;,</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">   <span class="attr">&quot;metadata&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;annotations&quot;</span>: &#123;</span><br><span class="line">         <span class="attr">&quot;nginx.ingress.kubernetes.io/app-root&quot;</span>: <span class="string">&quot;/&quot;</span>,</span><br><span class="line">         <span class="attr">&quot;nginx.ingress.kubernetes.io/enable-cors&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">         <span class="attr">&quot;something&quot;</span>: <span class="string">&quot;nothing&quot;</span></span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -694,7 +666,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -707,7 +679,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

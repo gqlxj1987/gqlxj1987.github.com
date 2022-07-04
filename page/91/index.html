@@ -153,6 +153,255 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/go-not-good/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/22/go-not-good/" class="post-title-link" itemprop="url">Go the good, the bad and the ugly</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-22 17:04:31" itemprop="dateCreated datePublished" datetime="2018-05-22T17:04:31+08:00">2018-05-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_127">原文链接</a></p>
+<h3 id="Good"><a href="#Good" class="headerlink" title="Good"></a>Good</h3><p>new Types</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> UserId <span class="keyword">string</span> <span class="comment">// &lt;-- new type</span></span><br><span class="line"><span class="keyword">type</span> ProductId <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddProduct</span><span class="params">(userId UserId, productId ProductId)</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    userId := UserId(<span class="string">&quot;some-user-id&quot;</span>)</span><br><span class="line">    productId := ProductId(<span class="string">&quot;some-product-id&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Right order: all fine</span></span><br><span class="line">    AddProduct(userId, productId)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wrong order: would compile with raw strings</span></span><br><span class="line">    AddProduct(productId, userId)</span><br><span class="line">    <span class="comment">// Compilation errors:</span></span><br><span class="line">    <span class="comment">// cannot use productId (type ProductId) as type UserId in argument to AddProduct</span></span><br><span class="line">    <span class="comment">// cannot use userId (type UserId) as type ProductId in argument to AddProduct</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Bad"><a href="#Bad" class="headerlink" title="Bad"></a>Bad</h3><h4 id="Go-ignored-advances-in-modern-language-design"><a href="#Go-ignored-advances-in-modern-language-design" class="headerlink" title="Go ignored advances in modern language design"></a>Go ignored advances in modern language design</h4><p><strong>functional programing</strong></p>
+<p><strong>No LLVM</strong></p>
+<p><strong>GC</strong></p>
+<h4 id="Interfaces-are-structural-types"><a href="#Interfaces-are-structural-types" class="headerlink" title="Interfaces are structural types"></a>Interfaces are structural types</h4><p>Go interfaces are like Java interfaces or Scala &amp; Rust traits: they define behaviour that is later implemented by a type (I won’t call it “class” here).</p>
+<h3 id="No-enumerations"><a href="#No-enumerations" class="headerlink" title="No enumerations"></a>No enumerations</h3><p><code>iota</code></p>
+<h3 id="The-var-dilemma"><a href="#The-var-dilemma" class="headerlink" title="The:=/var dilemma"></a>The<code>:=</code>/<code>var</code> dilemma</h3><p>Go provides two ways to declare a variable and assign it a value: <code>var x = &quot;foo&quot;</code> and <code>x := &quot;foo&quot;</code>. </p>
+<p>The main differences are that <code>var</code> allows declaration without initialization (and you then have to declare the type), like in <code>var x string</code>, whereas <code>:=</code> requires assignment and allows a mix of existing and new variables. My guess is that <code>:=</code> was invented to make error handling <em>a bit</em> less painful:</p>
+<h4 id="Zero-values-that-panic"><a href="#Zero-values-that-panic" class="headerlink" title="Zero values that panic"></a>Zero values that panic</h4><p>go have no constructor</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> m1 = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;&#125; <span class="comment">// empty map</span></span><br><span class="line"><span class="keyword">var</span> m0 <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>     <span class="comment">// zero map (nil)</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m1))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m0))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m1[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m0[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line">m1[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// ok</span></span><br><span class="line">m0[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// panics!</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>上面所示，m1初始化了，但m0没有初始化。。</p>
+<h4 id="Go-doesn’t-have-exceptions"><a href="#Go-doesn’t-have-exceptions" class="headerlink" title="Go doesn’t have exceptions."></a>Go doesn’t have exceptions.</h4><p>just  “<a target="_blank" rel="noopener" href="https://blog.golang.org/defer-panic-and-recover">Defer, panic and recover</a>“</p>
+<h3 id="Ugly"><a href="#Ugly" class="headerlink" title="Ugly"></a>Ugly</h3><h4 id="The-dependency-management-nightmare"><a href="#The-dependency-management-nightmare" class="headerlink" title="The dependency management nightmare"></a>The dependency management nightmare</h4><p>Things are getting better though: <code>dep</code>, the <a target="_blank" rel="noopener" href="https://golang.github.io/dep/">official dependency management tool</a> was recently introduced to support vendoring.</p>
+<p>But <code>dep</code> may not live long though as <a target="_blank" rel="noopener" href="https://github.com/golang/vgo"><code>vgo</code></a>, also from Google, wants to bring versioning in the language itself and has been making some waves lately.</p>
+<h4 id="mutability-is-hardcoded-in-the-language"><a href="#mutability-is-hardcoded-in-the-language" class="headerlink" title="mutability is hardcoded in the language"></a>mutability is hardcoded in the language</h4><p>Go makes it easy however to copy an entire struct with a simple assignment, so we may think that passing arguments by value is all that is needed to have immutability at the cost of copying.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</span><br><span class="line">    A <span class="keyword">string</span></span><br><span class="line">    B []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    x := S&#123;<span class="string">&quot;x-A&quot;</span>, []<span class="keyword">string</span>&#123;<span class="string">&quot;x-B&quot;</span>&#125;&#125;</span><br><span class="line">    y := x <span class="comment">// copy the struct</span></span><br><span class="line">    y.A = <span class="string">&quot;y-A&quot;</span></span><br><span class="line">    y.B[<span class="number">0</span>] = <span class="string">&quot;y-B&quot;</span></span><br><span class="line"></span><br><span class="line">    fmt.Println(x, y)</span><br><span class="line">    <span class="comment">// Outputs &quot;&#123;x-A [y-B]&#125; &#123;y-A [y-B]&#125;&quot; -- x was modified!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> And the since built-in collections (map, slice and array) are references and are mutable, copying a struct that contains one of these just copies the pointer to the same underlying memory.</p>
+<h4 id="Slice-gotchas"><a href="#Slice-gotchas" class="headerlink" title="Slice gotchas"></a>Slice gotchas</h4><p>Slices come with many gotchas: as explained in “<a target="_blank" rel="noopener" href="https://blog.golang.org/go-slices-usage-and-internals">Go slices: usage and internals</a>“, re-slicing a slice doesn’t copy the underlying array for performance reasons. </p>
+<p>This is a laudable goal but means that sub-slices of a slice are just views that follow the mutations of the original slice. So don’t forget to <code>copy()</code> a slice if you want to separate it from its origin.</p>
+<p>Forgetting to <code>copy()</code> becomes more dangerous with the <code>append</code> function: appending values to a slice resizes the underlying array <em>if it doesn’t have enough capacity</em> to hold the new values. This means that the result of <code>append</code> may or may not point to the original array depending on its initial capacity. This can cause hard to find non deterministic bugs. (在append的时候，如果没有足够的空间，会重新resize slice，这样pointer会乱指)</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doStuff</span><span class="params">(value []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v\n&quot;</span>, value)</span><br><span class="line"></span><br><span class="line">    value2 := value[:]</span><br><span class="line">    value2 = <span class="built_in">append</span>(value2, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line"></span><br><span class="line">    value2[<span class="number">0</span>] = <span class="string">&quot;z&quot;</span></span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    slice1 := []<span class="keyword">string</span>&#123;<span class="string">&quot;a&quot;</span>&#125; <span class="comment">// length 1, capacity 1</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice1)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[z b] -- ok: value unchanged, value2 updated</span></span><br><span class="line"></span><br><span class="line">    slice10 := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1</span>, <span class="number">10</span>) <span class="comment">// length 1, capacity 10</span></span><br><span class="line">    slice10[<span class="number">0</span>] = <span class="string">&quot;a&quot;</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice10)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[z], value2=[z b] -- WTF?!? value changed???</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="mutability-and-channels-race-conditions-made-easy"><a href="#mutability-and-channels-race-conditions-made-easy" class="headerlink" title="mutability and channels: race conditions made easy"></a>mutability and channels: race conditions made easy</h4><p>As we saw above there is no way in Go to have immutable data structures. This means that once we send a pointer on a channel, it’s game over: we share mutable data between concurrent processes. Of course a channel of structures (and not pointers) copies the values sent on the channel, but as we saw above, this doesn’t deep-copy references, including slices and maps, which are intrinsically mutable. Same goes with struct fields of an interface type: they are pointers, and any mutation method defined by the interface is an open door to race conditions.</p>
+<h4 id="noisy-error-management"><a href="#noisy-error-management" class="headerlink" title="noisy error management"></a>noisy error management</h4><p>In “<a target="_blank" rel="noopener" href="https://blog.golang.org/errors-are-values">Error has values</a>“ Rob Pike suggests some strategies to reduce error handling verbosity</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">type errWriter struct &#123;</span><br><span class="line">    w   io.Writer</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (ew *errWriter) write(buf []byte) &#123;</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return // Write nothing if we already errored-out</span><br><span class="line">    &#125;</span><br><span class="line">    _, ew.err = ew.w.Write(buf)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func doIt(fd io.Writer) &#123;</span><br><span class="line">    ew := &amp;errWriter&#123;w: fd&#125;</span><br><span class="line">    ew.write(p0[a:b])</span><br><span class="line">    ew.write(p1[c:d])</span><br><span class="line">    ew.write(p2[e:f])</span><br><span class="line">    // and so on</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return ew.err</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="nil-interface-values"><a href="#nil-interface-values" class="headerlink" title="nil interface values"></a>nil interface values</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Explodes <span class="keyword">interface</span> &#123;</span><br><span class="line">    Bang()</span><br><span class="line">    Boom()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Type Bomb implements Explodes</span></span><br><span class="line"><span class="keyword">type</span> Bomb <span class="keyword">struct</span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*Bomb)</span> <span class="title">Bang</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Bomb)</span> <span class="title">Boom</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> bomb *Bomb = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">var</span> explodes Explodes = bomb</span><br><span class="line">    <span class="built_in">println</span>(bomb, explodes) <span class="comment">// &#x27;0x0 (0x10a7060,0x0)&#x27;</span></span><br><span class="line">    <span class="keyword">if</span> explodes != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;Not nil!&quot;</span>) <span class="comment">// &#x27;Not nil!&#x27; What are we doing here?!?!</span></span><br><span class="line">        explodes.Bang()     <span class="comment">// works fine</span></span><br><span class="line">        explodes.Boom()     <span class="comment">// panic: value method main.Bomb.Boom called using nil *Bomb pointer</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;nil!&quot;</span>)     <span class="comment">// why don&#x27;t we end up here?</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="struct-field-tags-runtime-DSL-in-a-string"><a href="#struct-field-tags-runtime-DSL-in-a-string" class="headerlink" title="struct field tags: runtime DSL in a string"></a>struct field tags: runtime DSL in a string</h4><h4 id="Go-has-few-data-structures-beyond-slice-and-map"><a href="#Go-has-few-data-structures-beyond-slice-and-map" class="headerlink" title="Go has few data structures beyond slice and map"></a>Go has few data structures beyond slice and map</h4>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/Deep-Reinforcement-Learning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/22/Deep-Reinforcement-Learning/" class="post-title-link" itemprop="url">Deep Reinforcement Learning</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-22 16:43:13" itemprop="dateCreated datePublished" datetime="2018-05-22T16:43:13+08:00">2018-05-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/applied-data-science/how-to-build-your-own-world-model-using-python-and-keras-64fb388ba459">原文链接</a></p>
+<p>[<strong><a target="_blank" rel="noopener" href="https://arxiv.org/abs/1803.10122">https://arxiv.org/abs/1803.10122</a></strong></p>
+<h3 id="step-1-The-Problem"><a href="#step-1-The-Problem" class="headerlink" title="step 1 The Problem"></a>step 1 The Problem</h3>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/G-unit-stack/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/22/G-unit-stack/" class="post-title-link" itemprop="url">G-unit Stack</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-22 16:01:49" itemprop="dateCreated datePublished" datetime="2018-05-22T16:01:49+08:00">2018-05-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/G-unit/" itemprop="url" rel="index"><span itemprop="name">G-unit</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://iheanyi.com/journal/2018/05/12/the-g-unit-stack-go-graphql-and-grpc/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_128">原文链接</a></p>
+<p>这里的G-unit是指Go, GraphQL, gRPC</p>
+<p>GraphQL fits really nicely into a service-oriented architecture (SoAs).</p>
+<p>API Gateways</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/azure/architecture/patterns/gateway-routing">Gateway Routing pattern</a></p>
+<h3 id="GraphQL-as-the-API-Gateway"><a href="#GraphQL-as-the-API-Gateway" class="headerlink" title="GraphQL as the API Gateway"></a>GraphQL as the API Gateway</h3><p><a target="_blank" rel="noopener" href="https://github.com/apollographql/apollo-server">nodejs GraphQL</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/git-inner-theory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -338,299 +587,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/10/aws-lambda/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/aws-lambda/" class="post-title-link" itemprop="url">Aws Lambda Tips</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-10 14:47:36" itemprop="dateCreated datePublished" datetime="2018-05-10T14:47:36+08:00">2018-05-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/aws/" itemprop="url" rel="index"><span itemprop="name">aws</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://vinta.ws/code/apex-and-terraform-the-easiest-way-to-manage-aws-lambda-functions.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_125">原文链接</a></p>
-<p>Apex and Terraform</p>
-<h3 id="Write-Lambda-Functions"><a href="#Write-Lambda-Functions" class="headerlink" title="Write Lambda Functions"></a>Write Lambda Functions</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> aws = <span class="built_in">require</span>(<span class="string">&#x27;aws-sdk&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="built_in">exports</span>.handle = <span class="function">(<span class="params">event, context, callback</span>) =&gt;</span> &#123;</span><br><span class="line">  doYourShit();</span><br><span class="line">  callback(<span class="literal">null</span>, <span class="string">&#x27;DONE&#x27;</span>);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;encoding/json&quot;</span></span><br><span class="line">    <span class="string">&quot;errors&quot;</span></span><br><span class="line">    <span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="string">&quot;github.com/aws/aws-lambda-go/events&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/aws/aws-lambda-go/lambda&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/vinta/pangu&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    <span class="comment">// ErrTextNotProvided is thrown when text is not provided in HTTP query string</span></span><br><span class="line">    ErrTextNotProvided = errors.New(<span class="string">&quot;No text was provided in HTTP query string&quot;</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handler is the AWS Lambda function handler</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Handler</span><span class="params">(request events.APIGatewayProxyRequest)</span> <span class="params">(events.APIGatewayProxyResponse, error)</span></span> &#123;</span><br><span class="line">    log.Printf(<span class="string">&quot;request id: %s\n&quot;</span>, request.RequestContext.RequestID)</span><br><span class="line"></span><br><span class="line">    text, ok := request.QueryStringParameters[<span class="string">&quot;t&quot;</span>]</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        errMap := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">            <span class="string">&quot;message&quot;</span>: ErrTextNotProvided.Error(),</span><br><span class="line">        &#125;</span><br><span class="line">        errMapJSON, _ := json.MarshalIndent(errMap, <span class="string">&quot;&quot;</span>, <span class="string">&quot; &quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> events.APIGatewayProxyResponse&#123;</span><br><span class="line">            Body: <span class="keyword">string</span>(errMapJSON),</span><br><span class="line">            StatusCode: <span class="number">400</span>,</span><br><span class="line">        &#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    log.Printf(<span class="string">&quot;text: %s\n&quot;</span>, text)</span><br><span class="line"></span><br><span class="line">    textPlainHeaders := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">&quot;content-type&quot;</span>: <span class="string">&quot;text/plain; charset=utf-8&quot;</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> events.APIGatewayProxyResponse&#123;</span><br><span class="line">        Body: pangu.SpacingText(text),</span><br><span class="line">        Headers: textPlainHeaders,</span><br><span class="line">        StatusCode: <span class="number">200</span>,</span><br><span class="line">    &#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    lambda.Start(Handler)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/10/large-application-with-flask/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/large-application-with-flask/" class="post-title-link" itemprop="url">Large Application With Flask</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-10 14:35:46" itemprop="dateCreated datePublished" datetime="2018-05-10T14:35:46+08:00">2018-05-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/flask/" itemprop="url" rel="index"><span itemprop="name">flask</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.digitalocean.com/community/tutorials/how-to-structure-large-flask-applications?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126">原文链接</a></p>
-<p>As we have just been over in the previous section, Flask-way of doing things involves using the tools you are most comfortable with. In our article, we will be using – perhaps – the most common (and sensible) of choices in terms of extensions and libraries (i.e. database extraction layer). These choices will involve:</p>
-<ul>
-<li>SQLAlchemy (via Flask-SQLAlchemy)</li>
-<li>WTForms (via Flask-WTF)</li>
-</ul>
-<p>整个代码架构：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">~/LargeApp</span><br><span class="line">    |-- run.py</span><br><span class="line">    |-- config.py</span><br><span class="line">    |__ /env             # Virtual Environment</span><br><span class="line">    |__ /app             # Our Application Module</span><br><span class="line">         |-- __init__.py</span><br><span class="line">         |-- /module_one</span><br><span class="line">             |-- __init__.py</span><br><span class="line">             |-- controllers.py</span><br><span class="line">             |-- models.py                </span><br><span class="line">         |__ /templates</span><br><span class="line">             |__ /module_one</span><br><span class="line">                 |-- hello.html</span><br><span class="line">         |__ /static</span><br><span class="line">         |__ ..</span><br><span class="line">         |__ .</span><br><span class="line">    |__ ..</span><br><span class="line">    |__ .</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd ~/LargeApp</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask-sqlalchemy</span><br><span class="line">env/<span class="built_in">bin</span>/pip install flask-wtf</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p>the data model</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Import the database object (db) from the main application module</span></span><br><span class="line"><span class="comment"># We will define this inside /app/__init__.py in the next sections.</span></span><br><span class="line"><span class="keyword">from</span> app <span class="keyword">import</span> db</span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a base model for other database tables to inherit</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Base</span>(<span class="params">db.Model</span>):</span></span><br><span class="line"></span><br><span class="line">    __abstract__  = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">id</span>            = db.Column(db.Integer, primary_key=<span class="literal">True</span>)</span><br><span class="line">    date_created  = db.Column(db.DateTime,  default=db.func.current_timestamp())</span><br><span class="line">    date_modified = db.Column(db.DateTime,  default=db.func.current_timestamp(),</span><br><span class="line">                                           onupdate=db.func.current_timestamp())</span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a User model</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span>(<span class="params">Base</span>):</span></span><br><span class="line"></span><br><span class="line">    __tablename__ = <span class="string">&#x27;auth_user&#x27;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># User Name</span></span><br><span class="line">    name    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Identification Data: email &amp; password</span></span><br><span class="line">    email    = db.Column(db.String(<span class="number">128</span>),  nullable=<span class="literal">False</span>,</span><br><span class="line">                                            unique=<span class="literal">True</span>)</span><br><span class="line">    password = db.Column(db.String(<span class="number">192</span>),  nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Authorisation Data: role &amp; status</span></span><br><span class="line">    role     = db.Column(db.SmallInteger, nullable=<span class="literal">False</span>)</span><br><span class="line">    status   = db.Column(db.SmallInteger, nullable=<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># New instance instantiation procedure</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name, email, password</span>):</span></span><br><span class="line"></span><br><span class="line">        self.name     = name</span><br><span class="line">        self.email    = email</span><br><span class="line">        self.password = password</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;&lt;User %r&gt;&#x27;</span> % (self.name)                        </span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/07/gopher-sg/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/07/gopher-sg/" class="post-title-link" itemprop="url">Gopher Sg</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-07 10:43:12" itemprop="dateCreated datePublished" datetime="2018-05-07T10:43:12+08:00">2018-05-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?index=11&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126&v=wh81Xjuq8E4">Erlang for Go developers</a></p>
-<p>erlang vs golang:</p>
-<p>相同点：</p>
-<ul>
-<li>在于concurrent部分的设计</li>
-<li>标准库的使用</li>
-</ul>
-<p>不同点：</p>
-<ul>
-<li>deploys on a virtual machine, hot reload</li>
-<li>supports distributed communication</li>
-</ul>
-<p>erlang runtime</p>
-<p>provides behaviours to solve many design problems</p>
-<p>很难传递状态，必须通过消息传递 </p>
-<p>goroutine &lt;-&gt; process (pids)</p>
-<p>erlang process:</p>
-<ul>
-<li>each process has a mailbox</li>
-<li>a process is like a  goroutine + channel</li>
-<li>this composition creates an ‘actor’</li>
-<li>message are serialized through the mailbox</li>
-</ul>
-<p>distributed erlang</p>
-<p>monitor and link for process? 关于进程间的协同操作，这个挺有用的。</p>
-<p>关于supervison trees in go</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/ucirello/supervisor">repo1</a></p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?index=1&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_126&v=F8nrpe0XWRg">Go with Versions</a></p>
-<p>Vgo？</p>
-<p>在获取依赖的时候，出现两种情况，too old/ too new</p>
-<p>software engineering vs programming engineering</p>
-<p>principles of versioning in Go:</p>
-<ul>
-<li>Compatibility</li>
-</ul>
-<p>如果具有相同的import path, 需要坐到后向兼容</p>
-<ul>
-<li>repeatability</li>
-<li>cooperation</li>
-</ul>
-<p>关于依赖的相互适应部分，</p>
-<p>version: major version, minor version, patch version</p>
-<p>using latest version is a feature! but only for library builds</p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=7R39CMW4MJQ&list=PLq2Nv-Sh8EbbIjQgDzapOFeVfv5bGOoPE&index=14">The Lost Art of Bondage</a></p>
-<p>cudn?</p>
-<p>parse c-header to go source code?</p>
-<p>time spent manually annotating functions vs time spent generating code</p>
-<p>cuda library</p>
-<p>what is the use case of algo?</p>
-<hr>
-<p><a target="_blank" rel="noopener" href="https://engineers.sg/video/distributed-tracing-in-grab-gophercon-sg-2017--1751">Distributed Tracing in Grab</a></p>
-<p>OpenTracing API</p>
-<p>basictracer-go</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -702,7 +658,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -715,7 +671,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

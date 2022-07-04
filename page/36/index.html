@@ -153,6 +153,235 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/27/APM/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/08/27/APM/" class="post-title-link" itemprop="url">APM调用链</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-08-27 11:06:09" itemprop="dateCreated datePublished" datetime="2019-08-27T11:06:09+08:00">2019-08-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/apm/" itemprop="url" rel="index"><span itemprop="name">apm</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://skywalking.apache.org/zh/blog/2019-03-29-introduction-of-skywalking-and-simple-practice.html">原文链接</a></p>
+<p>主要是比较了pinpoint/skywalking/cat部分</p>
+<p>agent部分</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过bytebuddy的AgentBuilder构造javaagent增强classLoader</span></span><br><span class="line"><span class="keyword">new</span> AgentBuilder.Default(byteBuddy)</span><br><span class="line">    .ignore( <span class="comment">//忽略这些包的内容，不进行增强</span></span><br><span class="line">        nameStartsWith(<span class="string">&quot;net.bytebuddy.&quot;</span>)</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.slf4j.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.apache.logging.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;org.groovy.&quot;</span>))</span><br><span class="line">        .or(nameContains(<span class="string">&quot;javassist&quot;</span>))</span><br><span class="line">        .or(nameContains(<span class="string">&quot;.asm.&quot;</span>))</span><br><span class="line">        .or(nameStartsWith(<span class="string">&quot;sun.reflect&quot;</span>))</span><br><span class="line">        .or(allSkyWalkingAgentExcludeToolkit())</span><br><span class="line">        .or(ElementMatchers.&lt;TypeDescription&gt;isSynthetic()))</span><br><span class="line">    <span class="comment">//通过pluginFinder加载所有的探针扩展，并获取所有可以增强的class</span></span><br><span class="line">    .type(pluginFinder.buildMatch())</span><br><span class="line">    <span class="comment">//按照pluginFinder的实现，去改变字节码增强类</span></span><br><span class="line">    .transform(<span class="keyword">new</span> Transformer(pluginFinder))</span><br><span class="line">    <span class="comment">//通过listener订阅增强的操作记录，方便调试</span></span><br><span class="line">    .with(<span class="keyword">new</span> Listener())</span><br><span class="line">    .installOn(instrumentation);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">//加载所有的service实现并启动</span></span><br><span class="line">    ServiceManager.INSTANCE.boot();</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    logger.error(e, <span class="string">&quot;Skywalking agent boot failure.&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>agent部分的设计思路：</p>
+<p>参照dubbo的设计思路</p>
+<p><img src="https://linz.ink/images/20181126/dubbo.png" alt="image1"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/26/k8s-garbage-collection/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/08/26/k8s-garbage-collection/" class="post-title-link" itemprop="url">k8s garbage collection</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-08-26 11:41:16" itemprop="dateCreated datePublished" datetime="2019-08-26T11:41:16+08:00">2019-08-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@bharatnc/kubernetes-garbage-collection-781223f03c17">原文链接</a></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Namespace</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">   <span class="attr">name:</span> <span class="string">postgres-namespace</span></span><br><span class="line">   <span class="attr">ownerReferences:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">controller:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">blockOwnerDeletion:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">kind:</span> <span class="string">Database</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">postgres</span></span><br><span class="line">      <span class="attr">uid:</span> <span class="string">1552c2c2-8ea1-11e8-8289-02ee24bb8af6</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>ownerRefrences</p>
+<p>when we delete the database called postgres, this should result in the automatic garbage collection of the namespace “postgres-namespace”.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get database postgres -oyaml | grep uid</span><br></pre></td></tr></table></figure>
+
+
+
+<p>通过ownerRefrence去关联不同scope之间的resouce，但始终都有一个uid来关联</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/26/migrate-rest-to-http-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/08/26/migrate-rest-to-http-2/" class="post-title-link" itemprop="url">migrate rest to http/2</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-08-26 11:06:33" itemprop="dateCreated datePublished" datetime="2019-08-26T11:06:33+08:00">2019-08-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rest/" itemprop="url" rel="index"><span itemprop="name">rest</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.usejournal.com/migrating-your-rest-apis-to-http-2-why-and-how-8caee7d798fb">原文链接</a></p>
+<p>HTTP/1.x traditionally used newline-delimited text to transfer data. It is slower, larger, and more error-prone compared to binary</p>
+<p><img src="http://ww3.sinaimg.cn/large/006y8mN6ly1g6cwpn5uszj30rk0nu0vc.jpg" alt="different"></p>
+<p>HTTP/2 breaks down the HTTP protocol communication into an exchange of binary-encoded frames, which are then mapped to messages that belong to a particular stream, all of which are multiplexed within a single TCP connection.</p>
+<p>header compression HPACK</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> EmbeddedServletContainerCustomizer <span class="title">tomcatCustomizer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (container) -&gt; &#123;</span><br><span class="line">        <span class="keyword">if</span> (container <span class="keyword">instanceof</span> TomcatEmbeddedServletContainerFactory) &#123;</span><br><span class="line">            ((TomcatEmbeddedServletContainerFactory) container)</span><br><span class="line">                    .addConnectorCustomizers((connector) -&gt; &#123;</span><br><span class="line">                connector.addUpgradeProtocol(<span class="keyword">new</span> Http2Protocol());</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/22/how-dat-work/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -371,248 +600,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/08/json-patch/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/08/json-patch/" class="post-title-link" itemprop="url">json patch</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-08 14:43:15" itemprop="dateCreated datePublished" datetime="2019-08-08T14:43:15+08:00">2019-08-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/json/" itemprop="url" rel="index"><span itemprop="name">json</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://jsonpatch.com/">原repo</a></p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">The origin</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;baz&quot;</span>: <span class="string">&quot;qux&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;foo&quot;</span>: <span class="string">&quot;bar&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">The patch</span><br><span class="line">[</span><br><span class="line">  &#123; <span class="attr">&quot;op&quot;</span>: <span class="string">&quot;replace&quot;</span>, <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;/baz&quot;</span>, <span class="attr">&quot;value&quot;</span>: <span class="string">&quot;boo&quot;</span> &#125;,</span><br><span class="line">  &#123; <span class="attr">&quot;op&quot;</span>: <span class="string">&quot;add&quot;</span>, <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;/hello&quot;</span>, <span class="attr">&quot;value&quot;</span>: [<span class="string">&quot;world&quot;</span>] &#125;,</span><br><span class="line">  &#123; <span class="attr">&quot;op&quot;</span>: <span class="string">&quot;remove&quot;</span>, <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;/foo&quot;</span> &#125;</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">The result</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;baz&quot;</span>: <span class="string">&quot;boo&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;hello&quot;</span>: [<span class="string">&quot;world&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>包含的操作：</p>
-<ul>
-<li>add</li>
-<li>remove</li>
-<li>replace</li>
-<li>copy</li>
-<li>move</li>
-</ul>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123; <span class="attr">&quot;op&quot;</span>: <span class="string">&quot;move&quot;</span>, <span class="attr">&quot;from&quot;</span>: <span class="string">&quot;/biscuits&quot;</span>, <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;/cookies&quot;</span> &#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>test</li>
-</ul>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123; <span class="attr">&quot;op&quot;</span>: <span class="string">&quot;test&quot;</span>, <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;/best_biscuit/name&quot;</span>, <span class="attr">&quot;value&quot;</span>: <span class="string">&quot;Choco Leibniz&quot;</span> &#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/08/sidecar-get-there/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/08/sidecar-get-there/" class="post-title-link" itemprop="url">how did sidecar get there</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-08 11:13:35" itemprop="dateCreated datePublished" datetime="2019-08-08T11:13:35+08:00">2019-08-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sidecar/" itemprop="url" rel="index"><span itemprop="name">sidecar</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/dowjones/how-did-that-sidecar-get-there-4dcd73f1a0a4">原文链接</a></p>
-<p>a sidecar container is a container that you deploy alongside your application containers to assist the application in some way</p>
-<p><img src="http://ww4.sinaimg.cn/large/006tNc79ly1g5s3pkfm5mj315w0i4h1p.jpg" alt="image-20190808111817478"></p>
-<p>The webhook is exactly what is sounds like: an HTTP endpoint that implements an API defined by Kubernetes</p>
-<ul>
-<li>The <em>deployment.yaml</em> runs our container which serves the hook API via https and returns the JSON Patch to mutate the object</li>
-<li>The <em>service.yaml</em> gives our container an endpoint: webhook-service.default.svc</li>
-<li>The <em>hook.yaml</em> tells the API server where to find us <a target="_blank" rel="noopener" href="https://webhook-service.default.svc/mutate">https://webhook-service.default.svc/mutate</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/05/bulletproof-code-in-go/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/05/bulletproof-code-in-go/" class="post-title-link" itemprop="url">Bulletproof code in go</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-05 19:42:08" itemprop="dateCreated datePublished" datetime="2019-08-05T19:42:08+08:00">2019-08-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/free-code-camp/how-to-write-bulletproof-code-in-go-a-workflow-for-servers-that-cant-fail-10a14a765f22">原文链接</a></p>
-<p>The task: building a server that really isn’t allowed to fail, a project where the cost of error is extraordinarily high</p>
-<p>TDD is a great methodology that works well for some, but by itself it still isn’t enough. Even worse, TDD instills false confidence in code and may make developers lazy when considering paranoid edge cases. </p>
-<p>No part of our confidence in our code can result from a manual QA process. Humans make mistakes. Human attention to detail deteriorates after doing the same mind-numbing task a hundred times in a row.</p>
-<p>Tests must be fast. Blazingly fast.</p>
-<p>If  a test suite takes more than a few seconds to run, developers are  likely going to become lazy, pushing code without running it.</p>
-<p>Dealing gracefully with errors in runtime is a cornerstone for bulletproof code.</p>
-<p>Complexity is the worst enemy of bulletproof code. One of the best ways to deal with complexity is <em>divide and conquer</em> — split the problem into smaller problems and solve each one separately.</p>
-<p>面向接口编程，protobuf部分</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> spec</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> ...</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> _ = Describe(<span class="string">&quot;Sanity&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		node services.Node</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	BeforeEach(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		node = services.NewNode()</span><br><span class="line">		node.Start()</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	AfterEach(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		node.Stop()</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	It(<span class="string">&quot;should show balances with GET /api/balance&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		resp, err := http.Get(<span class="string">&quot;http://localhost:8080/api/balance?from=user1&quot;</span>)</span><br><span class="line">		Expect(err).ToNot(HaveOccurred())</span><br><span class="line">		Expect(resp.StatusCode).To(Equal(http.StatusOK))</span><br><span class="line">		Expect(ResponseBodyAsString(resp)).To(Equal(<span class="string">&quot;0&quot;</span>))</span><br><span class="line">	&#125;)</span><br><span class="line">  </span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-
-
-
-<p><a target="_blank" rel="noopener" href="https://golang.org/pkg/sync/#Map"><code>sync.Map</code></a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/orbs-network/go-scaffold">Scafford started project</a>包含各种测试目录部分，利用它来新建相关的project</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -684,7 +671,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -697,7 +684,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,324 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/09/spark-submit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/08/09/spark-submit/" class="post-title-link" itemprop="url">Spark Submit 参数分析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-09 07:54:00" itemprop="dateCreated datePublished" datetime="2017-08-09T07:54:00+08:00">2017-08-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index"><span itemprop="name">spark</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_99">Ever wondered how to configure –num-executors, –executor-memory and –execuor-cores spark config params for your cluster?</a></p>
+<ul>
+<li><p>Lil bit theory: Let’s see some key recommendations that will help understand it better</p>
+</li>
+<li><p>Hands on: Next, we’ll take an example cluster and come up with recommended numbers to these spark params</p>
+</li>
+</ul>
+<p>Lil bit theory:</p>
+<ul>
+<li>Hadoop/Yarn/OS Deamons:</li>
+</ul>
+<p>serveral daemons that’ll run in the background like NameNode, Secondary NameNode, DataNode, JobTracker and TaskTracker</p>
+<p>num-executors, we need to make sure that we leave aside enough cores (~1 core per node)</p>
+<ul>
+<li>Yarn ApplicationMaster (AM)</li>
+</ul>
+<p>If we are running spark on yarn, then we need to budget in the resources that AM would need (~1024MB and 1 Executor)</p>
+<ul>
+<li>HDFS Throughput</li>
+</ul>
+<ul>
+<li>MemoryOverhead</li>
+</ul>
+<blockquote>
+<p>Full memory requested to yarn per executor =<code>spark-executor-memory + spark.yarn.executor.memoryOverhead</code></p>
+</blockquote>
+<blockquote>
+<p>spark.yarn.executor.memoryOverhead = <code>Max(384MB, 7% of spark.executor-memory)</code></p>
+</blockquote>
+<p>So, if we request 20GB per executor, AM will actually get 20GB + memoryOverhead = 20 + 7% of 20GB = ~23GB memory for us.</p>
+<p>tips:</p>
+<p>Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.</p>
+<p>相关的配置:</p>
+<blockquote>
+<p><strong>Cluster Config:</strong><br>10 Nodes<br>16 cores per Node<br>64GB RAM per Node</p>
+</blockquote>
+<ul>
+<li>First Approach: Tiny executors [One Executor per core]:</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per core</code></li>
+</ul>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">= `total-cores-in-cluster`</span><br><span class="line">= `num-cores-per-node * total-nodes-in-cluster` </span><br><span class="line">= 16 x 10 = 160</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>--executor-cores</code> = 1 (one executor per core)</li>
+<li><code>--executor-memory</code> = <code>amount of memory per executor</code>   <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">= `mem-per-node/num-executors-per-node`</span><br><span class="line">= 64GB/16 = 4GB</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>Not Good!</p>
+<ul>
+<li>Second Approach: Fat executors (One Executor per node):</li>
+</ul>
+<blockquote>
+<ul>
+<li><code>--num-executors</code> = <code>In this approach, we&#39;ll assign one executor per node</code></li>
+</ul>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">= `total-nodes-in-cluster`</span><br><span class="line">= 10</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p><code>--executor-cores</code> = <code>one executor per node means all the cores of the node are assigned to one executor</code></p>
+   <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">= `total-cores-in-a-node`</span><br><span class="line">= 16</span><br></pre></td></tr></table></figure></li>
+<li><p><code>--executor-memory</code> = <code>amount of memory per executor</code></p>
+   <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">= `mem-per-node/num-executors-per-node`</span><br><span class="line">= 64GB/1 = 64GB</span><br></pre></td></tr></table></figure>
+
+<p>   ​<br>Not Good for HDFS throughput</p>
+</li>
+</ul>
+<ul>
+<li><p>Third Approach: Balance between Fat (vs) Tiny</p>
+<ul>
+<li>Based on the recommendations mentioned above, Let’s assign 5 core per executors =&gt; –executor-cores = 5 (for good HDFS throughput)</li>
+<li>Leave 1 core per node for Hadoop/Yarn daemons =&gt; Num cores available per node = 16-1 = 15</li>
+<li>So, Total available of cores in cluster = 15 x 10 = 150</li>
+<li>Number of available executors = (total cores/num-cores-per-executor) = 150/5 = 30</li>
+<li>Leaving 1 executor for ApplicationManager =&gt; –num-executors = 29</li>
+<li>Number of executors per node = 30/10 = 3</li>
+<li>Memory per executor = 64GB/3 = 21GB</li>
+<li>Counting off heap overhead = 7% of 21GB = 3GB. So, actual –executor-memory = 21 - 3 = 18GB</li>
+</ul>
+</li>
+</ul>
+<p>recommended config is: 29 executors, 18GB memory each and 5 cores each!!</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/07/one-hot/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/08/07/one-hot/" class="post-title-link" itemprop="url">One Hot编码</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-07 07:33:13" itemprop="dateCreated datePublished" datetime="2017-08-07T07:33:13+08:00">2017-08-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/one-hot/" itemprop="url" rel="index"><span itemprop="name">one hot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>独热编码，又成为一位有效编码</p>
+<blockquote>
+<p>其方法是使用N位状态寄存器来对N个状态进行编码，每个状态都由他独立的寄存器位，并且在任意时候，其中只有一位有效。可以这样理解，对于每一个特征，如果它有m个可能值，那么经过独热编码后，就变成了m个二元特征。并且，这些特征互斥，每次只有一个激活。因此，数据会变成稀疏的</p>
+</blockquote>
+<p>优点部分：</p>
+<ul>
+<li><p>能够处理非连续型数值特征</p>
+</li>
+<li><p>在一定程度上也扩充了特征。比如性别本身是一个特征，经过one hot编码以后，就变成了男或女两个特征</p>
+</li>
+</ul>
+<p>采用one hot的原因：</p>
+<ul>
+<li><p>将离散特征的取值扩展到了欧式空间，离散特征的某个取值就对应欧式空间的某个点</p>
+</li>
+<li><p>在回归，分类，聚类等机器学习算法中，特征之间距离的计算或相似度的计算是非常重要的，而我们常用的距离或相似度的计算都是在欧式空间的相似度计算，计算余弦相似性，基于的就是欧式空间</p>
+</li>
+</ul>
+<ul>
+<li>将离散型特征使用one-hot编码，可以会让特征之间的距离计算更加合理</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> OneHotEncoder</span><br><span class="line"></span><br><span class="line">enc = OneHotEncoder()</span><br><span class="line">enc.fit([[<span class="number">0</span>, <span class="number">0</span>, <span class="number">3</span>], [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>],[<span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>]])</span><br><span class="line"><span class="built_in">print</span> <span class="string">&quot;enc.n_values_ is:&quot;</span>,enc.n_values_</span><br><span class="line"><span class="built_in">print</span> <span class="string">&quot;enc.feature_indices_ is:&quot;</span>,enc.feature_indices_</span><br><span class="line"><span class="built_in">print</span> enc.transform([[<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>]]).toarray()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>输出结果部分：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">enc.n_values_ <span class="keyword">is</span>: [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>]</span><br><span class="line">enc.feature_indices_ <span class="keyword">is</span>: [<span class="number">0</span> <span class="number">2</span> <span class="number">5</span> <span class="number">9</span>]</span><br><span class="line">[[ <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>  <span class="number">1.</span>  <span class="number">0.</span>  <span class="number">0.</span>]]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>横向为相关的样本空间，纵向表示相关的特征取值范围，</p>
+<p>eature_indices_：根据说明，明显可以看出其是对n_values的一个累加。 </p>
+<p>最后表示的为相关的one hot编码?</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;&quot;&quot;Encode categorical integer features using a one-hot aka one-of-K scheme.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    The input to this transformer should be a matrix of integers, denoting</span></span><br><span class="line"><span class="string">    the values taken on by categorical (discrete) features. The output will be</span></span><br><span class="line"><span class="string">    a sparse matrix where each column corresponds to one possible value of one</span></span><br><span class="line"><span class="string">    feature. It is assumed that input features take on values in the range</span></span><br><span class="line"><span class="string">    [0, n_values).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    This encoding is needed for feeding categorical data to many scikit-learn</span></span><br><span class="line"><span class="string">    estimators, notably linear models and SVMs with the standard kernels.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Read more in the :ref:`User Guide &lt;preprocessing_categorical_features&gt;`.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Attributes</span></span><br><span class="line"><span class="string">    ----------</span></span><br><span class="line"><span class="string">    active_features_ : array</span></span><br><span class="line"><span class="string">        Indices for active features, meaning values that actually occur</span></span><br><span class="line"><span class="string">        in the training set. Only available when n_values is ``&#x27;auto&#x27;``.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    feature_indices_ : array of shape (n_features,)</span></span><br><span class="line"><span class="string">        Indices to feature ranges.</span></span><br><span class="line"><span class="string">        Feature ``i`` in the original data is mapped to features</span></span><br><span class="line"><span class="string">        from ``feature_indices_[i]`` to ``feature_indices_[i+1]``</span></span><br><span class="line"><span class="string">        (and then potentially masked by `active_features_` afterwards)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    n_values_ : array of shape (n_features,)</span></span><br><span class="line"><span class="string">        Maximum number of values per feature.</span></span><br></pre></td></tr></table></figure>
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/06/go-goroutine/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/08/06/go-goroutine/" class="post-title-link" itemprop="url">Go Goroutines</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-06 01:07:10" itemprop="dateCreated datePublished" datetime="2017-08-06T01:07:10+08:00">2017-08-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>关于go goroutines部分</p>
+<p>MNP调度，M个线程，N个goroutine,P指的是context部分</p>
+<p>goroutine跟channel部分，密不可分，channel部分，也分no buffer channel和buffered channel</p>
+<p>通过sync.Mutex进行lock以及unlock操作</p>
+<p>block操作，以及recovery部分，通过内部的send func以及recv func指针来进行</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/01/learn-react-by-five-step/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -366,248 +684,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/08/01/go-label/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/08/01/go-label/" class="post-title-link" itemprop="url">go 1.9 Profiler labels</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-08-01 00:08:41" itemprop="dateCreated datePublished" datetime="2017-08-01T00:08:41+08:00">2017-08-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://rakyll.org/profiler-labels/">Profiler labels in Go</a></p>
-<p>在Go 1.9中，加入了Profiler labels部分。</p>
-<blockquote>
-<p>CPU profilers collect and output hot spots where the CPU spent most time in when executing</p>
-<p>A typical CPU profiler output is primarily reports the location of these spots as function name, source file/line, etc</p>
-</blockquote>
-<p>在以往的Go的调试过程中，性能问题的debug往往是最困难的。</p>
-<p>With 1.9, Go is introducing a new feature that allows you to record additional information to provide more context about the execution path.</p>
-<p>The <code>runtime/pprof</code> package will export several new APIs to let users add labels</p>
-<p>关于打label部分:</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">labels := pprof.Labels(<span class="string">&quot;worker&quot;</span>, <span class="string">&quot;purge&quot;</span>)</span><br><span class="line">pprof.Do(ctx, labels, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// Do some work...</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> update(ctx) <span class="comment">// propagates labels in ctx.</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-
-<p>采用<code>net/http/pprof</code>来分析相关的性能，</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> _ <span class="string">&quot;net/http/pprof&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// All the other code...</span></span><br><span class="line">    log.Fatal(http.ListenAndServe(<span class="string">&quot;localhost:5555&quot;</span>, <span class="literal">nil</span>))</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>通过</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="keyword">go</span> tool pprof http:<span class="comment">//localhost:5555/debug/pprof/profile</span></span><br></pre></td></tr></table></figure>
-
-<p>首先通过<code>tags</code>区分出相关的path部分</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">(pprof) tags</span><br><span class="line">http-path: Total <span class="number">80</span></span><br><span class="line">        <span class="number">70</span> (<span class="number">87.50</span>%): /messages</span><br><span class="line">        <span class="number">10</span> (<span class="number">12.50</span>%): /user</span><br><span class="line"></span><br><span class="line">worker: Total <span class="number">158</span></span><br><span class="line">       <span class="number">158</span> (  <span class="number">100</span>%): purge</span><br></pre></td></tr></table></figure>
-
-<p>通过相关的filter部分，我们可以仅关注到<code>/user</code>部分</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">(pprof) tagfocus=<span class="string">&quot;http-path:/user&quot;</span></span><br><span class="line">(pprof) top10 -cum</span><br><span class="line">Showing nodes accounting <span class="keyword">for</span> <span class="number">0.10</span>s, <span class="number">3.05</span>% of <span class="number">3.28</span>s total</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">         <span class="number">0</span>     <span class="number">0</span>%     <span class="number">0</span>%      <span class="number">0.10</span>s  <span class="number">3.05</span>%  main.generateID.func1 /Users/jbd/src/hello/main.<span class="keyword">go</span></span><br><span class="line">     <span class="number">0.01</span>s   <span class="number">0.3</span>%   <span class="number">0.3</span>%      <span class="number">0.08</span>s  <span class="number">2.44</span>%  runtime.concatstring2 /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></span><br><span class="line">     <span class="number">0.06</span>s  <span class="number">1.83</span>%  <span class="number">2.13</span>%      <span class="number">0.07</span>s  <span class="number">2.13</span>%  runtime.concatstrings /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></span><br><span class="line">     <span class="number">0.01</span>s   <span class="number">0.3</span>%  <span class="number">2.44</span>%      <span class="number">0.02</span>s  <span class="number">0.61</span>%  runtime.mallocgc /Users/jbd/<span class="keyword">go</span>/src/runtime/malloc.<span class="keyword">go</span></span><br><span class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02</span>s  <span class="number">0.61</span>%  runtime.slicebytetostring /Users/jbd/<span class="keyword">go</span>/src/runtime/<span class="keyword">string</span>.<span class="keyword">go</span></span><br><span class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02</span>s  <span class="number">0.61</span>%  strconv.FormatInt /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></span><br><span class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02</span>s  <span class="number">0.61</span>%  strconv.Itoa /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></span><br><span class="line">         <span class="number">0</span>     <span class="number">0</span>%  <span class="number">2.44</span>%      <span class="number">0.02</span>s  <span class="number">0.61</span>%  strconv.formatBits /Users/jbd/<span class="keyword">go</span>/src/strconv/itoa.<span class="keyword">go</span></span><br><span class="line">     <span class="number">0.01</span>s   <span class="number">0.3</span>%  <span class="number">2.74</span>%      <span class="number">0.01</span>s   <span class="number">0.3</span>%  runtime.memmove /Users/jbd/<span class="keyword">go</span>/src/runtime/memmove_amd64.s</span><br><span class="line">     <span class="number">0.01</span>s   <span class="number">0.3</span>%  <span class="number">3.05</span>%      <span class="number">0.01</span>s   <span class="number">0.3</span>%  runtime.nextFreeFast /Users/jbd/<span class="keyword">go</span>/src/runtime/malloc.<span class="keyword">go</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>当然还有其他的命令</p>
-<blockquote>
-<p>You can also use <code>tagshow</code>, <code>taghide</code>, and <code>tagignore</code> commands as other filtering options. For example, tagignore allows you to match anything but the given regex. </p>
-</blockquote>
-<p>同时，注意<code>pprofutil</code>这个包</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/07/21/half-year/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/21/half-year/" class="post-title-link" itemprop="url">半年总结</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-21 07:50:26" itemprop="dateCreated datePublished" datetime="2017-07-21T07:50:26+08:00">2017-07-21</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>半年总结如期而至，晋升这个还是随缘，坚持做最正确的事情，然后等着被开除</p>
-<ul>
-<li><p>广告服务架构的事情，主要是在数据上下功夫，包括相关的数据整合，按照hourly 的维度cover所有的维度的数据，本身架构上的改动并不多，codis部分的使用日益成熟</p>
-</li>
-<li><p>golang部分，sideproject找了一些，并没有坚持下去。。后期要坚持下去，例如，project52，一定要做完！</p>
-</li>
-<li><p>blog部分，有点拖拉，相关的内容还是没有及时填补上，还是要继续坚持下去，技术部分要加强。。</p>
-</li>
-<li><p>算法部分，转化到机器学习上？</p>
-</li>
-<li><p>身体锻炼方面，进入夏天之后，有些懈怠，关于跑步和keep都没有如期进行，这点要警醒。。。你还什么都没有，而且还是那么胖，不能这么懈怠。。。</p>
-</li>
-<li><p>感情上，果然还是傻瓜一样，可能自己有病吧。。随缘，该是你的就是你的，不可强求。。。</p>
-</li>
-<li><p>摄影和吉他方面，感觉莫名地拉下来，这样不行。。。吉他部分，可能要暂停一会，每天回来之后的sideproject要接上，摄影方面，每周学一些课程，起码要把那个课程学习完</p>
-</li>
-<li><p>电影和书方面，豆瓣记录做地还不错，不过看书方面，稍显差了些，后面要加强。。。不能懈怠下去了。。</p>
-</li>
-<li><p>投资上，很快就可以实现自己的一百万的诺言，不过在买房子上，果然是个大坑。。。希望能跨过这个大坑吧。。</p>
-</li>
-</ul>
-<p>上半年的拖延症和懈怠，导致自己很多事情并没有得到好的解决，还是一直拖着。。。后面不能这样了。。放弃一些游戏，逼迫自己放弃懈怠的心理，不要那么颓废，打起精神，关于简历的更新，关于这半年的更新，不能拉下！</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/07/12/one-weeek/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/12/one-weeek/" class="post-title-link" itemprop="url">one weeek</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-12 08:03:13" itemprop="dateCreated datePublished" datetime="2017-07-12T08:03:13+08:00">2017-07-12</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -679,7 +755,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -692,7 +768,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

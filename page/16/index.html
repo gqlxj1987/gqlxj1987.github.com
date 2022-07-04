@@ -153,6 +153,226 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/30/sql-where-in-clause-multiple-columns/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/06/30/sql-where-in-clause-multiple-columns/" class="post-title-link" itemprop="url">Sql where in clause multiple columns</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-06-30 20:22:56" itemprop="dateCreated datePublished" datetime="2020-06-30T20:22:56+08:00">2020-06-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sql/" itemprop="url" rel="index"><span itemprop="name">sql</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/1136380/sql-where-in-clause-multiple-columns">原文链接</a></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span></span><br><span class="line"><span class="keyword">from</span> table1</span><br><span class="line"><span class="keyword">WHERE</span>  (CM_PLAN_ID,Individual_ID)</span><br><span class="line"><span class="keyword">IN</span></span><br><span class="line">(</span><br><span class="line"> <span class="keyword">Select</span> CM_PLAN_ID, Individual_ID</span><br><span class="line"> <span class="keyword">From</span> CRM_VCM_CURRENT_LEAD_STATUS</span><br><span class="line"> <span class="keyword">Where</span> Lead_Key <span class="operator">=</span> :_Lead_Key</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>要实现上面的in multiple columns的话</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> table1 <span class="keyword">LEFT</span> <span class="keyword">JOIN</span> </span><br><span class="line">(</span><br><span class="line">   <span class="keyword">Select</span> CM_PLAN_ID, Individual_ID</span><br><span class="line">   <span class="keyword">From</span> CRM_VCM_CURRENT_LEAD_STATUS</span><br><span class="line">   <span class="keyword">Where</span> Lead_Key <span class="operator">=</span> :_Lead_Key</span><br><span class="line">) table2</span><br><span class="line"><span class="keyword">ON</span> </span><br><span class="line">   table1.CM_PLAN_ID<span class="operator">=</span>table2.CM_PLAN_ID</span><br><span class="line">   <span class="keyword">AND</span> table1.Individual<span class="operator">=</span>table2.Individual</span><br><span class="line"><span class="keyword">WHERE</span> table2.CM_PLAN_ID <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span></span><br><span class="line"></span><br><span class="line">有<span class="keyword">distinct</span>的问题</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span></span><br><span class="line"><span class="keyword">FROM</span> table1</span><br><span class="line"><span class="keyword">WHERE</span> <span class="keyword">EXISTS</span> (<span class="keyword">SELECT</span> <span class="operator">*</span></span><br><span class="line">              <span class="keyword">FROM</span> table2</span><br><span class="line">              <span class="keyword">WHERE</span> Lead_Key <span class="operator">=</span> <span class="variable">@Lead</span>_Key</span><br><span class="line">                        <span class="keyword">AND</span> table1.CM_PLAN_ID <span class="operator">=</span> table2.CM_PLAN_ID</span><br><span class="line">                        <span class="keyword">AND</span> table1.Individual_ID <span class="operator">=</span> table2.Individual_ID)</span><br></pre></td></tr></table></figure>
+
+<p>o(n^2)的性能</p>
+<img src="https://tva1.sinaimg.cn/large/007S8ZIlly1ggalcppn04j312i0oejwj.jpg" alt="image-20200630203218139" style="zoom:50%;" />
+
+<p>two lines is best…</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/30/materialize-intro/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/06/30/materialize-intro/" class="post-title-link" itemprop="url">Materialize Intro</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-06-30 15:03:45" itemprop="dateCreated datePublished" datetime="2020-06-30T15:03:45+08:00">2020-06-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/streaming/" itemprop="url" rel="index"><span itemprop="name">streaming</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/MaterializeInc/materialize">原文链接</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/30/Overlapping-Experiment-Infrastructure/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/06/30/Overlapping-Experiment-Infrastructure/" class="post-title-link" itemprop="url">Overlapping Experiment Infrastructure</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-06-30 14:54:04" itemprop="dateCreated datePublished" datetime="2020-06-30T14:54:04+08:00">2020-06-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/A-B/" itemprop="url" rel="index"><span itemprop="name">A/B</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/lambdaji/DarwinAccelerator">原repo</a></p>
+<img src="/Users/gqlxj1987/Library/Application Support/typora-user-images/image-20200630145736732.png" alt="image-20200630145736732" style="zoom:50%;" />
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/30/ringbuffer/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -318,279 +538,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/28/byte-char-in-heapdump/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/28/byte-char-in-heapdump/" class="post-title-link" itemprop="url">byte/char in heapdump</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2020-06-28 18:19:29" itemprop="dateCreated datePublished" datetime="2020-06-28T18:19:29+08:00">2020-06-28</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/INwH70DwwU6lfS4bJUijtA">原文链接</a></p>
-<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gg86bpa429j317i06wtee.jpg" alt="image-20200628182112859"></p>
-<p>发现VisualVM还是可以通过到处文件的方式查看数组内容的：</p>
-<ol>
-<li>选择byte[] 对象，然后打开该对象的Preview面板</li>
-<li>将byte[] 内容保存到文件</li>
-<li>选择二进制文件格式</li>
-<li>为所欲为</li>
-</ol>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cut -b 1-100 a.bin</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/16/container-images-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/16/container-images-intro/" class="post-title-link" itemprop="url">Container Images 介绍</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2020-06-16 15:26:54" itemprop="dateCreated datePublished" datetime="2020-06-16T15:26:54+08:00">2020-06-16</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/docker/" itemprop="url" rel="index"><span itemprop="name">docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blog.k8s.li/Exploring-container-image.html">原文链接</a></p>
-<p>目前 OCI 主要有三个规范：运行时规范 <a target="_blank" rel="noopener" href="https://github.com/opencontainers/runtime-spec">runtime-spec</a> ，镜像规范 <a target="_blank" rel="noopener" href="https://www.github.com/opencontainers/image-spec">image-spec</a> 以及不常见的镜像仓库规范 <a target="_blank" rel="noopener" href="https://github.com/opencontainers/distribution-spec">distribution-spec</a></p>
-<ul>
-<li>操作标准化：容器的标准化操作包括使用标准容器创建、启动、停止容器，使用标准文件系统工具复制和创建容器快照，使用标准化网络工具进行下载和上传。</li>
-<li>内容无关：内容无关指不管针对的具体容器内容是什么，容器标准操作执行后都能产生同样的效果。如容器可以用同样的方式上传、启动，不管是PHP应用还是MySQL数据库服务。</li>
-<li>基础设施无关：无论是个人的笔记本电脑还是AWS S3，亦或是OpenStack，或者其它基础设施，都应该对支持容器的各项操作。</li>
-<li>为自动化量身定制：制定容器统一标准，是的操作内容无关化、平台无关化的根本目的之一，就是为了可以使容器操作全平台自动化。</li>
-<li>工业级交付：制定容器标准一大目标，就是使软件分发可以达到工业级交付成为现实</li>
-</ul>
-<h4 id="image-spec"><a href="#image-spec" class="headerlink" title="image-spec"></a>image-spec</h4><ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/manifest.md">Image Manifest</a> - a document describing the components that make up a container image</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/image-index.md">Image Index</a> - an annotated index of image manifests</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/image-layout.md">Image Layout</a> - a filesystem layout representing the contents of an image</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/layer.md">Filesystem Layer</a> - a changeset that describes a container’s filesystem</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/config.md">Image Configuration</a> - a document determining layer ordering and configuration of the image suitable for translation into a <a target="_blank" rel="noopener" href="https://github.com/opencontainers/runtime-spec">runtime bundle</a></li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/conversion.md">Conversion</a> - a document describing how this translation should occur</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/opencontainers/image-spec/blob/master/descriptor.md">Descriptor</a> - a reference that describes the type, metadata and content address of referenced content</li>
-</ul>
-<p>layer: 以 layer （镜像层）保存的文件系统，每个 layer 保存了和上层之间变化的部分，layer 应该保存哪些文件，怎么表示增加、修改和删除的文件等</p>
-<p>docker inspect <image_id> 得到image config</p>
-<p>manifest文件，指明跨平台的基础支持，</p>
-<p>使用项目默认的 Dockerfile 进行构建的话，镜像大小接近 500MB 😂，而经过一些的优化，将所有的 RUN 指令合并为一条，最终构建出来的镜像大小为 30MB，合并RUN有利于减小镜像大小</p>
-<p>docker 在 1.10 以后，只有 <code>RUN、COPY 和 ADD</code> 指令会创建层，其他指令会创建临时的中间镜像，但是不会直接增加构建的镜像大小了。</p>
-<p><code>;</code>和<code>&amp;&amp;</code> 二者有本质的区别，比如 COMMAND 1;COMMAND 2 ，当 COMMAND 1 运行失败时会继续运行 COMMAND2 ，并不会退出。而 COMMAND 1&amp;&amp; COMMAND 2，时 COMMAND 1 运行成功时才接着运行 COMMAND 2 ，COMMAND 1 运行失败会退出。</p>
-<p>docker build 构建镜像的流程大概就是：</p>
-<ul>
-<li>执行 <code>docker build -t &lt;imageName:Tag&gt; .</code>，可以使用 <code>-f</code>参数来指定 Dockerfile 文件；</li>
-<li>docker 客户端会将构建命令后面指定的路径(<code>.</code>)下的所有文件打包成一个 tar 包，发送给 Docker 服务端;</li>
-<li>docker 服务端收到客户端发送的 tar 包，然后解压，接下来根据 Dockerfile 里面的指令进行镜像的分层构建；</li>
-<li>docker 下载 FROM 语句中指定的基础镜像，然后将基础镜像的 layer 联合挂载为一层，并在上面创建一个空目录；</li>
-<li>接着启动一个临时的容器并在 chroot 中启动一个 bash，运行 <code>RUN</code> 语句中的命令：<code>RUN: chroot . /bin/bash -c &quot;apt get update……&quot;</code>；</li>
-<li>一条 <code>RUN</code> 命令结束后，会把上层目录压缩，形成新镜像中的新的一层；</li>
-<li>如果 Dockerfile 中包含其它命令，就以之前构建的层次为基础，从第二步开始重复创建新层，直到完成所有语句后退出；</li>
-<li>构建完成之后为该镜像打上 tag；</li>
-</ul>
-<p>因为在 Dockerfile 中的 ADD 指令 src 文件如果是个 tar 包，在构建的时候 docker 会帮我们把 tar 包解开到指定目录，使用 copy 指令则不会解开 tar 包。另外一点区别就是 ADD 指令是添加一个文件，这个文件可以是构建上下文环境中的文件，也可以是个 URL，而 COPY 则只能添加构建上下文中的文件，所谓的构建上下文就是我们构建镜像的时候最后一个参数啦。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/06/16/AB-test-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/16/AB-test-intro/" class="post-title-link" itemprop="url">AB test是否可靠</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2020-06-16 10:29:06" itemprop="dateCreated datePublished" datetime="2020-06-16T10:29:06+08:00">2020-06-16</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/AB/" itemprop="url" rel="index"><span itemprop="name">AB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://uxren.cn/?p=58841">原文链接</a></p>
-<p>AB测试来自医学的双盲实验，在双盲测试中：</p>
-<ol>
-<li>病人随机被分成两组，在不知情的情况下，分别服用安慰剂跟测试用药</li>
-<li>经过一段时间后，再来比较两组病人的表现是否有显著差异。</li>
-</ol>
-<h4 id="单层实验"><a href="#单层实验" class="headerlink" title="单层实验"></a>单层实验</h4><p>单层实验的模式是：</p>
-<ol>
-<li>把所有的用户放在一起，有相互独立的用户标识（比如cid，uid，cookis等）</li>
-<li>以某种分流的方法（比如随机），给每个实验组，分配一定的用户。</li>
-<li>每个实验分到的用户正交</li>
-</ol>
-<p>遇到的问题：</p>
-<ol>
-<li>扩展性差，只能同时支持少量实验。但是以数据驱动的业务，需要极快的创新速度，大量的创新需要被测试，会严重delay业务。</li>
-<li>如果在单层同时进行多个实验，实验之间不是独立事件，并行的时候，同一个策略，只能进行一个实验，如果多个并行支持，无法实现。不同策略之间也有影响。</li>
-<li>流量饥饿问题：假设我们整体用户要做5个实验，如果前2个实验占据了大部分的流量，后面的3个实验就有很少的流量可以供使用，甚至没有流量可用。</li>
-<li>流量偏置问题：假设上游的实验把所有的年轻人都获取了，下游的实验，没有年轻人的样本。导致有偏差。</li>
-</ol>
-<h4 id="多层重叠实验"><a href="#多层重叠实验" class="headerlink" title="多层重叠实验"></a>多层重叠实验</h4><p><a target="_blank" rel="noopener" href="https://www.csdn.net/article/2015-01-09/2823499">论文地址</a></p>
-<p>核心思路：将参数划分到N个子集，每个子集都关联一个实验层，每个请求会被N个实验处理（每层一个实验），每个实验都只能修改自己层相关联的参数（在参数子集中的参数），并且同一个参数不能出现在多个层中。</p>
-<p>谷歌在每一层共享一个对照组，被多个实验共享。如果对照组比实验组大很多，系数就可以用10.5，而不是16.（不用取2N，取N）?</p>
-<img src="https://uxren.cn/wp-content/uploads/2018/02/abtest-intro-toutiao-06.png" alt="intro toutiao" style="zoom: 50%;" />
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -662,7 +609,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -675,7 +622,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,252 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/03/raft-golang/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/03/raft-golang/" class="post-title-link" itemprop="url">raft协议简介</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-03 16:32:29" itemprop="dateCreated datePublished" datetime="2018-07-03T16:32:29+08:00">2018-07-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/raft/" itemprop="url" rel="index"><span itemprop="name">raft</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">原文链接</a></p>
+<p>node存在三种状态， follower, candidate or leader，如果没有收到相关的entries的话，会从follower变迁到candidate，从而进行leader的一个选举策略</p>
+<p>两个时间超时的机制</p>
+<ul>
+<li>选举超时，如果超时，就会变成candidate，开始进行vote，并发向其他的node</li>
+<li>hearbeat 超时，在vote发送之后，有没有在超时之前收到相关的vote的答复</li>
+</ul>
+<p>每次leader发送log时，都会去重置其他follower节点的选举超时时间</p>
+<p>这时候，会遇到多个nodes同时发送选举的信息，继续等待，直到有一个拿到master的选举信息，</p>
+<p>然后是关于网络隔断的问题，在移除之后，有所谓的值最大的成为最后的master</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/01/api-gateway-limit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/01/api-gateway-limit/" class="post-title-link" itemprop="url">ApiGateway Limit</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-01 18:55:15" itemprop="dateCreated datePublished" datetime="2018-07-01T18:55:15+08:00">2018-07-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/microservice/" itemprop="url" rel="index"><span itemprop="name">microservice</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://www.10tiao.com/html/175/201704/2653548504/1.html">原文链接</a></p>
+<p>限制流量可以使 API 服务在下面的场景中更可靠：</p>
+<ul>
+<li>某个用户直接或间接造成了流量飙升，我们需要确保对其他用户服务可用。</li>
+<li>某个用户向 API 服务发送大量请求。 或者更糟的是，某个用户试图恶意冲垮服务器。</li>
+<li>用户发送了大量低优先级请求，但我们希望确保不会影响其他高优先级请求。 例如，发送大量分析数据请求的用户可能会影响其他用户的关键事务。</li>
+<li>系统内部产生错误，导致无法处理所有请求，不得不丢弃低优先级的请求。</li>
+</ul>
+<p>负载降级</p>
+<p>基于使用量的负载降级</p>
+<p>我们将流量分为两种类型：关键 API 请求（例如，创建订单）和非关键请求（例如，列出历史订单）。我们有一个 Redis 集群，用于计算当前每种类型的请求数量。</p>
+<p>基于worker利用率的负载降级</p>
+<p>我们追踪可用的 worker 数量。如果某个 worker 太忙，无法处理分配给它的请求，它会缓慢降级非关键请求，当然是先从测试请求开始。如果降低测试请求的过程中，worker 的处理能力恢复到好的状态，那我们就可以开始缓慢地恢复流量（取消降级）。</p>
+<p>我们使用令牌桶算法 [2] 来进行流量限制。该算法有一个集中的桶，为每一个请求分配一个令牌，并不断地缓慢地在桶中放入令牌。 如果桶为空，则拒绝该请求。在我们的例子中，每个用户都被分配一个桶，每当他们产生一个请求时，我们从这个桶中移除一个令牌。  </p>
+<p>我们通过 Redis 来实现我们的限速器。 既可以自己搭建和运维 Redis 实例，或者如果已经使用 AWS，则可以使用 ElastiCache 这样的托管服务。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/29/order-schedule/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/29/order-schedule/" class="post-title-link" itemprop="url">外卖的订单分配策略</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-29 16:19:43" itemprop="dateCreated datePublished" datetime="2018-06-29T16:19:43+08:00">2018-06-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/schedule/" itemprop="url" rel="index"><span itemprop="name">schedule</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://tech.meituan.com/O2O_Intelligent_distribution.html">原文链接</a></p>
+<p>系统首先通过优化设定配送费以及预计送达时间来调整订单结构；在接收订单之后，考虑骑手位置、在途订单情况、骑手能力、商家出餐、交付难度、天气、地理路况、未来单量等因素，在正确的时间将订单分配给最合适的骑手，并在骑手执行过程中随时预判订单超时情况并动态触发改派操作，实现订单和骑手的动态最优匹配；同时，系统派单后，为骑手提示该商家的预计出餐时间和合理的配送线路，并通过语音方式和骑手实现高效交互；在骑手送完订单后，系统根据订单需求预测和运力分布情况，告知骑手不同商圈的运力需求情况，实现闲时的运力调度。</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/2.png" alt="基础架构"></p>
+<p>如何从实际问题中去建模</p>
+<p>一个决策优化问题的数学模型，一般包括三个要素：</p>
+<ul>
+<li>决策变量</li>
+<li>优化目标</li>
+<li>约束条件</li>
+</ul>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/3.png" alt="决策变量"></p>
+<p>变量说明：</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/4.png" alt="定义"></p>
+<p>优化目标：</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/5.png" alt="目标"></p>
+<p>约束条件:</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/6.png" alt="约束条件"></p>
+<p>运筹优化领域中的马尔可夫决策过程描述的就是这样的一类在不确定、信息不完备环境下的序贯决策优化问题。</p>
+<p>优化方面，一是问题特征分析，</p>
+<p>二是跨学科结合，把订单分配问题转换为图论中的二分图匹配问题来解决。常用的一个方法是先对订单进行打包，将可以由一个人完成的多个订单组成一个任务，再使用二分图匹配算法（匈牙利算法、KM 算法）来解决</p>
+<p>即时配送的强不确定性部分，一是延迟调度策略，即在某些场景订单可以不被指派出去，在不影响订单超时的情况下，延迟做出决策；二是系统自动改派策略，即订单即便已经派给了骑手，后台的智能算法仍然会实时评估各个骑手的位置、订单情况，并帮助骑手进行分析，判断是否存在超时风险</p>
+<p><img src="https://tech.meituan.com/img/%E5%A4%96%E5%8D%96%E8%AE%A2%E5%8D%95%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5%E6%A1%88%E4%BE%8B/12.png" alt="仿真架构"></p>
+<p>线下仿真架构</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/29/scrum-gets-wrong/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -294,263 +540,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/28/golang-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/28/golang-tips/" class="post-title-link" itemprop="url">golang 机制了解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-28 17:04:28" itemprop="dateCreated datePublished" datetime="2018-06-28T17:04:28+08:00">2018-06-28</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/04.0.html">原文链接</a></p>
-<p>go语言初始化过程</p>
-<p>这里解释一下本地线程存储。比如说每个goroutine都有自己的控制信息，这些信息是存放在一个结构体G中。假设我们有一个全局变量g是结构体G的指针，我们希望只有唯一的全局变量g，而不是g0，g1，g2…但是我们又希望不同goroutine去访问这个全局变量g得到的并不是同一个东西，它们得到的是相对自己线程的结构体G，这种情况下就需要本地线程存储。g确实是一个全局变量，却在不同线程有多份不同的副本。每个goroutine去访问g时，都是对应到自己线程的这一份副本。针对goroutine部分，</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CLD                // convention is D is always left cleared</span><br><span class="line">CALL    runtime·check(SB) //检测像int8,int16,float等是否是预期的大小，检测cas操作是否正常</span><br><span class="line">MOVL    16(SP), AX        // copy argc</span><br><span class="line">MOVL    AX, 0(SP)</span><br><span class="line">MOVQ    24(SP), AX        // copy argv</span><br><span class="line">MOVQ    AX, 8(SP)</span><br><span class="line">CALL    runtime·args(SB)    //将argc,argv设置到static全局变量中了</span><br><span class="line">CALL    runtime·osinit(SB)    //osinit做的事情就是设置runtime.ncpu，不同平台实现方式不一样</span><br><span class="line">CALL    runtime·hashinit(SB)    //使用读/dev/urandom的方式从内核获得随机数种子</span><br><span class="line">CALL    runtime·schedinit(SB)    //内存管理初始化，根据GOMAXPROCS设置使用的procs等等</span><br></pre></td></tr></table></figure>
-
-
-
-<p>go关键字的调用协议：先将参数进栈，再被调函数指针和参数字节数进栈，接着调用runtime.newproc函数。所以这里其实就是新开个goroutine执行runtime.main</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">找到一个等待运行的g</span><br><span class="line">如果g是锁定到某个M的，则让那个M运行</span><br><span class="line">否则，调用execute函数让g在当前的M中运行</span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://tiancaiamao.gitbooks.io/go-internals/content/zh/images/5.2.goroutine_state.jpg?raw=true" alt="goroutine状态图"></p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">M</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        sched.lock.Lock()    <span class="comment">//互斥地从就绪G队列中取一个g出来运行</span></span><br><span class="line">        <span class="keyword">if</span> sched.allg &gt; <span class="number">0</span> &#123;</span><br><span class="line">            g := sched.allg[<span class="number">0</span>]</span><br><span class="line">            sched.allg = sched.allg[<span class="number">1</span>:]</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">            g.Run()        <span class="comment">//运行它</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sched.lock.Unlock()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>退出goroutine</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">exitsyscall</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(allm) &gt;= GOMAXPROCS &#123;</span><br><span class="line">        sched.lock.Lock()</span><br><span class="line">        sched.allg = <span class="built_in">append</span>(sched.allg, g)    <span class="comment">//把g放回到队列中</span></span><br><span class="line">        sched.lock.Unlock()</span><br><span class="line">        time.Sleep()    <span class="comment">//这个M不再干活</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>内存管理</p>
-<p>在多线程方面，很自然的做法就是每条线程都有自己的本地的内存，然后有一个全局的分配链，当某个线程中内存不足后就向全局分配链中申请内存。这样就避免了多线程同时访问共享变量时的加锁。 在避免内存碎片方面，大块内存直接按页为单位分配，小块内存会切成各种不同的固定大小的块，申请做任意字节内存时会向上取整到最接近的块，将整块分配给申请者以避免随意切割。</p>
-<p>分配器的数据结构包括:</p>
-<ul>
-<li>FixAlloc: 固定大小(128kB)的对象的空闲链分配器,被分配器用于管理存储</li>
-<li>MHeap: 分配堆,按页的粒度进行管理(4kB)，用于直接分配较大(&gt;32kB)的内存空间</li>
-<li>MSpan: 一些由MHeap管理的页</li>
-<li>MCentral: 对于给定尺寸类别的共享的free list</li>
-<li>MCache: 用于小对象的每M一个的cache</li>
-</ul>
-<p>我们可以将Go语言的内存管理看成一个两级的内存管理结构，MHeap和MCache。</p>
-<p>非阻塞io</p>
-<p>底层非阻塞io是如何实现的呢？简单地说，所有文件描述符都被设置成非阻塞的，某个goroutine进行io操作，读或者写文件描述符，如果此刻io还没准备好，则这个goroutine会被放到系统的等待队列中，这个goroutine失去了运行权，但并不是真正的整个系统“阻塞”于系统调用。</p>
-<p>后台还有一个poller会不停地进行poll，所有的文件描述符都被添加到了这个poller中的，当某个时刻一个文件描述符准备好了，poller就会唤醒之前因它而阻塞的goroutine，于是goroutine重新运行起来</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/27/Dynamic-Programming/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/27/Dynamic-Programming/" class="post-title-link" itemprop="url">Dynamic Programming</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-27 16:47:58" itemprop="dateCreated datePublished" datetime="2018-06-27T16:47:58+08:00">2018-06-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dp/" itemprop="url" rel="index"><span itemprop="name">dp</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://www.hawstein.com/posts/dp-novice-to-advanced.html">原文链接</a></p>
-<p>动态规划中，状态和状态转移方程</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Set Min[i] equal to Infinity for all of i</span><br><span class="line">Min[0] = 0</span><br><span class="line"></span><br><span class="line">For i = 1 to S</span><br><span class="line">For j = 0 to N-1</span><br><span class="line">	if (Vj&lt;=i AND Min[i-Vj]+1]&lt;Min[i])</span><br><span class="line">Then Min[i] = Min[i-Vj] + 1</span><br><span class="line"></span><br><span class="line">Output Min[S]</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">upper_bound</span><span class="params">(arr []<span class="keyword">int</span>, s, e, key <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> arr[e] &lt; key &#123;</span><br><span class="line">		<span class="keyword">return</span> e + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	mid := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> s &lt; e &#123;</span><br><span class="line">		mid = s + (e-s)/<span class="number">2</span></span><br><span class="line">		<span class="keyword">if</span> arr[mid] &lt; key &#123;</span><br><span class="line">			s = mid + <span class="number">1</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			e = mid</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">lengthOfLIS</span><span class="params">(nums []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(nums) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	end := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">0</span>)</span><br><span class="line">	end = <span class="built_in">append</span>(end, nums[<span class="number">0</span>])</span><br><span class="line">	l := <span class="number">1</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt; <span class="built_in">len</span>(nums); i++ &#123;</span><br><span class="line">		pos := upper_bound(end, <span class="number">0</span>, <span class="built_in">len</span>(end)<span class="number">-1</span>, nums[i])</span><br><span class="line">		<span class="keyword">if</span> pos &gt; <span class="built_in">len</span>(end)<span class="number">-1</span> &#123;</span><br><span class="line">			end = <span class="built_in">append</span>(end, nums[i])</span><br><span class="line">			l++</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			end[pos] = nums[i]</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> l</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>二维的DP问题</p>
-<p>状态S[i][j]表示我们走到(i, j)这个格子时，最多能收集到多少个苹果。那么， 状态转移方程如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">S[i][j]=A[i][j] + max(S[i-1][j], if i&gt;0 ; S[i][j-1], if j&gt;0)</span><br></pre></td></tr></table></figure>
-
-<p>其中i代表行，j代表列，下标均从0开始；A[i][j]代表格子(i, j)处的苹果数量。</p>
-<p>带额外条件的DP问题</p>
-<p>无向图G有N个结点，它的边上带有正的权重值，过路最短问题</p>
-<p>迪杰斯特拉，最短路径问题</p>
-<p>当阅读一个题目并且开始尝试解决它时，首先看一下它的限制。 如果要求在多项式时间内解决，那么该问题就很可能要用DP来解。遇到这种情况， 最重要的就是找到问题的“状态”和“状态转移方程”。(状态不是随便定义的， 一般定义完状态，你要找到当前状态是如何从前面的状态得到的， 即找到状态转移方程)如果看起来是个DP问题，但你却无法定义出状态， 那么试着将问题规约到一个已知的DP问题(正如“高级”一节中的例子一样)。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/26/worldcup-graphQL/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/26/worldcup-graphQL/" class="post-title-link" itemprop="url">WorldCup graphQL</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-26 15:17:11" itemprop="dateCreated datePublished" datetime="2018-06-26T15:17:11+08:00">2018-06-26</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphQL/" itemprop="url" rel="index"><span itemprop="name">graphQL</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.freecodecamp.org/building-the-2018-world-cup-graphql-api-fab40ccecb9e">原文链接</a></p>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*zfRcG-bR_cMXR8cF" alt="sql struct"></p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">query &#123;</span><br><span class="line">  players(name:”Lionel Messi”) &#123;</span><br><span class="line">    name</span><br><span class="line">    dob</span><br><span class="line">    allGoals</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -622,7 +611,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -635,7 +624,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

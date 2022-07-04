@@ -153,6 +153,292 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/28/5-things-hate-about-go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/28/5-things-hate-about-go/" class="post-title-link" itemprop="url">5 things hate about go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-28 17:12:57" itemprop="dateCreated datePublished" datetime="2018-05-28T17:12:57+08:00">2018-05-28</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://jaxenter.com/5-things-you-hate-about-go-143422.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_129">原文链接</a></p>
+<p>My personal favorite is that Go does not offer a <em>reentrant lock</em>, i.e. a lock that can be recursively acquired from the same thread or Goroutine (the Go variant of Coroutines or <em>Green Threads</em>). However, without hacks there is no way to build such an implementation by yourself, since threads are not available in Go and Goroutines do not offer an identifier, which would allow you to recognize the same Goroutine you’ve seen before.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> task <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  task := &amp;task&#123;&#125;</span><br><span class="line">  task = &amp;task&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>At this point, Go is no longer able to see the distinction between the type and the variable</p>
+<h3 id="Type-or-no-type-that-is-the-question"><a href="#Type-or-no-type-that-is-the-question" class="headerlink" title="Type or no type, that is the question!"></a><strong>Type or no type, that is the question!</strong></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> handle = <span class="keyword">int</span> <span class="comment">// after go 1.9</span></span><br><span class="line"><span class="keyword">type</span> handle <span class="keyword">int</span> <span class="comment">// before go 1.9</span></span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> var1 <span class="keyword">int</span> = <span class="number">1</span></span><br><span class="line">  <span class="keyword">var</span> var2 handle = <span class="number">2</span></span><br><span class="line">  types(var1)</span><br><span class="line">  types(var2)</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">types</span><span class="params">(val <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="keyword">int</span>:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">&quot;I am an int: %d&quot;</span>, v))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">switch</span> v := val.(<span class="keyword">type</span>) &#123;</span><br><span class="line">  <span class="keyword">case</span> handle:</span><br><span class="line">    fmt.Println(fmt.Sprintf(<span class="string">&quot;I am an handle: %d&quot;</span>, v))</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Gophers-are-lazy-by-nature"><a href="#Gophers-are-lazy-by-nature" class="headerlink" title="Gophers are lazy by nature!"></a>Gophers are lazy by nature!</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  functions := <span class="built_in">make</span>([]<span class="function"><span class="keyword">func</span><span class="params">()</span>, 3)</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">      functions[i] = <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      fmt.Println(fmt.Sprintf(<span class="string">&quot;iterator value: %d&quot;</span>, i))</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">  functions[<span class="number">0</span>]()</span><br><span class="line">  functions[<span class="number">1</span>]()</span><br><span class="line">  functions[<span class="number">2</span>]()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Of-nil-and-nothing"><a href="#Of-nil-and-nothing" class="headerlink" title="Of nil and nothing"></a>Of nil and nothing</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">(v <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> e *MyError = <span class="literal">nil</span></span><br><span class="line">  <span class="keyword">if</span> v &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>When <code>e</code> is returned, the <code>*MyError</code> pointer becomes an instance of the interface type <code>error</code> and it’s not nil! </p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/27/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/27/one-week/" class="post-title-link" itemprop="url">万法缘起</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-27 08:49:18" itemprop="dateCreated datePublished" datetime="2018-05-27T08:49:18+08:00">2018-05-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>菩萨畏因，众生畏果</p>
+<p>缘起缘灭，终究逃不过自己做的一切。。</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>相关运维部分的交接</li>
+<li>简历部分进行修改</li>
+</ul>
+<p>本周未完成：</p>
+<ul>
+<li>coinbot部分，关于自动化交易部分</li>
+<li>rn部分的第一版的收尾部分</li>
+</ul>
+<p>下周工作：</p>
+<ul>
+<li>开始复习一些东西</li>
+<li>准备简历上的东西，准备投一些</li>
+</ul>
+<p>如期所至的同居生活开始了。。。有过争吵，有过所谓的甜蜜。。。哎，感觉达不到要求，给不了，感觉已经不是那种一人吃饱，全家不愁的状态，不管是心理上，还是物质上，还是配不上人家吧，有时候，也在怀疑，当初自己是怎么做了这个选择。。。窝起来，做一个肥宅多幸福。。。但不管怎么说，现在已经这个状态，先慢慢撑起来吧。。。毕竟最坏的结果，不是已经打算了，窝起来。。。</p>
+<p>还是生活和工作之间，怎么来平衡吧，个人还是有点强迫症，定一个计划出来，拖延症什么的。。要努力克服。。</p>
+<p>简历已经开始着手准备了，那么找工作部分，也要提上日程了。。关于简历上内容的回顾，leetcode的刷题部分，全都要慢慢捡起来。。</p>
+<p>尽量不要给他人困扰，也不要给他人带来麻烦，从根源上，斩断一些缘。。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/24/go-std-doc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/24/go-std-doc/" class="post-title-link" itemprop="url">Go std doc</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-24 15:36:32" itemprop="dateCreated datePublished" datetime="2018-05-24T15:36:32+08:00">2018-05-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/preytaren/go-doc-zh">原repo</a></p>
+<h2 id="container-heap"><a href="#container-heap" class="headerlink" title="container/heap"></a>container/heap</h2><p>fix用于单次对堆进行调整</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fix</span><span class="params">(h Interface, i <span class="keyword">int</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>关于大顶堆以及小顶堆</p>
+<h2 id="container-list"><a href="#container-list" class="headerlink" title="container/list"></a>container/list</h2><p>基本的双向链表</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">&quot;fmt&quot;</span></span><br><span class="line"><span class="string">&quot;container/list&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	link := list.New()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt;= <span class="number">10</span>; i++ &#123;</span><br><span class="line">		link.PushBack(i)</span><br><span class="line">	&#125;<span class="comment">//</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> p := link.Front(); p != link.Back(); p = p.Next() &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;Number&quot;</span>, p.Value)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="container-ring"><a href="#container-ring" class="headerlink" title="container/ring"></a>container/ring</h2><p>循环表结构</p>
+<p>Do, Ring包提供一个额外的方法Do，会依次将每个节点的Value当做参数调用这个函数</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;container/ring&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(<span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">		fmt.Println(i)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>求和的写法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;container/ring&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> SumInt <span class="keyword">struct</span> &#123;</span><br><span class="line">	Value <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SumInt)</span> <span class="title">add</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	s.Value += i.(<span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := ring.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		r.Value = i</span><br><span class="line">		r = r.Next()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sum := SumInt&#123;&#125;</span><br><span class="line">	r.Do(sum.add)</span><br><span class="line">	fmt.Println(sum.Value)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="sort"><a href="#sort" class="headerlink" title="sort"></a>sort</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">        Len() <span class="keyword">int</span>            <span class="comment">// 返回当前元素个数</span></span><br><span class="line">        Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span>. <span class="comment">// 判断第i个元素是小于第j个元素</span></span><br><span class="line">        Swap(i, j <span class="keyword">int</span>)       <span class="comment">// 交换两个元素</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>只要实现这三个函数，即可使用sort的相关函数</p>
+<p>Slice</p>
+<p>Slice函数用于对一个Slice进行排序，这是实际使用中更为常用的一个函数，函数接收两个参数。第一个是需要排序的Slice；第二个是Slice元素比较函数，它类似于前面sort.Interface里的Less方法。函数声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Slice</span><span class="params">(slice <span class="keyword">interface</span>&#123;&#125;, less <span class="keyword">func</span>(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span>)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="sync"><a href="#sync" class="headerlink" title="sync"></a>sync</h2><p>信号量，sync.Cond是信号量的实现</p>
+<p>Signal和Broadcast用于唤醒一个信号量，区别在于Signal只会随机的唤醒一个线程，而Broadcast会唤醒所有在等待的线程。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Signal</span><span class="params">()</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Broadcast</span><span class="params">()</span></span> </span><br></pre></td></tr></table></figure>
+
+<p>wait</p>
+<p>阻塞等待，当Signal或Broadcast被调用时唤醒，声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cond)</span> <span class="title">Wait</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>sync.Once保证某个函数有且仅有一次执行，只有一个方法Do，接受一个无参函数作为参数，当你调用Do时会执行这个函数，其方法声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="context"><a href="#context" class="headerlink" title="context"></a>context</h2><p>context也是并发环境的一个常用标准库，它用于在并发环境下在协程之间安全的传递某些上下文信息。</p>
+<p>一个经典的应用场景是服务器模型，当服务器处理接收到的请求时，通常需要并发的运行多个子任务，例如访问服务器，请求授权等。而这些任务都会以子协程的方式运行，也就是说一个请求绑定了多个协程，这些协程需要共享或传递某些请求相关的数据；此外当请求被撤销时，也需要有一种机制保证每个子协程能够安全的退出。而context包就给提供了上面说到的这些功能。</p>
+<p>Context是一个上下文对象，其声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">    Deadline() (deadline time.Time, ok <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 获取deadline</span></span><br><span class="line">    Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// </span></span><br><span class="line">    Err() error</span><br><span class="line">    Value(key <span class="keyword">interface</span>&#123;&#125;) <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/slack-pipe/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -322,255 +608,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/go-not-good/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/22/go-not-good/" class="post-title-link" itemprop="url">Go the good, the bad and the ugly</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-22 17:04:31" itemprop="dateCreated datePublished" datetime="2018-05-22T17:04:31+08:00">2018-05-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_127">原文链接</a></p>
-<h3 id="Good"><a href="#Good" class="headerlink" title="Good"></a>Good</h3><p>new Types</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> UserId <span class="keyword">string</span> <span class="comment">// &lt;-- new type</span></span><br><span class="line"><span class="keyword">type</span> ProductId <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddProduct</span><span class="params">(userId UserId, productId ProductId)</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    userId := UserId(<span class="string">&quot;some-user-id&quot;</span>)</span><br><span class="line">    productId := ProductId(<span class="string">&quot;some-product-id&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Right order: all fine</span></span><br><span class="line">    AddProduct(userId, productId)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wrong order: would compile with raw strings</span></span><br><span class="line">    AddProduct(productId, userId)</span><br><span class="line">    <span class="comment">// Compilation errors:</span></span><br><span class="line">    <span class="comment">// cannot use productId (type ProductId) as type UserId in argument to AddProduct</span></span><br><span class="line">    <span class="comment">// cannot use userId (type UserId) as type ProductId in argument to AddProduct</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="Bad"><a href="#Bad" class="headerlink" title="Bad"></a>Bad</h3><h4 id="Go-ignored-advances-in-modern-language-design"><a href="#Go-ignored-advances-in-modern-language-design" class="headerlink" title="Go ignored advances in modern language design"></a>Go ignored advances in modern language design</h4><p><strong>functional programing</strong></p>
-<p><strong>No LLVM</strong></p>
-<p><strong>GC</strong></p>
-<h4 id="Interfaces-are-structural-types"><a href="#Interfaces-are-structural-types" class="headerlink" title="Interfaces are structural types"></a>Interfaces are structural types</h4><p>Go interfaces are like Java interfaces or Scala &amp; Rust traits: they define behaviour that is later implemented by a type (I won’t call it “class” here).</p>
-<h3 id="No-enumerations"><a href="#No-enumerations" class="headerlink" title="No enumerations"></a>No enumerations</h3><p><code>iota</code></p>
-<h3 id="The-var-dilemma"><a href="#The-var-dilemma" class="headerlink" title="The:=/var dilemma"></a>The<code>:=</code>/<code>var</code> dilemma</h3><p>Go provides two ways to declare a variable and assign it a value: <code>var x = &quot;foo&quot;</code> and <code>x := &quot;foo&quot;</code>. </p>
-<p>The main differences are that <code>var</code> allows declaration without initialization (and you then have to declare the type), like in <code>var x string</code>, whereas <code>:=</code> requires assignment and allows a mix of existing and new variables. My guess is that <code>:=</code> was invented to make error handling <em>a bit</em> less painful:</p>
-<h4 id="Zero-values-that-panic"><a href="#Zero-values-that-panic" class="headerlink" title="Zero values that panic"></a>Zero values that panic</h4><p>go have no constructor</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> m1 = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;&#125; <span class="comment">// empty map</span></span><br><span class="line"><span class="keyword">var</span> m0 <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>     <span class="comment">// zero map (nil)</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m1))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(<span class="built_in">len</span>(m0))   <span class="comment">// outputs &#x27;0&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m1[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line"><span class="built_in">println</span>(m0[<span class="string">&quot;foo&quot;</span>]) <span class="comment">// outputs &#x27;&#x27;</span></span><br><span class="line">m1[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// ok</span></span><br><span class="line">m0[<span class="string">&quot;foo&quot;</span>] = <span class="string">&quot;bar&quot;</span>  <span class="comment">// panics!</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>上面所示，m1初始化了，但m0没有初始化。。</p>
-<h4 id="Go-doesn’t-have-exceptions"><a href="#Go-doesn’t-have-exceptions" class="headerlink" title="Go doesn’t have exceptions."></a>Go doesn’t have exceptions.</h4><p>just  “<a target="_blank" rel="noopener" href="https://blog.golang.org/defer-panic-and-recover">Defer, panic and recover</a>“</p>
-<h3 id="Ugly"><a href="#Ugly" class="headerlink" title="Ugly"></a>Ugly</h3><h4 id="The-dependency-management-nightmare"><a href="#The-dependency-management-nightmare" class="headerlink" title="The dependency management nightmare"></a>The dependency management nightmare</h4><p>Things are getting better though: <code>dep</code>, the <a target="_blank" rel="noopener" href="https://golang.github.io/dep/">official dependency management tool</a> was recently introduced to support vendoring.</p>
-<p>But <code>dep</code> may not live long though as <a target="_blank" rel="noopener" href="https://github.com/golang/vgo"><code>vgo</code></a>, also from Google, wants to bring versioning in the language itself and has been making some waves lately.</p>
-<h4 id="mutability-is-hardcoded-in-the-language"><a href="#mutability-is-hardcoded-in-the-language" class="headerlink" title="mutability is hardcoded in the language"></a>mutability is hardcoded in the language</h4><p>Go makes it easy however to copy an entire struct with a simple assignment, so we may think that passing arguments by value is all that is needed to have immutability at the cost of copying.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</span><br><span class="line">    A <span class="keyword">string</span></span><br><span class="line">    B []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    x := S&#123;<span class="string">&quot;x-A&quot;</span>, []<span class="keyword">string</span>&#123;<span class="string">&quot;x-B&quot;</span>&#125;&#125;</span><br><span class="line">    y := x <span class="comment">// copy the struct</span></span><br><span class="line">    y.A = <span class="string">&quot;y-A&quot;</span></span><br><span class="line">    y.B[<span class="number">0</span>] = <span class="string">&quot;y-B&quot;</span></span><br><span class="line"></span><br><span class="line">    fmt.Println(x, y)</span><br><span class="line">    <span class="comment">// Outputs &quot;&#123;x-A [y-B]&#125; &#123;y-A [y-B]&#125;&quot; -- x was modified!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p> And the since built-in collections (map, slice and array) are references and are mutable, copying a struct that contains one of these just copies the pointer to the same underlying memory.</p>
-<h4 id="Slice-gotchas"><a href="#Slice-gotchas" class="headerlink" title="Slice gotchas"></a>Slice gotchas</h4><p>Slices come with many gotchas: as explained in “<a target="_blank" rel="noopener" href="https://blog.golang.org/go-slices-usage-and-internals">Go slices: usage and internals</a>“, re-slicing a slice doesn’t copy the underlying array for performance reasons. </p>
-<p>This is a laudable goal but means that sub-slices of a slice are just views that follow the mutations of the original slice. So don’t forget to <code>copy()</code> a slice if you want to separate it from its origin.</p>
-<p>Forgetting to <code>copy()</code> becomes more dangerous with the <code>append</code> function: appending values to a slice resizes the underlying array <em>if it doesn’t have enough capacity</em> to hold the new values. This means that the result of <code>append</code> may or may not point to the original array depending on its initial capacity. This can cause hard to find non deterministic bugs. (在append的时候，如果没有足够的空间，会重新resize slice，这样pointer会乱指)</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doStuff</span><span class="params">(value []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v\n&quot;</span>, value)</span><br><span class="line"></span><br><span class="line">    value2 := value[:]</span><br><span class="line">    value2 = <span class="built_in">append</span>(value2, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line"></span><br><span class="line">    value2[<span class="number">0</span>] = <span class="string">&quot;z&quot;</span></span><br><span class="line">    fmt.Printf(<span class="string">&quot;value=%v, value2=%v\n&quot;</span>, value, value2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    slice1 := []<span class="keyword">string</span>&#123;<span class="string">&quot;a&quot;</span>&#125; <span class="comment">// length 1, capacity 1</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice1)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[z b] -- ok: value unchanged, value2 updated</span></span><br><span class="line"></span><br><span class="line">    slice10 := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1</span>, <span class="number">10</span>) <span class="comment">// length 1, capacity 10</span></span><br><span class="line">    slice10[<span class="number">0</span>] = <span class="string">&quot;a&quot;</span></span><br><span class="line"></span><br><span class="line">    doStuff(slice10)</span><br><span class="line">    <span class="comment">// Output:</span></span><br><span class="line">    <span class="comment">// value=[a] -- ok</span></span><br><span class="line">    <span class="comment">// value=[a], value2=[a b] -- ok: value unchanged, value2 updated</span></span><br><span class="line">    <span class="comment">// value=[z], value2=[z b] -- WTF?!? value changed???</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="mutability-and-channels-race-conditions-made-easy"><a href="#mutability-and-channels-race-conditions-made-easy" class="headerlink" title="mutability and channels: race conditions made easy"></a>mutability and channels: race conditions made easy</h4><p>As we saw above there is no way in Go to have immutable data structures. This means that once we send a pointer on a channel, it’s game over: we share mutable data between concurrent processes. Of course a channel of structures (and not pointers) copies the values sent on the channel, but as we saw above, this doesn’t deep-copy references, including slices and maps, which are intrinsically mutable. Same goes with struct fields of an interface type: they are pointers, and any mutation method defined by the interface is an open door to race conditions.</p>
-<h4 id="noisy-error-management"><a href="#noisy-error-management" class="headerlink" title="noisy error management"></a>noisy error management</h4><p>In “<a target="_blank" rel="noopener" href="https://blog.golang.org/errors-are-values">Error has values</a>“ Rob Pike suggests some strategies to reduce error handling verbosity</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">type errWriter struct &#123;</span><br><span class="line">    w   io.Writer</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (ew *errWriter) write(buf []byte) &#123;</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return // Write nothing if we already errored-out</span><br><span class="line">    &#125;</span><br><span class="line">    _, ew.err = ew.w.Write(buf)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func doIt(fd io.Writer) &#123;</span><br><span class="line">    ew := &amp;errWriter&#123;w: fd&#125;</span><br><span class="line">    ew.write(p0[a:b])</span><br><span class="line">    ew.write(p1[c:d])</span><br><span class="line">    ew.write(p2[e:f])</span><br><span class="line">    // and so on</span><br><span class="line">    if ew.err != nil &#123;</span><br><span class="line">        return ew.err</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="nil-interface-values"><a href="#nil-interface-values" class="headerlink" title="nil interface values"></a>nil interface values</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Explodes <span class="keyword">interface</span> &#123;</span><br><span class="line">    Bang()</span><br><span class="line">    Boom()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Type Bomb implements Explodes</span></span><br><span class="line"><span class="keyword">type</span> Bomb <span class="keyword">struct</span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*Bomb)</span> <span class="title">Bang</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(Bomb)</span> <span class="title">Boom</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> bomb *Bomb = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">var</span> explodes Explodes = bomb</span><br><span class="line">    <span class="built_in">println</span>(bomb, explodes) <span class="comment">// &#x27;0x0 (0x10a7060,0x0)&#x27;</span></span><br><span class="line">    <span class="keyword">if</span> explodes != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;Not nil!&quot;</span>) <span class="comment">// &#x27;Not nil!&#x27; What are we doing here?!?!</span></span><br><span class="line">        explodes.Bang()     <span class="comment">// works fine</span></span><br><span class="line">        explodes.Boom()     <span class="comment">// panic: value method main.Bomb.Boom called using nil *Bomb pointer</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">println</span>(<span class="string">&quot;nil!&quot;</span>)     <span class="comment">// why don&#x27;t we end up here?</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="struct-field-tags-runtime-DSL-in-a-string"><a href="#struct-field-tags-runtime-DSL-in-a-string" class="headerlink" title="struct field tags: runtime DSL in a string"></a>struct field tags: runtime DSL in a string</h4><h4 id="Go-has-few-data-structures-beyond-slice-and-map"><a href="#Go-has-few-data-structures-beyond-slice-and-map" class="headerlink" title="Go has few data structures beyond slice and map"></a>Go has few data structures beyond slice and map</h4>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/Deep-Reinforcement-Learning/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/22/Deep-Reinforcement-Learning/" class="post-title-link" itemprop="url">Deep Reinforcement Learning</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-22 16:43:13" itemprop="dateCreated datePublished" datetime="2018-05-22T16:43:13+08:00">2018-05-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/applied-data-science/how-to-build-your-own-world-model-using-python-and-keras-64fb388ba459">原文链接</a></p>
-<p>[<strong><a target="_blank" rel="noopener" href="https://arxiv.org/abs/1803.10122">https://arxiv.org/abs/1803.10122</a></strong></p>
-<h3 id="step-1-The-Problem"><a href="#step-1-The-Problem" class="headerlink" title="step 1 The Problem"></a>step 1 The Problem</h3>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/05/22/G-unit-stack/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/22/G-unit-stack/" class="post-title-link" itemprop="url">G-unit Stack</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-05-22 16:01:49" itemprop="dateCreated datePublished" datetime="2018-05-22T16:01:49+08:00">2018-05-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/G-unit/" itemprop="url" rel="index"><span itemprop="name">G-unit</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://iheanyi.com/journal/2018/05/12/the-g-unit-stack-go-graphql-and-grpc/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_128">原文链接</a></p>
-<p>这里的G-unit是指Go, GraphQL, gRPC</p>
-<p>GraphQL fits really nicely into a service-oriented architecture (SoAs).</p>
-<p>API Gateways</p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/azure/architecture/patterns/gateway-routing">Gateway Routing pattern</a></p>
-<h3 id="GraphQL-as-the-API-Gateway"><a href="#GraphQL-as-the-API-Gateway" class="headerlink" title="GraphQL as the API Gateway"></a>GraphQL as the API Gateway</h3><p><a target="_blank" rel="noopener" href="https://github.com/apollographql/apollo-server">nodejs GraphQL</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -642,7 +679,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -655,7 +692,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,315 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/04/go-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/01/04/go-performance/" class="post-title-link" itemprop="url">Go performance</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-01-04 17:12:37" itemprop="dateCreated datePublished" datetime="2018-01-04T17:12:37+08:00">2018-01-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>go performance optimization workflow:</p>
+<ul>
+<li>determine your performance goals</li>
+<li>profile to identify the areas to improve. This can be CPU, heap allocations, or goroutine blocking<ul>
+<li>CPU</li>
+<li>heap allocation</li>
+<li>goroutine blocking</li>
+</ul>
+</li>
+<li>benchmark to determine the speed up your solution will provide using the built-in benchmarking framework (<a target="_blank" rel="noopener" href="http://golang.org/pkg/testing/">http://golang.org/pkg/testing/</a>) </li>
+<li>profile again afterwards to verify the issue is gone</li>
+<li>use <a target="_blank" rel="noopener" href="https://godoc.org/golang.org/x/perf/benchstat">https://godoc.org/golang.org/x/perf/benchstat</a> or <a target="_blank" rel="noopener" href="https://github.com/codahale/tinystat">https://github.com/codahale/tinystat</a> to verify that a set of timings are ‘sufficiently’ different for an optimization to be worth the added code complexity</li>
+</ul>
+<p>The basic rules of the game are:</p>
+<ol>
+<li>minimize CPU usage<ul>
+<li>do less work</li>
+<li>this generally means “a faster algorithm”</li>
+<li>but CPU caches and the hidden constants in O() can play tricks on you</li>
+</ul>
+</li>
+<li>minimize allocations (which leads to less CPU stolen by the GC)</li>
+<li>make your data quick to access</li>
+</ol>
+<h4 id="Basic"><a href="#Basic" class="headerlink" title="Basic"></a>Basic</h4><ul>
+<li>be aware of <a target="_blank" rel="noopener" href="http://accidentallyquadratic.tumblr.com/">http://accidentallyquadratic.tumblr.com/</a></li>
+</ul>
+<h4 id="Introductory-Pofiling"><a href="#Introductory-Pofiling" class="headerlink" title="Introductory Pofiling"></a>Introductory Pofiling</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/google/pprof">pprof</a></li>
+<li>Writing and running (micro)benchmarks<ul>
+<li>-cpuprofile</li>
+<li>-memprofile</li>
+<li>-benchmem</li>
+</ul>
+</li>
+<li>how to read it pprof output</li>
+<li>macro-benchmarks, net/http/pprof</li>
+</ul>
+<h4 id="Tracer"><a href="#Tracer" class="headerlink" title="Tracer"></a>Tracer</h4><ul>
+<li>Techniques specific to the architecture running the code</li>
+<li>introduction to CPU caches<ul>
+<li>building intuition around cache-lines: sizes, padding, alignment</li>
+<li>false-sharing</li>
+<li>OS tools to view cache-misses</li>
+</ul>
+</li>
+<li>branch prediction</li>
+</ul>
+<h4 id="Heap-Allocations"><a href="#Heap-Allocations" class="headerlink" title="Heap Allocations"></a>Heap Allocations</h4><ul>
+<li>Understanding escape analysis</li>
+</ul>
+<h4 id="Runtime"><a href="#Runtime" class="headerlink" title="Runtime"></a>Runtime</h4><ul>
+<li>cost of calls via interfaces (indirect calls on the CPU level)</li>
+<li>runtime.convT2E / runtime.convT2I</li>
+<li>type assertions vs. type switches</li>
+<li>defer</li>
+<li>special-case map implementations for ints, strings</li>
+</ul>
+<h4 id="Common-gotchas-with-the-standard-library"><a href="#Common-gotchas-with-the-standard-library" class="headerlink" title="Common gotchas with the standard library"></a>Common gotchas with the standard library</h4><ul>
+<li>time.After() leaks until it fires</li>
+<li>Reusing HTTP connections…</li>
+<li>….</li>
+</ul>
+<h3 id="Alternate-implementions"><a href="#Alternate-implementions" class="headerlink" title="Alternate implementions"></a>Alternate implementions</h3><ul>
+<li>Popular replacements for standard library packages:<ul>
+<li>encoding/json -&gt; ffjson</li>
+<li>net/http -&gt; fasthttp</li>
+<li>regexp -&gt; ragel (or other regular expression package)</li>
+<li>serialization<ul>
+<li>encoding/gob</li>
+<li>protobuf</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>perf(perf2pprof)</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/25/page-rank/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/12/25/page-rank/" class="post-title-link" itemprop="url">Page Rank</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-12-25 11:50:23" itemprop="dateCreated datePublished" datetime="2017-12-25T11:50:23+08:00">2017-12-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rank/" itemprop="url" rel="index"><span itemprop="name">rank</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>PageRank的相关说明</p>
+<ul>
+<li>整个互联网，看做一张有向图<ul>
+<li>网页是图上的点</li>
+<li>链接是图上的又向边</li>
+</ul>
+</li>
+<li>每个网页有一个权威评分，称作pagerank，可以把它当做一种投票权</li>
+<li>将每个超链接作为一次投票<ul>
+<li>每个网页的pagerank等于所有指向该网页超链接的网页的pagerank的加权和</li>
+<li>这些权值等于这些网页各自向外链接数目的倒数</li>
+</ul>
+</li>
+</ul>
+<p>里面主要的点：</p>
+<ul>
+<li>足够优美，表达简单</li>
+<li>关于加权和部分，计算方式聪明</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Vertex</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.in_degree = <span class="number">0</span></span><br><span class="line">        self.out_degree = <span class="number">0</span></span><br><span class="line">        self.pagerank = <span class="number">0.0</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Edge</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, start, end</span>):</span></span><br><span class="line">        self.start_id = start</span><br><span class="line">        self.end_id = end</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">addVertex</span>(<span class="params">vertex_name, vtx_map</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    return the id of vertex_name</span></span><br><span class="line"><span class="string">    if exists in vtx_map, return directly</span></span><br><span class="line"><span class="string">    if not exists, add it, and then return</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    vertex_name: string, the url of a web page</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    res_id = <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> vertex_name <span class="keyword">in</span> vtx_map:</span><br><span class="line">        <span class="keyword">return</span> vtx_map[vertex_name]</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        res_id = <span class="built_in">len</span>(vtx_map)</span><br><span class="line">        vtx_map[vertex_name] = res_id</span><br><span class="line">    <span class="keyword">return</span> res_id</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">readTable</span>(<span class="params">fname, vtx_map, edge_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    read fname line by line, update the vtx_map and edge_list</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    fname: string, the file name of the table</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(fname, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> fin:</span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> fin.readlines():</span><br><span class="line">            tmp = line.strip().split(<span class="string">&#x27;\t&#x27;</span>)</span><br><span class="line">            <span class="keyword">assert</span>(<span class="built_in">len</span>(tmp) == <span class="number">2</span>)</span><br><span class="line">            start = addVertex(tmp[<span class="number">0</span>], vtx_map)</span><br><span class="line">            end = addVertex(tmp[<span class="number">1</span>], vtx_map)</span><br><span class="line">            edge_list.append(Edge(start, end))</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">initialize</span>(<span class="params">vtx_map, edge_list, vtx_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    initialize the data structures</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    vtx_list: list, the list of all vertices</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    vtx_num = <span class="built_in">len</span>(vtx_map)</span><br><span class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</span><br><span class="line">    vtx_list = [Vertex() <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num)]</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num):</span><br><span class="line">        vtx_list[i].pagerank = <span class="number">1.0</span> / vtx_num</span><br><span class="line">    <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</span><br><span class="line">        vtx_list[edge.start_id].out_degree += <span class="number">1</span></span><br><span class="line">        vtx_list[edge.end_id].in_degree += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calcPagerank</span>(<span class="params">alpha, num_iter, vtx_map, edge_list</span>):</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    calc PageRank for all vertices</span></span><br><span class="line"><span class="string">    return: vtx_list, list, the list of all vertices</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    alpha: float, damping factor</span></span><br><span class="line"><span class="string">    num_iter: int, the upper limitation of calculation</span></span><br><span class="line"><span class="string">    vtx_map: dict, the map from url to id</span></span><br><span class="line"><span class="string">    edge_list: list, the list of all edges</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    vtx_list, pr_list = <span class="built_in">list</span>(), <span class="built_in">list</span>()</span><br><span class="line">    initialize(vtx_map, edge_list, vtx_list)</span><br><span class="line">    vtx_num = <span class="built_in">len</span>(vtx_list)</span><br><span class="line">    <span class="keyword">assert</span>(vtx_num &gt; <span class="number">0</span>)</span><br><span class="line">    alpha = <span class="built_in">float</span>(alpha)</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(num_iter):</span><br><span class="line">        pr_list = [alpha / vtx_num <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num)]</span><br><span class="line">        <span class="comment"># calc</span></span><br><span class="line">        <span class="keyword">for</span> edge <span class="keyword">in</span> edge_list:</span><br><span class="line">            pr_list += (<span class="number">1</span> - alpha) * vtx_list[edge.start_id].pagerank / \</span><br><span class="line">                        vtx_list[edge.start_id].out_degree</span><br><span class="line">        <span class="comment"># revise</span></span><br><span class="line">        revise = <span class="built_in">sum</span>(<span class="built_in">map</span>(<span class="keyword">lambda</span> vtx: (<span class="number">1</span> - alpha) * vtx.pagerank / vtx_num, \</span><br><span class="line">                        <span class="built_in">filter</span>(<span class="keyword">lambda</span> vtx:(vtx.out_degree == <span class="number">0</span>), vtx_list)))</span><br><span class="line">        <span class="comment"># update</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(vtx_num):</span><br><span class="line">            vtx_list[i].pagerank = pr_list[i] + revise</span><br><span class="line">    <span class="keyword">return</span> vtx_list</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">doCalcPageRank</span>(<span class="params">fname = <span class="string">&#x27;wt2g_inlinks.source&#x27;</span>, alpha = <span class="number">0.15</span>, num_iter = <span class="number">30</span></span>):</span></span><br><span class="line">    vtx_map = <span class="built_in">dict</span>()</span><br><span class="line">    edge_list = <span class="built_in">list</span>()</span><br><span class="line">    readTable(fname, vtx_map, edge_list)</span><br><span class="line">    <span class="keyword">return</span> calcPagerank(alpha, num_iter, vtx_map, edge_list)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span> doCalcPageRank()</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>相关程序说明：</p>
+<ul>
+<li>​</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/24/tanpengyou/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/12/24/tanpengyou/" class="post-title-link" itemprop="url">莫道不肝肠</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-12-24 11:27:26" itemprop="dateCreated datePublished" datetime="2017-12-24T11:27:26+08:00">2017-12-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/emotion/" itemprop="url" rel="index"><span itemprop="name">emotion</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>莫道不肝肠</p>
+<p>没有人会给你这么多耐心，来容忍你这样的拖拉，你这样中二的感觉。。</p>
+<p>真当是说出口的那一句，还是。。</p>
+<p>承诺不了，就不要去说大话了，只会让自己都看轻自己。。</p>
+<p>其实还是胆小，自己不擅长的事情，不敢去做，不敢去承担，只想着逃避，who care you</p>
+<p>之前已经打算好了，何故做小女儿态。。</p>
+<p>做不了别人眼中的自己，做好自己眼中的自己，算是一个卑微的acer的一点梦想吧。。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/20/ml-books/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -329,275 +638,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/19/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/12/19/one-week/" class="post-title-link" itemprop="url">Maria</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-12-19 00:05:18" itemprop="dateCreated datePublished" datetime="2017-12-19T00:05:18+08:00">2017-12-19</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Maria</p>
-<p>You’ve gotta see her</p>
-<p>Go insane and out of your mind</p>
-<p>有过甜蜜，也有苦涩，其实，也是找到自我的过程，放弃一些错误的自以为是，不要眼高手低，承认自己。。</p>
-<p>本周工作：</p>
-<ul>
-<li>代码部分的一些整合</li>
-<li>关于recognize inputs部分的一些知识的学习</li>
-<li>sdk存活数据部分？</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>温习机器学习</li>
-<li>latex部分的一些排版规则</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>用户的协同过滤，尝试出一版用户的相关数据</li>
-<li>机器学习入门，关于那本书继续学习</li>
-<li>blockchain部分</li>
-</ul>
-<p>慢慢恢复更新的频率，相关技术书籍的阅读以及blog的编写。。</p>
-<p>事情不要拖拉，房子以及电话上，不要总觉得理所当然。。</p>
-<p>恢复那种战战兢兢的状态，一件事一件事地弄好。。</p>
-<p>答应的事情，尽量坐到，做到心安就行，承认自己不行，并不是一件坏事，还是acer标称咯。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/13/neuralnetwork-deep-learning1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/12/13/neuralnetwork-deep-learning1/" class="post-title-link" itemprop="url">neuralnetwork deep learning1</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-12-13 18:18:12" itemprop="dateCreated datePublished" datetime="2017-12-13T18:18:12+08:00">2017-12-13</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/deep-learning/" itemprop="url" rel="index"><span itemprop="name">deep learning</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://neuralnetworksanddeeplearning.com/chap1.html">neural netowrks and deep learning</a></p>
-<p>神经网络的机器学习，主要分为几个部分</p>
-<h3 id="神经网络识别手写"><a href="#神经网络识别手写" class="headerlink" title="神经网络识别手写"></a>神经网络识别手写</h3><p>two important types of artificial neuron (the perceptron and the sigmoid neuron)</p>
-<p>$$<br>output = \begin{cases}<br>0,    &amp; \text{if } \sum_{j}w_{j}x_{j} \leq threshold \<br>1,     &amp; \text{if } \sum_{j}w_{j}x_{j} &gt; threshold<br>\end{cases}<br>$$</p>
-<p>simplify the describe perceptrons</p>
-<p>$$<br>w \cdot x \equiv \sum_{j}w_{j}x_{j} \<br>b \equiv -threshold<br>$$</p>
-<p>$$<br>output = \begin{cases}<br>0, &amp; \text{if } w \cdot x +b \leq 0 \<br>1, &amp; \text{if } w \cdot x +b &gt; 0<br>\end {cases}<br>$$</p>
-<p>While the design of the input and output layers of a neural network is often straightforward, there can be quite an art to the design of the hidden layers</p>
-<p><em>multilayer perceptrons</em> or<em>MLPs</em></p>
-<p> <em>feedforward</em> neural networks </p>
-<p>RNN networks, feedback loops are possible</p>
-<p>two problems:</p>
-<ul>
-<li>breaking to segment, segmentation problem</li>
-<li>classifying individual digits</li>
-</ul>
-<p>There are many approaches to solving the segmentation problem. </p>
-<p>One approach is to trial many different ways of segmenting the image, using the individual digit classifier to score each trial segmentation. A trial segmentation gets a high score if the individual digit classifier is confident of its classification in all segments, and a low score if the classifier is having a lot of trouble in one or more segments. </p>
-<p>The idea is that if the classifier is having trouble somewhere, then it’s probably having trouble because the segmentation has been chosen incorrectly. This idea and other variations can be used to solve the segmentation problem quite well.</p>
-<p>10 outputs vs 4 outputs</p>
-<p>gradient descent<br>$$<br>C(w,b) \equiv \frac{1}{2n}\sum_{x} \begin{Vmatrix} y(x)-a  \end{Vmatrix}^2<br>$$</p>
-<p>ball-rolling analogy<br>$$<br>\Delta C \approx \frac{\partial C}{\partial v1} \Delta v1 + \frac{\partial C}{\partial v2} \Delta v2<br>$$</p>
-<p>$$<br>a’ = \sigma(wa + b)<br>$$</p>
-<h3 id="bp算法的工作原理"><a href="#bp算法的工作原理" class="headerlink" title="bp算法的工作原理"></a>bp算法的工作原理</h3><h3 id="提高神经网络学习方式"><a href="#提高神经网络学习方式" class="headerlink" title="提高神经网络学习方式"></a>提高神经网络学习方式</h3><h3 id="神经网络可以计算任何方法"><a href="#神经网络可以计算任何方法" class="headerlink" title="神经网络可以计算任何方法"></a>神经网络可以计算任何方法</h3><h3 id="深度神经网络很难训练"><a href="#深度神经网络很难训练" class="headerlink" title="深度神经网络很难训练"></a>深度神经网络很难训练</h3><h3 id="deep-learning"><a href="#deep-learning" class="headerlink" title="deep learning"></a>deep learning</h3>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2017/12/11/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/12/11/one-week/" class="post-title-link" itemprop="url">孤独以及不要多做事情</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-12-11 00:09:21" itemprop="dateCreated datePublished" datetime="2017-12-11T00:09:21+08:00">2017-12-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>最近也是脑子爆炸，工作上不是很顺心，房子上也最终不一定能达成一致。。</p>
-<p>本周工作：</p>
-<ul>
-<li>关于adnroid中嵌入js，去获取status code部分</li>
-<li>clean产品的ltv的计算</li>
-<li>api.log解析的合并</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于android的一些知识</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>一些数据的统计，相关结论</li>
-<li>android部分的回滚</li>
-<li>机器学习的入门</li>
-</ul>
-<p>慢慢将每周计划部分捡起来，充实自己</p>
-<p>哎，房子能合租就合租，不能就转租，也没差。。只是以后尽量能不合租就不合租吧，尽量一起去看房，省的大家后面麻烦。。。</p>
-<p>工作上和生活上，按部就班地来，毕竟要开始还放贷了，工作要更加努力才是。。</p>
-<p>收拾生活，收拾心情，人生总是一场历练。。</p>
-<p>负能量部分，也只能向blog吐槽一下，也就够了。。</p>
-<p>加油。。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -669,7 +709,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -682,7 +722,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,236 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/14/tensorflow-large-batch/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/14/tensorflow-large-batch/" class="post-title-link" itemprop="url">Tensorflow Large batch</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-14 22:53:58" itemprop="dateCreated datePublished" datetime="2018-11-14T22:53:58+08:00">2018-11-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tensorflow/" itemprop="url" rel="index"><span itemprop="name">tensorflow</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>GPU不够的情况下，</p>
+<p>在TensorFlow上，我们可以比较方便地定制一个optimizer来实现这种操作，封装一下实际的optimizer，实际上做梯度累加和延迟更新两部就好了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LazyUpdateOptimizer</span>(<span class="params">tf.train.Optimizer</span>):</span></span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, optimizer, batch_size=<span class="number">1</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">                 use_locking=<span class="literal">True</span>, name=<span class="string">&quot;LazyUpdateOptimizer&quot;</span></span>):</span></span><br><span class="line"> </span><br><span class="line">        tf.train.Optimizer.__init__(self, use_locking=use_locking, name=name)</span><br><span class="line"> </span><br><span class="line">        self._name = name</span><br><span class="line">        self._batch_size = batch_size</span><br><span class="line">        self._grad_cache = &#123;&#125;</span><br><span class="line">        self._optimizer = optimizer</span><br><span class="line">        self._<span class="built_in">vars</span> = []</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">with</span> tf.variable_scope(self._name):</span><br><span class="line">            self._batch_count_variable = \</span><br><span class="line">                tf.get_variable(name=<span class="string">&quot;batch_count&quot;</span>,</span><br><span class="line">                                shape=[],</span><br><span class="line">                                dtype=tf.int64,</span><br><span class="line">                                initializer=tf.constant_initializer(self._batch_size),</span><br><span class="line">                                collections=[tf.GraphKeys.LOCAL_VARIABLES])</span><br><span class="line">            self._<span class="built_in">vars</span>.append(self._batch_count_variable)</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">optimizer</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._optimizer</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">name</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._name</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">batch_size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._batch_size</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_initializer</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> tf.group([_.initializer <span class="keyword">for</span> _ <span class="keyword">in</span> self._<span class="built_in">vars</span>])</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">apply_gradients</span>(<span class="params">self, grads_and_vars, global_step=<span class="literal">None</span>, name=<span class="literal">None</span></span>):</span></span><br><span class="line">        scope_name = self._name</span><br><span class="line">        <span class="keyword">if</span> name <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            scope_name += <span class="string">&quot;_&quot;</span> + name</span><br><span class="line"> </span><br><span class="line">        cached_grads = []</span><br><span class="line">        <span class="keyword">for</span> grad, var <span class="keyword">in</span> grads_and_vars:</span><br><span class="line">            <span class="keyword">if</span> grad <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"> </span><br><span class="line">            <span class="keyword">if</span> var <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> var <span class="keyword">not</span> <span class="keyword">in</span> self._grad_cache:</span><br><span class="line">                <span class="keyword">with</span> tf.variable_scope(scope_name):</span><br><span class="line">                    <span class="keyword">with</span> tf.colocate_with(var):</span><br><span class="line">                        cached_grad = tf.get_variable(name=var.name.split(<span class="string">&quot;:&quot;</span>)[<span class="number">0</span>] + <span class="string">&quot;_grad_cache&quot;</span>,</span><br><span class="line">                                                      dtype=var.dtype,</span><br><span class="line">                                                      shape=var.shape,</span><br><span class="line">                                                      initializer=tf.zeros_initializer(),</span><br><span class="line">                                                      trainable=<span class="literal">False</span>,</span><br><span class="line">                                                      collections=[tf.GraphKeys.LOCAL_VARIABLES])</span><br><span class="line">                        self._<span class="built_in">vars</span>.append(cached_grad)</span><br><span class="line">                self._grad_cache[var] = cached_grad</span><br><span class="line">            cached_grads.append(self._grad_cache[var])</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">with</span> tf.name_scope(scope_name):</span><br><span class="line">            cache_gradients_op = self.__cache_gradients(grads_and_vars, cached_grads)</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies([cache_gradients_op]):</span><br><span class="line">                apply_op = tf.cond(</span><br><span class="line">                    tf.equal(self._batch_count_variable, <span class="number">0</span>),</span><br><span class="line">                    true_fn=<span class="keyword">lambda</span>: self.__actual_apply_gradients(grads_and_vars, global_step=global_step),</span><br><span class="line">                    false_fn=<span class="keyword">lambda</span>: tf.no_op())</span><br><span class="line">                <span class="keyword">with</span> tf.control_dependencies([apply_op]):</span><br><span class="line">                    <span class="keyword">return</span> tf.no_op()</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__cache_gradients</span>(<span class="params">self, grads_and_vars, cached_grads</span>):</span></span><br><span class="line">        update_ops = []</span><br><span class="line">        <span class="keyword">with</span> tf.name_scope(<span class="string">&quot;cache_grad&quot;</span>):</span><br><span class="line">            <span class="keyword">for</span> (grad, var), cached_grad <span class="keyword">in</span> itertools.izip(grads_and_vars, cached_grads):</span><br><span class="line">                <span class="keyword">with</span> tf.colocate_with(cached_grad):</span><br><span class="line">                    <span class="keyword">if</span> <span class="built_in">isinstance</span>(grad, tf.Tensor):</span><br><span class="line">                        update_op = tf.assign_add(cached_grad, grad)</span><br><span class="line">                    <span class="keyword">elif</span> <span class="built_in">isinstance</span>(grad, tf.IndexedSlices):</span><br><span class="line">                        update_op = tf.scatter_add(cached_grad, grad.indices, grad.values)</span><br><span class="line">                    <span class="keyword">else</span>:</span><br><span class="line">                        <span class="keyword">continue</span></span><br><span class="line"> </span><br><span class="line">                update_ops.append(update_op)</span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies([tf.group(update_ops, name=<span class="string">&quot;record_gradients&quot;</span>)]):</span><br><span class="line">                <span class="keyword">return</span> tf.assign_sub(self._batch_count_variable, <span class="number">1</span>)</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__actual_apply_gradients</span>(<span class="params">self, grads_and_vars, global_step=<span class="literal">None</span></span>):</span></span><br><span class="line">        actual_grads_and_vars = [(self._grad_cache[var], var) <span class="keyword">for</span> grad, var <span class="keyword">in</span> grads_and_vars <span class="keyword">if</span> grad <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>]</span><br><span class="line"> </span><br><span class="line">        apply_op = self._optimizer.apply_gradients(actual_grads_and_vars, global_step=global_step)</span><br><span class="line">        <span class="keyword">with</span> tf.control_dependencies([apply_op]):</span><br><span class="line">            reset_ops = [tf.assign(self._batch_count_variable, self._batch_size)]</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">for</span> grad, var <span class="keyword">in</span> actual_grads_and_vars:</span><br><span class="line">                reset_ops.append(tf.assign(self._grad_cache[var], tf.zeros_like(var)))</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies(reset_ops):</span><br><span class="line">                <span class="keyword">return</span> tf.no_op()</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/jianlai/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/13/jianlai/" class="post-title-link" itemprop="url">剑来的一</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-13 23:50:15" itemprop="dateCreated datePublished" datetime="2018-11-13T23:50:15+08:00">2018-11-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>以一贯之</p>
+<p>一视同仁</p>
+<p>一往无前</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>完成featureGraph部分的第二版的接入</li>
+<li>了解在线预估部分，尤其是新版fe部分</li>
+<li>写一些文档</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>代码的合理性以及自测性部分</li>
+<li>捡起来code review</li>
+</ul>
+<p>下周：</p>
+<ul>
+<li>tuningEntryPoint框架部分的优化</li>
+<li>在线预估方案的一些详细设计部分</li>
+</ul>
+<p>不出意外的，还是哭了，还是压力太大。。。哎。。。还是静心地照顾好，虽然做不到像陈平安一样牛，但好歹也能尽量去做到以一贯之，不要有所放松和松懈，求一个心安，也求一个顺心意</p>
+<p>工作上，感觉有些放松，不能因为做完了一个迭代就以为自己上手了，自己的那么多的bug，还有设计上的遗漏，不正是表示自己还是远远不够。。。然后下一个迭代就歇菜了。。。还是把握不了节奏，哎，尽力去做吧，也有了最坏的打算，虽然做不了什么，但起码不要留下什么遗憾，尽力去完成。。。</p>
+<p>锻炼又翘了。。。都一个月了，不能再翘了23333</p>
+<p>jenkins的源码分析部分，争取11月底能够分享出来。。。尽力去加油了</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/scheduling-notebook/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/13/scheduling-notebook/" class="post-title-link" itemprop="url">notebook的调度</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-13 22:26:33" itemprop="dateCreated datePublished" datetime="2018-11-13T22:26:33+08:00">2018-11-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/scheduling/" itemprop="url" rel="index"><span itemprop="name">scheduling</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/scheduling-notebooks-348e6c14cfd6">原文链接</a></p>
+<p>We’re currently in the process of migrating all <strong>10,000</strong> of the scheduled jobs running on the Netflix Data Platform to use notebook-based execution</p>
+<p><strong>Notebooks are, in essence, managed JSON documents with a simple interface to execute code within.</strong></p>
+<p>Notebooks pose a lot of challenges: they’re frequently changed, their cell outputs need not match the code, they’re difficult to test, and there’s no easy way to dynamically configure their execution. Furthermore, you need a notebook server to run them, which creates architectural dependencies to facilitate execution.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/virtual-memory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -328,220 +558,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/jenkins-analysis/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/04/jenkins-analysis/" class="post-title-link" itemprop="url">jenkins analysis</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-11-04 20:59:55" itemprop="dateCreated datePublished" datetime="2018-11-04T20:59:55+08:00">2018-11-04</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/arthas-log/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/04/arthas-log/" class="post-title-link" itemprop="url">Arthas Log Bug追查</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-11-04 17:31:36" itemprop="dateCreated datePublished" datetime="2018-11-04T17:31:36+08:00">2018-11-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/boGS0VK45mZ_zT25K44S5Q">原文链接</a></p>
-<p>利用arthas直接在线上定位问题的过程，主要使用 <code>sc</code>和 <code>getstatic</code>命令。</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/sc.html">https://alibaba.github.io/arthas/sc.html</a></li>
-<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/getstatic.html">https://alibaba.github.io/arthas/getstatic.html</a></li>
-</ul>
-<p>例如：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sc io.netty.channel.nio.NioEventLoop</span></span><br><span class="line">class-info        io.netty.channel.nio.NioEventLoop</span><br><span class="line"> code-source       file:/opt/app/plugins/tair-plugin/lib/netty-all-4.0.35.Final.jar!/</span><br><span class="line"> name              io.netty.channel.nio.NioEventLoop</span><br><span class="line"> isInterface       false</span><br><span class="line"> isAnnotation      false</span><br><span class="line"> isEnum            false</span><br><span class="line"> isAnonymousClass  false</span><br><span class="line"> isArray           false</span><br><span class="line"> isLocalClass      false</span><br><span class="line"> isMemberClass     false</span><br><span class="line"> isPrimitive       false</span><br><span class="line"> isSynthetic       false</span><br><span class="line"> simple-name       NioEventLoop</span><br><span class="line"> modifier          final,public</span><br><span class="line"> annotation</span><br><span class="line"> interfaces</span><br><span class="line"> </span><br><span class="line">super-class     +-io.netty.channel.SingleThreadEventLoop</span><br><span class="line">                     +-io.netty.util.concurrent.SingleThreadEventExecutor</span><br><span class="line">                       +-io.netty.util.concurrent.AbstractScheduledEventExecutor</span><br><span class="line">                         +-io.netty.util.concurrent.AbstractEventExecutor</span><br><span class="line">                           +-java.util.concurrent.AbstractExecutorService</span><br><span class="line">                             +-java.lang.Object</span><br><span class="line"> </span><br><span class="line">class-loader      +-tair-plugin&#x27;s ModuleClassLoader</span><br><span class="line"> classLoaderHash   73ad2d6</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>通过查看源码，了解相关的logger的实现</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> getstatic -c 73ad2d6 io.netty.channel.nio.NioEventLoop logger <span class="string">&#x27;getClass().getName()&#x27;</span></span></span><br><span class="line">field: logger</span><br><span class="line">@String[io.netty.util.internal.logging.Slf4JLogger]</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>tair插件里的logback没有设置ROOT logger，所以它的默认level是DEBUG，并且默认的appender会输出到stdout里。</strong></p>
-<p>一些经验</p>
-<ul>
-<li>logback默认的ROOT logger level是 <code>DEBUG</code>，输出是stdout</li>
-<li>利用arthas的 <code>sc</code>命令定位具体的类</li>
-<li>利用arthas的 <code>getstatic</code>获取static filed的值</li>
-<li>利用logger parent层联的特性，可以向上一层层获取到ROOT logger的配置</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/04/one-week/" class="post-title-link" itemprop="url">孤独的美食家</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-11-04 15:45:10" itemprop="dateCreated datePublished" datetime="2018-11-04T15:45:10+08:00">2018-11-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <hr>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -613,7 +629,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">656</span>
+          <span class="site-state-item-count">659</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -626,7 +642,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">245</span>
+        <span class="site-state-item-count">247</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
