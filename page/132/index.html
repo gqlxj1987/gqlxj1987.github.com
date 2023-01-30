@@ -365,7 +365,8 @@
 <ul>
 <li><p>首先config方面，基本存储静态的变量，如key, name, description等，</p>
 <ul>
-<li>这里面有一个小技巧，由于config可以有多种的实现方式，于是其接口config只是定义基本的get方法，由各种实现去具体实现get方法，这样其他类来调用的时候，只需调用get方法就有取到相应的静态变量，而不需要特意在接口处定义变量。<br>如下面所示  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Config</span> <span class="keyword">extends</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> Integer <span class="title">getId</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> String <span class="title">getKey</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span></span>;</span><br><span class="line">	…</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>这里面有一个小技巧，由于config可以有多种的实现方式，于是其接口config只是定义基本的get方法，由各种实现去具体实现get方法，这样其他类来调用的时候，只需调用get方法就有取到相应的静态变量，而不需要特意在接口处定义变量。<br>  如下面所示</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Config</span> <span class="keyword">extends</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> Integer <span class="title function_">getId</span><span class="params">()</span>;</span><br><span class="line">	<span class="keyword">public</span> String <span class="title function_">getKey</span><span class="params">()</span>;</span><br><span class="line">	<span class="keyword">public</span> String <span class="title function_">getName</span><span class="params">()</span>;</span><br><span class="line">	…</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
 </ul>
 </li>
 <li><p>关于config的实现，现有2个基本的实现，一是commonConfig，即普通的节点的config，如申请四位版本，模块编译等，主要是scm的操作的一些process；另一种是actionConfig，即由baseinfo定义的一些action转化的process。这里有一个感想，针对我们后面的统一化管理，可以将这两种都归结于actionConfig,申请四位版本和模块编译等，都可以作为action来存储在icafe中，icafe在开发任务task中加入相关的action即可。</p>
@@ -378,12 +379,11 @@
 <ul>
 <li>首先对于上线部分，其作为一个大的task存在，这里有个小技巧，将task转化为action，从而可以同上面的addAction相同的处理</li>
 </ul>
-  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ActionConfigAdapter config = <span class="keyword">new</span> ActionConfigAdapter(convert(task));</span><br></pre></td></tr></table></figure>
-</li>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ActionConfigAdapter</span> <span class="variable">config</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ActionConfigAdapter</span>(convert(task));</span><br></pre></td></tr></table></figure></li>
 </ul>
 </li>
 <li><p>其次，针对上线方式部分，采用获取从icafe中相关的上线方式，然后将相关action转化为sqaActionTemplate后，作为process的child节点加入到weavable中去.</p>
-<pre><code>  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(ActionInfo act : actionInfos)&#123;</span><br><span class="line">	String key = ConfigDataUtil.getKeyActionByProcssDefineId(act.getActionDefineid());</span><br><span class="line">	w.setWeaveKey(key);</span><br><span class="line">	w.setWeaveType(WeaveType.CHILD.name());</span><br><span class="line">	weavables.add(w);</span><br><span class="line">	</span><br><span class="line">	ActionConfigAdapter actConfig = <span class="keyword">new</span> ActionConfigAdapter(convert(act));</span><br><span class="line">	configMap.put(key, actConfig);</span><br><span class="line">	</span><br><span class="line">	w = <span class="keyword">new</span> Weavable();</span><br><span class="line">	w.setKey(pk);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(ActionInfo act : actionInfos)&#123;</span><br><span class="line">	<span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> ConfigDataUtil.getKeyActionByProcssDefineId(act.getActionDefineid());</span><br><span class="line">	w.setWeaveKey(key);</span><br><span class="line">	w.setWeaveType(WeaveType.CHILD.name());</span><br><span class="line">	weavables.add(w);</span><br><span class="line">	</span><br><span class="line">	<span class="type">ActionConfigAdapter</span> <span class="variable">actConfig</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ActionConfigAdapter</span>(convert(act));</span><br><span class="line">	configMap.put(key, actConfig);</span><br><span class="line">	</span><br><span class="line">	w = <span class="keyword">new</span> <span class="title class_">Weavable</span>();</span><br><span class="line">	w.setKey(pk);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 </code></pre>
 </li>
 </ul>
@@ -396,15 +396,18 @@
 </ol>
   <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">process = (Process) applicationContext.getBean(beanName, Process.class);</span><br></pre></td></tr></table></figure></li>
 </ul>
-<p>来初始化相应的process，同时将process加入到<code>Map&lt;String, Process&gt; processMap</code>中。<br>随后，从processMap中选取第一个节点作为headProcess返回即可。</p>
-<p>感想:</p>
+<p>来初始化相应的process，同时将process加入到<code>Map&lt;String, Process&gt; processMap</code>中。<br>随后，从processMap中选取第一个节点作为headProcess返回即可。<br>     	  		<br>感想:</p>
 <ul>
-<li>context这个变量的设计感觉毫无头绪。首先对于<code>scmOperates</code>的初始化，可以放在template的解析中，同样也是属于状态的解析；其次，对于<code>processMap</code>，依然可以放在template的解析中；这样导致就是process中的context变量还有没有意义？</li>
-<li>对于processMap的设计初衷是什么？既然是遍历weavables,然后按顺序将生成的process加入到processMap中去，为什么不继续复用weavables，而要另开一个map？    </li>
-<li>对于<code>SqaTaskTemplateAdapter</code>这个结构的extends关系，感觉不是很理解，为后面的扩展性的需要有什么帮助？直接作为引擎的一个实现，这才是他的核心吧</li>
-<li>得到headProcess之后，然后就是processRender的工作。这方面没什么好说的。</li>
+<li><p>context这个变量的设计感觉毫无头绪。首先对于<code>scmOperates</code>的初始化，可以放在template的解析中，同样也是属于状态的解析；其次，对于<code>processMap</code>，依然可以放在template的解析中；这样导致就是process中的context变量还有没有意义？</p>
+</li>
+<li><p>对于processMap的设计初衷是什么？既然是遍历weavables,然后按顺序将生成的process加入到processMap中去，为什么不继续复用weavables，而要另开一个map？	</p>
+</li>
+<li><p>对于<code>SqaTaskTemplateAdapter</code>这个结构的extends关系，感觉不是很理解，为后面的扩展性的需要有什么帮助？直接作为引擎的一个实现，这才是他的核心吧</p>
+</li>
+<li><p>得到headProcess之后，然后就是processRender的工作。这方面没什么好说的。</p>
+</li>
 </ul>
-<p>至此，整个流程模板的渲染过程大致介绍完毕。下图是流程的介绍说明。        </p>
+<p>至此，整个流程模板的渲染过程大致介绍完毕。下图是流程的介绍说明。		</p>
 
       
     </div>

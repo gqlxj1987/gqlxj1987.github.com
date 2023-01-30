@@ -244,7 +244,7 @@
 <li>计算完毕后，(1).所有的要发送的计算结果,(有一些可能是在计算过程中产生并要求发送的，都会cache起来), (2)所有的state的所有更新, (3) 引发计算的msgId，会用一个atomic write写在BigTable里。 (<strong>a.要求结果高可用, d+.</strong> <strong>要求记录event处理的进度, 并保证储存计算结果和state的更新不出现重复</strong>)</li>
 <li>当commit成功之后,  ACK上游, 而由于上游也采用commit计算结果到BigTable里的策略，且只有当自己发出的消息ACK之后, 才会允许 garbage  collection回收计算结果占用的存储, 所以在收到ACK之前, 上游的计算结果,  也就是当前计算所需要的msg，都可以重发，直至本节点计算成功且commit结果 (<strong>c. 要求触发本次计算的event可以replay</strong>)</li>
 <li>一旦计算过程中failure发生(比如机器挂了), 会在另外的host上重启本process节点，从BigTable恢复本地state和”用来去重的已处理msgId集”, 由于上次计算的结果还没有commit, 所以满足(<strong>e. state需要在replay event的时候rollback到处理event之前时的状态</strong>)</li>
-<li>新启动的运算节点在load本地状态之前先用自己的sequencer废掉现存的sequencer,       这样BigTable就可以block zombie计算节点的写; </li>
+<li>新启动的运算节点在load本地状态之前先用自己的sequencer废掉现存的sequencer,       这样BigTable就可以block zombie计算节点的写;</li>
 </ol>
 </li>
 </ol>
