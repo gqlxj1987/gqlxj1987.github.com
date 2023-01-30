@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,96 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/automated-ML-hyperparameter-Tuning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/23/automated-ML-hyperparameter-Tuning/" class="post-title-link" itemprop="url">Automated ML Hyperparameter Tuning</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-23 15:21:47" itemprop="dateCreated datePublished" datetime="2019-09-23T15:21:47+08:00">2019-09-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ml/" itemprop="url" rel="index"><span itemprop="name">ml</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/automated-machine-learning-hyperparameter-tuning-in-python-dfda59b72f8a">原文链接</a></p>
+<p>a complete example of Bayesian hyperparameter tuning of a gradient boosting machine using the <a target="_blank" rel="noopener" href="https://hyperopt.github.io/hyperopt/">Hyperopt library</a></p>
+<h3 id="Bayesian-Optimization-Methods"><a href="#Bayesian-Optimization-Methods" class="headerlink" title="Bayesian Optimization Methods"></a>Bayesian Optimization Methods</h3><p>Bayesian methods differ from random or grid search in that they <em>use past evaluation results to choose the next values to evaluate</em>.</p>
+<p><strong>limit expensive evaluations of the objective function by choosing the next input values based on those that have done well in the past</strong></p>
+<h3 id="Four-Parts-of-Optimization-Problem"><a href="#Four-Parts-of-Optimization-Problem" class="headerlink" title="Four Parts of Optimization Problem"></a>Four Parts of Optimization Problem</h3><ol>
+<li><strong>Objective Function:</strong> what we want to minimize, in this case the validation error of a machine learning model with respect to the hyperparameters</li>
+<li><strong>Domain Space:</strong> hyperparametervalues to search over</li>
+<li><strong>Optimization algorithm:</strong> method for constructing the surrogate model and choosing the next hyperparameter values to evaluate</li>
+<li><strong>Result history:</strong> stored outcomes from evaluations of the objective function consisting of the hyperparameters and validation loss</li>
+</ol>
+<p>rather than separating training data into a distinct validation set, we use <a target="_blank" rel="noopener" href="https://machinelearningmastery.com/k-fold-cross-validation/">KFold cross validation</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> lightgbm <span class="keyword">as</span> lgb</span><br><span class="line"><span class="keyword">from</span> hyperopt <span class="keyword">import</span> STATUS_OK</span><br><span class="line"></span><br><span class="line">N_FOLDS = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create the dataset</span></span><br><span class="line">train_set = lgb.Dataset(train_features, train_labels)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">objective</span>(<span class="params">params, n_folds = N_FOLDS</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Objective function for Gradient Boosting Machine Hyperparameter Tuning&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Perform n_fold cross validation with hyperparameters</span></span><br><span class="line">    <span class="comment"># Use early stopping and evalute based on ROC AUC</span></span><br><span class="line">    cv_results = lgb.cv(params, train_set, nfold = n_folds, num_boost_round = <span class="number">10000</span>, </span><br><span class="line">                        early_stopping_rounds = <span class="number">100</span>, metrics = <span class="string">&#x27;auc&#x27;</span>, seed = <span class="number">50</span>)</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># Extract the best score</span></span><br><span class="line">    best_score = <span class="built_in">max</span>(cv_results[<span class="string">&#x27;auc-mean&#x27;</span>])</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Loss must be minimized</span></span><br><span class="line">    loss = <span class="number">1</span> - best_score</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Dictionary with information for evaluation</span></span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="string">&#x27;loss&#x27;</span>: loss, <span class="string">&#x27;params&#x27;</span>: params, <span class="string">&#x27;status&#x27;</span>: STATUS_OK&#125;</span><br></pre></td></tr></table></figure>
+
+<p>we are using <code>early_stopping_rounds</code>to stop the training when validation scores have not improved for 100 estimators</p>
+<h3 id="Domain-Space"><a href="#Domain-Space" class="headerlink" title="Domain Space"></a>Domain Space</h3><p>In Bayesian optimization the idea is the same except this space has <em>probability distributions</em> for each hyperparameter rather than discrete values.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Define the search space</span></span><br><span class="line">space = &#123;</span><br><span class="line">    <span class="string">&#x27;class_weight&#x27;</span>: hp.choice(<span class="string">&#x27;class_weight&#x27;</span>, [<span class="literal">None</span>, <span class="string">&#x27;balanced&#x27;</span>]),</span><br><span class="line">    <span class="string">&#x27;boosting_type&#x27;</span>: hp.choice(<span class="string">&#x27;boosting_type&#x27;</span>, </span><br><span class="line">                               [&#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;gbdt&#x27;</span>, </span><br><span class="line">                                    <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;gdbt_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;, </span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;dart&#x27;</span>, </span><br><span class="line">                                     <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;dart_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;,</span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;goss&#x27;</span>&#125;]),</span><br><span class="line">    <span class="string">&#x27;num_leaves&#x27;</span>: hp.quniform(<span class="string">&#x27;num_leaves&#x27;</span>, <span class="number">30</span>, <span class="number">150</span>, <span class="number">1</span>),</span><br><span class="line">    <span class="string">&#x27;learning_rate&#x27;</span>: hp.loguniform(<span class="string">&#x27;learning_rate&#x27;</span>, np.log(<span class="number">0.01</span>), np.log(<span class="number">0.2</span>)),</span><br><span class="line">    <span class="string">&#x27;subsample_for_bin&#x27;</span>: hp.quniform(<span class="string">&#x27;subsample_for_bin&#x27;</span>, <span class="number">20000</span>, <span class="number">300000</span>, <span class="number">20000</span>),</span><br><span class="line">    <span class="string">&#x27;min_child_samples&#x27;</span>: hp.quniform(<span class="string">&#x27;min_child_samples&#x27;</span>, <span class="number">20</span>, <span class="number">500</span>, <span class="number">5</span>),</span><br><span class="line">    <span class="string">&#x27;reg_alpha&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_alpha&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;reg_lambda&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_lambda&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;colsample_bytree&#x27;</span>: hp.uniform(<span class="string">&#x27;colsample_by_tree&#x27;</span>, <span class="number">0.6</span>, <span class="number">1.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>choice</code>: categorical variables</li>
+<li><code>quniform</code>: discrete uniform (integers spaced evenly)</li>
+<li><code>uniform</code>: continuous uniform (floats spaced evenly)</li>
+<li><code>loguniform</code>: continuous log uniform (floats spaced evenly on a log scale)</li>
+</ul>
+<h3 id="Optimization-Algorithm"><a href="#Optimization-Algorithm" class="headerlink" title="Optimization Algorithm"></a>Optimization Algorithm</h3><p>use the <a target="_blank" rel="noopener" href="https://papers.nips.cc/paper/4443-algorithms-for-hyper-parameter-optimization.pdf">Tree Parzen Estimator</a></p>
+<h3 id="Result-History"><a href="#Result-History" class="headerlink" title="Result History"></a>Result History</h3>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -549,83 +639,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/life-is-fruit/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/life-is-fruit/" class="post-title-link" itemprop="url">人生果实</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-09 19:54:20" itemprop="dateCreated datePublished" datetime="2019-09-09T19:54:20+08:00">2019-09-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>很久没有写周结了，感觉都提不起精神，不管是生活还是工作，感觉很是一团糟，本来以为自己能够做到，但是现实还是不断地冲击着自己，自己并不能做到照顾好别人，连自己都照顾不好，还谈什么照顾别人，呵呵</p>
-<p>还是做好枯叶的觉悟，收拾好自己，拾掇好自己，提升自己，加强自律。。</p>
-<p>至于照顾她人什么的，能做到什么程度就做到什么样子，缓慢而坚定地做好自己能做的事情就够了，不要心太大，也不要心太累。。。</p>
-<p>重要的是，重新把握好节奏，把自己的时间/节奏都安排好。</p>
-<p>少抱怨，多鼓励，多鼓励去做自己想做的事情，减少双方的依赖，这样才能独立地活下去，挺好的</p>
-<p>既然死亡必不可免的话，何不去充实地去面对它，这样起码的话，不会太后悔，任何事情都尝试过，自己也提升过，而不是在那儿自怨自艾，原地踏步</p>
-<h4 id="时间计划"><a href="#时间计划" class="headerlink" title="时间计划"></a>时间计划</h4><p>早上8点起的话，在做早餐的时候，能否找一些事情来填充这其中的空白，听一段播客，或者学英语？</p>
-<p>晚上10点回家，保证10分钟左右的锻炼，先从4分钟burpas开始</p>
-<p>保证1个小时的学习时间，不管是学什么，blog、代码什么样子都可以</p>
-<p>周末，至少保证5公里的跑步，尽量朝10公里去努力</p>
-<p>缓慢而坚定的做好自己能做的事情，不要焦虑，也不要急躁，慢生活，慢学习</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -697,7 +710,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -738,7 +751,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

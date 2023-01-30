@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,125 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/10/16/new-goroutine/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/10/16/new-goroutine/" class="post-title-link" itemprop="url">Build New Goroutine</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-10-16 22:51:28" itemprop="dateCreated datePublished" datetime="2019-10-16T22:51:28+08:00">2019-10-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/goroutine/" itemprop="url" rel="index"><span itemprop="name">goroutine</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://taohuawu.club/high-performance-implementation-of-goroutine-pool">原文链接</a></p>
+<p>现在主流的线程模型分三种：内核级线程模型、用户级线程模型和两级线程模型（也称混合型线程模型），传统的协程库属于<strong>用户级线程模型</strong>，而goroutine和它的<code>Go Scheduler</code>在底层实现上其实是属于<strong>两级线程模型</strong></p>
+<p>内核调度实体（KSE，Kernel Scheduling Entity）</p>
+<p>用户线程与内核线程KSE是多对一（N : 1）的映射模型，多个用户线程的一般从属于单个进程并且多线程的调度是由用户自己的线程库来完成，线程的创建、销毁以及多线程之间的协调等操作都是由用户自己的线程库来负责而无须借助系统调用来实现。一个进程中所有创建的线程都只和同一个KSE在运行时动态绑定。但是，该模型有个原罪：并不能做到真正意义上的并发，假设在某个用户进程上的某个用户线程因为一个阻塞调用（比如I/O阻塞）而被CPU给中断（抢占式调度）了，那么该进程内的所有线程都被阻塞（因为单个用户进程内的线程自调度是没有CPU时钟中断的，从而没有轮转调度），整个进程被挂起。所以，很多的<strong>协程库</strong>会把自己一些阻塞的操作重新封装为完全的非阻塞形式，然后在以前要阻塞的点上，主动让出自己，并通过某种方式通知或唤醒其他待执行的用户线程在该KSE上运行，从而避免了内核调度器由于KSE阻塞而做上下文切换，这样整个进程也不会被阻塞了</p>
+<p>两级线程模型是博采众长之后的产物，充分吸收前两种线程模型的优点且尽量规避它们的缺点。在此模型下，用户线程与内核KSE是多对多（N : M）的映射模型：首先，区别于用户级线程模型，两级线程模型中的一个进程可以与多个内核线程KSE关联，也就是说一个进程内的多个线程可以分别绑定一个自己的KSE，这点和内核级线程模型相似；其次，又区别于内核级线程模型，它的进程里的线程并不与KSE唯一绑定，而是可以多个用户线程映射到同一个KSE，当某个KSE因为其绑定的线程的阻塞操作被内核调度出CPU时，其关联的进程中其余用户线程可以重新与其他KSE绑定运行。</p>
+<p>###G-P-M</p>
+<ul>
+<li>G: 表示Goroutine，每个Goroutine对应一个G结构体，G存储Goroutine的运行堆栈、状态以及任务函数，可重用。G并非执行体，每个G需要绑定到P才能被调度执行。</li>
+<li>P: Processor，表示逻辑处理器， 对G来说，P相当于CPU核，G只有绑定到P(在P的local runq中)才能被调度。对M来说，P提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等，P的数量决定了系统内最大可并行的G的数量（前提：物理CPU核数 &gt;= P的数量），P的数量由用户设置的GOMAXPROCS决定，但是不论GOMAXPROCS设置为多大，P的数量最大为256。</li>
+<li>M: Machine，OS线程抽象，代表着真正执行计算的资源，在绑定有效的P后，进入schedule循环；而schedule循环的机制大致是从Global队列、P的Local队列以及wait队列中获取G，切换到G的执行栈上并执行G的函数，调用goexit做清理工作并回到M，如此反复。M并不保留G状态，这是G可以跨M调度的基础，M的数量是不定的，由Go Runtime调整，为了防止创建过多OS线程导致系统调度不过来，目前默认最大限制为10000个。</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://supertech.csail.mit.edu/papers/steal.pdf"><em>work-stealing</em></a>的调度算法：</p>
+<ul>
+<li>每个P维护一个G的本地队列；</li>
+<li>当一个G被创建出来，或者变为可执行状态时，就把他放到P的可执行队列中；</li>
+<li>当一个G在M里执行结束后，P会从队列中把该G取出；如果此时P的队列为空，即没有其他G可以执行， M就随机选择另外一个P，从其可执行的G队列中取走一半。</li>
+</ul>
+<p><strong>G-P-M模型的定义放在<code>src/runtime/runtime2.go</code>里面，而调度过程则放在了<code>src/runtime/proc.go</code>里。</strong></p>
+<p>起因：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(srv *Server)</span> <span class="title">Serve</span><span class="params">(l net.Listener)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> l.Close()</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 不断循环取出TCP连接</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// 看我看我！！！</span></span><br><span class="line">		rw, e := l.Accept()</span><br><span class="line">        ...</span><br><span class="line">        <span class="comment">// 再看我再看我！！！</span></span><br><span class="line">		<span class="keyword">go</span> c.serve(ctx)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>请求大量，goroutine，起大量</p>
+<p>goroutine池化是有其现实意义的</p>
+<p>目的：实现一个Goroutine Pool，复用goroutine，减轻runtime的调度压力以及缓解内存压力，依托这些优化，在大规模goroutine并发的场景下可以极大地提高并发性能。</p>
+<blockquote>
+<p>启动服务之时先初始化一个 Goroutine Pool 池，这个Pool维护了一个类似栈的LIFO队列 ，里面存放负责处理任务的Worker，然后在client端提交task到Pool中之后，在Pool内部，接收task之后的核心操作是：</p>
+<ol>
+<li>检查当前Worker队列中是否有可用的Worker，如果有，取出执行当前的task；</li>
+<li>没有可用的Worker，判断当前在运行的Worker是否已超过该Pool的容量：{是 —&gt; 再判断工作池是否为非阻塞模式：[是 ——&gt; 直接返回 nil，否 ——&gt; 阻塞等待直至有Worker被放回Pool]，否 —&gt; 新开一个Worker（goroutine）处理}；</li>
+<li>每个Worker执行完任务之后，放回Pool的队列中等待。</li>
+</ol>
+</blockquote>
+<p>该任务在初始化一个Pool之时启动，每隔一定的时间间隔去检查空闲Worker队列中是否有已经过期的Worker，有则清理掉，通过定时清理过期worker，进一步节省系统资源。</p>
+<p>pool结构</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> sig <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> f <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Pool accept the tasks from client,it limits the total</span></span><br><span class="line"><span class="comment">// of goroutines to a given number by recycling goroutines.</span></span><br><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// capacity of the pool.</span></span><br><span class="line">	capacity <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// running is the number of the currently running goroutines.</span></span><br><span class="line">	running <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// expiryDuration set the expired time (second) of every worker.</span></span><br><span class="line">	expiryDuration time.Duration</span><br><span class="line"></span><br><span class="line">	<span class="comment">// workers is a slice that store the available workers.</span></span><br><span class="line">	workers []*Worker</span><br><span class="line"></span><br><span class="line">	<span class="comment">// release is used to notice the pool to closed itself.</span></span><br><span class="line">	release <span class="keyword">chan</span> sig</span><br><span class="line"></span><br><span class="line">	<span class="comment">// lock for synchronous operation.</span></span><br><span class="line">	lock sync.Mutex</span><br><span class="line"></span><br><span class="line">	once sync.Once</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// get worker</span></span><br><span class="line"><span class="comment">// getWorker returns a available worker to run the tasks.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">getWorker</span><span class="params">()</span> *<span class="title">Worker</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> w *Worker</span><br><span class="line">	<span class="comment">// 标志变量，判断当前正在运行的worker数量是否已到达Pool的容量上限</span></span><br><span class="line">	waiting := <span class="literal">false</span></span><br><span class="line">	<span class="comment">// 加锁，检测队列中是否有可用worker，并进行相应操作</span></span><br><span class="line">	p.lock.Lock()</span><br><span class="line">	idleWorkers := p.workers</span><br><span class="line">	n := <span class="built_in">len</span>(idleWorkers) - <span class="number">1</span></span><br><span class="line">	<span class="comment">// 当前队列中无可用worker</span></span><br><span class="line">	<span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 判断运行worker数目已达到该Pool的容量上限，置等待标志</span></span><br><span class="line">		waiting = p.Running() &gt;= p.Cap()</span><br><span class="line">        </span><br><span class="line">	<span class="comment">// 当前队列有可用worker，从队列尾部取出一个使用</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		w = idleWorkers[n]</span><br><span class="line">		idleWorkers[n] = <span class="literal">nil</span></span><br><span class="line">		p.workers = idleWorkers[:n]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 检测完成，解锁</span></span><br><span class="line">	p.lock.Unlock()</span><br><span class="line">	<span class="comment">// Pool容量已满，新请求等待</span></span><br><span class="line">	<span class="keyword">if</span> waiting &#123;</span><br><span class="line">		<span class="comment">// 利用锁阻塞等待直到有空闲worker</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			p.lock.Lock()</span><br><span class="line">			idleWorkers = p.workers</span><br><span class="line">			l := <span class="built_in">len</span>(idleWorkers) - <span class="number">1</span></span><br><span class="line">			<span class="keyword">if</span> l &lt; <span class="number">0</span> &#123;</span><br><span class="line">				p.lock.Unlock()</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			w = idleWorkers[l]</span><br><span class="line">			idleWorkers[l] = <span class="literal">nil</span></span><br><span class="line">			p.workers = idleWorkers[:l]</span><br><span class="line">			p.lock.Unlock()</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	<span class="comment">// 当前无空闲worker但是Pool还没有满，</span></span><br><span class="line">	<span class="comment">// 则可以直接新开一个worker执行任务</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> w == <span class="literal">nil</span> &#123;</span><br><span class="line">		w = &amp;Worker&#123;</span><br><span class="line">			pool: p,</span><br><span class="line">			task: <span class="built_in">make</span>(<span class="keyword">chan</span> f, <span class="number">1</span>),</span><br><span class="line">		&#125;</span><br><span class="line">		w.run()</span><br><span class="line">        <span class="comment">// 运行worker数加一</span></span><br><span class="line">		p.incRunning()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> w</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>定期清理goroutine</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// clear expired workers periodically.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">periodicallyPurge</span><span class="params">()</span></span> &#123;</span><br><span class="line">	heartbeat := time.NewTicker(p.expiryDuration)</span><br><span class="line">	<span class="keyword">for</span> <span class="keyword">range</span> heartbeat.C &#123;</span><br><span class="line">		currentTime := time.Now()</span><br><span class="line">		p.lock.Lock()</span><br><span class="line">		idleWorkers := p.workers</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(idleWorkers) == <span class="number">0</span> &amp;&amp; p.Running() == <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(p.release) &gt; <span class="number">0</span> &#123;</span><br><span class="line">			p.lock.Unlock()</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		n := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> i, w := <span class="keyword">range</span> idleWorkers &#123;</span><br><span class="line">			<span class="keyword">if</span> currentTime.Sub(w.recycleTime) &lt;= p.expiryDuration &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			n = i</span><br><span class="line">			w.task &lt;- <span class="literal">nil</span></span><br><span class="line">			idleWorkers[i] = <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		n++</span><br><span class="line">		<span class="keyword">if</span> n &gt;= <span class="built_in">len</span>(idleWorkers) &#123;</span><br><span class="line">			p.workers = idleWorkers[:<span class="number">0</span>]</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			p.workers = idleWorkers[n:]</span><br><span class="line">		&#125;</span><br><span class="line">		p.lock.Unlock()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>Goroutine Pool真正的价值还是在：</p>
+<ol>
+<li>限制并发的goroutine数量；</li>
+<li>复用goroutine，减轻runtime调度压力，提升程序性能；</li>
+<li>规避过多的goroutine侵占系统资源（CPU&amp;内存）。</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -508,96 +627,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/23/automated-ML-hyperparameter-Tuning/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/23/automated-ML-hyperparameter-Tuning/" class="post-title-link" itemprop="url">Automated ML Hyperparameter Tuning</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-23 15:21:47" itemprop="dateCreated datePublished" datetime="2019-09-23T15:21:47+08:00">2019-09-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ml/" itemprop="url" rel="index"><span itemprop="name">ml</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/automated-machine-learning-hyperparameter-tuning-in-python-dfda59b72f8a">原文链接</a></p>
-<p>a complete example of Bayesian hyperparameter tuning of a gradient boosting machine using the <a target="_blank" rel="noopener" href="https://hyperopt.github.io/hyperopt/">Hyperopt library</a></p>
-<h3 id="Bayesian-Optimization-Methods"><a href="#Bayesian-Optimization-Methods" class="headerlink" title="Bayesian Optimization Methods"></a>Bayesian Optimization Methods</h3><p>Bayesian methods differ from random or grid search in that they <em>use past evaluation results to choose the next values to evaluate</em>.</p>
-<p><strong>limit expensive evaluations of the objective function by choosing the next input values based on those that have done well in the past</strong></p>
-<h3 id="Four-Parts-of-Optimization-Problem"><a href="#Four-Parts-of-Optimization-Problem" class="headerlink" title="Four Parts of Optimization Problem"></a>Four Parts of Optimization Problem</h3><ol>
-<li><strong>Objective Function:</strong> what we want to minimize, in this case the validation error of a machine learning model with respect to the hyperparameters</li>
-<li><strong>Domain Space:</strong> hyperparametervalues to search over</li>
-<li><strong>Optimization algorithm:</strong> method for constructing the surrogate model and choosing the next hyperparameter values to evaluate</li>
-<li><strong>Result history:</strong> stored outcomes from evaluations of the objective function consisting of the hyperparameters and validation loss</li>
-</ol>
-<p>rather than separating training data into a distinct validation set, we use <a target="_blank" rel="noopener" href="https://machinelearningmastery.com/k-fold-cross-validation/">KFold cross validation</a></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> lightgbm <span class="keyword">as</span> lgb</span><br><span class="line"><span class="keyword">from</span> hyperopt <span class="keyword">import</span> STATUS_OK</span><br><span class="line"></span><br><span class="line">N_FOLDS = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create the dataset</span></span><br><span class="line">train_set = lgb.Dataset(train_features, train_labels)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">objective</span>(<span class="params">params, n_folds = N_FOLDS</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Objective function for Gradient Boosting Machine Hyperparameter Tuning&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Perform n_fold cross validation with hyperparameters</span></span><br><span class="line">    <span class="comment"># Use early stopping and evalute based on ROC AUC</span></span><br><span class="line">    cv_results = lgb.cv(params, train_set, nfold = n_folds, num_boost_round = <span class="number">10000</span>, </span><br><span class="line">                        early_stopping_rounds = <span class="number">100</span>, metrics = <span class="string">&#x27;auc&#x27;</span>, seed = <span class="number">50</span>)</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># Extract the best score</span></span><br><span class="line">    best_score = <span class="built_in">max</span>(cv_results[<span class="string">&#x27;auc-mean&#x27;</span>])</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Loss must be minimized</span></span><br><span class="line">    loss = <span class="number">1</span> - best_score</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Dictionary with information for evaluation</span></span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="string">&#x27;loss&#x27;</span>: loss, <span class="string">&#x27;params&#x27;</span>: params, <span class="string">&#x27;status&#x27;</span>: STATUS_OK&#125;</span><br></pre></td></tr></table></figure>
-
-<p>we are using <code>early_stopping_rounds</code>to stop the training when validation scores have not improved for 100 estimators</p>
-<h3 id="Domain-Space"><a href="#Domain-Space" class="headerlink" title="Domain Space"></a>Domain Space</h3><p>In Bayesian optimization the idea is the same except this space has <em>probability distributions</em> for each hyperparameter rather than discrete values.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Define the search space</span></span><br><span class="line">space = &#123;</span><br><span class="line">    <span class="string">&#x27;class_weight&#x27;</span>: hp.choice(<span class="string">&#x27;class_weight&#x27;</span>, [<span class="literal">None</span>, <span class="string">&#x27;balanced&#x27;</span>]),</span><br><span class="line">    <span class="string">&#x27;boosting_type&#x27;</span>: hp.choice(<span class="string">&#x27;boosting_type&#x27;</span>, </span><br><span class="line">                               [&#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;gbdt&#x27;</span>, </span><br><span class="line">                                    <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;gdbt_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;, </span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;dart&#x27;</span>, </span><br><span class="line">                                     <span class="string">&#x27;subsample&#x27;</span>: hp.uniform(<span class="string">&#x27;dart_subsample&#x27;</span>, <span class="number">0.5</span>, <span class="number">1</span>)&#125;,</span><br><span class="line">                                 &#123;<span class="string">&#x27;boosting_type&#x27;</span>: <span class="string">&#x27;goss&#x27;</span>&#125;]),</span><br><span class="line">    <span class="string">&#x27;num_leaves&#x27;</span>: hp.quniform(<span class="string">&#x27;num_leaves&#x27;</span>, <span class="number">30</span>, <span class="number">150</span>, <span class="number">1</span>),</span><br><span class="line">    <span class="string">&#x27;learning_rate&#x27;</span>: hp.loguniform(<span class="string">&#x27;learning_rate&#x27;</span>, np.log(<span class="number">0.01</span>), np.log(<span class="number">0.2</span>)),</span><br><span class="line">    <span class="string">&#x27;subsample_for_bin&#x27;</span>: hp.quniform(<span class="string">&#x27;subsample_for_bin&#x27;</span>, <span class="number">20000</span>, <span class="number">300000</span>, <span class="number">20000</span>),</span><br><span class="line">    <span class="string">&#x27;min_child_samples&#x27;</span>: hp.quniform(<span class="string">&#x27;min_child_samples&#x27;</span>, <span class="number">20</span>, <span class="number">500</span>, <span class="number">5</span>),</span><br><span class="line">    <span class="string">&#x27;reg_alpha&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_alpha&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;reg_lambda&#x27;</span>: hp.uniform(<span class="string">&#x27;reg_lambda&#x27;</span>, <span class="number">0.0</span>, <span class="number">1.0</span>),</span><br><span class="line">    <span class="string">&#x27;colsample_bytree&#x27;</span>: hp.uniform(<span class="string">&#x27;colsample_by_tree&#x27;</span>, <span class="number">0.6</span>, <span class="number">1.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>choice</code>: categorical variables</li>
-<li><code>quniform</code>: discrete uniform (integers spaced evenly)</li>
-<li><code>uniform</code>: continuous uniform (floats spaced evenly)</li>
-<li><code>loguniform</code>: continuous log uniform (floats spaced evenly on a log scale)</li>
-</ul>
-<h3 id="Optimization-Algorithm"><a href="#Optimization-Algorithm" class="headerlink" title="Optimization Algorithm"></a>Optimization Algorithm</h3><p>use the <a target="_blank" rel="noopener" href="https://papers.nips.cc/paper/4443-algorithms-for-hyper-parameter-optimization.pdf">Tree Parzen Estimator</a></p>
-<h3 id="Result-History"><a href="#Result-History" class="headerlink" title="Result History"></a>Result History</h3>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -669,7 +698,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -710,7 +739,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

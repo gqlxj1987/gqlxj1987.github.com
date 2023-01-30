@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,104 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/03/29/a-python-interpreter-written-in-python/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/03/29/a-python-interpreter-written-in-python/" class="post-title-link" itemprop="url">a python interpreter written in python</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-03-29 23:45:26" itemprop="dateCreated datePublished" datetime="2020-03-29T23:45:26+08:00">2020-03-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index"><span itemprop="name">python</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://qingyunha.github.io/taotao/">原文链接</a></p>
+<p>词法分析，语法解析和编译</p>
+<p>Byterun</p>
+<p>Python解释器是一个<em>字节码解释器</em>：它的输入是一些命令集合称作<em>字节码</em>。当你写Python代码时，词法分析器，语法解析器和编译器生成code object让解释器去操作。每个code object都包含一个要被执行的指令集合 — 它就是字节码 — 另外还有一些解释器需要的信息。字节码是Python代码的一个<em>中间层表示</em>：它以一种解释器可以理解的方式来表示源代码。这和汇编语言作为C语言和机器语言的中间表示很类似。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">what_to_execute = &#123;</span><br><span class="line">    &quot;instructions&quot;: [(&quot;LOAD_VALUE&quot;, 0),  # the first number</span><br><span class="line">                     (&quot;LOAD_VALUE&quot;, 1),  # the second number</span><br><span class="line">                     (&quot;ADD_TWO_VALUES&quot;, None),</span><br><span class="line">                     (&quot;PRINT_ANSWER&quot;, None)],</span><br><span class="line">    &quot;numbers&quot;: [7, 5] &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于指令集的解释器</p>
+<p>Python的动态方法查找</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">execute</span>(<span class="params">self, what_to_execute</span>):</span></span><br><span class="line">        instructions = what_to_execute[<span class="string">&quot;instructions&quot;</span>]</span><br><span class="line">        <span class="keyword">for</span> each_step <span class="keyword">in</span> instructions:</span><br><span class="line">            instruction, argument = each_step</span><br><span class="line">            argument = self.parse_argument(instruction, argument, what_to_execute)</span><br><span class="line">            bytecode_method = <span class="built_in">getattr</span>(self, instruction)</span><br><span class="line">            <span class="keyword">if</span> argument <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                bytecode_method()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                bytecode_method(argument)</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;</span><span class="bash">&gt;&gt; dis.dis(cond)</span></span><br><span class="line">  2           0 LOAD_CONST               1 (3)</span><br><span class="line">              3 STORE_FAST               0 (x)</span><br><span class="line"></span><br><span class="line">  3           6 LOAD_FAST                0 (x)</span><br><span class="line">              9 LOAD_CONST               2 (5)</span><br><span class="line">             12 COMPARE_OP               0 (&lt;)</span><br><span class="line">             15 POP_JUMP_IF_FALSE       22</span><br><span class="line"></span><br><span class="line">  4          18 LOAD_CONST               3 (&#x27;yes&#x27;)</span><br><span class="line">             21 RETURN_VALUE</span><br><span class="line"></span><br><span class="line">  6     &gt;&gt;   22 LOAD_CONST               4 (&#x27;no&#x27;)</span><br><span class="line">             25 RETURN_VALUE</span><br><span class="line">             26 LOAD_CONST               0 (None)</span><br><span class="line">             29 RETURN_VALUE</span><br></pre></td></tr></table></figure>
+
+<p>采用python的dis模块，反编译代码部分</p>
+<p>我们已经知道了Python虚拟机是一个栈机器。它能顺序执行指令，在指令间跳转，压入或弹出栈值</p>
+<p>每个frame只有一个code object与之关联，而一个code object可以很多frame。调用栈中的每个frame都有它自己的数据栈和块栈。</p>
+<p>Python真的很少依赖于每个frame有一个数据栈这个特性。在Python中几乎所有的操作都会清空数据栈，所以所有的frame公用一个数据栈是没问题的？</p>
+<p>Byterun中有四种对象。</p>
+<ul>
+<li><code>VirtualMachine</code>类，它管理高层结构，frame调用栈，指令到操作的映射。这是一个比前面<code>Inteprter</code>对象更复杂的版本。</li>
+<li><code>Frame</code>类，每个<code>Frame</code>类都有一个code object，并且管理者其他一些必要的状态信息，全局和局部命名空间，指向调用它的frame的指针和最后执行的字节码指令。</li>
+<li><code>Function</code>类，它被用来代替真正的Python函数。回想一下，调用函数时会创建一个新的frame。我们自己实现<code>Function</code>，所以我们控制新frame的创建。</li>
+<li><code>Block</code>类，它只是包装了代码块的3个属性。（代码块的细节不是解释器的核心，我们不会花时间在它身上，把它列在这里，是因为Byterun需要它。）</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VirtualMachineError</span>(<span class="params">Exception</span>):</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VirtualMachine</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.frames = []   <span class="comment"># The call stack of frames.</span></span><br><span class="line">        self.frame = <span class="literal">None</span>  <span class="comment"># The current frame.</span></span><br><span class="line">        self.return_value = <span class="literal">None</span></span><br><span class="line">        self.last_exception = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run_code</span>(<span class="params">self, code, global_names=<span class="literal">None</span>, local_names=<span class="literal">None</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot; An entry point to execute code using the virtual machine.&quot;&quot;&quot;</span></span><br><span class="line">        frame = self.make_frame(code, global_names=global_names, </span><br><span class="line">                                local_names=local_names)</span><br><span class="line">        self.run_frame(frame)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse_byte_and_args</span>(<span class="params">self</span>):</span></span><br><span class="line">        f = self.frame</span><br><span class="line">        opoffset = f.last_instruction</span><br><span class="line">        byteCode = f.code_obj.co_code[opoffset]</span><br><span class="line">        f.last_instruction += <span class="number">1</span></span><br><span class="line">        byte_name = dis.opname[byteCode]</span><br><span class="line">        <span class="keyword">if</span> byteCode &gt;= dis.HAVE_ARGUMENT:</span><br><span class="line">            <span class="comment"># index into the bytecode</span></span><br><span class="line">            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+<span class="number">2</span>]  </span><br><span class="line">            f.last_instruction += <span class="number">2</span>   <span class="comment"># advance the instruction pointer</span></span><br><span class="line">            arg_val = arg[<span class="number">0</span>] + (arg[<span class="number">1</span>] * <span class="number">256</span>)</span><br><span class="line">            <span class="keyword">if</span> byteCode <span class="keyword">in</span> dis.hasconst:   <span class="comment"># Look up a constant</span></span><br><span class="line">                arg = f.code_obj.co_consts[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.hasname:  <span class="comment"># Look up a name</span></span><br><span class="line">                arg = f.code_obj.co_names[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.haslocal: <span class="comment"># Look up a local name</span></span><br><span class="line">                arg = f.code_obj.co_varnames[arg_val]</span><br><span class="line">            <span class="keyword">elif</span> byteCode <span class="keyword">in</span> dis.hasjrel:  <span class="comment"># Calculate a relative jump</span></span><br><span class="line">                arg = f.last_instruction + arg_val</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                arg = arg_val</span><br><span class="line">            argument = [arg]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            argument = []</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> byte_name, argument</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Frame</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, code_obj, global_names, local_names, prev_frame</span>):</span></span><br><span class="line">        self.code_obj = code_obj</span><br><span class="line">        self.global_names = global_names</span><br><span class="line">        self.local_names = local_names</span><br><span class="line">        self.prev_frame = prev_frame</span><br><span class="line">        self.stack = []</span><br><span class="line">        <span class="keyword">if</span> prev_frame:</span><br><span class="line">            self.builtin_names = prev_frame.builtin_names</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.builtin_names = local_names[<span class="string">&#x27;__builtins__&#x27;</span>]</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">hasattr</span>(self.builtin_names, <span class="string">&#x27;__dict__&#x27;</span>):</span><br><span class="line">                self.builtin_names = self.builtin_names.__dict__</span><br><span class="line"></span><br><span class="line">        self.last_instruction = <span class="number">0</span></span><br><span class="line">        self.block_stack = []</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>Function部分，重要的是当调用函数时 — <code>__call__</code>方法被调用 — 它创建一个新的<code>Frame</code>并运行它。</p>
+<p><code>parse_byte_and_args</code>,以一个字节码为输入，先检查它是否有参数，如果有，就解析它的参数。这个方法同时也更新frame的<code>last_instruction</code>属性，它指向最后执行的指令。一条没有参数的指令只有一个字节长度，而有参数的字节有3个字节长。参数的意义依赖于指令是什么。比如，前面说过，指令<code>POP_JUMP_IF_FALSE</code>,它的参数指的是跳转目标。<code>BUILD_LIST</code>, 它的参数是列表的个数。<code>LOAD_CONST</code>,它的参数是常量的索引。</p>
+<p>我们会为每一个字节码名字定义一个方法，然后用<code>getattr</code>来查找。通过dispatcher来进行分发相应的规则</p>
+<p>Block部分，一个块被用于某种控制流，特别是异常处理和循环。它负责保证当操作完成后数据栈处于正确的状态。</p>
+<p>动态类型带来的问题，就是很多情况下无法进行优化</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -466,82 +564,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/03/16/BDD/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/03/16/BDD/" class="post-title-link" itemprop="url">Writing Tests in Plain English</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2020-03-16 19:06:30" itemprop="dateCreated datePublished" datetime="2020-03-16T19:06:30+08:00">2020-03-16</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E2%80%9CBDD%E2%80%9D/" itemprop="url" rel="index"><span itemprop="name">“BDD”</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://open.nytimes.com/no-code-no-problem-writing-tests-in-plain-english-537827eaaa6e">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.cucumber.io/gherkin/">Gherkin language</a></p>
-<p>Feature files are written in a “behavior-driven” style</p>
-<p>When everyone understands our user stories, we waste less time in the production process and have fewer instances where we redo the work we’ve done.</p>
-<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Feature</span>: 	Update credit card</span><br><span class="line"></span><br><span class="line">Description:	As a customer care advocate, I want to update a customer’s credit card on file, so that the customer’s new credit card will be charged during the next billing cycle.</span><br><span class="line"></span><br><span class="line"><span class="keyword">Scenario</span>:	Change credit card with a valid credit card</span><br><span class="line"></span><br><span class="line">	<span class="keyword">Given</span>:	I have a customer with an existing credit card.</span><br><span class="line">	<span class="keyword">When</span>: 	I enter a new valid credit card number.</span><br><span class="line">	<span class="keyword">Then</span>:	The service request is processed successfully.</span><br><span class="line">  <span class="keyword">And</span>:	I can see that the customer’s new card is on file.</span><br><span class="line"></span><br><span class="line"><span class="keyword">Scenario</span>:	Change credit card with an invalid credit card number</span><br><span class="line"></span><br><span class="line">	<span class="keyword">Given</span>:	I have a customer with an existing credit card.</span><br><span class="line">	<span class="keyword">When</span>: 	I enter a new credit card number that is not valid.</span><br><span class="line">	<span class="keyword">Then</span>:	An error shows that the credit card number is not valid.</span><br></pre></td></tr></table></figure>
-
-
-
-<p>The test runner parses the feature file, figures out which JavaScript functions to run and reports back.</p>
-<p>document是最关键的</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -613,7 +635,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -654,7 +676,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

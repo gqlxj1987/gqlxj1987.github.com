@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,89 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/kubeflow-deploy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/10/kubeflow-deploy/" class="post-title-link" itemprop="url">kubeflow pipline deploy</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-10 23:05:40" itemprop="dateCreated datePublished" datetime="2019-01-10T23:05:40+08:00">2019-01-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kubeflow/" itemprop="url" rel="index"><span itemprop="name">kubeflow</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3">原文链接2</a></p>
+<p>This model has the following steps: </p>
+<ul>
+<li>extract data from BigQuery, transform it and write the transformed data to Cloud Storage. </li>
+<li>Train a TensorFlow Estimator API model and do hyperparameter tuning of the model </li>
+<li>Once the best learning rate, batch size, etc. are determined, train the model longer and on more data using those parameters</li>
+<li>Deploy the trained model to Cloud ML Engine.</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">preprocess = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;preprocess&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-bqtocsv:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    <span class="string">&#x27;--project&#x27;</span>, project,</span><br><span class="line">    <span class="string">&#x27;--mode&#x27;</span>, <span class="string">&#x27;cloud&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;--bucket&#x27;</span>, bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;bucket&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">hparam_train = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;hypertrain&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-hypertrain:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    preprocess.outputs[<span class="string">&#x27;bucket&#x27;</span>]</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;jobname&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;traintuned&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-traintuned-trainer:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    hparam_train.outputs[<span class="string">&#x27;jobname&#x27;</span>],</span><br><span class="line">    bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned.set_memory_request(<span class="string">&#x27;2G&#x27;</span>)</span><br><span class="line">train_tuned.set_cpu_request(<span class="string">&#x27;1&#x27;</span>)</span><br><span class="line">deploy_cmle = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;deploycmle&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-deploycmle:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    train_tuned.outputs[<span class="string">&#x27;train&#x27;</span>],  <span class="comment"># modeldir</span></span><br><span class="line">    <span class="string">&#x27;babyweight&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;mlp&#x27;</span></span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;</span><br><span class="line">    <span class="string">&#x27;model&#x27;</span>: <span class="string">&#x27;/model.txt&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;version&#x27;</span>: <span class="string">&#x27;/version.txt&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>注意到kubeflow采用文件的方式来交互不同component</p>
+<h4 id="Deploying-the-notebook-as-a-component"><a href="#Deploying-the-notebook-as-a-component" class="headerlink" title="Deploying the notebook as a component"></a>Deploying the notebook as a component</h4><p>打一个镜像</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> kfp.components <span class="keyword">as</span> comp</span><br><span class="line"><span class="keyword">import</span> kfp.dsl <span class="keyword">as</span> dsl</span><br><span class="line"><span class="comment"># a single-op pipeline that runs the flights pipeline on the pod</span></span><br><span class="line"><span class="meta">@dsl.pipeline(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="meta">   name=<span class="string">&#x27;FlightsPipeline&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta">   description=<span class="string">&#x27;Trains, deploys flights model&#x27;</span></span></span></span><br><span class="line"><span class="params"><span class="meta"></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">flights_pipeline</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">   inputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;inputnb&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="function">   outputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;outputnb&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="function">   params=dsl.PipelineParam(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span></span><br><span class="line"><span class="params"><span class="function"></span>):</span></span><br><span class="line">    notebookop = dsl.ContainerOp(</span><br><span class="line">      name=<span class="string">&#x27;flightsmodel&#x27;</span>,</span><br><span class="line">      image=<span class="string">&#x27;gcr.io/cloud-training-demos/submitnotebook:latest&#x27;</span>,</span><br><span class="line">      arguments=[</span><br><span class="line">        inputnb,</span><br><span class="line">        outputnb,</span><br><span class="line">        params</span><br><span class="line">      ]</span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -501,91 +584,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/06/argo/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/06/argo/" class="post-title-link" itemprop="url">Argo</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-06 14:30:21" itemprop="dateCreated datePublished" datetime="2019-01-06T14:30:21+08:00">2019-01-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/argo/" itemprop="url" rel="index"><span itemprop="name">argo</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/argoproj/argo">原repo</a></p>
-<p>Argo is a robust workflow engine for Kubernetes that enables the implementation of each step in a workflow as a container. It provides simple, flexible mechanisms for specifying constraints between the steps in a workflow and artifact management for linking the output of any step as an input to subsequent steps</p>
-<ul>
-<li>Step level input &amp; outputs (artifacts/parameters)</li>
-<li>Timeouts (step &amp; workflow level)</li>
-<li>Retry (step &amp; workflow level)</li>
-<li>Garbage collection of completed workflow</li>
-<li>Scheduling (affinity/tolerations/node selectors)</li>
-</ul>
-<p>With Argo and Kubernetes, a user not only can create a “pipeline” for building an application, but the pipeline itself can be specified as code and built or upgraded using containers. In other words, you can use CI to manage your CI infrastructure :)</p>
-<p>利用argo workflow形成这个？</p>
-<p><a target="_blank" rel="noopener" href="https://dzone.com/articles/parallel-workflows-on-kubernetes">parallel workflow</a></p>
-<p>We create a Job object with 5 completions and 5 parallelism that will launch 5 pods in parallel to search for a solution. A Redis queue service is used for pubsub. The pod that finishes first will publish a message on a channel on the Redis server. All workers are subscribed to the channel. On receiving “finished” message, all other workers stop the search and exit</p>
-<p>The workflow then consists of the following steps:</p>
-<ol>
-<li>Create a parallelized Kubernetes Job which launches 5 parallel workers. Once any pod has exited with success, no other pod will be doing any work. Return the job name and job uid as output parameters.</li>
-<li>Using the uid of the job, query any of its associated pods and print the result to the stdout.</li>
-<li>Delete the job using the job name.</li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -657,7 +655,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -698,7 +696,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

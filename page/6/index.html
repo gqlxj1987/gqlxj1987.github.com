@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,109 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/02/04/bpf-intro/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/02/04/bpf-intro/" class="post-title-link" itemprop="url">BPF Intro</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-02-04 15:12:20" itemprop="dateCreated datePublished" datetime="2021-02-04T15:12:20+08:00">2021-02-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/BPF/" itemprop="url" rel="index"><span itemprop="name">BPF</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://davidlovezoe.club/wordpress/archives/1122">原文链接</a></p>
+<p>网络监控器，都是作为用户级进程运行的。为了分析只在内核空间运行的数据，它们必须将这些数据从内核空间复制到用户空间的内存中去，并进行上下文切换。这与直接在内核空间分析这些数据相比，导致了巨大的性能开销</p>
+<img src="https://tva1.sinaimg.cn/large/008eGmZEly1gnbj0q91uvj30n20lemzi.jpg" alt="img" style="zoom:50%;" />
+
+<p>BPF 在数据包过滤上引入了两大革新：</p>
+<ul>
+<li>一个新的虚拟机 (VM) 设计，可以有效地工作在基于寄存器结构的 CPU 之上；</li>
+<li>应用程序使用缓存只复制与过滤数据包相关的数据，不会复制数据包的所有信息，最大程度地减少BPF 处理的数据，提高处理效率；</li>
+</ul>
+<p>在目前的Linux内核中已经有了近10种的钩子，如下所示：</p>
+<ul>
+<li>kernel functions (kprobes)</li>
+<li>userspace functions (uprobes)</li>
+<li>system calls</li>
+<li>fentry/fexit</li>
+<li>Tracepoints</li>
+<li>network devices (tc/xdp)</li>
+<li>network routes</li>
+<li>TCP congestion algorithms</li>
+<li>sockets (data level)</li>
+</ul>
+<p>从文件打开、创建TCP链接、Socket链接到发送系统消息等几乎所有的系统调用，加上用户空间的各种动态信息，都能加载BPF程序，可以说是无所不能。它们在内核中形成不同的BPF程序类型，在加载时会有类型判断。</p>
+<p>BPF Map</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">struct bpf_map_def <span class="title">SEC</span><span class="params">(<span class="string">&quot;maps&quot;</span>)</span> my_bpf_map </span>= &#123;</span><br><span class="line">  .type = BPF_MAP_TYPE_HASH,</span><br><span class="line">  .key_size = <span class="keyword">sizeof</span>(<span class="keyword">int</span>),</span><br><span class="line">  .value_size = <span class="keyword">sizeof</span>(<span class="keyword">int</span>),</span><br><span class="line">  .max_entries = <span class="number">100</span>,</span><br><span class="line">  .map_flags = BPF_F_NO_PREALLOC,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>BPF Helper</p>
+<p>通过定义和维护BPF辅助函数，由BPF辅助函数来去面对后端的内核函数的变化，对开发者透明，形成稳定API接口。</p>
+<ul>
+<li>eBPF 程序中循环次数限制且必须在有限时间内结束</li>
+<li>eBPF 堆栈大小被限制在 MAX<em>BPF</em>STACK，截止到内核 Linux 5.8 版本，被设置为 512。目前没有计划增加这个限制，解决方法是改用 BPF Map，它的大小是无限的。</li>
+<li>eBPF 字节码大小最初被限制为 4096 条指令，截止到内核 Linux 5.8 版本， 当前已将放宽至 100 万指令（ BPF_COMPLEXITY_LIMIT_INSNS），对于无权限的BPF程序，仍然保留4096条限制 ( BPF_MAXINSNS )</li>
+</ul>
+<p>Cilium</p>
+<p>通过使用基于Linux内核特性的新技术——BPF，提供了基于service/pod/container作为标识，而非传统的IP地址，来定义和加强容器和Pod之间网络层、应用层的安全策略</p>
+<p>Falco主要使用了<strong>raw_tracepoint</strong>的系统调用hook，检测应用进程的启动和退出，然后通过Perf类型的BPF Map将检测到的数据发送回用户空间，实现监控的pipeline。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -481,73 +584,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2021/01/18/Shasta-Intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/01/18/Shasta-Intro/" class="post-title-link" itemprop="url">Shasta Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2021-01-18 17:03:09" itemprop="dateCreated datePublished" datetime="2021-01-18T17:03:09+08:00">2021-01-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Shasta/" itemprop="url" rel="index"><span itemprop="name">Shasta</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45394.pdf">原文链接</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -619,7 +655,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -660,7 +696,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

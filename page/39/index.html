@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.0.0">
+<meta name="generator" content="Hexo 6.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -149,6 +149,93 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/12/k8s-batch-jobs-background/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/12/k8s-batch-jobs-background/" class="post-title-link" itemprop="url">K8s Batch Jobs in Background</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-12 16:39:09" itemprop="dateCreated datePublished" datetime="2019-07-12T16:39:09+08:00">2019-07-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/kubernetes-running-background-tasks-with-batch-jobs-56482fbc853">原文链接</a></p>
+<p>a batch-job in a few different ways: <strong>one-time</strong>, <strong>sequential</strong>, and <strong>parallel</strong>.</p>
+<p>single-job</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">single-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span></span><br><span class="line"> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line"></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          </span><br><span class="line"><span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">single</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/single</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>sequential-job</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">sequential-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">completions:</span> <span class="number">3</span> <span class="comment"># number of times to run</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">sequential</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/sequential</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>parallel-job</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">parallel-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">completions:</span> <span class="number">6</span> <span class="comment"># number of times to run</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">parallelism:</span> <span class="number">2</span> <span class="comment"># number of pods that can run in parallel</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">parallel</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/parallel</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -507,84 +594,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/02/servicecomb-pack/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/02/servicecomb-pack/" class="post-title-link" itemprop="url">Servicecomb Pack</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-07-02 20:37:52" itemprop="dateCreated datePublished" datetime="2019-07-02T20:37:52+08:00">2019-07-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/servicecomb/" itemprop="url" rel="index"><span itemprop="name">servicecomb</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/apache/servicecomb-pack">原repo</a></p>
-<p>微服务应用的数据最终一致性解决方案</p>
-<p><img src="http://ww1.sinaimg.cn/large/006tNc79ly1g4mgp1ltm9j30mp07y3yi.jpg" alt="servicecomb-pack"></p>
-<ul>
-<li>高可用：支持高可用的集群模式部署。</li>
-<li>高可靠：所有的关键事务事件都持久化存储在数据库中。</li>
-<li>高性能：事务事件是通过高性能gRPC来上报的，且事务的请求和响应消息都是通过Kyro进行序列化和反序列化。</li>
-<li>低侵入：仅需2-3个注解和编写对应的补偿方法即可引入分布式事务。</li>
-<li>部署简单：支持通过容器（Docker）进行快速部署和交付。</li>
-<li>补偿机制灵活：支持前向恢复（重试）及后向恢复（补偿）功能。</li>
-<li>扩展简单：基于Pack架构很容实现多种协调协议，目前支持TCC、Saga协议，未来还可以添加其他协议支持。</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -656,7 +665,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">659</span>
+          <span class="site-state-item-count">660</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -697,7 +706,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
