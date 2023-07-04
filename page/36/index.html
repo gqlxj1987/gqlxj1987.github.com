@@ -153,6 +153,93 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/02/jvm-profiler-for-tracing-distributed-jvm-applications/" class="post-title-link" itemprop="url">Jvm profiler for tracing distributed jvm applications</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-02 20:04:00" itemprop="dateCreated datePublished" datetime="2019-09-02T20:04:00+08:00">2019-09-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://eng.uber.com/jvm-profiler/">原文链接</a></p>
+<p>While Spark makes data technology more accessible, right-sizing the resources allocated to Spark applications<br>and optimizing the operational efficiency of our data infrastructure requires more fine-grained insights about these systems, namely their resource usage patterns.</p>
+<p>Our existing tools could only monitor server-level metrics and did not gauge metrics for individual applications. We needed a solution that could collect metrics for each process and correlate them across processes for each application. Additionally, we do not know when these processes will launch and how long they will take. To be able to collect metrics in this environment,<br>the profiler needs to be launched automatically with each process.</p>
+<h4 id="What-does-the-JVM-Profiler-do"><a href="#What-does-the-JVM-Profiler-do" class="headerlink" title="What does the JVM Profiler do?"></a>What does the JVM Profiler do?</h4><p>The JVM Profiler is composed of three  key features that make it easier to collect performance and resource  usage metrics, and then serve these metrics (e.g. Apache Kafka) to other  systems for further analysis:</p>
+<ul>
+<li><strong>A java agent</strong>:  By incorporating a Java agent into our profiler, users can collect  various metrics (e.g. CPU&#x2F;memory usage) and stack traces for JVM  processes in a distributed way. </li>
+<li><strong>Advanced profiling capabilities</strong>:  Our JVM Profiler allows us to trace arbitrary Java methods and  arguments in the user code without making any actual code changes. This  feature can be used to trace HDFS NameNode RPC call latency for Spark  applications and identify slow method calls. It can also trace the HDFS  file paths each Spark application reads or writes to identify hot files  for further optimization.</li>
+<li><strong>Data analytics reporting</strong>:  At Uber, we use the profiler to report metrics to Kafka topics and  Apache Hive tables, making data analytics faster and easier.</li>
+</ul>
+<h4 id="Typical-use-cases"><a href="#Typical-use-cases" class="headerlink" title="Typical use cases"></a>Typical use cases</h4><ul>
+<li><strong>Right-size executor:</strong> We use  memory metrics from the JVM Profiler to track actual memory usage for  each executor so we can set the proper value for the Spark  “executor-memory” argument.</li>
+<li><strong>Monitor HDFS NameNode RPC latency:</strong> We profile methods on the class <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB</em>  in a Spark application and identify long latencies on NameNode calls.  We monitor more than 50 thousand Spark applications each day with  several billions of such RPC calls.</li>
+<li><strong>Monitor driver dropped events:</strong> We profile methods like <em>org.apache.spark.scheduler.LiveListenerBus.onDropEvent</em> to trace situations during which the Spark driver event queue becomes too long and drops events.</li>
+<li><strong>Trace data lineage:</strong> We profile file path arguments on the method <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.getBlockLocations</em> and <em>org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB.addBlock</em> to trace what files are read and written by the Spark application.</li>
+</ul>
+<p><a href="github.com/uber-common/jvm-profiler">repo地址</a></p>
+<p>入口函数为Agent.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Agent</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">AgentImpl</span> <span class="variable">agentImpl</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AgentImpl</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="title function_">Agent</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">agentmain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> &#123;</span><br><span class="line">        premain(args, instrumentation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">premain</span><span class="params">(<span class="keyword">final</span> String args, <span class="keyword">final</span> Instrumentation instrumentation)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Java Agent &quot;</span> + AgentImpl.VERSION + <span class="string">&quot; premain args: &quot;</span> + args);</span><br><span class="line"></span><br><span class="line">        <span class="type">Arguments</span> <span class="variable">arguments</span> <span class="operator">=</span> Arguments.parseArgs(args);</span><br><span class="line">        arguments.runConfigProvider();</span><br><span class="line">        agentImpl.run(arguments, instrumentation, <span class="literal">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/28/recipe-for-an-https-sidecar/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -455,83 +542,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/08/22/how-dat-work/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/22/how-dat-work/" class="post-title-link" itemprop="url">How Dat Work</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-08-22 10:43:30" itemprop="dateCreated datePublished" datetime="2019-08-22T10:43:30+08:00">2019-08-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dat/" itemprop="url" rel="index"><span itemprop="name">dat</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://datprotocol.github.io/how-dat-works/">原文链接</a></p>
-<p><strong>Dat is a protocol for sharing data between computers</strong></p>
-<p>Dat community is testing the waters and has begun to use it for websites, art, music releases, peer-to-peer chat programs and many other experiments. 多种使用场景部分</p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g87xnu1lo8j31om05iab3.jpg" alt="image-20191023103849200"></p>
-<p>关于eavesdroppers部分，</p>
-<p>Dat makes no attempt to hide IP addresses</p>
-<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g87xw30lmmj31sc0fqabb.jpg" alt="image-20191023104647136"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/35/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><span class="page-number current">36</span><a class="page-number" href="/page/37/">37</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/37/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/35/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><span class="page-number current">36</span><a class="page-number" href="/page/37/">37</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/37/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -599,7 +613,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -612,7 +626,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

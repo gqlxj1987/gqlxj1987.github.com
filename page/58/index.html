@@ -153,6 +153,97 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/02/12/httpclient/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/12/httpclient/" class="post-title-link" itemprop="url">http client</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-02-12 11:10:00" itemprop="dateCreated datePublished" datetime="2019-02-12T11:10:00+08:00">2019-02-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/http/" itemprop="url" rel="index"><span itemprop="name">http</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000010771138">原文链接</a></p>
+<p>keepAliveStrategy部分</p>
+<p>默认的话，是从response里头读timeout参数的，没有读到则设置为-1，这个代表无穷，这样设置是有点问题了</p>
+<p>https会报read time out</p>
+<p><strong>如果头部信息Keep-Alive在响应中不存在，HttpClient假设连接无限期的保持活动。然而许多现实中的HTTP服务器配置了在特定不活动周期之后丢掉持久连接来保存系统资源，往往这是不通知客户端的。</strong></p>
+<p>Connection eviction policy</p>
+<blockquote>
+<p>一个经典的阻塞 I&#x2F;O 模型的主要缺点是网络套接字仅当 I&#x2F;O 操作阻塞时才可以响应 I&#x2F;O 事件。当一个连接被释放返回管理器时，它可以被保持活动状态而却不能监控套接字的状态和响应任何 I&#x2F;O 事件。如果连接在服务器端关闭，那么客户端连接也不能去侦测连接状态中的变化和关闭本端的套接字去作出适当响应。</p>
+</blockquote>
+<p>唯一可行的而不涉及到每个对空闲连接的套接字模型线程解决方案，是使用专用的监控线程来收回因为长时间不活动而被认为是过期的连接。监控线程可以周期地调用 ClientConnectionManager#closeExpiredConnections()方法来关闭所有过期的连接，从连接池中收回关闭的连接。它也可以选择性调用ClientConnectionManager#closeIdleConnections()方法来关闭所有已经空 闲超过给定时间周期的连接</p>
+<p>ConnTimeToLive</p>
+<p>http连接池connection的存活时间</p>
+<blockquote>
+<p>默认构造的话，timeToLive是-1，如果默认是-1的话，则不失效</p>
+</blockquote>
+<p>当getKeepAliveDuration为-1以及connTimeToLive为-1的时候，closeExpiredConnections方法其实是没有用的，查看debug日志会出现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">o.a.http.impl.client.DefaultHttpClient <span class="number">509</span> : Connection can be kept alive indefinitely</span><br></pre></td></tr></table></figure>
+
+<p>当getKeepAliveDuration不为-1的话，假设是5s,则日志可能是这样的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">o.a.http.impl.execchain.MainClientExec <span class="number">285</span> : Connection can be kept alive <span class="keyword">for</span> <span class="number">5000</span> MILLISECONDS</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/02/11/cnab/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -443,84 +534,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/30/open-tracing-in-request-latency/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/30/open-tracing-in-request-latency/" class="post-title-link" itemprop="url">Open tracing in HTTP Request Latency</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-30 16:53:26" itemprop="dateCreated datePublished" datetime="2019-01-30T16:53:26+08:00">2019-01-30</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tracing/" itemprop="url" rel="index"><span itemprop="name">tracing</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/opentracing/tracing-http-request-latency-in-go-with-opentracing-7cc1282a100a">原文链接</a></p>
-<p>在分布式中，最关键的是distributed context propagation</p>
-<p>If we assign a unique ID to each inbound request and carry it as part of the distributed context, we can then stitch together various profiling data from multiple threads and multiple processes into a single “trace” that represents the execution of the request by our system</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">   <span class="string">&quot;net/http&quot;</span></span><br><span class="line">   <span class="string">&quot;net/http/httptrace&quot;</span></span><br><span class="line"></span><br><span class="line">   <span class="string">&quot;github.com/opentracing/opentracing-go&quot;</span></span><br><span class="line">   <span class="string">&quot;github.com/opentracing/opentracing-go/log&quot;</span></span><br><span class="line">   <span class="string">&quot;golang.org/x/net/context&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// We will talk about this later</span></span><br><span class="line"><span class="keyword">var</span> tracer opentracing.Tracer</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AskGoogle</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">   <span class="comment">// retrieve current Span from Context</span></span><br><span class="line">   <span class="keyword">var</span> parentCtx opentracing.SpanContext</span><br><span class="line">   parentSpan := opentracing.SpanFromContext(ctx); </span><br><span class="line">   <span class="keyword">if</span> parentSpan != <span class="literal">nil</span> &#123;</span><br><span class="line">      parentCtx = parentSpan.Context()</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// start a new Span to wrap HTTP request</span></span><br><span class="line">   span := tracer.StartSpan(</span><br><span class="line">      <span class="string">&quot;ask google&quot;</span>,</span><br><span class="line">      opentracing.ChildOf(parentCtx),</span><br><span class="line">   )</span><br><span class="line"></span><br><span class="line">   <span class="comment">// make sure the Span is finished once we&#x27;re done</span></span><br><span class="line">   <span class="keyword">defer</span> span.Finish()</span><br><span class="line"></span><br><span class="line">   <span class="comment">// make the Span current in the context</span></span><br><span class="line">   ctx = opentracing.ContextWithSpan(ctx, span)</span><br><span class="line"></span><br><span class="line">   <span class="comment">// now prepare the request</span></span><br><span class="line">   req, err := http.NewRequest(<span class="string">&quot;GET&quot;</span>, <span class="string">&quot;http://google.com&quot;</span>, <span class="literal">nil</span>)</span><br><span class="line">   <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> err</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// attach ClientTrace to the Context, and Context to request </span></span><br><span class="line">   trace := NewClientTrace(span)</span><br><span class="line">   ctx = httptrace.WithClientTrace(ctx, trace)</span><br><span class="line">   req = req.WithContext(ctx)</span><br><span class="line"></span><br><span class="line">   <span class="comment">// execute the request</span></span><br><span class="line">   res, err := http.DefaultClient.Do(req)</span><br><span class="line">   <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> err</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">// Google home page is not too exciting, so ignore the result</span></span><br><span class="line">   res.Body.Close()</span><br><span class="line">   <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>关于异步关闭span的问题？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/57/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/57/">57</a><span class="page-number current">58</span><a class="page-number" href="/page/59/">59</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/59/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/57/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/57/">57</a><span class="page-number current">58</span><a class="page-number" href="/page/59/">59</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/59/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -588,7 +605,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -601,7 +618,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

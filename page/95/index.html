@@ -153,6 +153,113 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/17/running-keras-model-in-golang/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/17/running-keras-model-in-golang/" class="post-title-link" itemprop="url">Running keras model in golang</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-17 09:48:44" itemprop="dateCreated datePublished" datetime="2018-04-17T09:48:44+08:00">2018-04-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://www.tonytruong.net/running-a-keras-tensorflow-model-in-golang/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_123">原文链接</a></p>
+<p>为什么要running在golang上</p>
+<ul>
+<li>Current infrastructure is already running Kubernetes &#x2F; Docker containers and Golang makes the binaries extremely small and efficient 运行比较小</li>
+<li>Web frameworks for Go are much faster than the Python ones golang的web性能高</li>
+<li>The team aren’t necessarily data scientists working in Python and work in Go 没必要切换语言？</li>
+<li>Pushing data internally using GRPC for faster communication between micro services</li>
+</ul>
+<h3 id="Binary-Classification-in-Keras"><a href="#Binary-Classification-in-Keras" class="headerlink" title="Binary Classification in Keras"></a>Binary Classification in Keras</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Use TF to save the graph model instead of Keras save model to load it in Golang</span></span><br><span class="line">builder = tf.saved_model.builder.SavedModelBuilder(<span class="string">&quot;myModel&quot;</span>)  </span><br><span class="line"><span class="comment"># Tag the model, required for Go</span></span><br><span class="line">builder.add_meta_graph_and_variables(sess, [<span class="string">&quot;myTag&quot;</span>])  </span><br><span class="line">builder.save()  </span><br><span class="line">sess.close()  </span><br></pre></td></tr></table></figure>
+
+
+
+<p>采用saveModel的方式</p>
+<h3 id="loading-and-running-the-model-in-Go"><a href="#loading-and-running-the-model-in-Go" class="headerlink" title="loading and running the model in Go"></a>loading and running the model in Go</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (  </span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line">    tf <span class="string">&quot;github.com/tensorflow/tensorflow/tensorflow/go&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;  </span><br><span class="line">    <span class="comment">// replace myModel and myTag with the appropriate exported names in the chestrays-keras-binary-classification.ipynb</span></span><br><span class="line">    model, err := tf.LoadSavedModel(<span class="string">&quot;myModel&quot;</span>, []<span class="type">string</span>&#123;<span class="string">&quot;myTag&quot;</span>&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;Error loading saved model: %s\n&quot;</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> model.Session.Close()</span><br><span class="line"></span><br><span class="line">    tensor, _ := tf.NewTensor([<span class="number">1</span>][<span class="number">250</span>][<span class="number">250</span>][<span class="number">3</span>]<span class="type">float32</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    result, err := model.Session.Run(</span><br><span class="line">        <span class="keyword">map</span>[tf.Output]*tf.Tensor&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">&quot;inputLayer_input&quot;</span>).Output(<span class="number">0</span>): tensor, <span class="comment">// Replace this with your input layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        []tf.Output&#123;</span><br><span class="line">            model.Graph.Operation(<span class="string">&quot;inferenceLayer/Sigmoid&quot;</span>).Output(<span class="number">0</span>), <span class="comment">// Replace this with your output layer name</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="literal">nil</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;Error running the session with input, err: %s\n&quot;</span>, err.Error())</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">&quot;Result value: %v \n&quot;</span>, result[<span class="number">0</span>].Value())</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>The tensor we input is in the shape <code>[batch size][width][height][channels]</code>. </p>
+<p>相同版本的python代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">%%time</span><br><span class="line"><span class="keyword">from</span> keras.preprocessing <span class="keyword">import</span> image  </span><br><span class="line"><span class="keyword">from</span> keras.models <span class="keyword">import</span> load_model  </span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line">model = load_model(<span class="string">&quot;model.h5&quot;</span>)  </span><br><span class="line">img = np.zeros((<span class="number">1</span>,<span class="number">250</span>,<span class="number">250</span>,<span class="number">3</span>))  </span><br><span class="line">x = np.vstack([img]) <span class="comment"># just append to this if we have more than one image.  </span></span><br><span class="line">classes = model.predict_classes(x)  </span><br><span class="line"><span class="built_in">print</span>(classes)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>可以尝试比较一下相关的时间问题？</p>
+<h3 id="Performance"><a href="#Performance" class="headerlink" title="Performance"></a>Performance</h3><p>Recall the model was:</p>
+<p>3x3x32 Convolutional Layer<br>3x3x32 Convolutional Layer<br>2x2 Max Pool Layer<br>64 Node Fully Connected Layer with Dropout<br>1 Sigmoid output Layer</p>
+<p><strong>For Python</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~2.72s to warm up and run one inference and ~0.049s for each inference after</li>
+<li><strong>GPU</strong>: - ~3.52s to warm up and run one inference and ~0.009s for each inference after</li>
+<li><strong>Saved Model Size (HDF5)</strong> 242MB</li>
+</ul>
+<p><strong>For Go</strong>:</p>
+<ul>
+<li><strong>CPU</strong>: - ~0.255s to warm up and run one inference and ~0.045s for each inference after</li>
+<li><strong>GPU</strong>: - N&#x2F;A</li>
+<li><strong>Saved Model Size(Protobuf binaries)</strong> 236MB</li>
+</ul>
+<p>use Go to serve up your models in prod</p>
+<p>感觉在k8s上运行更好一些？</p>
+<p>在于model训练之后，基本稳定后的predict的操作</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/17/Line-of-sight-in-code/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -527,106 +634,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/09/improve-spell-correct/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/09/improve-spell-correct/" class="post-title-link" itemprop="url">Improve Spell Correct</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-09 18:06:31" itemprop="dateCreated datePublished" datetime="2018-04-09T18:06:31+08:00">2018-04-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/iamharshit/Seq2Seq-SpellCorrector/">原repo</a></p>
-<p>原先的代码几个点说明:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">remove_conflicting_examples</span>(<span class="params">data</span>):</span><br><span class="line">	correct_words, incorrect_words = np.array(data)[:,<span class="number">0</span>], np.array(data)[:,<span class="number">1</span>]</span><br><span class="line">	correct_vocab, incorrect_vocab = <span class="built_in">list</span>(<span class="built_in">set</span>(correct_words)), <span class="built_in">list</span>(<span class="built_in">set</span>(incorrect_words))</span><br><span class="line">   </span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		i=<span class="number">0</span></span><br><span class="line">		<span class="keyword">while</span>(i&lt;<span class="built_in">len</span>(data)):</span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> data[i][<span class="number">0</span>] <span class="keyword">in</span> incorrect_vocab <span class="keyword">or</span> data[i][<span class="number">1</span>] <span class="keyword">in</span> correct_vocab:</span><br><span class="line">				<span class="keyword">del</span> data[i]</span><br><span class="line">				i-=<span class="number">1</span></span><br><span class="line">			i+=<span class="number">1</span></span><br><span class="line">	<span class="keyword">except</span>:</span><br><span class="line">		<span class="keyword">pass</span></span><br><span class="line">	<span class="keyword">return</span> data</span><br></pre></td></tr></table></figure>
-
-<p>去掉一些相互冲突的example，梳理相关的数据</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">left_pad</span>(<span class="params">list_</span>):</span><br><span class="line">    max_seq_len = <span class="number">20</span></span><br><span class="line">    ans = np.zeros((max_seq_len), dtype=<span class="built_in">int</span>)</span><br><span class="line">    ans[:<span class="built_in">len</span>(list_)] = np.array(list_[:max_seq_len] )</span><br><span class="line">    <span class="keyword">return</span> ans</span><br></pre></td></tr></table></figure>
-
-<p>取最大的长度20，其他的进行padding补全</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">string2indexes</span>(<span class="params">word</span>):</span><br><span class="line">    <span class="keyword">return</span> left_pad([<span class="built_in">ord</span>(char) - <span class="number">96</span> <span class="keyword">for</span> char <span class="keyword">in</span> <span class="built_in">list</span>(word)])</span><br></pre></td></tr></table></figure>
-
-<p>根据ascii码序表来进行转换，这里的96是因为a的ascii值为97</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">xseq_len = train[<span class="number">0</span>].shape[-<span class="number">1</span>]</span><br><span class="line">yseq_len = train[<span class="number">0</span>].shape[-<span class="number">1</span>]</span><br><span class="line">xvocab_size = <span class="number">26</span>+<span class="number">1</span></span><br><span class="line">yvocab_size = xvocab_size</span><br><span class="line">embed_size = <span class="number">300</span></span><br><span class="line"></span><br><span class="line">lstm_cell_size = embed_size</span><br><span class="line">lstm_layers = <span class="number">3</span></span><br><span class="line">embed_size = embed_size </span><br><span class="line"></span><br><span class="line">epoch_n = <span class="number">5</span></span><br><span class="line">lr = <span class="number">0.01</span>  </span><br><span class="line"></span><br><span class="line">global_iteration=<span class="number">0</span></span><br></pre></td></tr></table></figure>
-
-<p>这里的一些参数，很明显了，xseq_len和yseq_len基本都是max_seq_len, xvocab_size就是26个字母+1这样子</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">&#x27;decoder&#x27;</span>, reuse=tf.AUTO_REUSE) <span class="keyword">as</span> scope:</span><br><span class="line"><span class="comment">#     scope.reuse_variables()</span></span><br><span class="line">    decode_outputs, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip,dec_ip,                                                           										lstm,xvocab_size,yvocab_size,</span><br><span class="line">                                                           embedding_size=embed_size,feed_previous=<span class="literal">False</span>)</span><br><span class="line">    scope.reuse_variables() <span class="comment">#sharing parameter b/w train and test decoders</span></span><br><span class="line">    decode_outputs_test, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip, dec_ip,</span><br><span class="line">                                                                              lstm, xvocab_size,</span><br><span class="line">                                                                              yvocab_size,embed_size,</span><br><span class="line">                                                                              feed_previous =<span class="literal">True</span>)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>这里，要注意的是关于variable_scope部分中，lstm的resuse使用标志</p>
-<p>原始代码里predict出来的，</p>
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">X:  [16 19 25  3 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0  0]</span><br><span class="line">Prediction:  [16 16 16 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18]</span><br><span class="line">Y:  [16 19 25  3  8 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0]</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>prediction出来的内容，基本很大程度上对不上。。。</p>
-<h3 id="改进一"><a href="#改进一" class="headerlink" title="改进一"></a>改进一</h3><ul>
-<li>embedding_rnn_seq2seq改成embedding_attention_seq2seq </li>
-<li>采用random的方式，对train的数据集进行训练</li>
-<li>从int32变成float32?</li>
-<li>关于prediction的展示部分，如何显示出来？</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/94/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/94/">94</a><span class="page-number current">95</span><a class="page-number" href="/page/96/">96</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/96/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/94/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/94/">94</a><span class="page-number current">95</span><a class="page-number" href="/page/96/">96</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/96/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -694,7 +705,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -707,7 +718,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

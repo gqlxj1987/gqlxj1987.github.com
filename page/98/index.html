@@ -153,6 +153,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/hot-reloading-go-programs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/02/hot-reloading-go-programs/" class="post-title-link" itemprop="url">Hot Reloading Go Programs</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-02 11:12:06" itemprop="dateCreated datePublished" datetime="2018-04-02T11:12:06+08:00">2018-04-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hot-reload/" itemprop="url" rel="index"><span itemprop="name">hot reload</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@craigchilds94/hot-reloading-go-programs-with-docker-glide-fresh-d5f1acb63f72">原文链接</a></p>
+<p>采用的方式是Fresh， 并通过跟docker结合的方式</p>
+<p>watch files, 这里面<code>ignored: assets, tmp, vendor</code></p>
+<p>原理上：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">watcher, err := fsnotify.NewWatcher()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> ev := &lt;-watcher.Event:</span><br><span class="line">				<span class="keyword">if</span> isWatchedFile(ev.Name) &#123;</span><br><span class="line">					watcherLog(<span class="string">&quot;sending event %s&quot;</span>, ev)</span><br><span class="line">					startChannel &lt;- ev.String()</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> err := &lt;-watcher.Error:</span><br><span class="line">				watcherLog(<span class="string">&quot;error: %s&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>watch使用的是fsnotify部分，然后传递到startChannel队列中，通过对startChannel的解析，然后进行分发build</p>
+<p>核心部分的build代码</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">build</span><span class="params">()</span></span> (<span class="type">string</span>, <span class="type">bool</span>) &#123;</span><br><span class="line">	buildLog(<span class="string">&quot;Building...&quot;</span>)</span><br><span class="line"></span><br><span class="line">	cmd := exec.Command(<span class="string">&quot;go&quot;</span>, <span class="string">&quot;build&quot;</span>, <span class="string">&quot;-o&quot;</span>, buildPath(), root())</span><br><span class="line"></span><br><span class="line">	stderr, err := cmd.StderrPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	stdout, err := cmd.StdoutPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = cmd.Start()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	io.Copy(os.Stdout, stdout)</span><br><span class="line">	errBuf, _ := ioutil.ReadAll(stderr)</span><br><span class="line"></span><br><span class="line">	err = cmd.Wait()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="type">string</span>(errBuf), <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="string">&quot;&quot;</span>, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<p>另一种live reload的方式</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/oxequa/realize">git repo</a></p>
+<p>realize支持多种方式的live reload，同时，还可以针对web程序</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/devops-one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -483,106 +565,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/03/27/chaos-engineering/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/03/27/chaos-engineering/" class="post-title-link" itemprop="url">Chaos Engineering</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-03-27 16:13:10" itemprop="dateCreated datePublished" datetime="2018-03-27T16:13:10+08:00">2018-03-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/chaos/" itemprop="url" rel="index"><span itemprop="name">chaos</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://principlesofchaos.org/">原文链接</a></p>
-<p>最重要的问题：</p>
-<blockquote>
-<p>How much confidence we can have in the complex systems that we put into production?</p>
-</blockquote>
-<p>Even when all of the individual services in a distributed system are functioning properly, the interactions between those services can cause unpredictable outcomes.  Unpredictable outcomes, compounded by rare but disruptive real-world events that affect production environments, make these distributed systems inherently chaotic</p>
-<p>不要有放松的心理</p>
-<ul>
-<li><p>Chaos Engineering 的定义：是一种对分布式系统做线上的测试的实践，手段是在一个隔离的生产环境中人为制造一些极端环境。</p>
-</li>
-<li><p>意义：即便每个组件都是好的，他们通讯出问题了，系统还是一样照挂；或者服务降级是配置有问题，超时不合适导致过多重试，服务要承受太多流量，单点故障导致雪崩。分布式系统会出现的情况实在太多了。预期等着出现，不如主动出击。主动制造问题，如果制造出的问题怎么搞系统都不会崩，那系统看起来还蛮可靠的。</p>
-</li>
-<li><p>Chaos 四个步骤：</p>
-<ul>
-<li>定义系统正常时的一些指标，收集监控数据。</li>
-<li>假设在 control group 和 experiment group 两个都处于正常状态。</li>
-<li>制造事故，模拟出 server crash，硬盘故障，网络连接故障等等。</li>
-<li>尝试找出 control group 和 experiment group 的状态的不同。如果有不同，那就找到了可以改进的地方。</li>
-</ul>
-</li>
-<li><p>一些实践：</p>
-<ul>
-<li>与其搜集系统的内部属性指标，不如搜集系统的输出。吞吐，错误率，latency 百分位这些都是蛮好的指标。这些通用指标能证明系统正在工作。</li>
-<li>Chaos variables 是一些跟现实中会可能是系统出现故障的那些情况，不一定会是硬件出问题，甚至网络流量出现 spike 都可能可以算。</li>
-<li>生产环境的数据很宝贵，可以做采样，然后对实验环境进行测试。</li>
-<li>对这些实验写代码，做自动化。</li>
-<li>最小化对客户的影响，限制在阈值内</li>
-</ul>
-</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/97/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/97/">97</a><span class="page-number current">98</span><a class="page-number" href="/page/99/">99</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/99/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/97/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/97/">97</a><span class="page-number current">98</span><a class="page-number" href="/page/99/">99</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/99/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -650,7 +636,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -663,7 +649,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

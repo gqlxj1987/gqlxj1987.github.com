@@ -153,6 +153,85 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/30/go-cloud/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/30/go-cloud/" class="post-title-link" itemprop="url">Go Cloud</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-30 16:00:56" itemprop="dateCreated datePublished" datetime="2018-07-30T16:00:56+08:00">2018-07-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.golang.org/go-cloud">原文链接</a></p>
+<p>One common theme with many organizations is the need for portability across cloud providers. These teams want to deploy robust applications in <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Cloud_computing#Multicloud">multi-cloud</a> and <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Cloud_computing#Hybrid_cloud">hybrid-cloud</a> environments, and migrate their workloads between cloud providers without significant changes to their code.</p>
+<p>Go Cloud is launching with blob storage, MySQL database access, runtime configuration, and an HTTP server configured with request logging, tracing, and health checking. Go Cloud offers support for Google Cloud Platform (GCP) and Amazon Web Services (AWS). We plan to work with cloud industry partners and the Go community to add support for additional cloud providers very soon</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// setupBucket opens an AWS bucket.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupBucket</span><span class="params">(ctx context.Context)</span></span> (*blob.Bucket, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// Obtain AWS credentials.</span></span><br><span class="line">    sess, err := session.NewSession(&amp;aws.Config&#123;</span><br><span class="line">        Region: aws.String(<span class="string">&quot;us-east-2&quot;</span>),</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Open a handle to s3://go-cloud-bucket.</span></span><br><span class="line">    <span class="keyword">return</span> s3blob.OpenBucket(ctx, sess, <span class="string">&quot;go-cloud-bucket&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// setupBucket opens a GCS bucket.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupBucket</span><span class="params">(ctx context.Context)</span></span> (*blob.Bucket, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// Open GCS bucket.</span></span><br><span class="line">    creds, err := gcp.DefaultCredentials(ctx)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    c, err := gcp.NewHTTPClient(gcp.DefaultTransport(), gcp.CredentialsTokenSource(creds))</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Open a handle to gs://go-cloud-bucket.</span></span><br><span class="line">    <span class="keyword">return</span> gcsblob.OpenBucket(ctx, <span class="string">&quot;go-cloud-bucket&quot;</span>, c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>针对不同的云平台，相关的bucket的设置不同罢了。。</p>
+<p>原理上，就是将对云的一些操作，集成到go-cloud里面去</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/23/incomplete-guide-for-kubernetes/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -518,81 +597,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/18/k8s-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/18/k8s-tips/" class="post-title-link" itemprop="url">Kubernetes tips</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-07-18 14:44:15" itemprop="dateCreated datePublished" datetime="2018-07-18T14:44:15+08:00">2018-07-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://1byte.io/developer-guide-to-docker-and-kubernetes/">原文链接</a></p>
-<p>典型的 Kubernetes 集群包含一个 master 和很多 node。Master 是控制集群的中心，node 是提供 CPU、内存和存储资源的节点。Master 上运行着多个进程，包括面向用户的 API 服务、负责维护集群状态的 Controller Manager、负责调度任务的 Scheduler 等。每个 node 上运行着维护 node 状态并和 master 通信的 kubelet，以及实现集群网络服务的 kube-proxy。</p>
-<p>可以理解为 pod 都运行在一个内网，我们无法从外部直接访问。要把服务暴露出来，我们需要创建一个 Service。Service 的作用有点像建立了一个反向代理和负载均衡器，负责把请求分发给后面的 pod</p>
-<h2 id="横向扩展、滚动更新、版本回滚"><a href="#横向扩展、滚动更新、版本回滚" class="headerlink" title="横向扩展、滚动更新、版本回滚"></a>横向扩展、滚动更新、版本回滚</h2><p>Kubernetes 的用户通常是用 Deployment 来管理服务的。一个 deployment 可以创建指定数量的 pod 部署到各个 node 上，并可完成更新、回滚等操作。</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/9824247-1ae08462a61408d7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="k8s架构"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/80/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/80/">80</a><span class="page-number current">81</span><a class="page-number" href="/page/82/">82</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/82/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/80/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/80/">80</a><span class="page-number current">81</span><a class="page-number" href="/page/82/">82</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/82/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -660,7 +668,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -673,7 +681,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

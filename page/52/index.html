@@ -153,6 +153,100 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/leveldb/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/17/leveldb/" class="post-title-link" itemprop="url">Leveldb 101</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-17 10:29:44" itemprop="dateCreated datePublished" datetime="2019-03-17T10:29:44+08:00">2019-03-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index"><span itemprop="name">leveldb</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html">原文链接</a></p>
+<p>我们可以从两个不同的角度来看待LevleDb：静态角度和动态角度。</p>
+<ul>
+<li><p>从静态角度，可以假想整个系统正在运行过程中（不断插入删除读取数据），此时我们给LevelDb照相，从照片可以看到之前系统的数据在内存和磁盘中是如何分布的，处于什么状态等；</p>
+</li>
+<li><p>从动态的角度，主要是了解系统是如何写入一条记录，读出一条记录，删除一条记录的，同时也包括除了这些接口操作外的内部操作比如compaction，系统运行时崩溃后如何恢复系统等等方面。</p>
+</li>
+</ul>
+<p>对于分析一个数据库，也基本遵循这样的思路</p>
+<p>构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。</p>
+<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15lqug1xfj30mn0lbjso.jpg" alt="leveldb结构"></p>
+<p>当应用写入一条Key:Value记录的时候，LevelDb会先往log文件里写入，成功后将记录插进Memtable中，这样基本就算完成了写入操作，因为一次写入操作只涉及一次磁盘顺序写和一次内存写入，所以这是为何说LevelDb写入速度极快的主要原因</p>
+<p>log的作用主要是用于系统崩溃恢复</p>
+<p>有序的key值，对于其它Level的SSTable文件来说，则不会出现同一层级内.sst文件的key重叠现象，就是说Level L中任意两个.sst文件，那么可以保证它们的key值是不会重叠的</p>
+<p>由于log采用32K作为一个block部分，必然出现数据拆分的问题，这时候，数据分为几个类型：FULL&#x2F;FIRST&#x2F;MIDDLE&#x2F;LAST</p>
+<p>SSTable</p>
+<p>可以将.sst文件划分为数据存储区和数据管理区，数据存储区存放实际的Key:Value数据，数据管理区则提供一些索引指针等管理数据，目的是更快速便捷的查找相应的记录。两个区域都是在上述的分块基础上的，就是说文件的前面若干块实际存储KV数据，后面数据管理区存储管理数据。管理数据又分为四种不同类型：紫色的Meta Block，红色的MetaBlock 索引和蓝色的数据索引块以及一个文件尾部块</p>
+<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15pcamqbnj30jk0bb753.jpg" alt="sstable"></p>
+<p>Data Block 内的 KV 记录是按照 Key 由小到大排列的，数据索引区的每条记录是对某个 Data Block 建立的索引信息，每条索引信息包含三个内容，以图 所示的数据块 i 的索引 Index i 来说：红色部分的第一个字段记载大于等于数据块 i 中最大的 Key 值的那个 Key，第二个字段指出数据块 i 在.sst 文件中的起始位置，第三个字段指出 Data Block i 的大小（有时候是有数据压缩的）。后面两个字段好理解，是用于定位数据块在文件中的位置的</p>
+<p>关于数据记录，还有重启点</p>
+<p>“重启点” 的意思是：在这条记录开始，不再采取只记载不同的 Key 部分，而是重新记录所有的 Key 值，假设 Key i+1 是一个重启点，那么 Key 里面会完整存储 “the color”，而不是采用简略的 “olor” 方式。Block 尾部就是指出哪些记录是这些重启点的。</p>
+<h4 id="MemTable"><a href="#MemTable" class="headerlink" title="MemTable"></a>MemTable</h4><p>核心的数据结构是一个skiplist</p>
+<p>关于k8s上的database的争论部分？</p>
+<p>log 文件内是 key 无序的，而 Memtable 中是 key 有序的。</p>
+<h4 id="查找记录"><a href="#查找记录" class="headerlink" title="查找记录"></a>查找记录</h4><p>从 Memtable 到 Immutable Memtable，再从 Immutable Memtable 到文件，而文件是从低 level 到高 level 这么一个查询路径</p>
+<p>level 0的文件查找，同其他level文件的查找不同(level 0存在不同文件重叠key的情况，需要按新鲜度进行排序)</p>
+<h4 id="Compaction"><a href="#Compaction" class="headerlink" title="Compaction"></a>Compaction</h4><p>当memTable满的时候，发生minor compaction. minor compaction 实现起来也很简单，就是按照 immutable memtable 中记录由小到大遍历，并依次写入一个 level 0 的新建 SSTable 文件中，写完后建立文件的 index 数据，这样就完成了一次 minor compaction。</p>
+<p><img src="https://ws3.sinaimg.cn/large/006tKfTcly1g15qbhauxnj30ih0fjwf7.jpg" alt="major compaction"></p>
+<h4 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h4>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/15/zhongtai/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -560,94 +654,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/knative/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/10/knative/" class="post-title-link" itemprop="url">Knative building containers on k8s</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-10 23:36:42" itemprop="dateCreated datePublished" datetime="2019-03-10T23:36:42+08:00">2019-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/hands-on-knative-part-1-f2d5ce89944e">原文链接</a></p>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/serving">Knative Serving</a> for rapid deployment and autoscaling of serverless containers.</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/eventing">Knative Eventing</a> for loosely coupled, event-driven services.</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/build">Knative Build</a> for painless code-to-container-in-a-registry workflows.</li>
-</ul>
-<p>serverless containers?</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">runLatest:</span></span><br><span class="line">    <span class="attr">configuration:</span></span><br><span class="line">      <span class="attr">revisionTemplate:</span></span><br><span class="line">        <span class="attr">spec:</span></span><br><span class="line">          <span class="attr">container:</span></span><br><span class="line">            <span class="comment"># replace &#123;username&#125; with your DockerHub </span></span><br><span class="line">            <span class="attr">image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line">            <span class="attr">env:</span></span><br><span class="line">              <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">                <span class="attr">value:</span> <span class="string">&quot;C# Sample v1&quot;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>First, a Knative service is created along with its pod. Second, a configuration is created to capture the current configuration of the Knative service. Third, a revision is created as a snapshot of the current configuration. Finally, a route is created to direct traffic to the newly created Knative service</p>
-<p>这个是不是已经在k8s里面了？</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*B6PXYFlpWOYNBDU-lpic4g.png" alt="change configure of service"></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">release:</span></span><br><span class="line">    <span class="comment"># Ordered list of 1 or 2 revisions. </span></span><br><span class="line">    <span class="comment"># First revision is traffic target &quot;current&quot;</span></span><br><span class="line">    <span class="comment"># Second revision is traffic target &quot;candidate&quot;</span></span><br><span class="line">    <span class="attr">revisions:</span> [<span class="string">&quot;helloworld-csharp-00001&quot;</span>, <span class="string">&quot;helloworld-csharp-00004&quot;</span>]</span><br><span class="line">    <span class="attr">rolloutPercent:</span> <span class="number">20</span> <span class="comment"># Percent [0-99] of traffic to route to &quot;candidate&quot; revision</span></span><br><span class="line">    <span class="attr">configuration:</span></span><br><span class="line">      <span class="attr">revisionTemplate:</span></span><br><span class="line">        <span class="attr">spec:</span></span><br><span class="line">          <span class="attr">container:</span></span><br><span class="line">            <span class="comment"># Replace &#123;username&#125; with your actual DockerHub</span></span><br><span class="line">            <span class="attr">image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line">            <span class="attr">env:</span></span><br><span class="line">              <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">                <span class="attr">value:</span> <span class="string">&quot;C# Sample v4&quot;</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/51/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/51/">51</a><span class="page-number current">52</span><a class="page-number" href="/page/53/">53</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/53/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/51/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/51/">51</a><span class="page-number current">52</span><a class="page-number" href="/page/53/">53</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/53/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -715,7 +725,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -728,7 +738,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

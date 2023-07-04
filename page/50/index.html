@@ -153,6 +153,95 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/programming-models-for-the-event-driven-architecture/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/20/programming-models-for-the-event-driven-architecture/" class="post-title-link" itemprop="url">Programming Models for the Event-driven architecture</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-20 20:40:09" itemprop="dateCreated datePublished" datetime="2019-03-20T20:40:09+08:00">2019-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.confluent.io/blog/journey-to-event-driven-part-2-programming-models-event-driven-architecture">原文链接</a></p>
+<p>Distributed object (RPC sync), service-oriented architecture (SOA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Enterprise_service_bus">enterprise service bus</a> (ESB), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Event-driven_architecture">event-driven architecture</a> (EDA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Reactive_programming">reactive programming</a> to <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Microservices">microservices</a> and now FaaS have each built on the learnings of the previous.</p>
+<p>####Event-driven reactive system</p>
+<p>The Reactive Manifesto has influenced many frameworks and platforms, including <a target="_blank" rel="noopener" href="https://akka.io/">Akka</a> (an <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Actor_model">actor-based library circa 1973</a>), <a target="_blank" rel="noopener" href="https://vertx.io/">Vert.x</a> (reactive microservices) and <a target="_blank" rel="noopener" href="http://www.lagomframework.com/">Lagom</a> (an opinionated, reactive microservice framework)</p>
+<p>The Akka scaling mechanism uses a <a target="_blank" rel="noopener" href="https://developer.lightbend.com/blog/2017-05-17-atotm-clustering-and-remoting/">cluster</a> service which pools actors from remote nodes that join as cluster members. Inactive actors are persisted to disk to minimize idle resource requirements</p>
+<p>Persistent actors will store their set of events to a journal (log)</p>
+<p>关于akka的持久化部分</p>
+<p>reactive以响应为主，RxJava这种，akka这种</p>
+<h4 id="Event-driven-stream-system"><a href="#Event-driven-stream-system" class="headerlink" title="Event-driven stream system"></a>Event-driven stream system</h4><p>Stream processor patterns enable <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/kstream/KStream.html#filter-org.apache.kafka.streams.kstream.Predicate-">filtering</a>, projections, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#joining">joins</a>, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#streams-developer-guide-dsl-aggregating">aggregations</a>, materialized views and other <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html">streaming functionality</a>. </p>
+<p>A proven approach is to capture domain knowledge as events using [domain-driven design](<a target="_blank" rel="noopener" href="http://a/">http://A</a> proven approach is to capture domain knowledge as events using Domain Driven Design (DDD) and event storming. This approach works well because the events centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the systems functions.)(DDD) and event storming. This approach works well because the events-centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the system’s functions</p>
+<p>Stream processors can also be used to materialize tables from the stream of events to enable a view of the data (e.g., how much money was in my account at time X). The term is called <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/">turning the database inside out</a></p>
+<p>Unlike a traditional database, the platform scales horizontally to thousands of processors, observe real-time events, replay streams on demand to perform historical processing and catch up with the live, data-in-motion view.</p>
+<p>A traditional OLTP system uses a two-phase commit to move money from a debit account to a credit account. It is very simple but presents scalability challenges. In the event-driven world, we’d build a scalable model where the event streams flow between processors. By the end of the flow, the payment is transacted. (通过分拆processor达到transacted的特点)</p>
+<h4 id="scaling-mechanism"><a href="#scaling-mechanism" class="headerlink" title="scaling mechanism"></a>scaling mechanism</h4><p>通过partition来达到scaling的目的</p>
+<h4 id="Comparing-persistence-models"><a href="#Comparing-persistence-models" class="headerlink" title="Comparing persistence models"></a>Comparing persistence models</h4><p>CQRS的意思？</p>
+<p>持久化，通过event log的方式</p>
+<p>With stream processing, <a target="_blank" rel="noopener" href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying">the log</a> stores the truth for the entity; it is organized as a stream. The log (stream) also stores every version of the entity.</p>
+<p>The event streaming platform provides the means of storing data as a stream and streaming events at scale. In order to facilitate this functionality the underlying protocol needs to ensure qualities such as offline status, different consumer rates, high throughput, low latency and elasticity (amongst others). The <a target="_blank" rel="noopener" href="https://docs.confluent.io/5.0.1/clients/javadocs/org/apache/kafka/clients/consumer/KafkaConsumer.html">consumer model</a> is one which exposes the protocol to the developer; this means the<br>consumer will have the opportunity to ACK, NACK message receipt and interact with the correctness of accepting a message payload.</p>
+<p>We also hear about backpressure being a concern to control event throughput. I would question if this is actually a requirement or<br>marketing speak. Brokered systems like Kafka provide huge buffers (the default in Kafka is two weeks) which negate the need for explicit flow control for the vast majority of use cases. In the very few that remain you can easily build backpressure as a control plane detail; it would be developed using stream processors that analyze throughput of events and apply rate limiting events to the relevant producers.(由于提供buffer的问题，backpressure基本不需要考虑)</p>
+<p>However, for event-sourcing, things get more complex; the ability to rebuild application state on demand needs a dedicated framework and process control to ensure point-in-time or snapshot state is correctly rebuilt. You cannot simply start replaying events from an offset and expect the downstream aggregates to be deterministically reproduced as they were previously. (关于恢复的困难性)</p>
+<p>All of the <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/apache-kafka-tested/">trust and resilience</a> is based upon the event streaming platform’s <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/">correctness</a> and guarantees of working with the commit log.(面向commit log部分)</p>
+<p>以数据为中心</p>
+<p>By storing only the events and never the commands, we have a wealth of capability that not only allows the system to be refined, extended and proven but also supports evolutionary change.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/concurrency-in-go-vs-erlang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -495,97 +584,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/reactive-programing/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/18/reactive-programing/" class="post-title-link" itemprop="url">Reactive Programing</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-18 19:59:33" itemprop="dateCreated datePublished" datetime="2019-03-18T19:59:33+08:00">2019-03-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/reactive/" itemprop="url" rel="index"><span itemprop="name">reactive</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2018/03/10/functional-reactive-programming/">原文链接</a></p>
-<p>因为<strong>无状态是微服务的潜在要求</strong>也是最重要的一个要求之一； 函数式编程相较于其他编程范式更强调无副作用的编程思维，和微服务的基本要求自然契合的很好</p>
-<p>函数式编程的基本思路是将<strong>程序的执行看作是一堆函数的组合处理和求值</strong>过程；纯粹的函数式编程要求数据是不可变的， 同样的数值输入在流经同样的函数处理的时候必须得到确定的输出，不容许有预料之外的副作用产生。(数据的不变性)</p>
-<p>流+函数式-&gt;响应式</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">requestStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">requestUrl</span>) &#123;</span><br><span class="line">    <span class="comment">// execute the request</span></span><br><span class="line">    <span class="keyword">var</span> responseStream = <span class="title class_">Rx</span>.<span class="property">Observable</span>.<span class="title function_">create</span>(<span class="keyword">function</span> (<span class="params">observer</span>) &#123;</span><br><span class="line">        jQuery.<span class="title function_">getJSON</span>(requestUrl)</span><br><span class="line">            .<span class="title function_">done</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123; observer.<span class="title function_">onNext</span>(response); &#125;)</span><br><span class="line">            .<span class="title function_">fail</span>(<span class="keyword">function</span>(<span class="params">jqXHR, status, error</span>) &#123; observer.<span class="title function_">onError</span>(error); &#125;)</span><br><span class="line">            .<span class="title function_">always</span>(<span class="keyword">function</span>(<span class="params"></span>) &#123; observer.<span class="title function_">onCompleted</span>(); &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    responseStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123;</span><br><span class="line">    <span class="comment">// do something with the response</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>处理这些响应数据的代码放在第二个subscribe中</p>
-<p>Java8采用<code>stream()</code>接口来引入</p>
-<p>RxJava扩展观察者模式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.reactivex.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Flowable.just(<span class="string">&quot;Hello world&quot;</span>).subscribe(System.out::println);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>数据流传递给方法</p>
-<p>使用并发的方式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .flatMap(v -&gt;</span><br><span class="line">    Flowable.just(v)</span><br><span class="line">      .subscribeOn(Schedulers.computation())</span><br><span class="line">      .map(w -&gt; w * w)</span><br><span class="line">  ).blockingSubscribe(System.out::println);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .parallel()</span><br><span class="line">  .runOn(Schedulers.computation())</span><br><span class="line">  .map(v -&gt; v * v)</span><br><span class="line">  .sequential()</span><br><span class="line">  .blockingSubscribe(System.out::println);</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Assume the record values represent lines of text.  For the sake of this example, you can ignore</span></span><br><span class="line"><span class="comment">// whatever may be stored in the record keys.</span></span><br><span class="line">KStream&lt;String, String&gt; textLines = ...;</span><br><span class="line"></span><br><span class="line">KStream&lt;String, Long&gt; wordCounts = textLines</span><br><span class="line">    <span class="comment">// Split each text line, by whitespace, into words.  The text lines are the record</span></span><br><span class="line">    <span class="comment">// values, i.e. you can ignore whatever data is in the record keys and thus invoke</span></span><br><span class="line">    <span class="comment">// `flatMapValues` instead of the more generic `flatMap`.</span></span><br><span class="line">    .flatMapValues(value -&gt; Arrays.asList(value.toLowerCase().split(<span class="string">&quot;\\W+&quot;</span>)))</span><br><span class="line">    <span class="comment">// Group the stream by word to ensure the key of the record is the word.</span></span><br><span class="line">    .groupBy((key, word) -&gt; word)</span><br><span class="line">    <span class="comment">// Count the occurrences of each word (record key).</span></span><br><span class="line">    <span class="comment">// This will change the stream type from `KGroupedStream&lt;String, String&gt;` to</span></span><br><span class="line">    <span class="comment">// `KTable&lt;String, Long&gt;` (word -&gt; count).</span></span><br><span class="line">    .count()</span><br><span class="line">    <span class="comment">// Convert the `KTable&lt;String, Long&gt;` into a `KStream&lt;String, Long&gt;`.</span></span><br><span class="line">    .toStream();</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -653,7 +655,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -666,7 +668,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,86 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/12/kubernetes-running-background-task/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/12/kubernetes-running-background-task/" class="post-title-link" itemprop="url">Kubernetes Running background task</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-12 15:03:02" itemprop="dateCreated datePublished" datetime="2019-01-12T15:03:02+08:00">2019-01-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/kubernetes-running-background-tasks-with-batch-jobs-56482fbc853">原文链接</a></p>
+<p>run a batch-job in a few different ways: <strong>one-time</strong>, <strong>sequential</strong>, and <strong>parallel</strong>.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">single-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">single</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/single</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>one-time job</p>
+<p>View you will see the new <code>single-job</code> Pod in your Workloads and <code>0/1</code> Pods active. That is because the <code>single-job</code> ran and terminated the Pod when complete</p>
+<p>增加completions参数，batch-job to run 3 times, one after the other</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">sequential-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">completions:</span> <span class="number">3</span> <span class="comment"># number of times to run</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">sequential</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/sequential</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>增加parallelism参数，pod同时运行数</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">parallelism:</span> <span class="number">2</span> <span class="comment"># number of pods that can run in parallel</span></span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/kubeflow-deploy/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -480,114 +560,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/08/k8s-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/08/k8s-intro/" class="post-title-link" itemprop="url">k8s 概念Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-08 19:31:56" itemprop="dateCreated datePublished" datetime="2019-01-08T19:31:56+08:00">2019-01-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://enqueuezero.com/kubernetes-in-a-nutshell.html">原文链接</a></p>
-<p>master-&gt;node-&gt;pod-&gt;replicaSet-&gt;deployment</p>
-<p>As a Kubernetes user, you might most want to ask Kubernetes to <strong>run a container</strong> via HTTP APIs or CLI.</p>
-<p>In other words, you set a desired state to the <strong>Master</strong> server.</p>
-<p>The <strong>Master</strong> server compares the desired state to the current state in the cluster and decides which node to run.</p>
-<p><strong>Node</strong> servers receive instructions from the <strong>Master</strong> server and then starts a container in the runtime.</p>
-<p>Except the container runtime, the <strong>Node</strong> server runs <strong>kubelet</strong> and <strong>kube-proxy</strong>.</p>
-<p><strong>Kubelet</strong> communicates to the <strong>master</strong> to receive desired states.</p>
-<p><strong>Kubelet</strong> controls the <strong>container runtime</strong> to launch or destroy containers to match the desired states.</p>
-<p><strong>Kube-proxy</strong> forwards requests to the containers, either in localhost or other hosts.</p>
-<p>A <strong>Pod</strong> is one or more containers in a group that should always run on the same <strong>node</strong>.</p>
-<p>All containers in a <strong>pod</strong> are launched and destroyed together, or share a life cycle.</p>
-<p>All containers in a <strong>pod</strong> share their environments, volumes, and IP space.</p>
-<p>Usually, there is one main container and some optional <strong>sidecar containers</strong> in a <strong>pod</strong>.</p>
-<p>A <strong>ReplicaSet</strong> is one or more pod replicas that are running at any given time.</p>
-<p>A <strong>Deployment</strong> is a desired state for <strong>ReplicaSets</strong>.</p>
-<p>The <strong>deployment controller</strong> creates new replicasets for the rolling updates and then replaces the current replicaset.</p>
-<hr>
-<p>order kill</p>
-<p>To support the ordering and uniqueness of Pods, Kubernetes offers <strong>StatefulSet</strong>.</p>
-<hr>
-<p>For applications like logging agents, we want to deploy them per host.</p>
-<p>To support such feature, Kubernetes offers <strong>DaemonSet</strong>.</p>
-<p>It ensures that all (or some) Nodes run a copy of a Pod.</p>
-<p>As nodes are added to the cluster, Pods are added to them.</p>
-<p>As nodes are removed from the cluster, those Pods are garbage collected.</p>
-<p>Deleting a DaemonSet will clean up the Pods it created.</p>
-<hr>
-<p>In case you have one-off jobs, Kubernetes offers <strong>Jobs</strong>.</p>
-<p>A <strong>job</strong> creates one or more pods and ensures that a specified number of them successfully terminate.</p>
-<p>When a specified number of successful completion is reached, the job itself is complete.</p>
-<p>Deleting a Job will clean up the pods it created.</p>
-<hr>
-<p>pods communicate to other pods use <strong>Services</strong></p>
-<p>A <strong>Service</strong> is a component that acts as a basic internal load balancer for pods.</p>
-<p>The <strong>Service</strong> exposes a group of pods as a single entity. When one pod communicates to a service, the service proxies the request to one of the backend pods.</p>
-<p>service -&gt; dns -&gt; pod</p>
-<p>What if one service wants to expose itself to the external world? Kubernetes offers <strong>Ingress</strong>.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -655,7 +631,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -668,7 +644,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

@@ -153,6 +153,84 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/04/03/simple-netty-tcp-server/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/04/03/simple-netty-tcp-server/" class="post-title-link" itemprop="url">Simple Netty Tcp Server</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-04-03 16:33:35" itemprop="dateCreated datePublished" datetime="2020-04-03T16:33:35+08:00">2020-04-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty/" itemprop="url" rel="index"><span itemprop="name">netty</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@ashertoqeer/netty-simple-tcp-server-51fa8537fad5">原文链接</a></p>
+<p><strong>Channel Pipeline</strong> API to build chain of handlers</p>
+<p>To perform read and write, Netty provides you <strong>Channel Handlers</strong>, inbound &amp; outbound. When there is something to read, <strong>Channel Inbound Handlers</strong> are invoked and when there is something to write, <strong>Channel Outbound Handlers</strong> are invoked.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">SimpleNettyServerBootstrap</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">        Utils.log(<span class="string">&quot;Starting server at: &quot;</span> + port);</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">bossGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>(); <span class="comment">// (1)</span></span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">workerGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();<span class="comment">// (2)</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();<span class="comment">// (3)</span></span><br><span class="line">            b.group(bossGroup, workerGroup) <span class="comment">// (4)</span></span><br><span class="line">                    .channel(NioServerSocketChannel.class)<span class="comment">// (5)</span></span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">SimpleTCPChannelInitializer</span>())<span class="comment">// (6)</span></span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="literal">true</span>);<span class="comment">// (7)</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">// Bind and start to accept incoming connections.</span></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind(port).sync();<span class="comment">// (8)</span></span><br><span class="line">            <span class="keyword">if</span>(f.isSuccess()) Utils.log(<span class="string">&quot;Server started successfully&quot;</span>); <span class="comment">// (9)</span></span><br><span class="line">            f.channel().closeFuture().sync(); <span class="comment">// (10)</span></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            Utils.log(<span class="string">&quot;Stopping server&quot;</span>);</span><br><span class="line">            workerGroup.shutdownGracefully();<span class="comment">// (11)</span></span><br><span class="line">            bossGroup.shutdownGracefully();<span class="comment">// (12)</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SimpleTCPChannelHandler</span> <span class="keyword">extends</span> <span class="title class_">SimpleChannelInboundHandler</span>&lt;String&gt; &#123;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> &#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), <span class="string">&quot;Channel Active&quot;</span>);</span><br><span class="line"> &#125;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">channelRead0</span><span class="params">(ChannelHandlerContext ctx, String s)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), s);<span class="comment">// (1)</span></span><br><span class="line">   ctx.channel().writeAndFlush(<span class="string">&quot;Thanks\n&quot;</span>); <span class="comment">// (2)</span></span><br><span class="line"> &#125;</span><br><span class="line">​</span><br><span class="line"> <span class="meta">@Override</span></span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelInactive</span><span class="params">(ChannelHandlerContext ctx)</span> &#123;</span><br><span class="line">   Utils.log(ctx.channel().remoteAddress(), <span class="string">&quot;Channel Inactive&quot;</span>);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>Tcp非全双工的，You can’t directly send or receive objects over TCP channel. You have to convert from bytes to object while reading and from objects to bytes  while writing?</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/04/03/use-jshell/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -453,89 +531,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2020/03/30/social-distance/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/03/30/social-distance/" class="post-title-link" itemprop="url">保持距离</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2020-03-30 10:32:28" itemprop="dateCreated datePublished" datetime="2020-03-30T10:32:28+08:00">2020-03-30</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>保持自我，放弃自以为是，做好自己能做的，不要一切都强加在自己头上</p>
-<p>做成同居室友这样，还挺轻松的</p>
-<p>也算是一种平等吧，不要强求太多，各自做好自己应该做的事情就好了，这也算相处的一种方式。</p>
-<p>不要把自己的意愿强加到别人身上，不要自己自以为是</p>
-<p>不要搞一大堆到自己身上，然后又心累啥的，都是自己讨的</p>
-<hr>
-<p>收拾好自己，首先照顾好自己，才是关心他人</p>
-<p>做好自己可以做的，保持距离，让自己的生活自律、充实</p>
-<hr>
-<p>相处上，尽量以提供建议的方式来进行，不要自己强行干涉，不要自以为是</p>
-<p>用新的方式去相处，保持一定的距离感</p>
-<hr>
-<p>收拾好自己，做好自己就可以了</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/22/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/page/24/">24</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/24/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/22/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/page/24/">24</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/24/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -603,7 +602,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -616,7 +615,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

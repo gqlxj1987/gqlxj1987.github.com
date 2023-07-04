@@ -153,6 +153,81 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/03/ForkJoinPoll/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/03/ForkJoinPoll/" class="post-title-link" itemprop="url">ForkJoinPoll</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-03 10:30:57" itemprop="dateCreated datePublished" datetime="2019-07-03T10:30:57+08:00">2019-07-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://javahuang.github.io/2016/05/11/java-concurrent-forkjoinpool/">原文链接1</a></p>
+<p>Fork&#x2F;Join池没有一个最大线程数，只有一个期望并发数，指我们希望同时又多少活跃的线程，通常默认值即运行时计算机处理器的数量-1，可以通过如下方式来显示的调整。<br><code>-Djava.util.concurrent.ForkJoinPool.common.parallelism=N</code><br><code>System.setProperty(&quot;java.util.concurrent.ForkJoinPool.common.parallelism&quot;, &quot;20&quot;);</code></p>
+<p>大的任务分割成互不依赖的子任务，减少线程竞争，将任务放在不同的队列。<br>每个线程维护一个双端队列，线程自己队列任务完成之后，可以从其他线程里面窃取任务，被窃取线程从头部获取任务，窃取线程从队列尾部获取任务。</p>
+<p>判断一个数是否为质数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 要计算的质数</span></span><br><span class="line">primeNumber = <span class="keyword">new</span> <span class="title class_">BigInteger</span>(sPrime);</span><br><span class="line"><span class="comment">// 对质数进行求平方根</span></span><br><span class="line">sqrt = Utils.sqrt(primeNumber);</span><br><span class="line"><span class="comment">// 线程数 ForkJoinPoll开启worker线程数</span></span><br><span class="line">numberOfThread = <span class="keyword">new</span> <span class="title class_">BigInteger</span>(sNumberOfThread);</span><br><span class="line"><span class="comment">// 给每个线程分配的块</span></span><br><span class="line">lengthForThread = TestPrime.sqrt.divide(numberOfThread);</span><br><span class="line"><span class="comment">//</span></span><br><span class="line">Set&lt;BigInteger&gt; collect = Stream</span><br><span class="line">				.iterate(Utils.two, n -&gt; n.add(TestPrime.lengthForThread))</span><br><span class="line">				.limit(TestPrime.numberOfThread.longValue())</span><br><span class="line">				.parallel()</span><br><span class="line">				.filter(i -&gt; Utils.primeProcessPart(i))</span><br><span class="line">				.collect(Collectors.toSet());</span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Boolean <span class="title function_">primeProcessPart</span><span class="params">(BigInteger from)</span> &#123;</span><br><span class="line">		<span class="type">boolean</span> <span class="variable">isPrime</span> <span class="operator">=</span> <span class="literal">true</span>;</span><br><span class="line">		<span class="type">BigInteger</span> <span class="variable">to</span> <span class="operator">=</span> from.add(TestPrime.lengthForThread);</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">BigInteger</span> <span class="variable">i</span> <span class="operator">=</span> from; i.compareTo(to) &lt;= <span class="number">0</span>; i = i</span><br><span class="line">				.add(BigInteger.ONE)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (TestPrime.primeNumber.mod(i).equals(BigInteger.ZERO)) &#123;</span><br><span class="line">				isPrime = <span class="literal">false</span>;</span><br><span class="line">			&#125; </span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> isPrime;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><a href="%5Bhttp://weinan.io/2019/06/10/java.html%5D(http://weinan.io/2019/06/10/java.html)">原文链接2</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
     <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/02/servicecomb-pack/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -459,79 +534,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/07/01/rest-to-grpc/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/01/rest-to-grpc/" class="post-title-link" itemprop="url">Rest to Grpc</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-07-01 18:14:39" itemprop="dateCreated datePublished" datetime="2019-07-01T18:14:39+08:00">2019-07-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/gRPC/" itemprop="url" rel="index"><span itemprop="name">gRPC</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/ye16SG5IdQi-vsIhs43E">原文链接</a></p>
-<p>通过 protoc 编译器生成的代码可以确保客户端发送或服务器端接收到的数据是遵循规范的，这样非常有助于调试。我记得有两次我开发的服务因为格式没有经过验证而生成了错误的JSON 数据，这些问题只会在用户界面上表现出来。要想找出问题的根源，我们只能调试前端 JavaScript 代码，而这对于一个不太熟悉 JavaScript 框架的后端开发人员来说这并不容易！</p>
-<p>gRPC的调试，不方便</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/39/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/39/">39</a><span class="page-number current">40</span><a class="page-number" href="/page/41/">41</a><span class="space">&hellip;</span><a class="page-number" href="/page/132/">132</a><a class="extend next" rel="next" href="/page/41/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/39/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/39/">39</a><span class="page-number current">40</span><a class="page-number" href="/page/41/">41</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/41/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -599,7 +605,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">660</span>
+          <span class="site-state-item-count">661</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -612,7 +618,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">247</span>
+        <span class="site-state-item-count">248</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
