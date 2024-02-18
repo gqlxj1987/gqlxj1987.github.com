@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/redis-cluster/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/26/executors-thread-groups/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/18/redis-cluster/" class="post-title-link" itemprop="url">redis集群下key的一些策略</a>
+            <a href="/2018/12/26/executors-thread-groups/" class="post-title-link" itemprop="url">Executors同Thread Groups</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-18 19:55:23" itemprop="dateCreated datePublished" datetime="2018-12-18T19:55:23+08:00">2018-12-18</time>
+              <time title="Created: 2018-12-26 22:16:16" itemprop="dateCreated datePublished" datetime="2018-12-26T22:16:16+08:00">2018-12-26</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
                 </span>
             </span>
 
@@ -200,225 +200,13 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <table>
-<thead>
-<tr>
-<th>压测client</th>
-<th>压测server</th>
-<th>线程&#x2F;进程</th>
-<th>最大qps</th>
-<th>command</th>
-<th>args</th>
-<th>是否pipeline</th>
-<th>集群是否指定slot</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>20</td>
-<td>522</td>
-<td>mget</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>7200</td>
-<td>mget</td>
-<td>700</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>1418</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>11435</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>tencent-recom-redis02</td>
-<td>20</td>
-<td>11295</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>12300</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>15354</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>n</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>12378</td>
-<td>lrange</td>
-<td>100</td>
-<td>n</td>
-<td>y</td>
-</tr>
-<tr>
-<td>tencent-recom-center01</td>
-<td>cluster</td>
-<td>40</td>
-<td>13618</td>
-<td>lrange</td>
-<td>100</td>
-<td>y</td>
-<td>y</td>
-</tr>
-</tbody></table>
-<p>测试主要集中在mget以及lrange部分</p>
-<p>mget部分</p>
-<p>对于mget命令，在集群执行时，相比对单点redis执行，会增加了拆分成get的多次网络连接成本，因此效率会大大降低。解决方案是将需要再同一条mget命令出现的key写在同一个slot上，这样的话jedis客户端会将mget保留并传给对应的redis node，而不是拆分成多个get</p>
-<p>关于slot的使用</p>
-<p>因此对于需要mget的key需要手动分配到同一个slot上，官方给出的具体方式是使用{}将需要hash计算的部分扩起来，这样只要{} 内包含的字段一样的key，都会被分配到同一个slot上，例如下面这三条会被分配到同一个slot上</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;recom:item_123:i2i&#125;:xxxxxxxxxxxxx</span><br><span class="line">&#123;recom:item_123:i2i&#125;:qqqqqqqqqqqqq</span><br><span class="line">&#123;recom:item_123:i2i&#125;:fffffffffffff</span><br></pre></td></tr></table></figure>
-
-<p>扩起来的话，具体的写法是什么样的？</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;5400&quot;       #查看key存在于哪个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br><span class="line"> </span><br><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;421&quot;        #括号部分内容一样的key会被hash到同一个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="http://weinan.io/2018/01/24/executors.html">原文链接</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ExecutorsDemo</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		<span class="type">ExecutorService</span> <span class="variable">executorService</span> <span class="operator">=</span> Executors.newSingleThreadExecutor();</span><br><span class="line">		executorService.submit(() -&gt; &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				Thread.currentThread().wait();</span><br><span class="line">			&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// main thread会在这里block住。</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p>这样写的情况下，手动指定的情况下，与codis的区别是？</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/spring-boot-actuator/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/18/spring-boot-actuator/" class="post-title-link" itemprop="url">Spring Boot Actuator</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-18 19:40:52" itemprop="dateCreated datePublished" datetime="2018-12-18T19:40:52+08:00">2018-12-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/spring-boot/" itemprop="url" rel="index"><span itemprop="name">spring boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready.html">原文链接</a></p>
-<p>You can choose to manage and monitor your application by using HTTP endpoints or with JMX. Auditing, health, and metrics gathering can also be automatically applied to your application</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>exposing endpoints</p>
-<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.endpoints.web.exposure.include</span>=<span class="string">*</span></span><br><span class="line"><span class="attr">management.endpoints.web.exposure.exclude</span>=<span class="string">env,beans</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>注意有JMX和web的两种不同类型</p>
-<p>CORS Support</p>
-<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.endpoints.web.cors.allowed-origins</span>=<span class="string">http://example.com</span></span><br><span class="line"><span class="attr">management.endpoints.web.cors.allowed-methods</span>=<span class="string">GET,POST</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>实现一些自定义的endpoints</p>
-<p>You can also write technology-specific endpoints by using <code>@JmxEndpoint</code> or <code>@WebEndpoint</code>. These endpoints are restricted to their respective technologies. For example, <code>@WebEndpoint</code> is exposed only over HTTP and not over JMX.</p>
-<p>You can write technology-specific extensions by using <code>@EndpointWebExtension</code> and <code>@EndpointJmxExtension</code>. These annotations let you provide technology-specific operations to augment an existing endpoint.</p>
-<p>To provide custom health information, you can register Spring beans that implement the <a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-boot/tree/v2.1.1.RELEASE/spring-boot-project/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java"><code>HealthIndicator</code></a> interface. You need to provide an implementation of the <code>health()</code> method and return a <code>Health</code> response.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.Health;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.HealthIndicator;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyHealthIndicator</span> <span class="keyword">implements</span> <span class="title class_">HealthIndicator</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Health <span class="title function_">health</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="type">int</span> <span class="variable">errorCode</span> <span class="operator">=</span> check(); <span class="comment">// perform some specific health check</span></span><br><span class="line">		<span class="keyword">if</span> (errorCode != <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> Health.down().withDetail(<span class="string">&quot;Error Code&quot;</span>, errorCode).build();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> Health.up().build();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>引出来一个reactive health indicators部分，如何监控</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyReactiveHealthIndicator</span> <span class="keyword">implements</span> <span class="title class_">ReactiveHealthIndicator</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Mono&lt;Health&gt; <span class="title function_">health</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> doHealthCheck() <span class="comment">//perform some specific health check that returns a Mono&lt;Health&gt;</span></span><br><span class="line">			.onErrorResume(ex -&gt; Mono.just(<span class="keyword">new</span> <span class="title class_">Health</span>.Builder().down(ex).build())));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>类似流式的方式</p>
-<p>http的management配置</p>
-<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.server.port</span>=<span class="string">8081</span></span><br><span class="line"><span class="attr">management.server.address</span>=<span class="string">127.0.0.1</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>Jmx的配置</p>
-<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring.jmx.unique-names</span>=<span class="string">true</span></span><br><span class="line"><span class="attr">management.endpoints.jmx.domain</span>=<span class="string">com.example.myapp</span></span><br></pre></td></tr></table></figure>
+<p>猜测在同一个thread group的thread会互相block住</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PlayWithDefaultThreadFactory</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		<span class="type">DefaultThreadFactory</span> <span class="variable">factory</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultThreadFactory</span>(); <span class="comment">// 这个DefaultThreadFactory会把新的thread创建在main thread所属的group里。</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 同一个thread group里面的thread执行没结束的时候，main thread不会退出，会被block住。</span></span><br><span class="line">		<span class="type">Thread</span> <span class="variable">t</span> <span class="operator">=</span> factory.newThread(() -&gt; &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				sleep(<span class="number">3000</span>);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 这个thread跑起来以后，main thread会继续执行，直到block在结束的地方，等待t里面的sleep的3秒钟完成，除非像下面这样给interrupt()。</span></span><br><span class="line">		t.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 让worker thread直接退出，这样main thread就不会block在结束的位置了</span></span><br><span class="line">        t.interrupt();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
       
@@ -439,7 +227,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-plugin-manager/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/23/yarn-schedule/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -453,7 +241,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/15/jenkins-plugin-manager/" class="post-title-link" itemprop="url">Jenkins plugin manager(1)</a>
+            <a href="/2018/12/23/yarn-schedule/" class="post-title-link" itemprop="url">Yarn Schedule</a>
         </h2>
 
         <div class="post-meta">
@@ -463,7 +251,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-15 18:47:50" itemprop="dateCreated datePublished" datetime="2018-12-15T18:47:50+08:00">2018-12-15</time>
+              <time title="Created: 2018-12-23 10:45:39" itemprop="dateCreated datePublished" datetime="2018-12-23T10:45:39+08:00">2018-12-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -471,7 +259,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                  <a href="/categories/yarn/" itemprop="url" rel="index"><span itemprop="name">yarn</span></a>
                 </span>
             </span>
 
@@ -486,7 +274,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          
+          <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/double-kill/articles/8979779.html">原文链接</a></p>
+<p>FairScheduler&#x2F;CapacityScheduler</p>
+<p>采用层级树的方式，FairScheduler通过这样一棵资源树，维护了整个集群的资源使用情况。资源树中的每一个叶子节点都挂载了此时正在这个队列上运行、或者正在申请运行的应用。FairScheduler只需要对这个树进行适当遍历，就可以知道任何一个资源队列当前有哪些应用在运行、队列当前还剩下多少资源、已经使用多少资源等</p>
+<p>###心跳调度</p>
+<p>NM通过心跳的方式定期向RM汇报自身状态，</p>
+<p>###持续调度</p>
+<p>不用等待NodeManager向ResourceManager发送心跳才进行任务调度，而是由一个独立的线程进行<strong>实时</strong>的资源分配等调度，与NodeManager的心跳出发的调度相互异步并行进行。当心跳到来，只需要把调度结果通过心跳响应告诉对应的NodeManager即可</p>
+<p>两种触发机制不同的地方只有两个：</p>
+<p>调度时机：心跳调度仅仅发生在收到了某个NodeManager的心跳信息的情况下，持续调度则不依赖与NodeManager的心跳通信，是连续发生的，当心跳到来，会将调度结果直接返回给NodeManager；</p>
+<p>调度范围：心跳调度下，当收到某个节点的心跳，就对这个节点且仅仅对这个节点进行一次调度。持续调度的每一轮，是会遍历当前集群的所有节点，每个节点依次进行一次调度，保证一轮下来每个节点都被公平的调度一次</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">continuousSchedulingAttempt</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">  <span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> getClock().getTime();</span><br><span class="line">  List&lt;NodeId&gt; nodeIdList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;NodeId&gt;(nodes.keySet());</span><br><span class="line">  <span class="comment">//进行调度以前，先对节点根据剩余资源的多少进行排序，从而让资源更充裕的节点先得到调度</span></span><br><span class="line">  <span class="comment">//这样我们更容易让所有节点的资源能够被均匀分配，而不会因为某些节点总是先被调度所以总是比</span></span><br><span class="line">  <span class="comment">//后调度的节点的资源使用率更高</span></span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="built_in">this</span>) &#123;</span><br><span class="line">    Collections.sort(nodeIdList, nodeAvailableResourceComparator);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 遍历所有节点，依次对每一个节点进行一次调度</span></span><br><span class="line">  <span class="keyword">for</span> (NodeId nodeId : nodeIdList) &#123;</span><br><span class="line">    <span class="comment">//FSSchedulerNode是FairScheduler视角下的一个节点</span></span><br><span class="line">    <span class="type">FSSchedulerNode</span> <span class="variable">node</span> <span class="operator">=</span> getFSSchedulerNode(nodeId);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//判断</span></span><br><span class="line">      <span class="keyword">if</span> (node != <span class="literal">null</span> &amp;&amp; Resources.fitsIn(minimumAllocation,</span><br><span class="line">          node.getAvailableResource())) &#123;</span><br><span class="line">        attemptScheduling(node);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ex) &#123; <span class="comment">//这每次调度过程中如果发生异常，这个异常将被捕获，因此不会影响在其它节点上进行调度</span></span><br><span class="line">      <span class="comment">//异常处理，略</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="type">long</span> <span class="variable">duration</span> <span class="operator">=</span> getClock().getTime() - start;</span><br><span class="line">  fsOpDurations.addContinuousSchedulingRunDuration(duration);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比较器部分，实际上只是比较了内存</p>
+<p>预留资源同非预留资源的区别对待</p>
+<p>剥离预留&#x2F;尝试分配资源</p>
+<p>适合在这个节点运行</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> <span class="title class_">NodeType</span> &#123;</span><br><span class="line">    NODE_LOCAL(<span class="number">0</span>), <span class="comment">//请求规定了必须运行在某个的服务器节点</span></span><br><span class="line">    RACK_LOCAL(<span class="number">1</span>), <span class="comment">//请求规定了必须运行在某个机架上</span></span><br><span class="line">    OFF_SWITCH(<span class="number">2</span>); <span class="comment">//这个请求对本地化没有要求</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> index;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="title function_">NodeType</span><span class="params">(<span class="type">int</span> index)</span> &#123;</span><br><span class="line">      <span class="built_in">this</span>.index = index;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
       
     </div>
 
@@ -505,7 +317,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-build/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/birthday/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -519,7 +331,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/15/jenkins-build/" class="post-title-link" itemprop="url">Jenkins Build</a>
+            <a href="/2018/12/20/birthday/" class="post-title-link" itemprop="url">没钱的31岁</a>
         </h2>
 
         <div class="post-meta">
@@ -529,7 +341,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-15 18:43:11" itemprop="dateCreated datePublished" datetime="2018-12-15T18:43:11+08:00">2018-12-15</time>
+              <time title="Created: 2018-12-20 19:53:47" itemprop="dateCreated datePublished" datetime="2018-12-20T19:53:47+08:00">2018-12-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -537,7 +349,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                  <a href="/categories/birthday/" itemprop="url" rel="index"><span itemprop="name">birthday</span></a>
                 </span>
             </span>
 
@@ -552,7 +364,18 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          
+          <p>祝自己31岁生日快乐！</p>
+<p>以一个借5K来作为自己生日礼物，最后还感觉像吃了X一样难受，也是给自己见识了，只能说，人变化地太快。。。</p>
+<p>上半年，以突然的资金崩裂开始，让人来不及反应。而且，相比较别人稍微有个好结果来算，资金估计也是打水漂了，也就值这么点亲戚关系了。而且，你也不知道他到底是干了什么。。。</p>
+<p>借用友邻的一句话，没钱可以省着花，慢慢积累，哪怕再也不足以改变自己的生活。少一点悲春伤秋，把脚下的路走好，把眼前的事情办好。但很显然，事情并不如你想的那样。</p>
+<p>但这个也是给自己的警示，对自己诚实，知道自己并不是怎样的人，不要有太多的奢求和野望。</p>
+<p>今年算是开始真正照顾他人的第一年，但感觉有的时候，无论是心理上，还是行动上，自己感觉到有点厌倦，可能是因为自己的坚持不够，性格上多多少少会有点没那么有耐心，也有可能是，还是没找到很好相处的方式，自己不由自主地就变成了保姆角色？但谁来保姆我。。。</p>
+<p>看到低欲望的社会一书上写的，对未来的不安，导致了一部分的低欲望，觉得未来很可能发生突变，所以不愿意去尝试或者改变一些东西。其实，这也不是在说我。。内心对未来的极度不确定，自己都照顾不来，怎么能照顾别人，怎么能给别人带来幸福。。可拉到吧。。</p>
+<p>所以，既然内心的不确定，那就可以考虑我能留下些什么。放弃治疗，不要想着什么都要抓，从加法做到减法，生命从博识走向专精。既然决定留下些什么，那关于自己的行动，就要专起来，不要贪多，做好自己力所能及的，留下些美好的回忆就可以了。</p>
+<p>有时候，会想自己突然死亡的话，结果也要尽量不会给别人带来困扰，朝着这样的目标，去掉那些负面的情绪，没有必要，珍视美好的东西就行，尽自己最大的努力。。。</p>
+<p>或许，现在才是开始知天命的时候。。。</p>
+<p>成家立业的什么的不用想了。。能够修身就可以了，也应该努力地去修身。。。</p>
+
       
     </div>
 
@@ -571,7 +394,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/graphql-api/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/20/argo-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -585,7 +408,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/15/graphql-api/" class="post-title-link" itemprop="url">GraphQL Api</a>
+            <a href="/2018/12/20/argo-architecture/" class="post-title-link" itemprop="url">Argo Architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -595,7 +418,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-15 11:51:05" itemprop="dateCreated datePublished" datetime="2018-12-15T11:51:05+08:00">2018-12-15</time>
+              <time title="Created: 2018-12-20 19:26:27" itemprop="dateCreated datePublished" datetime="2018-12-20T19:26:27+08:00">2018-12-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -603,7 +426,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphQL/" itemprop="url" rel="index"><span itemprop="name">graphQL</span></a>
+                  <a href="/categories/argo/" itemprop="url" rel="index"><span itemprop="name">argo</span></a>
                 </span>
             </span>
 
@@ -618,54 +441,80 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/Shopify/graphql-design-tutorial/blob/master/TUTORIAL.md?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_145">原文链接</a></p>
-<p>针对collection-&gt;product的多对多关系</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">interface Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>AutomaticCollectionRule!<span class="punctuation">]</span>!</span><br><span class="line">  rulesApplyDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule <span class="punctuation">&#123;</span></span><br><span class="line">  column<span class="punctuation">:</span> String!</span><br><span class="line">  relation<span class="punctuation">:</span> String!</span><br><span class="line">  condition<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionMembership <span class="punctuation">&#123;</span></span><br><span class="line">  collectionId<span class="punctuation">:</span> ID!</span><br><span class="line">  productId<span class="punctuation">:</span> ID!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>针对er模型</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">interface Collection <span class="punctuation">&#123;</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  <span class="punctuation">[</span>AutomaticCollectionRule<span class="punctuation">]</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule <span class="punctuation">&#123;</span> <span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionMembership <span class="punctuation">&#123;</span></span><br><span class="line">  Collection</span><br><span class="line">  Product</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p><em>Rule #1: Always start with a high-level view of the objects and their relationships before you deal with specific fields.</em></p>
-<p>对于状态进行clean</p>
-<p>去掉了collectionMembership部分，替换成为product</p>
-<p><em>Rule #2: Never expose implementation details in your API design.</em></p>
-<p><em>Rule #3: Design your API around the business domain, not the implementation, user-interface, or legacy APIs.</em></p>
-<p>Most of your major identifiable business objects (e.g. products, collections, etc) should implement <code>Node</code>.</p>
-<p><em>Rule #7: Always check whether list fields should be paginated or not.</em></p>
-<h3 id=""><a href="#" class="headerlink" title=""></a></h3><p>针对每一个field去判断其合适的一个展现形式，以及继承方式等，这样在后面的扩展的时候，能够随时添加，游刃有余</p>
-<p><em>Rule #8: Always use object references instead of ID fields.</em></p>
-<p><em>Rule #9: Choose field names based on what makes sense, not based on the implementation or what the field is called in legacy APIs.</em></p>
-<p>最终版的schema如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">type Collection implements Node <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  ruleSet<span class="punctuation">:</span> CollectionRuleSet</span><br><span class="line">  products<span class="punctuation">:</span> ProductConnection!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  image<span class="punctuation">:</span> Image</span><br><span class="line">  description<span class="punctuation">:</span> HTML!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionRuleSet <span class="punctuation">&#123;</span></span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionRule!<span class="punctuation">]</span>!</span><br><span class="line">  appliesDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionRule <span class="punctuation">&#123;</span></span><br><span class="line">  field<span class="punctuation">:</span> CollectionRuleField!</span><br><span class="line">  relation<span class="punctuation">:</span> CollectionRuleRelation!</span><br><span class="line">  value<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">enum CollectionRuleField <span class="punctuation">&#123;</span></span><br><span class="line">  TAG</span><br><span class="line">  TITLE</span><br><span class="line">  TYPE</span><br><span class="line">  INVENTORY</span><br><span class="line">  PRICE</span><br><span class="line">  VENDOR</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">enum CollectionRuleRelation <span class="punctuation">&#123;</span></span><br><span class="line">  CONTAINS</span><br><span class="line">  ENDS_WITH</span><br><span class="line">  EQUALS</span><br><span class="line">  GREATER_THAN</span><br><span class="line">  LESS_THAN</span><br><span class="line">  NOT_CONTAINS</span><br><span class="line">  NOT_EQUALS</span><br><span class="line">  STARTS_WITH</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="考虑接口部分的问题"><a href="#考虑接口部分的问题" class="headerlink" title="考虑接口部分的问题:"></a>考虑接口部分的问题:</h4><p>在考虑关系membership部分的时候，考虑的几个点：</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/argoproj/argo">repo地址</a></p>
+<p>argo是一个Open source Kubernetes native workflows, events, CI and CD</p>
+<p>这里主要是介绍它的events机制，也就是所谓的事件驱动？</p>
 <ul>
-<li>整个关系是否适合crud</li>
-<li>对于关联field部分，有一些delta的修改，关系是否需要改变</li>
-<li>关系是否large或者需要分页</li>
-<li>Is the relationship ordered</li>
-<li>Is the relationship mandatory</li>
-<li>Do both sides have IDs</li>
+<li><code>gateways</code> which are implemented as a Kubernetes-native Custom Resource Definition that either produce the events internally or process the events that originate from outside the gateways</li>
+<li><code>sensors</code> which are implemented as a Kubernetes-native Custom Resource Definition that define a set of dependencies and trigger actions.<ul>
+<li>Define multiple dependencies from a variety of gateway sources</li>
+<li>Build custom gateways to support business-level constraint logic</li>
+<li>Trigger messages and Kubernetes object creation after successful dependency resolution</li>
+<li>Trigger escalation after errors, or dependency constraint failures</li>
+<li>Build and manage a distributed, cross-team, event-driven architecture</li>
+<li>Easily leverage Kubernetes-native APIs to monitor dependencies</li>
 </ul>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">type Mutation <span class="punctuation">&#123;</span></span><br><span class="line">  collectionDelete(id<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionPublish(collectionId<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionUnpublish(collectionId<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionAddProducts(collectionId<span class="punctuation">:</span> ID!<span class="punctuation">,</span> productIds<span class="punctuation">:</span> <span class="punctuation">[</span>ID!<span class="punctuation">]</span>!)</span><br><span class="line">  collectionRemoveProducts(collectionId<span class="punctuation">:</span> ID!<span class="punctuation">,</span> productIds<span class="punctuation">:</span> <span class="punctuation">[</span>ID!<span class="punctuation">]</span>)</span><br><span class="line">  collectionCreate(title<span class="punctuation">:</span> String!<span class="punctuation">,</span> ruleSet<span class="punctuation">:</span> CollectionRuleSetInput<span class="punctuation">,</span> image<span class="punctuation">:</span> ImageInput<span class="punctuation">,</span> description<span class="punctuation">:</span> HTML!)</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">input CollectionRuleSetInput <span class="punctuation">&#123;</span></span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionRuleInput!<span class="punctuation">]</span>!</span><br><span class="line">  appliesDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">input CollectionRuleInput <span class="punctuation">&#123;</span></span><br><span class="line">  field<span class="punctuation">:</span> CollectionRuleField!</span><br><span class="line">  relation<span class="punctuation">:</span> CollectionRuleRelation!</span><br><span class="line">  value<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p><em>Rule #16: When writing separate mutations for relationships, consider whether it would be useful for the mutations to operate on multiple elements at once.</em></p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type CollectionUpdatePayload <span class="punctuation">&#123;</span></span><br><span class="line">  userErrors<span class="punctuation">:</span> <span class="punctuation">[</span>UserError!<span class="punctuation">]</span>!</span><br><span class="line">  collection<span class="punctuation">:</span> Collection</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p><em>Rule #23: Most payload fields for a mutation should be nullable, unless there is really a value to return in every possible error case.</em> 关于这条的理解，大部分的payload都是nullable</p>
-<p>tips:</p>
-<ul>
-<li>graphQL，更体现domain部分</li>
+</li>
 </ul>
+<p>gateways作为producer，sensors的作用？</p>
 
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/sofa-ark/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/18/sofa-ark/" class="post-title-link" itemprop="url">sofa ark</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-18 20:07:15" itemprop="dateCreated datePublished" datetime="2018-12-18T20:07:15+08:00">2018-12-18</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
       
     </div>
 
@@ -683,7 +532,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/65/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/65/">65</a><span class="page-number current">66</span><a class="page-number" href="/page/67/">67</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/67/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/65/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/65/">65</a><span class="page-number current">66</span><a class="page-number" href="/page/67/">67</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/67/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -751,7 +600,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -764,7 +613,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -792,7 +641,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

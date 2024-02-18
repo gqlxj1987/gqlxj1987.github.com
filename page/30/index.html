@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/use-mysql-in-grafana/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/100ms-in-go-gc/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/08/use-mysql-in-grafana/" class="post-title-link" itemprop="url">Use Mysql In Grafana</a>
+            <a href="/2019/12/08/100ms-in-go-gc/" class="post-title-link" itemprop="url">100ms In Go Gc</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-12-08 13:59:33" itemprop="dateCreated datePublished" datetime="2019-12-08T13:59:33+08:00">2019-12-08</time>
+              <time title="Created: 2019-12-08 16:18:52" itemprop="dateCreated datePublished" datetime="2019-12-08T16:18:52+08:00">2019-12-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/grafana/" itemprop="url" rel="index"><span itemprop="name">grafana</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -200,14 +200,23 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://grafana.com/docs/features/datasources/mysql/">原文链接</a></p>
-<p>将mysql当成TSDB来使用</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">  title <span class="keyword">as</span> <span class="string">&#x27;Title&#x27;</span>,</span><br><span class="line">  user.login <span class="keyword">as</span> <span class="string">&#x27;Created By&#x27;</span> ,</span><br><span class="line">  dashboard.created <span class="keyword">as</span> <span class="string">&#x27;Created On&#x27;</span></span><br><span class="line"> <span class="keyword">FROM</span> dashboard</span><br><span class="line"><span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="keyword">user</span> <span class="keyword">on</span> user.id <span class="operator">=</span> dashboard.created_by</span><br><span class="line"><span class="keyword">WHERE</span> $__timeFilter(dashboard.created)</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MjM5NDcxOTMwNQ==&mid=2247483668&idx=1&sn=021cd9ef605013b71e78596d82f31399&chksm=a682323291f5bb2483df8ed8a79dff6e8cd04dd06ebfec2c2de2c6804714517afa5bee74e465&scene=21#wechat_redirect">原文链接</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -o trace.out &#x27;http://ip:port/debug/pprof/trace?seconds=20&#x27;</span><br><span class="line">    </span><br><span class="line">sz ./trace.out</span><br></pre></td></tr></table></figure>
 
 
 
-<p>Another option is a query that can create a key&#x2F;value variable. The query should return two columns that are named <code>__text</code> and <code>__value</code></p>
-<p>在sql的基础上，掺杂了一些自定义的time函数，来支持TSDB</p>
+<p>有一个GC的wall time为172ms,而本次gc的两个stw阶段,sweep termination和mark termination都在80多ms的样子, 几乎占满了整个GC时间, 这当然很不科学</p>
+<p>猜测的原因：</p>
+<p>容器中Go进程没有正确的设置GOMAXPROCS的个数, 导致可运行的线程过多, 可能出现调度延迟的问题.  正好出现进入gc发起stw的线程把其他线程停止后, 其被调度器切换出去, 很久没有调度该线程,  实质上造成了stw时间变得很长(正常情况0.1ms的处理过程因为调度延迟变成了100ms级别).</p>
+<p>并发50，一共处理8000个请求的perf stat结果对比. 默认CPU核数76个P, 上下文切换13万多次, pidstat查看system cpu消耗9%个核. 而按照quota数设置P的数量后, 上下文切换仅为2万多次, cpu消耗3%个核. </p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pedlax08j31480tydr0.jpg" alt="image-20191208163220373"></p>
+<p>总结：</p>
+<ol>
+<li>容器中进程看到的核数为母机CPU核数，一般这个值比较大&gt;32, 导致go进程把P设置成较大的数，开启了很多P及线程</li>
+<li>一般容器的quota都不大，0.5-4，linux调度器以该容器为一个组，里面的线程的调度是公平，且每个可运行的线程会保证一定的运行时间，因为线程多, 配额小, 虽然请求量很小, 但上下文切换多, 也可能导致发起stw的线程的调度延迟, 引起stw时间升到100ms的级别，极大的影响了请求</li>
+<li>通过使用automaxprocs库, 可根据分配给容器的cpu quota, 正确设置GOMAXPROCS以及P的数量, 减少线程数，使得GC停顿稳定在&lt;1ms了.  且同等CPU消耗情况下, QPS可增大一倍，平均响应时间由200ms减少到100ms. 线程上下文切换减少为原来的1&#x2F;6</li>
+<li>同时还简单分析了该库的原理. 找到容器的cgroup目录, 计算cpuacct,cpu下cpu.cfs_quota_us&#x2F;cpu.cfs_period_us, 即为分配的cpu核数.</li>
+</ol>
 
       
     </div>
@@ -227,7 +236,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/05/jvm-handle-method-overloading-and-overriding/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/pmml-intro/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -241,7 +250,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/05/jvm-handle-method-overloading-and-overriding/" class="post-title-link" itemprop="url">Jvm Handle Method overloading and overriding</a>
+            <a href="/2019/12/08/pmml-intro/" class="post-title-link" itemprop="url">PMML Intro</a>
         </h2>
 
         <div class="post-meta">
@@ -251,7 +260,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-12-05 12:14:59" itemprop="dateCreated datePublished" datetime="2019-12-05T12:14:59+08:00">2019-12-05</time>
+              <time title="Created: 2019-12-08 16:13:13" itemprop="dateCreated datePublished" datetime="2019-12-08T16:13:13+08:00">2019-12-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -259,7 +268,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
                 </span>
             </span>
 
@@ -274,21 +283,36 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/programmingmitra-com/how-does-jvm-handle-method-overloading-and-overriding-internally-967abde52107">原文链接</a></p>
-<p>We know that overloaded methods are not called polymorphic and get  resolved at compile time and this is why sometime method overloading is  also known as <strong>compile time polymorphism or early&#x2F;static binding</strong>.</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javap -verbose OverridingInternalExample</span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://miro.medium.com/max/2610/0*I5BCjfKMXIxHwEhm.png" alt="programe bytecode"></p>
-<p>Bytecode for<code> anyMammal.speak()</code> and<code> humanMammal.speak()</code> are the same (<code> invokevirtual #4 // Method org/programming/mitra/exercises/OverridingInternalExample$Mammal.speak:()V</code> ) because according to compiler both methods are called on<code> Mammal</code> reference. </p>
-<p>JVM uses the<code> invokevirtual</code> instruction to invoke Java equivalent of the C++ virtual methods.</p>
-<blockquote>
-<p><em>The Java virtual machine does not mandate any particular internal structure for objects 4.</em></p>
-</blockquote>
-<p>根据vstable来算，</p>
-<p>There is only one<code> vtable</code> per class means it is unique and same for all objects of a class similar to <code>Class</code> object. </p>
-<p>Now instead of creating new entries for these methods with updated  references. JVM will modify the references to the already present  methods on the same index where they were present earlier and will keep  the same method names.</p>
+          <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/c1481118216/article/details/78411200">原文链接</a></p>
+<p>MML全称预言模型标记模型（Predictive Model Markup Language），以XML 为载体呈现数据挖掘模型。PMML  允许您在不同的应用程序之间轻松共享预测分析模型。因此，您可以在一个系统中定型一个模型，在 PMML  中对其进行表达，然后将其移动到另一个系统中，而不需考虑分析和预测过程中的具体实现细节。使得模型的部署摆脱了模型开发和产品整合的束缚。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pdux9ek5j312m09mgo5.jpg" alt="image-20191208161424594"></p>
+<ul>
+<li>头信息（Header）</li>
+<li>数据字典（DataDictionary）</li>
+<li>挖掘模式(Mining Schema)</li>
+<li>数据转换（Transformations）</li>
+<li>模型定义  (Model Definition)</li>
+<li>评分结果 (Score Result)</li>
+</ul>
+<p>数据字典定义了所有变量的信息，包括预测变量和目标变量。这些信息包括变量名，量度和类型等。 对于分类变量，可能包含各种不同类型的分类值，  包括有效值 (valid value)，遗漏值 (missing value) 和无效值 (invalid value)， 它们由 Value  的“property”属性决定；对于连续变量，可以指定一个或多个有效值范围 (Interval)。</p>
+<p>挖掘模式，定义预测变量和目标变量</p>
+<p>变量的属性由 “usageType” 值决定，该属性未指定或者值为 “active” 代表预测变量， “predicted”代表目标变量。一般来说，一个常见的模型有多个预测变量和一个目标变量</p>
+<p>最新的 PMML 4.0.1 定义了一下十三种模型：</p>
+<ul>
+<li>AssociationModel</li>
+<li>ClusteringModel</li>
+<li>GeneralRegressionModel</li>
+<li>MiningModel</li>
+<li>NaiveBayesModel</li>
+<li>NeuralNetwork</li>
+<li>RegressionModel</li>
+<li>RuleSetModel</li>
+<li>SequenceModel</li>
+<li>SupportVectorMachineModel</li>
+<li>TextModel</li>
+<li>TimeSeriesModel</li>
+<li>TreeModel</li>
+</ul>
 
       
     </div>
@@ -308,7 +332,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/05/java-stream-api/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/world-has-gone-mad/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -322,7 +346,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/05/java-stream-api/" class="post-title-link" itemprop="url">Java Stream Api</a>
+            <a href="/2019/12/08/world-has-gone-mad/" class="post-title-link" itemprop="url">World Has Gone Mad</a>
         </h2>
 
         <div class="post-meta">
@@ -332,7 +356,156 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-12-05 11:52:18" itemprop="dateCreated datePublished" datetime="2019-12-05T11:52:18+08:00">2019-12-05</time>
+              <time title="Created: 2019-12-08 16:04:00" itemprop="dateCreated datePublished" datetime="2019-12-08T16:04:00+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.linkedin.com/pulse/world-has-gone-mad-system-broken-ray-dalio/">原文链接</a></p>
+<p>向信誉良好的人提供贷款的投资者将接受非常低或负的利率，并且不需要在可预见的将来偿还本金，导致更多的人去买金融资产。</p>
+<p>金融资产价格上涨，未来预期收益下降，而经济增长和通货膨胀仍然低迷</p>
+<p>需要政府出售更多的债务-在利率上升的时候，如果不加息就无法自然吸收这些债务</p>
+<p>公共支出更多了，导致无法填补空洞</p>
+<p>对于有钱和信誉的人来说，金钱本质上是免费的，而对于那些没有钱和信誉的人来说，金钱基本上是不可用的，这加剧了财富，机会和政治鸿沟的增加。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/full-cycle-developer-in-netflix/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/full-cycle-developer-in-netflix/" class="post-title-link" itemprop="url">Full Cycle Developer In Netflix</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 14:36:39" itemprop="dateCreated datePublished" datetime="2019-12-08T14:36:39+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/develop/" itemprop="url" rel="index"><span itemprop="name">develop</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/full-cycle-developers-at-netflix-a08c31f83249">原文链接</a></p>
+<p>The gap between code complete and deployed was much longer than today,  with releases happening on the order of weeks rather than days. Feedback went from ops, who directly experienced pains such as lack of  alerting&#x2F;monitoring or performance issues and increased latencies, to  devs, who were hearing about those problems second-hand.(上线考虑地不仅是code complete)</p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pbixpo7ij317i0cmn0o.jpg" alt="image-20191208145338573"></p>
+<p><strong>“Operate what you build”</strong> puts the devops principles in action by having  the team that develops a system also be responsible for operating and  supporting that system.</p>
+<p>Each development team owns deployment issues, performance bugs, capacity planning, alerting gaps, partner support, and so on.</p>
+<p>In our experience the benefits of finding novel solutions to developer  needs are worth the risk of multiple groups creating parallel solutions  that will need to converge down the road. Communication and alignment are the keys to success. 及时地沟通以及对齐，从而找出某一些路而非是各种并行方案</p>
+<p>Moving to a full cycle developer model requires a mindset(观念模式) shift. </p>
+<p> A full cycle developer thinks and acts like an SWE, SDET, and SRE. </p>
+<p>Knowing the trade-offs before choosing a model can increase the chance of success.</p>
+<p>We mitigate this by having an on-call rotation where developers take  turns handling the deployment + operations + support responsibilities. increase the breadth</p>
+<p>Netflix has a “paved road” set of tools and practices that are formally  supported by centralized teams. We don’t mandate adoption of those paved roads but encourage adoption by ensuring that development and  operations using those technologies is a far better experience than not  using them.提供一条paved road，不是强制而是提供最佳实践</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/12/08/null-elegantly-in-java-optional/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/null-elegantly-in-java-optional/" class="post-title-link" itemprop="url">Null Elegantly In Java Optional</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-08 14:26:53" itemprop="dateCreated datePublished" datetime="2019-12-08T14:26:53+08:00">2019-12-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -355,171 +528,19 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7">原文链接</a></p>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/faun/working-on-null-elegantly-with-java-optional-62f5e65869c5">原文链接</a></p>
 <blockquote>
-<p>While using <strong>Imperative Programming</strong>, the developer uses the language constructs to write both <strong>what to do and how to do</strong>. Whereas while using <strong>Declarative Programming</strong>, developer has to focus only on defining <strong>what to do</strong> and the language or the framework takes care of the <strong>how to do</strong> part. Hence in Declarative Programming, the code is concise and less error-prone.</p>
+<p><code>Optional</code> is primarily intended for use as a method return type where there is a clear need to represent “no result,” and where using <code>null</code> is likely to cause errors. A variable whose type is <code>Optional</code> should never itself be <code>null</code>. It should always point to an <code>Optional</code> instance.</p>
 </blockquote>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#0b4d">Transforming</a></li>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#f596">Filtering</a></li>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#4be6">Searching</a></li>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#461b">Reordering</a></li>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#78fa">Summarizing</a></li>
-<li><a target="_blank" rel="noopener" href="https://praveergupta.in/practical-guide-to-java-stream-api-7aadc02908f7#59ac">Grouping</a></li>
-</ul>
-<blockquote>
-<p>Unlike other operations we have seen till now, the <code>sorted</code> operation is stateful. It means that the operator will have to see all  the elements in the stream before the result of sorting can be provided  to further intermediate or terminal operator. Another example of such an operator is <code>distinct</code></p>
-</blockquote>
-<p>In <code>Stream</code> API, this is achieved using <strong>terminal operators</strong>. <code>reduce</code> and <code>collect</code> are the generic terminal operators provided for this purpose.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/26/hudi-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/11/26/hudi-intro/" class="post-title-link" itemprop="url">Hudi Intro</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-11-26 11:09:59" itemprop="dateCreated datePublished" datetime="2019-11-26T11:09:59+08:00">2019-11-26</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/hudi/" itemprop="url" rel="index"><span itemprop="name">hudi</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://eng.uber.com/hoodie/">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Lambda_architecture">Lambda architecture</a> is a common data processing architecture that proposes double compute with streaming and batch layer. </p>
-<p><img src="https://tva1.sinaimg.cn/large/006tNbRwly1g9pqv2xr3uj31120ge41i.jpg" alt="image-20191208234421238"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/11/25/jvm-performance/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/11/25/jvm-performance/" class="post-title-link" itemprop="url">Jvm Performance</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-11-25 14:47:55" itemprop="dateCreated datePublished" datetime="2019-11-25T14:47:55+08:00">2019-11-25</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@MaartenSmeetsNL/comparing-jvm-performance-zulu-openjdk-openjdk-oracle-jdk-graalvm-ce-48b012c9a8d">原文链接</a></p>
-<p>My test application consisted of a reactive (non-blocking) Spring Boot  REST application and I’ve used Prometheus to poll the JVMs and Grafana  for visualization.</p>
-<p>Using docker-compose to configure a specific CPU for a process is challenging. </p>
-<p>关于measure的不确定性？</p>
-<p>My setup consisted of a docker-compose file which allowed me to easily  start 4 times a reactive Spring Boot application running on the  different JVMs. In front of the 4 JDKs I’ve put an haproxy instance to  load balance requests.</p>
-<p><code>localhost:8080/actuator/env</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it store/oracle/serverjre:8 java -version</span><br></pre></td></tr></table></figure>
+<p>多尝试利用流式方式，而非简单的判断</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Reservation</span> <span class="variable">reservation</span> <span class="operator">=</span> reservationService.findById(<span class="string">&quot;notExistingId&quot;</span>);</span><br><span class="line">Optional&lt;Reservation&gt; optReservation = Optional.ofNullable(reservation);</span><br><span class="line">List&lt;ReservationDetail&gt; reservatonDetails = optServation.map(Reservation::getDetails).orElse(Collections.emptyList())</span><br></pre></td></tr></table></figure>
 
 
 
-<p>分别从CPU usage&#x2F;response times&#x2F;garbage collection&#x2F;memory usage</p>
-<p>Zulu OpenJDK uses least memory of the compared JVMs. Zulu OpenJDK and  GraalVM are more stable in their memory usage when comparing to Oracle  JDK and OpenJDK.</p>
-<p>GraalVM allows code to be compiled to a native executable. 热执行？</p>
-<p>还有待优化，以及default parameters部分</p>
+<p>a code without null check validation</p>
+<p>To do a null check validation we won’t use <code>if (objects == null)</code> here, instead we use <code>isPresent</code>, <code>ifPresent</code>, <code>orElse</code>, <code>orElseGet</code> and <code>orElseThrow</code>.</p>
+<p>I think <code>Optional</code> class is <code>good</code> when used inside a <code>service</code>, and returns at <code>getter</code> of the class attribute, But I don’t think it’ll be good when <code>passes over parameter</code> because it gives more <code>ambiguity</code> and it <code>ignores the meaning of the parameter itself which is made to be filled</code>.</p>
+<p>可以尝试做一个optionalService？来处理需要判断null的情况，返回各种object或者什么</p>
 
       
     </div>
@@ -538,7 +559,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/29/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/31/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -606,7 +627,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -619,7 +640,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -647,7 +668,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

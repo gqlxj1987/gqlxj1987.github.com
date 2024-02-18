@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/knative/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/leveldb/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/knative/" class="post-title-link" itemprop="url">Knative building containers on k8s</a>
+            <a href="/2019/03/17/leveldb/" class="post-title-link" itemprop="url">Leveldb 101</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 23:36:42" itemprop="dateCreated datePublished" datetime="2019-03-10T23:36:42+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-17 10:29:44" itemprop="dateCreated datePublished" datetime="2019-03-17T10:29:44+08:00">2019-03-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                  <a href="/categories/leveldb/" itemprop="url" rel="index"><span itemprop="name">leveldb</span></a>
                 </span>
             </span>
 
@@ -200,24 +200,115 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/hands-on-knative-part-1-f2d5ce89944e">原文链接</a></p>
+          <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html">原文链接</a></p>
+<p>我们可以从两个不同的角度来看待LevleDb：静态角度和动态角度。</p>
 <ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/serving">Knative Serving</a> for rapid deployment and autoscaling of serverless containers.</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/eventing">Knative Eventing</a> for loosely coupled, event-driven services.</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/knative/docs/tree/master/build">Knative Build</a> for painless code-to-container-in-a-registry workflows.</li>
+<li><p>从静态角度，可以假想整个系统正在运行过程中（不断插入删除读取数据），此时我们给LevelDb照相，从照片可以看到之前系统的数据在内存和磁盘中是如何分布的，处于什么状态等；</p>
+</li>
+<li><p>从动态的角度，主要是了解系统是如何写入一条记录，读出一条记录，删除一条记录的，同时也包括除了这些接口操作外的内部操作比如compaction，系统运行时崩溃后如何恢复系统等等方面。</p>
+</li>
 </ul>
-<p>serverless containers?</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">runLatest:</span></span><br><span class="line">    <span class="attr">configuration:</span></span><br><span class="line">      <span class="attr">revisionTemplate:</span></span><br><span class="line">        <span class="attr">spec:</span></span><br><span class="line">          <span class="attr">container:</span></span><br><span class="line">            <span class="comment"># replace &#123;username&#125; with your DockerHub </span></span><br><span class="line">            <span class="attr">image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line">            <span class="attr">env:</span></span><br><span class="line">              <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">                <span class="attr">value:</span> <span class="string">&quot;C# Sample v1&quot;</span></span><br></pre></td></tr></table></figure>
+<p>对于分析一个数据库，也基本遵循这样的思路</p>
+<p>构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。</p>
+<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15lqug1xfj30mn0lbjso.jpg" alt="leveldb结构"></p>
+<p>当应用写入一条Key:Value记录的时候，LevelDb会先往log文件里写入，成功后将记录插进Memtable中，这样基本就算完成了写入操作，因为一次写入操作只涉及一次磁盘顺序写和一次内存写入，所以这是为何说LevelDb写入速度极快的主要原因</p>
+<p>log的作用主要是用于系统崩溃恢复</p>
+<p>有序的key值，对于其它Level的SSTable文件来说，则不会出现同一层级内.sst文件的key重叠现象，就是说Level L中任意两个.sst文件，那么可以保证它们的key值是不会重叠的</p>
+<p>由于log采用32K作为一个block部分，必然出现数据拆分的问题，这时候，数据分为几个类型：FULL&#x2F;FIRST&#x2F;MIDDLE&#x2F;LAST</p>
+<p>SSTable</p>
+<p>可以将.sst文件划分为数据存储区和数据管理区，数据存储区存放实际的Key:Value数据，数据管理区则提供一些索引指针等管理数据，目的是更快速便捷的查找相应的记录。两个区域都是在上述的分块基础上的，就是说文件的前面若干块实际存储KV数据，后面数据管理区存储管理数据。管理数据又分为四种不同类型：紫色的Meta Block，红色的MetaBlock 索引和蓝色的数据索引块以及一个文件尾部块</p>
+<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15pcamqbnj30jk0bb753.jpg" alt="sstable"></p>
+<p>Data Block 内的 KV 记录是按照 Key 由小到大排列的，数据索引区的每条记录是对某个 Data Block 建立的索引信息，每条索引信息包含三个内容，以图 所示的数据块 i 的索引 Index i 来说：红色部分的第一个字段记载大于等于数据块 i 中最大的 Key 值的那个 Key，第二个字段指出数据块 i 在.sst 文件中的起始位置，第三个字段指出 Data Block i 的大小（有时候是有数据压缩的）。后面两个字段好理解，是用于定位数据块在文件中的位置的</p>
+<p>关于数据记录，还有重启点</p>
+<p>“重启点” 的意思是：在这条记录开始，不再采取只记载不同的 Key 部分，而是重新记录所有的 Key 值，假设 Key i+1 是一个重启点，那么 Key 里面会完整存储 “the color”，而不是采用简略的 “olor” 方式。Block 尾部就是指出哪些记录是这些重启点的。</p>
+<h4 id="MemTable"><a href="#MemTable" class="headerlink" title="MemTable"></a>MemTable</h4><p>核心的数据结构是一个skiplist</p>
+<p>关于k8s上的database的争论部分？</p>
+<p>log 文件内是 key 无序的，而 Memtable 中是 key 有序的。</p>
+<h4 id="查找记录"><a href="#查找记录" class="headerlink" title="查找记录"></a>查找记录</h4><p>从 Memtable 到 Immutable Memtable，再从 Immutable Memtable 到文件，而文件是从低 level 到高 level 这么一个查询路径</p>
+<p>level 0的文件查找，同其他level文件的查找不同(level 0存在不同文件重叠key的情况，需要按新鲜度进行排序)</p>
+<h4 id="Compaction"><a href="#Compaction" class="headerlink" title="Compaction"></a>Compaction</h4><p>当memTable满的时候，发生minor compaction. minor compaction 实现起来也很简单，就是按照 immutable memtable 中记录由小到大遍历，并依次写入一个 level 0 的新建 SSTable 文件中，写完后建立文件的 index 数据，这样就完成了一次 minor compaction。</p>
+<p><img src="https://ws3.sinaimg.cn/large/006tKfTcly1g15qbhauxnj30ih0fjwf7.jpg" alt="major compaction"></p>
+<h4 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h4>
+      
+    </div>
 
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
 
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/15/zhongtai/">
 
-<p>First, a Knative service is created along with its pod. Second, a configuration is created to capture the current configuration of the Knative service. Third, a revision is created as a snapshot of the current configuration. Finally, a route is created to direct traffic to the newly created Knative service</p>
-<p>这个是不是已经在k8s里面了？</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*B6PXYFlpWOYNBDU-lpic4g.png" alt="change configure of service"></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">helloworld-csharp</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">release:</span></span><br><span class="line">    <span class="comment"># Ordered list of 1 or 2 revisions. </span></span><br><span class="line">    <span class="comment"># First revision is traffic target &quot;current&quot;</span></span><br><span class="line">    <span class="comment"># Second revision is traffic target &quot;candidate&quot;</span></span><br><span class="line">    <span class="attr">revisions:</span> [<span class="string">&quot;helloworld-csharp-00001&quot;</span>, <span class="string">&quot;helloworld-csharp-00004&quot;</span>]</span><br><span class="line">    <span class="attr">rolloutPercent:</span> <span class="number">20</span> <span class="comment"># Percent [0-99] of traffic to route to &quot;candidate&quot; revision</span></span><br><span class="line">    <span class="attr">configuration:</span></span><br><span class="line">      <span class="attr">revisionTemplate:</span></span><br><span class="line">        <span class="attr">spec:</span></span><br><span class="line">          <span class="attr">container:</span></span><br><span class="line">            <span class="comment"># Replace &#123;username&#125; with your actual DockerHub</span></span><br><span class="line">            <span class="attr">image:</span> <span class="string">docker.io/&#123;username&#125;/helloworld-csharp:v1</span></span><br><span class="line">            <span class="attr">env:</span></span><br><span class="line">              <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">                <span class="attr">value:</span> <span class="string">&quot;C# Sample v4&quot;</span></span><br></pre></td></tr></table></figure>
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
 
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/15/zhongtai/" class="post-title-link" itemprop="url">阿里中台架构实践</a>
+        </h2>
 
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
 
+              <time title="Created: 2019-03-15 20:04:03" itemprop="dateCreated datePublished" datetime="2019-03-15T20:04:03+08:00">2019-03-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E4%B8%AD%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">中台</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>SOA价值出现了本末倒置的现象</p>
+<p>烟囱式方式建设的系统体系</p>
+<p>回归SOA的本质，服务重用</p>
+<p><strong>松耦合的服务带来业务的复用，通过服务的编排助力业务的快速响应和创新</strong></p>
+<p>通过共享中间层，来代替ESB的组件</p>
+<p>过多的带特定属性的需求在服务中心层面实现，导致的结果就可能是随着不断业务的对接，服务中心逐渐丧失了他的业务通用性，最终变得对新业务需求无法提供服务，同时，服务中心的业务逻辑过于复杂，带来了稳定性的风险</p>
+<p>SOA的主要特性：</p>
+<ul>
+<li>面向服务的分布式计算</li>
+<li>服务间松散耦合</li>
+<li>支持服务的整合</li>
+<li>服务的注册和自动发现</li>
+<li>以服务契约方式定义服务交互方式</li>
+</ul>
+<p>探讨有没有esb参与其中，算不算SOA？</p>
 
       
     </div>
@@ -237,7 +328,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/parse-json-too-fast/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/akka-in-action/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -251,7 +342,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/parse-json-too-fast/" class="post-title-link" itemprop="url">Parse Json too fast</a>
+            <a href="/2019/03/14/akka-in-action/" class="post-title-link" itemprop="url">Akka in action</a>
         </h2>
 
         <div class="post-meta">
@@ -261,7 +352,167 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 22:59:30" itemprop="dateCreated datePublished" datetime="2019-03-10T22:59:30+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-14 19:09:15" itemprop="dateCreated datePublished" datetime="2019-03-14T19:09:15+08:00">2019-03-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://lantaozi.gitbooks.io/akka-in-action-cn/content/chapter1.html">原文链接</a></p>
+<p>针对买票的一个并发问题</p>
+<p>akka的模型：</p>
+<ol>
+<li>在票务代理和打印室之间，事件和票只能以不变的消息的方式进行传递。</li>
+<li>票务代理和打印室的请求已异步消息入队的方式进行，这样就不需要线程等待方法的执行和甚至接受。</li>
+<li>票务代理和打印室可以持有彼此的引用，这个引用包含了彼此之间可以发送消息的地址。这些消息会被暂时存在一个信箱里，然后根据到底的顺序一个个执行。（别担心，等会我们会好好解释这个工具集是怎么实现这个的）</li>
+</ol>
+<p>流式处理中，重要的是传递的不变性</p>
+<p>像 Spring 之类的框架在容器&#x2F;bean 层级处理，Akka 把可替换性引入运行时 （这就是 Actor“让它崩溃”的概念）：我们预计到会出现单个处理者不能执行任务的情况， 我们准备着重新分配工作以避免灾难性的失败。</p>
+<p>在运行时可替换</p>
+<p>Actors 运行在称为**分派者(dispatcher)**的抽象层上。 分派者操心使用哪个线程模型，并处理信箱。 类似线程池的工作方式，只是基于极端重要的消息传递方案之上，线程池处理任务调度，Akka 的分派者&#x2F;信箱会处理线程模型(TODO)和消息。</p>
+<p>出现父节点的概念不只是为了整齐：Akka 中最重要的概念之一，监控，就是层级的功能：每个 actor 都自动成为子节点的监控者。 这意味着，当子 actor 崩溃，父节点来决定采取何种策略来纠正问题。 这使得问题可以顺着层级上升，上层的监控者可以处理这种更为全局的问题，这这是它关注的</p>
+<p>actor的核心操作：</p>
+<ul>
+<li>创建</li>
+<li>发送</li>
+<li>变化</li>
+<li>监控</li>
+</ul>
+<p>akka的tdd？</p>
+<p>测试 Actors 比测试一般对象要难，因为：</p>
+<ul>
+<li>时机 - 消息发送是异步的，因此单元测试中难于知道何时断言期望值，</li>
+<li>异步性 - Actors 用来在多个线程中并行运行。 多线程测试比单线程测试困难，需要并发元语来同步各种 actor 的结果，如 lock, latch, 和 barriers 等。我们极力想避免的正是这些东西。一个 barrier 用不对就 可能中止了整个测试套件的执行。</li>
+<li>无状态 - actor 掩盖了内部状态，不允许外部访问。访问只能通过 ActorRef。 对 actor 调用方法，检查其状态，都被特意阻止了，这些都是你想在单元测试时做的。</li>
+<li>合作&#x2F;集成 - 如果你想集成测试很多 actors， 你可能想窃听 actors 之间的消息来 判断是否是预计值。怎样做并不能立即想到。</li>
+</ul>
+<p>akka的容错</p>
+<blockquote>
+<p>既然我们不能阻止所有的故障的发生，我们就要采取一种策略，铭记以下：</p>
+</blockquote>
+<ol>
+<li>Things break.系统要容错，可恢复的故障不能导致灾难性的失败。</li>
+<li>在一些情况下，尽量长的保持系统的主功能可用是可以接受的。同时失败的部分被停止并清理出系统，确保不会重启系统或产生不可预知的结果。</li>
+<li>其他一些情况下，有些组件很重要，就需要有备份（active backups），当主组件出问题时，可以快速的替代主组件。</li>
+<li>在系统的某些部分发生故障时，不应该使整个系统崩溃，所以我们需要一种方法来隔离特定的故障，让我们可以稍后处理。</li>
+</ol>
+<blockquote>
+<p>我们已经看了一些actor的功能，这能够帮我们简化问题。 actor可被props对象建立和重建，这是actor系统的一部分，而且actor之间的通信是通过actor的引用而不是直接通信。</p>
+</blockquote>
+<blockquote>
+<p>akka没有用一个流程来处理正常代码和故障恢复代码，而是用两个不同的流程； 一个用于正常逻辑，一个用于故障恢复逻辑。 正常流程用于处理正常的消息，故障恢复流程包含一个actor用来检测正常流程的actor。 这个检测actor被称作supervisor</p>
+</blockquote>
+<blockquote>
+<p>akka让父actor作为supervisor，只要这个actor创建了其他actor，它就自动变为supervisor。 supervisor不捕获异常，而是监督失败的原因并给出一些策略。 supervisor也不去尝试恢复actor或者actor的状态。 它提供如何恢复的判断，然后触发相应的策略。</p>
+</blockquote>
+<p><img src="https://withshenhui.gitbooks.io/akka-in-action-cn/content/figures/file-85_1.png" alt="db writer actor"></p>
+<blockquote>
+<p>每个actor都经过这个生命周期。 启动，可能重启几次，直到停止或者终止。 preStart 、preRestart 、postRestart 和 postStop 用来初始化、清理状态或者崩溃后控制、恢复其状态。</p>
+</blockquote>
+<p> ActorContext提供了watch方法来监控actor和unwatch方法来取消监控。 一旦一个actor调用watch方法来监控另外一个actor的引用，它就成为被监控actor的monitor。 当被监控的actor终止时，会给monitor发送终止消息。 终止消息只包含被终止actor的引用。</p>
+<p>monitor的好处</p>
+<blockquote>
+<p>monitor不一定非要是supervisor，可以是任意一个actor。 只要这个actor有被监控actor的引用，就可以通过context.watch(actorRef)实现对actorRef的监控。 当被监控actor终止时，monitor就可以收到终止消息。</p>
+</blockquote>
+<blockquote>
+<p>在这个系统中，actor之间通过actorRef连接。 每个actor知道它要发送消息的actor的actorRef。</p>
+</blockquote>
+<p>以actor为核心</p>
+<p> “让它崩溃去吧”的理念不是忽略可能发生的故障，或者是提供个组件解决所有错误，实际上是： 程序员需要预先知道那些故障是可以恢复的，提供工具只是为了让这些处理起来简单，不用老开一些处理错误的会议或者编写大量代码。</p>
+<p>Futures</p>
+<p>futures 是最好的工具。一般来说，那些用例有一个或多个如下的特点：</p>
+<ul>
+<li>你不想阻塞(等在当前线程上)来处理函数结果。</li>
+<li>一次性地调用函数，在之后的某个时间点处理结果。</li>
+<li>结合多个一次性函数，并结合结果。</li>
+<li>调用多个竞争的函数，只使用部分结果，如只用最快的响应。</li>
+<li>调用函数，当函数抛出异常，返回默认的结果，让流可以继续。</li>
+<li>流水线化这类函数，其中一个函数依赖于一个或多个其他函数的结果。</li>
+</ul>
+<p>关于route部分？</p>
+<p>futures部分，提供onComplete方法来处理success和failure</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"><span class="keyword">import</span> scala.util._</span><br><span class="line"><span class="keyword">import</span> scala.util.control.<span class="type">NonFatal</span></span><br><span class="line"><span class="keyword">import</span> scala.concurrent._</span><br><span class="line"><span class="keyword">import</span> <span class="type">ExecutionContext</span>.<span class="type">Implicits</span>.global</span><br><span class="line"><span class="keyword">val</span> futureFail = <span class="type">Future</span> &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">Exception</span>(<span class="string">&quot;error!&quot;</span>)&#125;</span><br><span class="line">futureFail.onComplete &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Success</span>(value) =&gt; println(value)</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Failure</span>(<span class="type">NonFatal</span>(e)) =&gt; println(e)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line">java.lang.<span class="type">Exception</span>: error!</span><br></pre></td></tr></table></figure>
+
+
+
+<p>futures的组合部分</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getWeather</span></span>(ticketInfo:<span class="type">TicketInfo</span>):<span class="type">Future</span>[<span class="type">TicketInfo</span>] = &#123;</span><br><span class="line">  <span class="keyword">val</span> futureWeatherX = callWeatherXService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futureWeatherY = callWeatherYService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futures = <span class="type">Seq</span>(futureWeatherX, futureWeatherY)</span><br><span class="line">  <span class="keyword">val</span> fastestResponse = <span class="type">Future</span>.firstCompletedOf(futures)</span><br><span class="line">  fastestResponse.map&#123; weatherResponse =&gt;</span><br><span class="line">    ticketInfo.copy(weather = weatherResponse)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="Akka构建本地以及分布式系统"><a href="#Akka构建本地以及分布式系统" class="headerlink" title="Akka构建本地以及分布式系统"></a>Akka构建本地以及分布式系统</h4><p>分布式系统遇到的问题：</p>
+<ul>
+<li>延迟：在合作者之间有网络意味着a，每个消息有延时，和b(TODO:不知所云)。由于拥塞导致的延时，重发的包，断断续续的连接，等等。</li>
+<li>部分失败：当系统中的某一部分总是出现、消失、重现时，知道分布式系统中所有部分是够工作是非常难于解决的问题。</li>
+<li>内存访问：本地系统中获取一个内存中对象的引用不会时不时失败，但是在分布式系统中的确会发生。</li>
+<li>并发：没有什么拥有一切东西，上述因素意味着交错操作的计划可能会出错。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> path = <span class="string">&quot;akka.tcp://backend@0.0.0.0:2551/user/simple&quot;</span></span><br><span class="line"><span class="keyword">val</span> simple = frontend.actorSelection(path)</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line"></span><br><span class="line">path: <span class="type">String</span> = akka.tcp:<span class="comment">//backend@0.0.0.0:2551/user/simple</span></span><br><span class="line">simple: akka.actor.<span class="type">ActorSelection</span> = <span class="type">ActorSelection</span>[<span class="type">Actor</span>[akka.tcp:<span class="comment">//backend@0.0.0.0:2551/]/user/simple]</span></span><br></pre></td></tr></table></figure>
+
+<p>远端的actor路径</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/json-style/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/14/json-style/" class="post-title-link" itemprop="url">Json Style</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-14 15:24:56" itemprop="dateCreated datePublished" datetime="2019-03-14T15:24:56+08:00">2019-03-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -284,18 +535,19 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://branchfree.org/2019/02/25/paper-parsing-gigabytes-of-json-per-second/">原文链接</a></p>
-<p>The chief point of difference between simdjson and systems such as RapidJSON and sajson lies in the “Stage 1” of simdjson; the part of the system that detects the locations of structural and pseudo-structural characters from the input. This system operates with large scale and regular operations over 64 bytes of the input at once, and can take advantage of both SIMD operations (when examining characters and character classes) as well as 64-bit bitwise operations (when applying transformations on the masks obtained from the SIMD operations). As such, it can achieve “economies of scale” as compared to a step-by-step approach.</p>
-<p>一次性读入64 bytes的数据，然后同时操作？</p>
-<p> Stage 1 proceeds as follows:</p>
-<ol>
-<li>Validation of UTF-8 across the whole input.</li>
-<li>Detection of odd-length sequences of backslashes (that will result in escaping the subsequent character)</li>
-<li>Detection of which characters are “inside” quotes, by filtering out escaped quote characters from the previous step, then doing a parallel prefix sum over XOR (using the PCLMULQDQ instruction with an argument of -1 as the multiplier) to turn our escaped quote mask into a mask showing which bits are between a pair of quotes.</li>
-<li>Detection of structural characters and whitespace via table-based lookup (implemented with a pair of VPSHUFB instructions).</li>
-<li>Detection of pseudo-structural characters (those characters I talked about in the summary of stage 1 that need to be exposed to the subsequent stage 2 for error detection and atom handling).</li>
-<li>Conversion of the bitmask containing structural and pseudo-structural characters into a series of indexes.</li>
-</ol>
+          <p><a target="_blank" rel="noopener" href="https://github.com/darcyliu/google-styleguide/blob/master/JSONStyleGuide.md">原文链接</a></p>
+<p>针对null的情况</p>
+<p>如果一个属性是可选的或者包含空值或<em>null</em>值，考虑从JSON中去掉该属性，除非它的存在有很强的语义原因。</p>
+<h3 id="日期属性值"><a href="#日期属性值" class="headerlink" title="日期属性值"></a>日期属性值</h3><p><strong>日期应该使用RFC3339建议的格式</strong></p>
+<p>日期应该是RFC 3339所建议的字符串格式。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;lastUpdate&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2007-11-06T16:34:41.000Z&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>关于一些保留字部分？</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;apiVersion&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;data&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2010-02-04T19:29:54.001Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;totalItems&quot;</span><span class="punctuation">:</span> <span class="number">6741</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;startIndex&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;itemsPerPage&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;items&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">      <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;BGODurRfVv4&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;uploaded&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2009-11-17T20:10:06.000Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2010-02-04T06:25:57.000Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;uploader&quot;</span><span class="punctuation">:</span> <span class="string">&quot;docchat&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;category&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Animals&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;title&quot;</span><span class="punctuation">:</span> <span class="string">&quot;From service dog to SURFice dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;description&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Surf dog Ricochets inspirational video ...&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;tags&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">          <span class="string">&quot;Surf dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;dog surfing&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;golden retriever&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;thumbnail&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;default&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://i.ytimg.com/vi/BGODurRfVv4/default.jpg&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;hqDefault&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://i.ytimg.com/vi/BGODurRfVv4/hqdefault.jpg&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;player&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;default&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://www.youtube.com/watch?v=BGODurRfVv4&amp;feature=youtube_gdata&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;mobile&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://m.youtube.com/details?v=BGODurRfVv4&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;content&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;1&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rtsp://v5.cache6.c.youtube.com/CiILENy73wIaGQn-Vl-0uoNjBBMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;5&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://www.youtube.com/v/BGODurRfVv4?f=videos&amp;app=youtube_gdata&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;6&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rtsp://v7.cache7.c.youtube.com/CiILENy73wIaGQn-Vl-0uoNjBBMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;duration&quot;</span><span class="punctuation">:</span> <span class="number">315</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;rating&quot;</span><span class="punctuation">:</span> <span class="number">4.96</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;ratingCount&quot;</span><span class="punctuation">:</span> <span class="number">2043</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;viewCount&quot;</span><span class="punctuation">:</span> <span class="number">1781691</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;favoriteCount&quot;</span><span class="punctuation">:</span> <span class="number">3363</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;commentCount&quot;</span><span class="punctuation">:</span> <span class="number">1007</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;commentsAllowed&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span></span><br><span class="line">      <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>一个示例</p>
 
       
     </div>
@@ -315,7 +567,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/fully-utilise-docker/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/event-bus-in-go/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -329,7 +581,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/10/fully-utilise-docker/" class="post-title-link" itemprop="url">Fully Utilise Docker in development</a>
+            <a href="/2019/03/14/event-bus-in-go/" class="post-title-link" itemprop="url">Event bus in go</a>
         </h2>
 
         <div class="post-meta">
@@ -339,7 +591,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 15:50:32" itemprop="dateCreated datePublished" datetime="2019-03-10T15:50:32+08:00">2019-03-10</time>
+              <time title="Created: 2019-03-14 10:43:17" itemprop="dateCreated datePublished" datetime="2019-03-14T10:43:17+08:00">2019-03-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -347,7 +599,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/docker/" itemprop="url" rel="index"><span itemprop="name">docker</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -362,158 +614,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/tsftech/how-to-fully-utilise-docker-during-development-42bb3cdc3017">原文链接</a></p>
-<p>主要是针对node环境？</p>
-<p>wiki搭建环境</p>
-<p>本地测试很长时间？ci环境不是很好部署？</p>
-<p>Multistage builds is a Docker feature that neatly allows us to build one container to encapsulate the build and then copy artefacts into a new container optimised for Production.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/frontend-bootcamp/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/10/frontend-bootcamp/" class="post-title-link" itemprop="url">Frontend Bootcamp</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-10 14:56:20" itemprop="dateCreated datePublished" datetime="2019-03-10T14:56:20+08:00">2019-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/frontend/" itemprop="url" rel="index"><span itemprop="name">frontend</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://microsoft.github.io/frontend-bootcamp/">原文链接</a></p>
-<p><img src="https://raw.githubusercontent.com/Microsoft/frontend-bootcamp/master/assets/css-syntax.png" alt="css选择器"></p>
-<p><a target="_blank" rel="noopener" href="https://reactjs.org/docs/introducing-jsx.html">JSX介绍</a></p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> element = <span class="language-xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello, world!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span>;</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://levelup.gitconnected.com/lets-write-a-simple-event-bus-in-go-79b9480d8997">原文链接</a></p>
+<p>The traditional approach to implementing an event bus involves using callbacks. Subscribers usually implement an interface and then the event bus propagates data via the interface.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> DataEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">   Data <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">   Topic <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DataChannel is a channel which can accept an DataEvent</span></span><br><span class="line"><span class="keyword">type</span> DataChannel <span class="keyword">chan</span> DataEvent</span><br><span class="line"><span class="comment">// DataChannelSlice is a slice of DataChannels</span></span><br><span class="line"><span class="keyword">type</span> DataChannelSlice [] DataChannel</span><br></pre></td></tr></table></figure>
 
 
 
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">ReactDOM</span>.<span class="title function_">render</span>(</span><br><span class="line">  <span class="language-xml"><span class="tag">&lt;<span class="name">div</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">    <span class="tag">&lt;<span class="name">App</span> <span class="attr">text</span>=<span class="string">&quot;Hello World&quot;</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">    <span class="tag">&lt;<span class="name">App</span> <span class="attr">text</span>=<span class="string">&quot;How are you doing?&quot;</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">  <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span>,</span><br><span class="line">  <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;app&#x27;</span>)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
 
-<p>React allows each control to specify its own data store, called <strong>state</strong>.</p>
-<p>首先是组件的思想，然后有组件的话，必然会涉及到状态</p>
 
-      
-    </div>
+<p>关键的数据结构</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// EventBus stores the information about subscribers interested for // a particular topic</span></span><br><span class="line"><span class="keyword">type</span> EventBus <span class="keyword">struct</span> &#123;</span><br><span class="line">   subscribers <span class="keyword">map</span>[<span class="type">string</span>]DataChannelSlice</span><br><span class="line">   rm sync.RWMutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/10/javascript-callback/">
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
+<p>publisher</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(eb *EventBus)</span></span>Publish(topic <span class="type">string</span>, data <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">   eb.rm.RLock()</span><br><span class="line">   <span class="keyword">if</span> chans, found := eb.subscribers[topic]; found &#123;</span><br><span class="line">      <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(data DataEvent, dataChannelSlices DataChannelSlice)</span></span> &#123;</span><br><span class="line">         <span class="keyword">for</span> _, ch := <span class="keyword">range</span> dataChannelSlices &#123;</span><br><span class="line">            ch &lt;- data</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;(DataEvent&#123;Data: data, Topic:topic&#125;, chans)</span><br><span class="line">   &#125;</span><br><span class="line">   eb.rm.RUnlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/10/javascript-callback/" class="post-title-link" itemprop="url">Javascript Callback</a>
-        </h2>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-10 14:42:48" itemprop="dateCreated datePublished" datetime="2019-03-10T14:42:48+08:00">2019-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/javascript/" itemprop="url" rel="index"><span itemprop="name">javascript</span></a>
-                </span>
-            </span>
+<p>代替callback？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ch1 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch2 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch3 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line"></span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic1&quot;</span>, ch1)</span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic2&quot;</span>, ch2)</span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic2&quot;</span>, ch3)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">&quot;topic1&quot;</span>, <span class="string">&quot;Hi topic 1&quot;</span>)</span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">&quot;topic2&quot;</span>, <span class="string">&quot;Welcome to topic 2&quot;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch1:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch1&quot;</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch2:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch2&quot;</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch3:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch3&quot;</span>, d)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://codeburst.io/javascript-what-the-heck-is-a-callback-aba4da2deced">原文链接</a></p>
-<p><strong>Simply put:</strong> <em>A callback is a function that is to be executed</em> <strong>after</strong> <em>another function has finished executing — hence the name ‘call back’.</em></p>
-<p><strong>More complexly put:</strong> <em>In JavaScript, functions are objects. Because of this, functions can take functions as arguments, and can be returned by other functions. Functions that do this are called</em> <strong>higher-order functions</strong>. Any function that is passed as an argument is called a* <strong>callback function</strong>.</p>
-<p><a target="_blank" rel="noopener" href="https://codeburst.io/build-a-simple-twitter-bot-with-node-js-in-just-38-lines-of-code-ed92db9eb078">twitter bot code</a></p>
+<p>从代码看来，subscribe部分，也只是接受数据，后面可以统一定义操作？再做一层</p>
+<blockquote>
+<p><em>I’ve used a slice to store all the subscribers for a topic. This is used to simplifying the article. This need to be replaced with a</em> <strong>SET</strong> <em>so no duplicate entries present in the list</em></p>
+</blockquote>
 
       
     </div>
@@ -532,7 +657,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/52/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><span class="page-number current">53</span><a class="page-number" href="/page/54/">54</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/54/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/52/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/52/">52</a><span class="page-number current">53</span><a class="page-number" href="/page/54/">54</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/54/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -600,7 +725,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -613,7 +738,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -641,7 +766,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

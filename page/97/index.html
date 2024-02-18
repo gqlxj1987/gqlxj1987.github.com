@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/04/spelling-translate/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/09/improve-spell-correct/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/04/spelling-translate/" class="post-title-link" itemprop="url">Spelling Translate</a>
+            <a href="/2018/04/09/improve-spell-correct/" class="post-title-link" itemprop="url">Improve Spell Correct</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-04 14:50:11" itemprop="dateCreated datePublished" datetime="2018-04-04T14:50:11+08:00">2018-04-04</time>
+              <time title="Created: 2018-04-09 18:06:31" itemprop="dateCreated datePublished" datetime="2018-04-09T18:06:31+08:00">2018-04-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,151 +200,293 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://www.pinchofintelligence.com/old-spelling-to-new-spelling-with-tensorflow/">原文链接</a></p>
-<h3 id="prepartion"><a href="#prepartion" class="headerlink" title="prepartion"></a>prepartion</h3><p>选用RNN的网络，主要是针对词来算</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">Xdata = []</span><br><span class="line">Ydata = []</span><br><span class="line">MAX_LENGTH_WORD = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">feature_dict= <span class="built_in">dict</span>()</span><br><span class="line">feature_list = <span class="built_in">list</span>()</span><br><span class="line"></span><br><span class="line">PADDING_CHARACTER = <span class="string">&#x27;~&#x27;</span></span><br><span class="line">feature_dict[PADDING_CHARACTER]=<span class="number">0</span></span><br><span class="line">feature_list.append(PADDING_CHARACTER)</span><br><span class="line">max_features = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_vector_from_string</span>(<span class="params">input_s</span>):</span><br><span class="line">    <span class="keyword">global</span> max_features</span><br><span class="line">    vector_x = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> input_s:</span><br><span class="line">        <span class="keyword">if</span> i <span class="keyword">not</span> <span class="keyword">in</span> feature_dict:</span><br><span class="line">            feature_dict[i]=max_features</span><br><span class="line">            feature_list.append(i)</span><br><span class="line">            max_features += <span class="number">1</span></span><br><span class="line">        vector_x.append(feature_dict[i])</span><br><span class="line">    <span class="keyword">return</span> vector_x</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_to_data</span>(<span class="params">input_s,output_s</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(input_s) &lt; MAX_LENGTH_WORD <span class="keyword">and</span> <span class="built_in">len</span>(output_s) &lt; MAX_LENGTH_WORD:</span><br><span class="line">        vector_x = get_vector_from_string(input_s)</span><br><span class="line">        vector_y = get_vector_from_string(output_s)</span><br><span class="line">        Xdata.append(vector_x)</span><br><span class="line">        Ydata.append(vector_y)</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">print_vector</span>(<span class="params">vector,end_token=<span class="string">&#x27;\n&#x27;</span></span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;&#x27;</span>.join([feature_list[i] <span class="keyword">for</span> i <span class="keyword">in</span> vector]),end=end_token)</span><br><span class="line">    </span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&quot;dictionary_old_new_dutch.csv&quot;</span>) <span class="keyword">as</span> in_file:</span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> in_file:</span><br><span class="line">            in_s,out_s = line.strip().split(<span class="string">&quot;,&quot;</span>)</span><br><span class="line">            add_to_data(in_s,out_s)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">    print_vector(Xdata[i],end_token=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27; -&gt; &#x27;</span>, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    print_vector(Ydata[i])</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://github.com/iamharshit/Seq2Seq-SpellCorrector/">原repo</a></p>
+<p>原先的代码几个点说明:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">remove_conflicting_examples</span>(<span class="params">data</span>):</span><br><span class="line">	correct_words, incorrect_words = np.array(data)[:,<span class="number">0</span>], np.array(data)[:,<span class="number">1</span>]</span><br><span class="line">	correct_vocab, incorrect_vocab = <span class="built_in">list</span>(<span class="built_in">set</span>(correct_words)), <span class="built_in">list</span>(<span class="built_in">set</span>(incorrect_words))</span><br><span class="line">   </span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		i=<span class="number">0</span></span><br><span class="line">		<span class="keyword">while</span>(i&lt;<span class="built_in">len</span>(data)):</span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> data[i][<span class="number">0</span>] <span class="keyword">in</span> incorrect_vocab <span class="keyword">or</span> data[i][<span class="number">1</span>] <span class="keyword">in</span> correct_vocab:</span><br><span class="line">				<span class="keyword">del</span> data[i]</span><br><span class="line">				i-=<span class="number">1</span></span><br><span class="line">			i+=<span class="number">1</span></span><br><span class="line">	<span class="keyword">except</span>:</span><br><span class="line">		<span class="keyword">pass</span></span><br><span class="line">	<span class="keyword">return</span> data</span><br></pre></td></tr></table></figure>
+
+<p>去掉一些相互冲突的example，梳理相关的数据</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">left_pad</span>(<span class="params">list_</span>):</span><br><span class="line">    max_seq_len = <span class="number">20</span></span><br><span class="line">    ans = np.zeros((max_seq_len), dtype=<span class="built_in">int</span>)</span><br><span class="line">    ans[:<span class="built_in">len</span>(list_)] = np.array(list_[:max_seq_len] )</span><br><span class="line">    <span class="keyword">return</span> ans</span><br></pre></td></tr></table></figure>
+
+<p>取最大的长度20，其他的进行padding补全</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">string2indexes</span>(<span class="params">word</span>):</span><br><span class="line">    <span class="keyword">return</span> left_pad([<span class="built_in">ord</span>(char) - <span class="number">96</span> <span class="keyword">for</span> char <span class="keyword">in</span> <span class="built_in">list</span>(word)])</span><br></pre></td></tr></table></figure>
+
+<p>根据ascii码序表来进行转换，这里的96是因为a的ascii值为97</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">xseq_len = train[<span class="number">0</span>].shape[-<span class="number">1</span>]</span><br><span class="line">yseq_len = train[<span class="number">0</span>].shape[-<span class="number">1</span>]</span><br><span class="line">xvocab_size = <span class="number">26</span>+<span class="number">1</span></span><br><span class="line">yvocab_size = xvocab_size</span><br><span class="line">embed_size = <span class="number">300</span></span><br><span class="line"></span><br><span class="line">lstm_cell_size = embed_size</span><br><span class="line">lstm_layers = <span class="number">3</span></span><br><span class="line">embed_size = embed_size </span><br><span class="line"></span><br><span class="line">epoch_n = <span class="number">5</span></span><br><span class="line">lr = <span class="number">0.01</span>  </span><br><span class="line"></span><br><span class="line">global_iteration=<span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>这里的一些参数，很明显了，xseq_len和yseq_len基本都是max_seq_len, xvocab_size就是26个字母+1这样子</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">&#x27;decoder&#x27;</span>, reuse=tf.AUTO_REUSE) <span class="keyword">as</span> scope:</span><br><span class="line"><span class="comment">#     scope.reuse_variables()</span></span><br><span class="line">    decode_outputs, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip,dec_ip,                                                           										lstm,xvocab_size,yvocab_size,</span><br><span class="line">                                                           embedding_size=embed_size,feed_previous=<span class="literal">False</span>)</span><br><span class="line">    scope.reuse_variables() <span class="comment">#sharing parameter b/w train and test decoders</span></span><br><span class="line">    decode_outputs_test, _ = tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(enc_ip, dec_ip,</span><br><span class="line">                                                                              lstm, xvocab_size,</span><br><span class="line">                                                                              yvocab_size,embed_size,</span><br><span class="line">                                                                              feed_previous =<span class="literal">True</span>)</span><br></pre></td></tr></table></figure>
 
 
 
-<p>上面部分是将词转化成为vector，注意几点：</p>
-<ul>
-<li>限制max_length_word部分</li>
-<li>这里面没有像之前lstm那样，通过记录词频的方式，来进行one_hot编码</li>
-<li>feature_list记录所有的词，同时，feature_dict记录词进入feature_list的位置</li>
+<p>这里，要注意的是关于variable_scope部分中，lstm的resuse使用标志</p>
+<p>原始代码里predict出来的，</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">X:  [16 19 25  3 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0  0]</span><br><span class="line">Prediction:  [16 16 16 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18 18]</span><br><span class="line">Y:  [16 19 25  3  8 15 12 15  7  9 19 20  0  0  0  0  0  0  0  0]</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>prediction出来的内容，基本很大程度上对不上。。。</p>
+<h3 id="改进一"><a href="#改进一" class="headerlink" title="改进一"></a>改进一</h3><ul>
+<li>embedding_rnn_seq2seq改成embedding_attention_seq2seq </li>
+<li>采用random的方式，对train的数据集进行训练</li>
+<li>从int32变成float32?</li>
+<li>关于prediction的展示部分，如何显示出来？</li>
 </ul>
-<h3 id="data-preprocessing"><a href="#data-preprocessing" class="headerlink" title="data preprocessing"></a>data preprocessing</h3><p>As mentioned above I would like to use a sequence to sequence approach. Important for this approach is having a certain length of words. Words that are longer than that length have been discarded in de data-reading step above. Now we will add paddings to the words that are not long enough. — 对于不够的词增加相应的padding</p>
-<p>Another important step is creating a train and a test set. We only show the network examples from the train set. At the end I will manually evaluate some of the examples in the testset and discuss what the network learned. During training we train in batches with a small amount of data. With a random data splitter we get a different trainset every run. — 挑选合适的训练集和测试集</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">before_padding = Xdata[<span class="number">0</span>]</span><br><span class="line">Xdata = sequence.pad_sequences(Xdata, maxlen=MAX_LENGTH_WORD)</span><br><span class="line">Ydata = sequence.pad_sequences(Ydata, maxlen=MAX_LENGTH_WORD)</span><br><span class="line">after_padding  = Xdata[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">print_vector(before_padding,end_token=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot; -&gt; after padding: &quot;</span>, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">print_vector(after_padding)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">DataSplitter</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,percentage</span>):</span><br><span class="line">        self.percentage = percentage</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">split_data</span>(<span class="params">self,data</span>):</span><br><span class="line">        splitpoint = <span class="built_in">int</span>(<span class="built_in">len</span>(data)*self.percentage)</span><br><span class="line">        <span class="keyword">return</span> data[:splitpoint], data[splitpoint:]</span><br><span class="line">splitter = DataSplitter(<span class="number">0.8</span>)</span><br><span class="line">Xdata,Xtest = splitter.split_data(Xdata)</span><br><span class="line">Ydata,Ytest = splitter.split_data(Ydata)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_random_reversed_dataset</span>(<span class="params">Xdata,Ydata,batch_size</span>):</span><br><span class="line">    newX = []</span><br><span class="line">    newY = []</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(batch_size):</span><br><span class="line">        index_taken = random.randint(<span class="number">0</span>,<span class="built_in">len</span>(Xdata)-<span class="number">1</span>)</span><br><span class="line">        newX.append(Xdata[index_taken])</span><br><span class="line">        newY.append(Ydata[index_taken][::-<span class="number">1</span>])</span><br><span class="line">    <span class="keyword">return</span> newX,newY</span><br></pre></td></tr></table></figure>
 
+      
+    </div>
 
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
 
-<p>这里的几点：</p>
-<ul>
-<li>使用sequence.pad_sequences警醒padding补充</li>
-</ul>
-<h3 id="The-network"><a href="#The-network" class="headerlink" title="The network"></a>The network</h3><ul>
-<li>embeds our characters</li>
-<li>has an encoder which returns a sequence of outputs</li>
-<li>has an attention model which uses this sequence to generate output characters</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">batch_size = <span class="number">64</span></span><br><span class="line">memory_dim = <span class="number">256</span></span><br><span class="line">embedding_dim = <span class="number">32</span></span><br><span class="line"></span><br><span class="line">enc_input = [tf.placeholder(tf.int32, shape=(<span class="literal">None</span>,)) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)]</span><br><span class="line">dec_output = [tf.placeholder(tf.int32, shape=(<span class="literal">None</span>,)) <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)]</span><br><span class="line"></span><br><span class="line">weights = [tf.ones_like(labels_t, dtype=tf.float32) <span class="keyword">for</span> labels_t <span class="keyword">in</span> enc_input]</span><br><span class="line"></span><br><span class="line">dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32)]+[dec_output[t] <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD-<span class="number">1</span>)])</span><br><span class="line">empty_dec_inp = ([tf.zeros_like(enc_input[<span class="number">0</span>], dtype=np.int32,name=<span class="string">&quot;empty_dec_input&quot;</span>) <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)])</span><br><span class="line"></span><br><span class="line">cell = tf.nn.rnn_cell.GRUCell(memory_dim)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Create a train version of encoder-decoder, and a test version which does not feed the previous input</span></span><br><span class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">&quot;decoder1&quot;</span>) <span class="keyword">as</span> scope:</span><br><span class="line">    outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,dec_inp,</span><br><span class="line">                                                           cell,max_features,max_features,</span><br><span class="line">                                                           embedding_dim, feed_previous=<span class="literal">False</span>)</span><br><span class="line"><span class="keyword">with</span> tf.variable_scope(<span class="string">&quot;decoder1&quot;</span>,reuse=<span class="literal">True</span>) <span class="keyword">as</span> scope:</span><br><span class="line">    runtime_outputs, _ = tf.nn.seq2seq.embedding_attention_seq2seq(enc_input,empty_dec_inp,</span><br><span class="line">                                                                    cell,max_features,max_features,</span><br><span class="line">                                                                   embedding_dim,feed_previous=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">loss = tf.nn.seq2seq.sequence_loss(outputs, dec_output, weights, max_features)</span><br><span class="line"></span><br><span class="line">optimizer = tf.train.AdamOptimizer()</span><br><span class="line">train_op = optimizer.minimize(loss)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Init everything</span></span><br><span class="line">sess = tf.InteractiveSession()</span><br><span class="line">sess.run(tf.initialize_all_variables())</span><br></pre></td></tr></table></figure>
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/09/Who-will-steal-Android-from-Google/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/09/Who-will-steal-Android-from-Google/" class="post-title-link" itemprop="url">Who will steal Android from Google</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-09 12:04:17" itemprop="dateCreated datePublished" datetime="2018-04-09T12:04:17+08:00">2018-04-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/google/" itemprop="url" rel="index"><span itemprop="name">google</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@steve.yegge/who-will-steal-android-from-google-af3622b6252e">原文链接</a></p>
+<blockquote>
+<p>Why does everyone need mobile devs? Because <em>the web is slowly dying</em>. I have friends — well, probably ex-friends now — in just about every org at Google, who used to point me at their gloomy graphs, and it doesn’t matter how you slice it, the web’s in a steady decline as the whole world moves to mobile. </p>
+</blockquote>
+<p>At Google, most engineers are too snooty to do mobile or web programming. “I don’t do frontend”, they proclaim with maximal snootiness.</p>
+<p>There’s a phenomenon there that I like to call the “DAG of Disdain”, wherein DAG means Directed Acyclic Graph, which is a bit like a flowchart</p>
+<p>I am talking about full-scale replacements for Google’s <em>entire</em>Android development stack. Microsoft has Xamarin, Adobe has Cordova, Facebook has React Native, I mean it’s crazy town.Google has a new Flutter</p>
+<blockquote>
+<p> To most folks, they probably appear to be comfortably in the driver’s seat. But consider: If all mobile developers were to start using a particular cross-platform framework X, then literally any other hardware&#x2F;OS manufacturer or consortium could come along with their own competing hardware&#x2F;OS platform (like, say, Windows) that supports that framework X directly, and all the apps would run on it (probably faster, to boot), which would cut Google out entirely.</p>
+</blockquote>
+<p>Abandoning native programming in favor of fast-cycle cross-platform frameworks like React Native is a <em>winning strategy</em></p>
+<p>conclusion:</p>
+<p>尝试下react native？</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/09/why-left-google/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/09/why-left-google/" class="post-title-link" itemprop="url">why left google</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-09 10:56:56" itemprop="dateCreated datePublished" datetime="2018-04-09T10:56:56+08:00">2018-04-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/google/" itemprop="url" rel="index"><span itemprop="name">google</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@steve.yegge/why-i-left-google-to-join-grab-86dfffc0be84">原文链接</a></p>
+<p>The main reason I left Google is that they can no longer innovate</p>
+<p>大公司病</p>
+<blockquote>
+<p>Google has become 100% competitor-focused rather than customer focused</p>
+</blockquote>
+<p>And so, like many Googlers, I’d been thinking of moving on for a few years. But where would you go</p>
+<p>关于生态的破坏</p>
+<p>发现一些新的发展形式和发展点，找到一些发展不充分的点</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/08/seq2seq-model-test/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/08/seq2seq-model-test/" class="post-title-link" itemprop="url">seq2seq model解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-08 17:31:50" itemprop="dateCreated datePublished" datetime="2018-04-08T17:31:50+08:00">2018-04-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="http://cyruschiu.github.io/2017/02/24/learning-Tensoflow-Seq2Seq-for-translate/">原文链接</a></p>
+<h3 id="train"><a href="#train" class="headerlink" title="train"></a>train</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:</span><br><span class="line">   <span class="comment"># 區塊1，模型初始化</span></span><br><span class="line">   <span class="comment"># Create model.</span></span><br><span class="line">   <span class="built_in">print</span>(<span class="string">&quot;Creating %d layers of %d units.&quot;</span> % (FLAGS.num_layers, FLAGS.size))</span><br><span class="line">   <span class="comment"># 透過 create_model() 方法創建一個 seq2seq_model</span></span><br><span class="line">   model = create_model(sess, <span class="literal">False</span>)</span><br><span class="line">   </span><br><span class="line">   <span class="comment"># 區塊2，讀入資料</span></span><br><span class="line">   <span class="comment"># Read data into buckets and compute their sizes.</span></span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;Reading development and training data (limit: %d).&quot;</span></span><br><span class="line">          % FLAGS.max_train_data_size)</span><br><span class="line">   <span class="comment"># read_data 函數讀取 train, dev 的路徑，</span></span><br><span class="line">   dev_set = read_data(from_dev, to_dev)</span><br><span class="line">   train_set = read_data(from_train, to_train, FLAGS.max_train_data_size)</span><br><span class="line">   train_bucket_sizes = [<span class="built_in">len</span>(train_set[b]) <span class="keyword">for</span> b <span class="keyword">in</span> xrange(<span class="built_in">len</span>(_buckets))]</span><br><span class="line">   train_total_size = <span class="built_in">float</span>(<span class="built_in">sum</span>(train_bucket_sizes))</span><br><span class="line">   train_buckets_scale = [<span class="built_in">sum</span>(train_bucket_sizes[:i + <span class="number">1</span>]) / train_total_size</span><br><span class="line">                          <span class="keyword">for</span> i <span class="keyword">in</span> xrange(<span class="built_in">len</span>(train_bucket_sizes))]</span><br><span class="line">   <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">     <span class="comment"># 區塊3，建立 batch</span></span><br><span class="line">     <span class="comment"># Choose a bucket according to data distribution. We pick a random number</span></span><br><span class="line">     <span class="comment"># in [0, 1] and use the corresponding interval in train_buckets_scale.</span></span><br><span class="line">     random_number_01 = np.random.random_sample()</span><br><span class="line">     bucket_id = <span class="built_in">min</span>([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(<span class="built_in">len</span>(train_buckets_scale))</span><br><span class="line">                      <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</span><br><span class="line">     <span class="comment"># Get a batch and make a step.</span></span><br><span class="line">     start_time = time.time()</span><br><span class="line">     encoder_inputs, decoder_inputs, target_weights = model.get_batch(</span><br><span class="line">         train_set, bucket_id)</span><br><span class="line">     <span class="comment"># 區塊4，訓練</span></span><br><span class="line">     _, step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,</span><br><span class="line">                                  target_weights, bucket_id, <span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
 
 
 
 <p>代码解析：</p>
-<pre><code> 1. enc_input和dec_output分别是10dim的数组
- 2. init weights部分
- 3. memory_dim的意义？
- 4. 采用的是GRUCell的小处理阀门
- 5. feed_previous的意义？
-</code></pre>
-<h3 id="Training"><a href="#Training" class="headerlink" title="Training"></a>Training</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> index_now <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1002</span>):</span><br><span class="line">    Xin,Yin = get_random_reversed_dataset(Xdata,Ydata,batch_size)</span><br><span class="line">    Xin = np.array(Xin).T</span><br><span class="line">    Yin = np.array(Yin).T</span><br><span class="line">    feed_dict = &#123;enc_input[t]: Xin[t] <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)&#125;</span><br><span class="line">    feed_dict.update(&#123;dec_output[t]: Yin[t] <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)&#125;)</span><br><span class="line">    _, l = sess.run([train_op,loss], feed_dict)</span><br><span class="line">    <span class="keyword">if</span> index_now%<span class="number">100</span>==<span class="number">1</span>:</span><br><span class="line">        <span class="built_in">print</span>(l)</span><br></pre></td></tr></table></figure>
+<h4 id="create-model"><a href="#create-model" class="headerlink" title="create_model"></a>create_model</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span></span><br><span class="line"><span class="params">             source_vocab_size, <span class="comment"># 英文單詞表的數量</span></span></span><br><span class="line"><span class="params">             target_vocab_size, <span class="comment"># 法文單詞表的數量</span></span></span><br><span class="line"><span class="params">             buckets, <span class="comment"># buckets 於下面詳述</span></span></span><br><span class="line"><span class="params">             size, <span class="comment"># 模型每個 layer 的 neuron size</span></span></span><br><span class="line"><span class="params">             num_layers, </span></span><br><span class="line"><span class="params">             max_gradient_norm,  <span class="comment"># 訓練 RNN 時 clip 梯度的值</span></span></span><br><span class="line"><span class="params">             batch_size, </span></span><br><span class="line"><span class="params">             learning_rate,</span></span><br><span class="line"><span class="params">             learning_rate_decay_factor,</span></span><br><span class="line"><span class="params">             use_lstm=<span class="literal">False</span>,</span></span><br><span class="line"><span class="params">             num_samples=<span class="number">512</span>, <span class="comment"># sampled softmax size</span></span></span><br><span class="line"><span class="params">             forward_only=<span class="literal">False</span>, <span class="comment"># train時為False, decode時為true</span></span></span><br><span class="line"><span class="params">             dtype=tf.float32</span>):</span><br></pre></td></tr></table></figure>
+
+<p>初始化一个seq2seqModel class</p>
+<h4 id="bucket说明"><a href="#bucket说明" class="headerlink" title="bucket说明"></a>bucket说明</h4><p>Bucket 是工程上使用的一種方式。理論上 RNN 可以輸出任意長度的句子，但這樣勢必會因為每句話的長度不同，而產生許多無用的 graph。使用 Bucket 可以減少產生大量，並可能會有不少重複的 graph。若有一長度為 ( 6, 16 ) 的 (英文, 法文) 句子，那麼則會被分配到 (20, 25) 這個 bucket。並且英文會被 padding 至長度 20，法文會被 padding 至長度 25</p>
+<h4 id="读入资料"><a href="#读入资料" class="headerlink" title="读入资料"></a>读入资料</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">read_data</span>(<span class="params">source_path, target_path, max_size=<span class="literal">None</span></span>):</span><br><span class="line">  data_set = [[] <span class="keyword">for</span> _ <span class="keyword">in</span> _buckets]</span><br><span class="line">  <span class="comment"># 讀入英文檔案</span></span><br><span class="line">  <span class="keyword">with</span> tf.gfile.GFile(source_path, mode=<span class="string">&quot;r&quot;</span>) <span class="keyword">as</span> source_file:</span><br><span class="line">    <span class="comment"># 讀入法文檔案</span></span><br><span class="line">    <span class="keyword">with</span> tf.gfile.GFile(target_path, mode=<span class="string">&quot;r&quot;</span>) <span class="keyword">as</span> target_file:</span><br><span class="line">      <span class="comment"># 每次讀入一行例如 ( &#x27;1 2 3 4 5\n&#x27;, &#x27;99 98 97 96 95\n&#x27;) 的(英,法)句對</span></span><br><span class="line">      source, target = source_file.readline(), target_file.readline()</span><br><span class="line">      counter = <span class="number">0</span></span><br><span class="line">      <span class="comment"># 逐行處理，去除 \n，並且 tokenize 化</span></span><br><span class="line">      <span class="keyword">while</span> source <span class="keyword">and</span> target <span class="keyword">and</span> (<span class="keyword">not</span> max_size <span class="keyword">or</span> counter &lt; max_size):</span><br><span class="line">        counter += <span class="number">1</span></span><br><span class="line">        <span class="keyword">if</span> counter % <span class="number">100000</span> == <span class="number">0</span>:</span><br><span class="line">          <span class="built_in">print</span>(<span class="string">&quot;  reading data line %d&quot;</span> % counter)</span><br><span class="line">          sys.stdout.flush()</span><br><span class="line">        source_ids = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> source.split()]</span><br><span class="line">        target_ids = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> target.split()]</span><br><span class="line">        target_ids.append(data_utils.EOS_ID)</span><br><span class="line">        <span class="comment"># 這邊計算每句話的長度，並且分配到適合該長度的 bucket 之中</span></span><br><span class="line">        <span class="keyword">for</span> bucket_id, (source_size, target_size) <span class="keyword">in</span> <span class="built_in">enumerate</span>(_buckets):</span><br><span class="line">          <span class="keyword">if</span> <span class="built_in">len</span>(source_ids) &lt; source_size <span class="keyword">and</span> <span class="built_in">len</span>(target_ids) &lt; target_size:</span><br><span class="line">            data_set[bucket_id].append([source_ids, target_ids])</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        source, target = source_file.readline(), target_file.readline()</span><br><span class="line">  <span class="keyword">return</span> data_set</span><br></pre></td></tr></table></figure>
 
 
 
-<p>每次选取不同的random的数据集来进行相关的训练，增加随机性部分？</p>
-<h3 id="Train-analysis"><a href="#Train-analysis" class="headerlink" title="Train analysis"></a>Train analysis</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_reversed_max_string_logits</span>(<span class="params">logits</span>):</span><br><span class="line">    string_logits = logits[::-<span class="number">1</span>]</span><br><span class="line">    concatenated_string = <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">for</span> logit <span class="keyword">in</span> string_logits:</span><br><span class="line">        val_here = np.argmax(logit)</span><br><span class="line">        concatenated_string += feature_list[val_here]</span><br><span class="line">    <span class="keyword">return</span> concatenated_string</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">print_out</span>(<span class="params">out</span>):</span><br><span class="line">    out = <span class="built_in">list</span>(<span class="built_in">zip</span>(*out))</span><br><span class="line">    out = out[:<span class="number">10</span>] <span class="comment"># only show the first 10 samples</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> index,string_logits <span class="keyword">in</span> <span class="built_in">enumerate</span>(out):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;input: &quot;</span>,end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">        print_vector(Xin[index])</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;expected: &quot;</span>,end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">        expected= Yin[index][::-<span class="number">1</span>]</span><br><span class="line">        print_vector(expected)</span><br><span class="line">        </span><br><span class="line">        output = get_reversed_max_string_logits(string_logits)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;output: &quot;</span> + output)</span><br><span class="line">        </span><br><span class="line">         </span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;==============&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># Now run a small test to see what our network does with words</span></span><br><span class="line">RANDOM_TESTSIZE = <span class="number">5</span></span><br><span class="line">Xin,Yin = get_random_reversed_dataset(Xtest,Ytest,RANDOM_TESTSIZE)</span><br><span class="line">Xin_transposed = np.array(Xin).T</span><br><span class="line">Yin_transposed = np.array(Yin).T</span><br><span class="line">feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)&#125;</span><br><span class="line">out = sess.run(runtime_outputs, feed_dict)</span><br><span class="line">print_out(out)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">translate_single_word</span>(<span class="params">word</span>):</span><br><span class="line">    Xin = [get_vector_from_string(word)]</span><br><span class="line">    Xin = sequence.pad_sequences(Xin, maxlen=MAX_LENGTH_WORD)</span><br><span class="line">    Xin_transposed = np.array(Xin).T</span><br><span class="line">    feed_dict = &#123;enc_input[t]: Xin_transposed[t] <span class="keyword">for</span> t <span class="keyword">in</span> <span class="built_in">range</span>(MAX_LENGTH_WORD)&#125;</span><br><span class="line">    out = sess.run(runtime_outputs, feed_dict)</span><br><span class="line">    <span class="keyword">return</span> get_reversed_max_string_logits(out)</span><br><span class="line"></span><br><span class="line">interesting_words = [<span class="string">&quot;aerde&quot;</span>,<span class="string">&quot;duyster&quot;</span>, <span class="string">&quot;salfde&quot;</span>, <span class="string">&quot;ontstondt&quot;</span>, <span class="string">&quot;tusschen&quot;</span>,<span class="string">&quot;wacker&quot;</span>,<span class="string">&quot;voorraet&quot;</span>,<span class="string">&quot;gevreeset&quot;</span>,<span class="string">&quot;cleopatra&quot;</span>]</span><br><span class="line"><span class="keyword">for</span> word <span class="keyword">in</span> interesting_words:</span><br><span class="line">    <span class="built_in">print</span>(word + <span class="string">&quot; becomes: &quot;</span> + translate_single_word(word).replace(<span class="string">&quot;~&quot;</span>,<span class="string">&quot;&quot;</span>))</span><br></pre></td></tr></table></figure>
+<h4 id="建立batch"><a href="#建立batch" class="headerlink" title="建立batch"></a>建立batch</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">random_number_01 = np.random.random_sample()</span><br><span class="line">bucket_id = <span class="built_in">min</span>([i <span class="keyword">for</span> i <span class="keyword">in</span> xrange(<span class="built_in">len</span>(train_buckets_scale))</span><br><span class="line">                       <span class="keyword">if</span> train_buckets_scale[i] &gt; random_number_01])</span><br><span class="line">encoder_inputs, decoder_inputs, target_weights = model.get_batch(</span><br><span class="line">          train_set, bucket_id)</span><br></pre></td></tr></table></figure>
 
 
 
-<p>代码解析：</p>
-<ul>
-<li>首先选取相应的test_case，训练处最终的结果，按照loss最小的参数</li>
-<li>然后是通过run，得到single_word的translate的结果</li>
-<li>相关输出的一些反转，通过vector还原成为相应的单词</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/lstm-exmaple/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/03/lstm-exmaple/" class="post-title-link" itemprop="url">LSTM Example</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-03 17:51:48" itemprop="dateCreated datePublished" datetime="2018-04-03T17:51:48+08:00">2018-04-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/lstm-by-example-using-tensorflow-feb0c1968537">原文链接</a></p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*epcf2SBjRHBynBNFf-CpQA.png" alt="predict"></p>
-<p>​						Figure 1. LSTM cell with three inputs and 1 output.</p>
-<p>A way to convert symbol to number is to assign a unique integer to each symbol based on frequency of occurrence</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">build_dataset</span>(<span class="params">words</span>):</span><br><span class="line">    count = collections.Counter(words).most_common()</span><br><span class="line">    dictionary = <span class="built_in">dict</span>()</span><br><span class="line">    <span class="keyword">for</span> word, _ <span class="keyword">in</span> count:</span><br><span class="line">        dictionary[word] = <span class="built_in">len</span>(dictionary)</span><br><span class="line">    reverse_dictionary = <span class="built_in">dict</span>(<span class="built_in">zip</span>(dictionary.values(), dictionary.keys()))</span><br><span class="line">    <span class="keyword">return</span> dictionary, reverse_dictionary</span><br></pre></td></tr></table></figure>
+<p>还需要class本身的property:<code>batch_size</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_batch</span>(<span class="params">self, data, bucket_id</span>):</span><br><span class="line">  <span class="comment"># 根據傳進來的 bucket_id 決定這次的 encoder, deocder size，例如 5, 10</span></span><br><span class="line">  encoder_size, decoder_size = self.buckets[bucket_id]</span><br><span class="line">  encoder_inputs, decoder_inputs = [], []</span><br><span class="line">  <span class="comment"># Get a random batch of encoder and decoder inputs from data,</span></span><br><span class="line">  <span class="comment"># pad them if needed, reverse encoder inputs and add GO to decoder.</span></span><br><span class="line">  <span class="keyword">for</span> _ <span class="keyword">in</span> xrange(self.batch_size):</span><br><span class="line">    <span class="comment"># 前面提過 data 是一個長度為4的list，data[i] 存放長度符合 bucket[i] 的資料</span></span><br><span class="line">    encoder_input, decoder_input = random.choice(data[bucket_id])</span><br><span class="line">    <span class="comment"># Encoder inputs are padded and then reversed.</span></span><br><span class="line">    encoder_pad = [data_utils.PAD_ID] * (encoder_size - <span class="built_in">len</span>(encoder_input))</span><br><span class="line">    encoder_inputs.append(<span class="built_in">list</span>(<span class="built_in">reversed</span>(encoder_input + encoder_pad)))</span><br><span class="line">    <span class="comment"># Decoder inputs get an extra &quot;GO&quot; symbol, and are padded then.</span></span><br><span class="line">    decoder_pad_size = decoder_size - <span class="built_in">len</span>(decoder_input) - <span class="number">1</span></span><br><span class="line">    decoder_inputs.append([data_utils.GO_ID] + decoder_input +</span><br><span class="line">                          [data_utils.PAD_ID] * decoder_pad_size)</span><br><span class="line">  <span class="comment"># Now we create batch-major vectors from the data selected above.</span></span><br><span class="line">  batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []</span><br><span class="line">  <span class="comment"># Batch encoder inputs are just re-indexed encoder_inputs.</span></span><br><span class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(encoder_size):</span><br><span class="line">    batch_encoder_inputs.append(</span><br><span class="line">        np.array([encoder_inputs[batch_idx][length_idx]</span><br><span class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</span><br><span class="line">  <span class="comment"># Batch decoder inputs are re-indexed decoder_inputs, we create weights.</span></span><br><span class="line">  <span class="keyword">for</span> length_idx <span class="keyword">in</span> xrange(decoder_size):</span><br><span class="line">    batch_decoder_inputs.append(</span><br><span class="line">        np.array([decoder_inputs[batch_idx][length_idx]</span><br><span class="line">                  <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size)], dtype=np.int32))</span><br><span class="line">    <span class="comment"># Create target_weights to be 0 for targets that are padding.</span></span><br><span class="line">    <span class="comment"># 這個 weights 是給模型訓練用的，有目標值的地方為1，其他為0</span></span><br><span class="line">    <span class="comment"># 有目標值的地方，指的是 decoder_input 平移1格的結果</span></span><br><span class="line">    batch_weight = np.ones(self.batch_size, dtype=np.float32)</span><br><span class="line">    <span class="keyword">for</span> batch_idx <span class="keyword">in</span> xrange(self.batch_size):</span><br><span class="line">      <span class="comment"># We set weight to 0 if the corresponding target is a PAD symbol.</span></span><br><span class="line">      <span class="comment"># The corresponding target is decoder_input shifted by 1 forward.</span></span><br><span class="line">       <span class="keyword">if</span> length_idx &lt; decoder_size - <span class="number">1</span>:</span><br><span class="line">           target = decoder_inputs[batch_idx][length_idx + <span class="number">1</span>]</span><br><span class="line">       <span class="keyword">if</span> length_idx == decoder_size - <span class="number">1</span> <span class="keyword">or</span> target == data_utils.PAD_ID:</span><br><span class="line">           batch_weight[batch_idx] = <span class="number">0.0</span></span><br><span class="line">    batch_weights.append(batch_weight)</span><br><span class="line">  <span class="keyword">return</span> batch_encoder_inputs, batch_decoder_inputs, batch_weights</span><br></pre></td></tr></table></figure>
 
 
 
-<p>上面就是采用通过词频的方式，来进行转化编码</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">RNN</span>(<span class="params">x, weights, biases</span>):</span><br><span class="line"></span><br><span class="line">    <span class="comment"># reshape to [1, n_input]</span></span><br><span class="line">    x = tf.reshape(x, [-<span class="number">1</span>, n_input])</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Generate a n_input-element sequence of inputs</span></span><br><span class="line">    <span class="comment"># (eg. [had] [a] [general] -&gt; [20] [6] [33])</span></span><br><span class="line">    x = tf.split(x,n_input,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 1-layer LSTM with n_hidden units.</span></span><br><span class="line">    rnn_cell = rnn.BasicLSTMCell(n_hidden)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># generate prediction</span></span><br><span class="line">    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># there are n_input outputs but</span></span><br><span class="line">    <span class="comment"># we only want the last output</span></span><br><span class="line">    <span class="keyword">return</span> tf.matmul(outputs[-<span class="number">1</span>], weights[<span class="string">&#x27;out&#x27;</span>]) + biases[<span class="string">&#x27;out&#x27;</span>]</span><br></pre></td></tr></table></figure>
+<h4 id="训练"><a href="#训练" class="headerlink" title="训练"></a>训练</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(</span><br><span class="line">    self.encoder_inputs, self.decoder_inputs, targets,</span><br><span class="line">    self.target_weights, buckets,</span><br><span class="line">    seq2seq=<span class="keyword">lambda</span> x, y: seq2seq_f(x, y, <span class="literal">False</span>),</span><br><span class="line">    softmax_loss_function=softmax_loss_function)</span><br></pre></td></tr></table></figure>
 
 
 
-<p>Final notes:</p>
-<ol>
-<li>Using int to encode symbols is easy but the “meaning” of the word is lost. Symbol to int is used to simplify the discussion on building a LSTM application using Tensorflow. Word2Vec is a more optimal way of encoding symbols to vector.</li>
-<li>One-hot vector representation of output is inefficient especially if we have a realistic vocabulary size. Oxford dictionary has over 170,000 words. The example above has 112. Again, this is only for simplifying the discussion.</li>
-<li>The number of inputs in this example is 3, see what happens when you use other numbers (eg 4, 5 or more).</li>
-</ol>
-<hr>
-<p>想法：</p>
-<ul>
-<li>one hot的进化？词语太多的话，数组170000？左右</li>
-<li>关于word的meaning部分，采用word2vec的方式，</li>
-<li>关于input的参数的使用？如何使用？</li>
-</ul>
+<p>上面這段程式碼中的 seq2seq 參數 <code>seq2seq_f(x, y, False)</code> 也是定義在 <code>seq2seq_model.py</code> 裡面的。指的是將 x: encoder_input 與 y: decoder_input 輸入，回傳的就是這個 seq2seq model 的 output 與 state。False 這個參數則是 <code>seq2seq_f()</code> 裡面自行定義作為 do_decode or not 的 Boolean。我們把相關的程式碼列出來如下，可以看到多為 tensorflow 之中對於 RNN 的設定。其中比較特別的是 <code>sampled_softmax_loss</code> 以及 <code>seq2seq_f</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">output_projection = <span class="literal">None</span></span><br><span class="line">softmax_loss_function = <span class="literal">None</span></span><br><span class="line"><span class="comment"># Sampled softmax only makes sense if we sample less than vocabulary size.</span></span><br><span class="line"><span class="keyword">if</span> num_samples &gt; <span class="number">0</span> <span class="keyword">and</span> num_samples &lt; self.target_vocab_size:</span><br><span class="line">  w_t = tf.get_variable(<span class="string">&quot;proj_w&quot;</span>, [self.target_vocab_size, size], dtype=dtype)</span><br><span class="line">  w = tf.transpose(w_t)</span><br><span class="line">  b = tf.get_variable(<span class="string">&quot;proj_b&quot;</span>, [self.target_vocab_size], dtype=dtype)</span><br><span class="line">  output_projection = (w, b)</span><br><span class="line">  <span class="keyword">def</span> <span class="title function_">sampled_loss</span>(<span class="params">labels, inputs</span>):</span><br><span class="line">    labels = tf.reshape(labels, [-<span class="number">1</span>, <span class="number">1</span>])</span><br><span class="line">    <span class="comment"># We need to compute the sampled_softmax_loss using 32bit floats to</span></span><br><span class="line">    <span class="comment"># avoid numerical instabilities.</span></span><br><span class="line">    local_w_t = tf.cast(w_t, tf.float32)</span><br><span class="line">    local_b = tf.cast(b, tf.float32)</span><br><span class="line">    local_inputs = tf.cast(inputs, tf.float32)</span><br><span class="line">    <span class="keyword">return</span> tf.cast(</span><br><span class="line">        tf.nn.sampled_softmax_loss(</span><br><span class="line">            weights=local_w_t,</span><br><span class="line">            biases=local_b,</span><br><span class="line">            labels=labels,</span><br><span class="line">            inputs=local_inputs,</span><br><span class="line">            num_sampled=num_samples,</span><br><span class="line">            num_classes=self.target_vocab_size),</span><br><span class="line">        dtype)</span><br><span class="line">  softmax_loss_function = sampled_loss</span><br><span class="line">    </span><br><span class="line"><span class="comment"># Create the internal multi-layer cell for our RNN.</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">single_cell</span>():</span><br><span class="line">  <span class="keyword">return</span> tf.contrib.rnn.GRUCell(size)</span><br><span class="line"><span class="keyword">if</span> use_lstm:</span><br><span class="line">  <span class="keyword">def</span> <span class="title function_">single_cell</span>():</span><br><span class="line">    <span class="keyword">return</span> tf.contrib.rnn.BasicLSTMCell(size)</span><br><span class="line">cell = single_cell()</span><br><span class="line"><span class="keyword">if</span> num_layers &gt; <span class="number">1</span>:</span><br><span class="line">  cell = tf.contrib.rnn.MultiRNNCell([single_cell() <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(num_layers)])</span><br><span class="line"><span class="comment"># The seq2seq function: we use embedding for the input and attention.</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">seq2seq_f</span>(<span class="params">encoder_inputs, decoder_inputs, do_decode</span>):</span><br><span class="line">  <span class="keyword">return</span> tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(</span><br><span class="line">      encoder_inputs,</span><br><span class="line">      decoder_inputs,</span><br><span class="line">      cell,</span><br><span class="line">      num_encoder_symbols=source_vocab_size,</span><br><span class="line">      num_decoder_symbols=target_vocab_size,</span><br><span class="line">      embedding_size=size,</span><br><span class="line">      output_projection=output_projection,</span><br><span class="line">      feed_previous=do_decode,</span><br><span class="line">      dtype=dtype)  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>sampled_softmax_loss</code> 是用在當有大量的輸出類別必須被 predict 的時候，舉例來說，像是英翻法這樣的翻譯工作，法文的詞典(target_vocab_size) size 有 40000 之多，這時候我們採用 sampled_softmax_loss 可以快速有效地建立一個 softmax classifier。其中的參數<code>num_sampled</code>指的是 sampling 的數目，在這邊是512。<code>num_classes</code>指的就是實際的 class 數目，在這邊就是以法文詞典的數目來代表。要注意的是 <code>num_sampled</code>不可以大於 <code>num_classes</code> 就是了</p>
+<p><code>seq2seq_f()</code> 直接呼叫了 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code>。這個 embedding_attention_seq2seq 是一個帶有 embedding + sequence to sequence 並帶有 attention 機制的模型。encoder_input 首先進入一個 embedding layer，轉為 word vector，之後進入一個 encoder RNN。這個 encoder RNN 的每一個 time step 會被記錄下來，作為 attention 機制的參考。接下來，decoder_input 會進入另一個新建立的 embedding layer，在同樣轉為 word vector 之後，進入一個 attention deocder RNN。這個 deocder 是由 encoder 的最後一個 time step 的 state 進行初始化，其後每一個輸入就是 decoder_input 經過 embedding 之後的 word vector，並且具有對 encoder output 專注的 attention 機制</p>
+<p>在 <code>tf.contrib.legacy_seq2seq.embedding_attention_seq2seq()</code> 之中的參數 <code>feed_previous</code>，當他為 False 的時候 decoder 會使用前面給的 decoer_input 作為輸入，也就是一般在訓練階段的作法。當值為 True 的時候，前面給的 decoder_input 只有第一個值（通常是 GO symbol，代表一個句子的開始） 會作為 decoder 的輸入，而 decoder 的下一個 input，則是 decoder 的前一個 output，也就是只給 deocder 第一個 input，後面讓他自由發揮的意思。這也是一般在 decode&#x2F;predict 時候的作法。</p>
+<h4 id="perplexity"><a href="#perplexity" class="headerlink" title="perplexity"></a>perplexity</h4><p>$$<br>perplexity&#x3D;e^{-l}, l&#x3D;\frac{1}{M}\sum_{i&#x3D;1}^{m}\log\left(p(s_i) \right )<br>$$</p>
+<p>如同precision recall等指标一样，用来评估一个模型的好坏</p>
 
       
     </div>
@@ -364,7 +506,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/GAN-example/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/08/chatbot/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -378,7 +520,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/03/GAN-example/" class="post-title-link" itemprop="url">GAN Example on Keras</a>
+            <a href="/2018/04/08/chatbot/" class="post-title-link" itemprop="url">chatbot</a>
         </h2>
 
         <div class="post-meta">
@@ -388,16 +530,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-04-03 10:57:11" itemprop="dateCreated datePublished" datetime="2018-04-03T10:57:11+08:00">2018-04-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a>
-                </span>
+              <time title="Created: 2018-04-08 16:41:02" itemprop="dateCreated datePublished" datetime="2018-04-08T16:41:02+08:00">2018-04-08</time>
             </span>
 
           
@@ -411,241 +544,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0">原文链接</a></p>
-<p>GAN is almost always explained like the case of a counterfeiter (Generative) and the police (Discriminator). Initially, the counterfeiter will show the police a fake money. The police says it is fake. The police gives feedback to the counterfeiter why the money is fake. The counterfeiter attempts to make a new fake money based on the feedback it received. The police says the money is still fake and offers a new set of feedback. The counterfeiter attempts to make a new fake money based on the latest feedback. The cycle continues indefinitely until the police is fooled by the fake money because it looks real</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*QHMGABbwL04x5VGYc_UWSA.png" alt="discriminator"></p>
-<p>Figure 1. Discriminator of DCGAN tells how real an input image of a digit is. MNIST Dataset is used as ground truth for real images. Strided convolution instead of max-pooling down samples the image.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">self.D = Sequential()</span><br><span class="line">depth = <span class="number">64</span></span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line"><span class="comment"># In: 28 x 28 x 1, depth = 1</span></span><br><span class="line"><span class="comment"># Out: 14 x 14 x 1, depth=64</span></span><br><span class="line">input_shape = (self.img_rows, self.img_cols, self.channel)</span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">1</span>, <span class="number">5</span>, strides=<span class="number">2</span>, input_shape=input_shape, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">2</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">4</span>, <span class="number">5</span>, strides=<span class="number">2</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line">self.D.add(Conv2D(depth*<span class="number">8</span>, <span class="number">5</span>, strides=<span class="number">1</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.D.add(LeakyReLU(alpha=<span class="number">0.2</span>))</span><br><span class="line">self.D.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 1-dim probability</span></span><br><span class="line">self.D.add(Flatten())</span><br><span class="line">self.D.add(Dense(<span class="number">1</span>))</span><br><span class="line">self.D.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.D.summary()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*gvBT3h4JD7eUN0GexHwx2w.png" alt="generator"></p>
-<p>Figure 2. Generator model synthesizes fake MNIST images from noise. Upsampling is used instead of fractionally-strided transposed convolution.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">self.G = Sequential()</span><br><span class="line">dropout = <span class="number">0.4</span></span><br><span class="line">depth = <span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span>+<span class="number">64</span></span><br><span class="line">dim = <span class="number">7</span></span><br><span class="line"><span class="comment"># In: 100</span></span><br><span class="line"><span class="comment"># Out: dim x dim x depth</span></span><br><span class="line">self.G.add(Dense(dim*dim*depth, input_dim=<span class="number">100</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line">self.G.add(Reshape((dim, dim, depth)))</span><br><span class="line">self.G.add(Dropout(dropout))</span><br><span class="line"></span><br><span class="line"><span class="comment"># In: dim x dim x depth</span></span><br><span class="line"><span class="comment"># Out: 2*dim x 2*dim x depth/2</span></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">2</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(UpSampling2D())</span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">4</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="built_in">int</span>(depth/<span class="number">8</span>), <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(BatchNormalization(momentum=<span class="number">0.9</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;relu&#x27;</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: 28 x 28 x 1 grayscale image [0.0,1.0] per pix</span></span><br><span class="line">self.G.add(Conv2DTranspose(<span class="number">1</span>, <span class="number">5</span>, padding=<span class="string">&#x27;same&#x27;</span>))</span><br><span class="line">self.G.add(Activation(<span class="string">&#x27;sigmoid&#x27;</span>))</span><br><span class="line">self.G.summary()</span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*PIpd1jHbPc2QrTOPhvxoaw.png" alt="model"></p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*N3nT9AXVnsFBta2R1eEMjg.png" alt="train model"></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">images_train = self.x_train[np.random.randint(<span class="number">0</span>,</span><br><span class="line">     self.x_train.shape[<span class="number">0</span>], size=batch_size), :, :, :]</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> images_fake = self.generator.predict(noise)</span><br><span class="line"> x = np.concatenate((images_train, images_fake))</span><br><span class="line"> y = np.ones([<span class="number">2</span>*batch_size, <span class="number">1</span>])</span><br><span class="line"> y[batch_size:, :] = <span class="number">0</span></span><br><span class="line"> d_loss = self.discriminator.train_on_batch(x, y)</span><br><span class="line"></span><br><span class="line"> y = np.ones([batch_size, <span class="number">1</span>])</span><br><span class="line"> noise = np.random.uniform(-<span class="number">1.0</span>, <span class="number">1.0</span>, size=[batch_size, <span class="number">100</span>])</span><br><span class="line"> a_loss = self.adversarial.train_on_batch(noise, y)</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h3 id="Some-tips"><a href="#Some-tips" class="headerlink" title="Some tips"></a>Some tips</h3><p>Training GAN models requires a lot of patience due to its depth. Here are some pointers:</p>
-<ol>
-<li>Problem: generated images look like noise. Solution: use dropout on both Discriminator and Generator. Low dropout values (0.3 to 0.6) generate more realistic images.</li>
-<li>Problem: Discriminator loss converges rapidly to zero thus preventing the Generator from learning. Solution: Do not pre-train the Discriminator. Instead make its learning rate bigger than the Adversarial model learning rate. Use a different training noise sample for the Generator.</li>
-<li>Problem: generator images still look like noise. Solution: check if the activation, batch normalization and dropout are applied in the correct sequence.</li>
-<li>Problem: figuring out the correct training&#x2F;model parameters. Solution: start with some known working values from published papers and codes and adjust one parameter at a time. Before training for 2000 or more steps, observe the effect of parameter value adjustment at about 500 or 1000 steps.</li>
-</ol>
-<p>尝试使用kaggle来做下试验？</p>
-<h2 id="tips"><a href="#tips" class="headerlink" title="tips:"></a>tips:</h2><p>在进行深度学习的时候，先尝试将相关图能画出来，讲流程图能画出来</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/03/go101/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/04/03/go101/" class="post-title-link" itemprop="url">Go101</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-03 10:27:12" itemprop="dateCreated datePublished" datetime="2018-04-03T10:27:12+08:00">2018-04-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/go/" itemprop="url" rel="index"><span itemprop="name">go</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://go101.org/article/101.html">原文链接</a></p>
-<h3 id="value-parts"><a href="#value-parts" class="headerlink" title="value parts"></a>value parts</h3><p>The main characteristic of C types is the memory layouts of their values are transparent</p>
-<p>Go can also be viewed as C language framework. This is mainly reflected in the fact that Go supports several kinds of types whose value memory layouts are not totally transparent. Each values of the these kinds of types is often composed of one direct part and one or several underlying indirect parts, and the underlying value part is referenced by the direct value part</p>
-<p>Two kinds points</p>
-<ul>
-<li>If a struct value <code>a</code> has a pointer field <code>b</code> which references a value <code>c</code>, then we can say the struct value <code>a</code> also (indirectly) references value <code>c</code>.</li>
-<li>If a value <code>x</code> references (either directly or indirectly) a value <code>y</code>, and the value <code>y</code> references (either directly or indirectly) a value <code>z</code>, then we can also say the value <code>x</code> (indirectly) references value <code>z</code></li>
-</ul>
-<p>Internal Definitions of the types</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// map types</span></span><br><span class="line"><span class="keyword">type</span> _map *hashtableImpl <span class="comment">// currently, for the standard Go compiler,</span></span><br><span class="line">                         <span class="comment">// Go maps are hashtables actually.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// channel types</span></span><br><span class="line"><span class="keyword">type</span> _channel *channelImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// function types</span></span><br><span class="line"><span class="keyword">type</span> _function *functionImpl</span><br><span class="line"></span><br><span class="line"><span class="comment">// slice types</span></span><br><span class="line"><span class="keyword">type</span> _slice <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements unsafe.Pointer <span class="comment">// underlying elements</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="type">int</span>            <span class="comment">// number of elements</span></span><br><span class="line">	<span class="built_in">cap</span>      <span class="type">int</span>            <span class="comment">// capacity</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// string types</span></span><br><span class="line"><span class="keyword">type</span> _string <span class="keyword">struct</span> &#123;</span><br><span class="line">	elements *<span class="type">byte</span> <span class="comment">// underlying bytes</span></span><br><span class="line">	<span class="built_in">len</span>      <span class="type">int</span>   <span class="comment">// number of bytes</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// general interface types</span></span><br><span class="line"><span class="keyword">type</span> _interface <span class="keyword">struct</span> &#123;</span><br><span class="line">	dynamicTypeInfo *<span class="keyword">struct</span> &#123;</span><br><span class="line">		dynamicType *_type       <span class="comment">// the dynamic type</span></span><br><span class="line">		methods     []*_function <span class="comment">// implemented methods</span></span><br><span class="line">	&#125;</span><br><span class="line">	dynamicValue unsafe.Pointer <span class="comment">// the dynamic value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>underlying value parts are not copied in value assignments</strong></p>
-<p>In Go, each value assignment (including parameter passing, etc) is a shallow value copy if the involved destination and source values have the same type (if their types are different, we can think that the source value will be implicitly converted to the destination type before doing that assignment). In other words, only the direct part of the soruce value is copied to the destination value in an value assignment. If the source value has underlying value part(s), then the direct parts of the destination and source values will reference the same underlying value part(s), in other words, <strong>the destination and source values will share the same underlying value part(s)</strong>. </p>
-<p>Here I just list some absolutely <strong>misuses of <em>reference</em></strong></p>
-<ul>
-<li>only slice, map, channel and function types are reference types in Go. (If we do need the <strong>reference type</strong> terminology in Go, then we shouldn’t exclude any custom pointer and pointer wrapper types from reference types).</li>
-<li>references are opposites of values. (If we do need the <strong>reference value</strong> terminology in Go, then please view reference values as special values, instead of opposites of values.)</li>
-<li>some parameters are passed by reference. (Sorry, all parameters are passed by copy in Go.)</li>
-</ul>
-<h3 id="line-break-rules-in-go"><a href="#line-break-rules-in-go" class="headerlink" title="line break rules in go"></a>line break rules in go</h3><p>One rule we often obey in practice is, we should not put the a starting curly brace (<code>&#123;</code>) of the explicit code block of a <a target="_blank" rel="noopener" href="https://go101.org/article/control-flow.html">control flow block</a> on a new line.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">5</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>However, there are some exceptions for the rule mentioned above. For example, the following bare <code>for</code> loop block compiles okay.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// do something ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>活用<code>;</code></p>
-<h3 id="Some-Panic-x2F-Recover-Use-Cases"><a href="#Some-Panic-x2F-Recover-Use-Cases" class="headerlink" title="Some Panic&#x2F;Recover Use Cases"></a>Some Panic&#x2F;Recover Use Cases</h3><p>avoid panics crashing programs</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;errors&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;net&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listener, err := net.Listen(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;:12345&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalln(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Handle each client connection in a new goroutine.</span></span><br><span class="line">		<span class="keyword">go</span> ClientHandler(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ClientHandler</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;client handler panic:&quot;</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">		c.Close()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(errors.New(<span class="string">&quot;just a demo.&quot;</span>)) <span class="comment">// a demo-purpose panic</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>automatically restart a crash goroutine</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">shouldNotExit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second) <span class="comment">// simulate a workload</span></span><br><span class="line">		<span class="comment">// Simultate an unexpected panic.</span></span><br><span class="line">		<span class="keyword">if</span> time.Now().UnixNano() &amp; <span class="number">0x3</span> == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">&quot;unexpected situation&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeverExit</span><span class="params">(name <span class="type">string</span>, f <span class="keyword">func</span>()</span></span>) &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> v := <span class="built_in">recover</span>(); v != <span class="literal">nil</span> &#123; <span class="comment">// a panic is detected.</span></span><br><span class="line">			log.Println(name, <span class="string">&quot;is crashed. Restart it now.&quot;</span>)</span><br><span class="line">			<span class="keyword">go</span> NeverExit(name, f) <span class="comment">// restart</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.SetFlags(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#A&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">go</span> NeverExit(<span class="string">&quot;job#B&quot;</span>, shouldNotExit)</span><br><span class="line">	<span class="keyword">select</span>&#123;&#125; <span class="comment">// blocks here for ever</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>use panic&#x2F;recover to reduce error checkings</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doTask</span><span class="params">(n <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Create a demo-purpose panic.</span></span><br><span class="line">		<span class="built_in">panic</span>(fmt.Errorf(<span class="string">&quot;bad number: %v&quot;</span>, n))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doSomething</span><span class="params">()</span></span> (err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// The ok return must be present here, otherwise,</span></span><br><span class="line">		<span class="comment">// a panic will be created if no errors occur.</span></span><br><span class="line">		err, _ = <span class="built_in">recover</span>().(<span class="type">error</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	doTask(<span class="number">22</span>)</span><br><span class="line">	doTask(<span class="number">98</span>)</span><br><span class="line">	doTask(<span class="number">100</span>)</span><br><span class="line">	doTask(<span class="number">53</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(doSomething()) <span class="comment">// bad number: 53</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="close-channel"><a href="#close-channel" class="headerlink" title="close channel"></a>close channel</h3><p>One general principle of using Go channels is <strong>don’t close a channel from the receiver side and don’t close a channel if the channel has multiple concurrent senders</strong>. In other words, you should only close a channel in a sender goroutine if the sender is the only sender of the channel.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/04/02/flipkart-data-platform/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/02/flipkart-data-platform/" class="post-title-link" itemprop="url">Flipkart Data Platform</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-04-02 16:59:43" itemprop="dateCreated datePublished" datetime="2018-04-02T16:59:43+08:00">2018-04-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/data-platform/" itemprop="url" rel="index"><span itemprop="name">data platform</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/overview-of-flipkart-data-platform-20c6d3e9a196">原文链接</a></p>
-<p>To give some perspective on the data scale at Flipkart, FDP currently manages a 800+ nodes Hadoop cluster to store more than 35 PB of data. We also run close to 25,000 compute pipelines on our Yarn cluster. Daily TBs of data is ingested into FDP and it also handles data spikes because of sale events. The tech stack majorly comprises of HDFS, Hive, Yarn, MR, Spark, Storm &amp; other API services supporting the meta layer of the data</p>
-<p>Overall FDP can be broken down into following high level components.</p>
-<ol>
-<li>Ingestion System</li>
-<li>Batch Data Processing System</li>
-<li>Real time Processing System</li>
-<li>Report Visualization</li>
-<li>Query Platform</li>
-</ol>
-<p><img src="https://cdn-images-1.medium.com/max/2000/0*TVaSyKyj2vrk5qvy." alt="data-platform"></p>
-<p>The streaming platform allows near real time aggregations to be built on all the ingested data. We also have the ability of generating rolling window aggregations i.e. 5 mins, 1 hour, 1 day, 1 month or Historic for each of the metrics.</p>
-<p><a target="_blank" rel="noopener" href="https://lens.apache.org/">Apache Lens</a> 接入hive等</p>
-<p><img src="https://lens.apache.org/images/arch.png" alt="apache lens架构"></p>
-<hr>
-<h2 id="ETL"><a href="#ETL" class="headerlink" title="ETL"></a>ETL</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/expressing-etl-workflows-via-cascading-192eb5e7d85d">原文链接</a></p>
-<p>At the onset of Recommendation platform, we started with raw MapReduce(MR) which gave us granular control over our pipeline but required a lot of boilerplate code for performing joins and aggregations that constituted the building blocks of our ETL flow</p>
-<p>mapreduce vs cascading</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*Jl9t0eRZYu69hfcR." alt="map reduce vs cascading"></p>
-<hr>
-<h2 id="REAL-TIME-SEACH-INDEX"><a href="#REAL-TIME-SEACH-INDEX" class="headerlink" title="REAL TIME SEACH INDEX"></a>REAL TIME SEACH INDEX</h2><p><a target="_blank" rel="noopener" href="https://tech.flipkart.com/sherlock-near-real-time-search-indexing-95519783859d">原文链接</a></p>
-<p>The Sherlock team developed an innovative solution (NRT data store) to deliver near real-time search results and presented it at Lucene Revolution <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=05rX0mJ2N4U">video</a></p>
-<p>高频繁的更新操作，</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/0*kq_TCklDIPoe_ro1." alt="Sherlock Ingestion Overview"></p>
-<p><a target="_blank" rel="noopener" href="https://www.slideshare.net/lucidworks/near-real-time-indexing-presented-by-umesh-prasad-thejus-v-m-flipkart">sides</a></p>
-
       
     </div>
 
@@ -663,7 +562,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/96/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/96/">96</a><span class="page-number current">97</span><a class="page-number" href="/page/98/">98</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/98/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/96/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/96/">96</a><span class="page-number current">97</span><a class="page-number" href="/page/98/">98</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/98/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -731,7 +630,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -744,7 +643,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -772,7 +671,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/01/Travis-CI-Step-Job-Stage/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/virtual-memory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/11/01/Travis-CI-Step-Job-Stage/" class="post-title-link" itemprop="url">Travis CI - Step/Job/Stage</a>
+            <a href="/2018/11/13/virtual-memory/" class="post-title-link" itemprop="url">算子虚存</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-11-01 14:43:45" itemprop="dateCreated datePublished" datetime="2018-11-01T14:43:45+08:00">2018-11-01</time>
+              <time title="Created: 2018-11-13 21:58:29" itemprop="dateCreated datePublished" datetime="2018-11-13T21:58:29+08:00">2018-11-13</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ci/" itemprop="url" rel="index"><span itemprop="name">ci</span></a>
+                  <a href="/categories/linux/" itemprop="url" rel="index"><span itemprop="name">linux</span></a>
                 </span>
             </span>
 
@@ -200,27 +200,37 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.hwchiu.com/travisci-step-job-stage.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_145">原文链接</a></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">language:</span> <span class="string">go</span></span><br><span class="line"></span><br><span class="line"><span class="attr">go:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">before_install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_install&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;install&quot;</span></span><br><span class="line">  <span class="bullet">-</span> </span><br><span class="line"><span class="attr">before_script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_script&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;script&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+          <p>首先是hadoop部分涉及到的虚存问题</p>
+<p>关于虚存限制，Hadoop 有两个参数控制，第一个参数决定是否打开虚存检查，默认为 true，第二个参数指出虚存的 Limit 的计算规则是申请实存的 2.1 倍，这解释了为什么实存设置的小了之后虚存也小了。 </p>
+<table>
+<thead>
+<tr>
+<th>yarn.nodemanager.vmem-check-enabled</th>
+<th>true</th>
+<th>Whether virtual memory limits will be enforced for containers.</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>yarn.nodemanager.vmem-pmem-ratio</td>
+<td>2.1</td>
+<td>Ratio between virtual memory to physical memory when setting memory limits for containers. Container allocations are expressed in terms of physical memory, and virtual memory usage is allowed to exceed this allocation by this ratio.</td>
+</tr>
+</tbody></table>
+<h3 id="什么是虚存"><a href="#什么是虚存" class="headerlink" title="什么是虚存"></a>什么是虚存</h3><p>虚存本质上是 OS 对内存资源的超售，技术上来说从 OS 角度有 Demand Paging，从进程角度有 Overcommit。而 Overcommit 是 OOM 的根源，内核对进程对内存的使用做了较为乐观的估计和假设，所以像 JVM 这种一起来就申请 (malloc) 巨大内存的情况虽然很多，但由于 Overcommit 机制所以能很好的运行。 又因为这种假设并不能放之四海而皆准，所以当遇到进程真的挤兑资源的时候(与 Overcommit 假设不符)，操作系统会通过 OOM - Killer 机制来挽救。挽救的方式是使用一些特殊的策略来随机的杀死进程，在进程的角度看到的就是跑的好好地被 OOM Killed 了。 </p>
+<p>当然，日常使用中还存在另一种 OOM，不同于 Overcommit 策略被挤兑时才出现，在 CGroup 生效的时候进程通过 cgroup 与内核协商了最大的资源限制，一旦 RSS(实存) 超过此限制后同样会被 OOM Killed。 </p>
+<p><a target="_blank" rel="noopener" href="http://linuxperf.com/?p=102">理解linux的memory overcommit</a></p>
+<p>理解memory overcommit的关键：commit(或overcommit)针对的是内存申请，内存申请不等于内存分配，内存只在实际用到的时候才分配。</p>
+<p>内核参数 vm.overcommit_memory 接受三种取值：</p>
+<ul>
+<li>0 – Heuristic overcommit handling. 这是缺省值，它允许overcommit，但过于明目张胆的overcommit会被拒绝，比如malloc一次性申请的内存大小就超过了系统总内存。Heuristic的意思是“试探式的”，内核利用某种算法（对该算法的详细解释请看文末）猜测你的内存申请是否合理，它认为不合理就会拒绝overcommit。</li>
+<li>1 – Always overcommit. 允许overcommit，对内存申请来者不拒。</li>
+<li>2 – Don’t overcommit. 禁止overcommit。</li>
+</ul>
+<p><em>“sar -r”是查看内存使用状况的常用工具，它的输出结果中有两个与overcommit有关，kbcommit 和 %commit：</em><br><em>kbcommit对应&#x2F;proc&#x2F;meminfo中的 Committed_AS；</em><br><em>%commit的计算公式并没有采用 CommitLimit作分母，而是Committed_AS&#x2F;(MemTotal+SwapTotal)，意思是_内存申请_占_物理内存与交换区之和_的百分比。</em></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sar -r</span> </span><br><span class="line"> </span><br><span class="line">05:00:01 PM kbmemfree kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty</span><br><span class="line">05:10:01 PM    160576   3648460     95.78         0   1846212   4939368     62.74   1390292   1854880         4</span><br></pre></td></tr></table></figure>
 
 
 
-<p><img src="https://i.imgur.com/Mrb22oE.png" alt="travisci steps"></p>
-<p>关于<code>Job</code>的定义，<code>Job</code> 就是一個歷經 <code>TravisCI</code> 生命週期所有步驟的基本單位。</p>
-<p>关于<code>Custom job</code>的实现</p>
-<p><img src="https://i.imgur.com/Kr9KDi3.png" alt="custom job"></p>
-<p>引入<code>job:include</code>的概念</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">language:</span> <span class="string">go</span></span><br><span class="line"></span><br><span class="line"><span class="attr">go:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">before_install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_install&quot;</span></span><br><span class="line"><span class="attr">install:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;install&quot;</span></span><br><span class="line"><span class="attr">before_script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;before_script&quot;</span></span><br><span class="line"><span class="attr">script:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">echo</span> <span class="string">&quot;script&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">include:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">stage:</span> <span class="string">Custom</span> <span class="string">Testing</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">Unit-Testing</span></span><br><span class="line">      <span class="attr">go:</span> <span class="string">&quot;1.8&quot;</span></span><br><span class="line">      <span class="attr">script:</span> <span class="string">echo</span> <span class="string">&quot;unit script&quot;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Integration-Testing</span></span><br><span class="line">      <span class="attr">before_install:</span> <span class="string">&quot;Integration-Testing_before_install&quot;</span></span><br><span class="line">      <span class="attr">go:</span> <span class="string">&quot;1.9&quot;</span></span><br><span class="line">      <span class="attr">script:</span> <span class="string">&quot;Integration-Testing_script&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p><code>Stage</code> 的特色以及概念如下</p>
-<ol>
-<li>由一群 <code>Job</code> 組成</li>
-<li>只要有一個 <code>Job</code> 失敗，該 <code>Stage</code> 就會被視為失敗</li>
-<li>只有當該前 Stage 是成功的狀態，才會執行下一個 Stage</li>
-</ol>
-<p><img src="https://i.imgur.com/YkGmTQN.png" alt="多个stage"></p>
 
       
     </div>
@@ -240,7 +250,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/30/ddd-blue-book/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/05/reservoir-sampling/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -254,7 +264,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/10/30/ddd-blue-book/" class="post-title-link" itemprop="url">domain drive design</a>
+            <a href="/2018/11/05/reservoir-sampling/" class="post-title-link" itemprop="url">Reservoir Sampling</a>
         </h2>
 
         <div class="post-meta">
@@ -264,7 +274,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-10-30 23:33:41" itemprop="dateCreated datePublished" datetime="2018-10-30T23:33:41+08:00">2018-10-30</time>
+              <time title="Created: 2018-11-05 10:23:09" itemprop="dateCreated datePublished" datetime="2018-11-05T10:23:09+08:00">2018-11-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -272,7 +282,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/domain/" itemprop="url" rel="index"><span itemprop="name">domain</span></a>
+                  <a href="/categories/algorithm/" itemprop="url" rel="index"><span itemprop="name">algorithm</span></a>
                 </span>
             </span>
 
@@ -287,14 +297,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>有效建模的要素：</p>
+          <h4 id="解决的问题"><a href="#解决的问题" class="headerlink" title="解决的问题"></a>解决的问题</h4><p>要求从N个元素中随机的抽取k个元素，其中N无法确定。<br>这种应用的场景一般是数据流的情况下，由于数据只能被读取一次，而且数据量很大，并不能全部保存，因此数据量N是无法在抽样开始时确定的；但又要保持随机性</p>
+<h4 id="证明过程"><a href="#证明过程" class="headerlink" title="证明过程"></a>证明过程</h4><p>假设数据序列的规模为 nn，需要采样的数量的为 kk。</p>
+<p>首先构建一个可容纳 kk 个元素的数组，将序列的前 kk 个元素放入数组中。</p>
+<p>然后从第 k+1 个元素开始，以 $\frac {k}{n}$ 的概率来决定该元素是否被替换到数组中（数组中的元素被替换的概率是相同的）。 当遍历完所有元素之后，数组中剩下的元素即为所需采取的样本。</p>
+<p>对于第 <em>i</em>个数（i≤k）。在 <em>k</em> 步之前，被选中的概率为 <em>1</em>。当走到第 <em>k+1</em> 步时，被 <em>k+1</em> 个元素替换的概率 <em>&#x3D; k+1</em>个元素被选中的概率 * <em>i</em> 被选中替换的概率，即为 $\frac{k}{k+1}×\frac{1}{k}&#x3D;\frac{1}{k+1}$。则被保留的概率为 $1−\frac{1}{k+1}&#x3D;\frac{k}{k+1}$。依次类推，不被 <em>k+2</em>个元素替换的概率为 $1−\frac{k}{k+2}×\frac{1}{k}&#x3D;\frac{k+1}{k+2}$。则运行到第 <em>n</em>步时，被保留的概率 &#x3D; 被选中的概率 * 不被替换的概率，即：</p>
+<p>$$1×\frac{k}{k+1}×\frac{k+1}{k+2}×\frac{k+2}{k+3}×…×\frac{n−1}{n}&#x3D;\frac{k}{n}$$</p>
+<p>对于第 <em>j</em> 个数（j&gt;k）。在第 j 步被选中的概率为 kjkj。不被 j+1j+1 个元素替换的概率为 1−kj+1×1k&#x3D;jj+11−kj+1×1k&#x3D;jj+1。则运行到第 nn 步时，被保留的概率 &#x3D; 被选中的概率 * 不被替换的概率，即：</p>
+<p>$$\frac{k}{j}×\frac{j}{j+1}×\frac{j+1}{j+2}×\frac{j+2}{j+3}×…×\frac{n−1}{n}&#x3D;\frac{k}{n}$$</p>
+<p>所以对于其中每个元素，被保留的概率都为 $\frac{k}{n}$.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ReservoirSamplingTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span>[] pool; <span class="comment">// 所有数据</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">N</span> <span class="operator">=</span> <span class="number">100000</span>; <span class="comment">// 数据规模</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">Random</span> <span class="variable">random</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Before</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setUp</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 初始化</span></span><br><span class="line">        pool = <span class="keyword">new</span> <span class="title class_">int</span>[N];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">            pool[i] = i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span>[] sampling(<span class="type">int</span> K) &#123;</span><br><span class="line">        <span class="type">int</span>[] result = <span class="keyword">new</span> <span class="title class_">int</span>[K];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; K; i++) &#123; <span class="comment">// 前 K 个元素直接放入数组中</span></span><br><span class="line">            result[i] = pool[i];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> K; i &lt; N; i++) &#123; <span class="comment">// K + 1 个元素开始进行概率采样</span></span><br><span class="line">            <span class="type">int</span> <span class="variable">r</span> <span class="operator">=</span> random.nextInt(i + <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (r &lt; K) &#123;</span><br><span class="line">                result[r] = pool[i];</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i : sampling(<span class="number">100</span>)) &#123;</span><br><span class="line">            System.out.println(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <ul>
-<li>模型和实现的绑定</li>
-<li>获得了一种基于模型的语言</li>
-<li>开发一个蕴含丰富知识的模型</li>
-<li>提炼模型</li>
-<li>头脑风暴和实验</li>
+<li>注意random部分</li>
+<li>以及r&lt;K</li>
 </ul>
+<p>保证$\frac{k}{n}$的概率</p>
 
       
     </div>
@@ -314,7 +332,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/29/crud/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/jenkins-analysis/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -328,7 +346,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/10/29/crud/" class="post-title-link" itemprop="url">Don't talk CRUD</a>
+            <a href="/2018/11/04/jenkins-analysis/" class="post-title-link" itemprop="url">jenkins analysis</a>
         </h2>
 
         <div class="post-meta">
@@ -338,16 +356,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-10-29 19:54:16" itemprop="dateCreated datePublished" datetime="2018-10-29T19:54:16+08:00">2018-10-29</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/crud/" itemprop="url" rel="index"><span itemprop="name">crud</span></a>
-                </span>
+              <time title="Created: 2018-11-04 20:59:55" itemprop="dateCreated datePublished" datetime="2018-11-04T20:59:55+08:00">2018-11-04</time>
             </span>
 
           
@@ -361,24 +370,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://codecoding.net/ruby/on/rails/2018/09/14/dont-talk-crud.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_143">原文链接</a></p>
-<p>从一个需求开始</p>
-<blockquote>
-<p>I want to be able to assign the account manager to the user who is my client.</p>
-</blockquote>
-<p>solution way</p>
-<ul>
-<li><p>First of all we need to stop thinking in a CRUD way</p>
-<p>化身领域的方式来进行，思考namespace，module部分，</p>
-</li>
-<li><p>action name</p>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">app/contexts/authentication` or `app/domains/authentication</span><br></pre></td></tr></table></figure>
-
-<p>关于context或者说domain的设置部分</p>
-<p><strong>DDD blue book</strong></p>
-
+          
       
     </div>
 
@@ -397,7 +389,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/28/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/arthas-log/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -411,7 +403,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/10/28/one-week/" class="post-title-link" itemprop="url">楚门的世界</a>
+            <a href="/2018/11/04/arthas-log/" class="post-title-link" itemprop="url">Arthas Log Bug追查</a>
         </h2>
 
         <div class="post-meta">
@@ -421,99 +413,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-10-28 16:18:24" itemprop="dateCreated datePublished" datetime="2018-10-28T16:18:24+08:00">2018-10-28</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>如果再也见不到你，我再祝你早安、午安、晚安</p>
-<p>困于自己的牢笼，还是去继续探索世界</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>进行提测</li>
-<li>新的feature_graph脚本的讨论</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>demo day的恢复</li>
-<li>相关流程的熟悉</li>
-<li>熟悉了一些k8s的命令</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>支持提测，修复相关的bug</li>
-<li>无时间列的情况</li>
-<li>调研新版的fe脚本部分</li>
-</ul>
-<p>第一版终于是提交了，算是开了一个头，不过感觉还是做的像个玩具一样。。。效果什么的，操作上什么的，感觉还是比较业余。希望后面能够做的越来越专业吧，希望自己能够往更上一点的架构层次上去想一想，每次重构一点代码，每次学习一点东西</p>
-<p>谁给你的自信，能够让你放松。。。无论是生活还是工作。。。秉持正念，苦行僧。。。</p>
-<p>前头还说按部就班，后面感觉自己就放松了一些，还是要找到方向，找到持续学习的地方。。。</p>
-<p>在生活上，也放松了对自己的要求，不要轻易破坏自己的一些想法和一些原则，虽然看起来是那么可笑以及幼稚，但其实是自己刺猬的一种方式，缩在自己的套中。。。</p>
-<p>按照基本的要求去规范自己，不要偷懒，也不要过多地牵扯太多，珍惜这样的时光，但也不想失去自己。。。</p>
-<p>锻炼部分，又偷懒了，还是慢慢恢复吧，下午的晚饭，忍住不要吃了。。。看能否抵挡一些脂肪</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/10/25/pws-dynamic-load/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/10/25/pws-dynamic-load/" class="post-title-link" itemprop="url">PWS动态算子加载</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-10-25 10:25:56" itemprop="dateCreated datePublished" datetime="2018-10-25T10:25:56+08:00">2018-10-25</time>
+              <time title="Created: 2018-11-04 17:31:36" itemprop="dateCreated datePublished" datetime="2018-11-04T17:31:36+08:00">2018-11-04</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -536,19 +436,97 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">URLClassLoaderTest</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">remoteJarPath</span> <span class="operator">=</span> <span class="string">&quot;http://localhost:8080/operators/base-operator.jar&quot;</span>;</span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testLoadRemoteJar</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">URI</span> <span class="variable">uri</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">URI</span>(remoteJarPath);</span><br><span class="line">        <span class="type">URLClassLoader</span> <span class="variable">classLoader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">URLClassLoader</span>(<span class="keyword">new</span> <span class="title class_">URL</span>[]&#123;uri.toURL()&#125;);</span><br><span class="line">        Thread.currentThread().setContextClassLoader(classLoader);</span><br><span class="line">        ServiceLoader&lt;Operator&gt; loader = ServiceLoader.load(Operator.class);</span><br><span class="line">        Iterator&lt;Operator&gt; iterator = loader.iterator();</span><br><span class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="type">Operator</span> <span class="variable">operator</span> <span class="operator">=</span> iterator.next();</span><br><span class="line">                log.info(<span class="string">&quot;OperatorInfo: name=&#123;&#125;, platform=&#123;&#125;&quot;</span>, operator.getName(), operator.getPlatform());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.warn(<span class="string">&quot;Failed to instantiate operator&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>以代码为例说明：</p>
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/boGS0VK45mZ_zT25K44S5Q">原文链接</a></p>
+<p>利用arthas直接在线上定位问题的过程，主要使用 <code>sc</code>和 <code>getstatic</code>命令。</p>
 <ul>
-<li>采用URLClassLoader的方式来加载jar包</li>
-<li>在此基础上，加入SerivceLoader来加载类Operator的class</li>
+<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/sc.html">https://alibaba.github.io/arthas/sc.html</a></li>
+<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/getstatic.html">https://alibaba.github.io/arthas/getstatic.html</a></li>
 </ul>
-<p>关于URLClassLoader部分</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Bean</span> &#123;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sayHello</span><span class="params">()</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;Hello from loaded Bean class !!!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.jcg;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Constructor;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.net.URLClassLoader;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> ashraf</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">URLClassLoaderTest</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> args</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@throws</span> Exception </span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Getting the jar URL which contains target class</span></span><br><span class="line">		URL[] classLoaderUrls = <span class="keyword">new</span> <span class="title class_">URL</span>[]&#123;<span class="keyword">new</span> <span class="title class_">URL</span>(<span class="string">&quot;file:///home/ashraf/Desktop/simple-bean-1.0.jar&quot;</span>)&#125;;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Create a new URLClassLoader </span></span><br><span class="line">		<span class="type">URLClassLoader</span> <span class="variable">urlClassLoader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">URLClassLoader</span>(classLoaderUrls);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// Load the target class</span></span><br><span class="line">        Class&lt;?&gt; beanClass = urlClassLoader.loadClass(<span class="string">&quot;com.jcg.Bean&quot;</span>);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Create a new instance from the loaded class</span></span><br><span class="line">        Constructor&lt;?&gt; constructor = beanClass.getConstructor();</span><br><span class="line">        <span class="type">Object</span> <span class="variable">beanObj</span> <span class="operator">=</span> constructor.newInstance();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Getting a method from the loaded class and invoke it</span></span><br><span class="line">        <span class="type">Method</span> <span class="variable">method</span> <span class="operator">=</span> beanClass.getMethod(<span class="string">&quot;sayHello&quot;</span>);</span><br><span class="line">        method.invoke(beanObj);</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sc io.netty.channel.nio.NioEventLoop</span></span><br><span class="line">class-info        io.netty.channel.nio.NioEventLoop</span><br><span class="line"> code-source       file:/opt/app/plugins/tair-plugin/lib/netty-all-4.0.35.Final.jar!/</span><br><span class="line"> name              io.netty.channel.nio.NioEventLoop</span><br><span class="line"> isInterface       false</span><br><span class="line"> isAnnotation      false</span><br><span class="line"> isEnum            false</span><br><span class="line"> isAnonymousClass  false</span><br><span class="line"> isArray           false</span><br><span class="line"> isLocalClass      false</span><br><span class="line"> isMemberClass     false</span><br><span class="line"> isPrimitive       false</span><br><span class="line"> isSynthetic       false</span><br><span class="line"> simple-name       NioEventLoop</span><br><span class="line"> modifier          final,public</span><br><span class="line"> annotation</span><br><span class="line"> interfaces</span><br><span class="line"> </span><br><span class="line">super-class     +-io.netty.channel.SingleThreadEventLoop</span><br><span class="line">                     +-io.netty.util.concurrent.SingleThreadEventExecutor</span><br><span class="line">                       +-io.netty.util.concurrent.AbstractScheduledEventExecutor</span><br><span class="line">                         +-io.netty.util.concurrent.AbstractEventExecutor</span><br><span class="line">                           +-java.util.concurrent.AbstractExecutorService</span><br><span class="line">                             +-java.lang.Object</span><br><span class="line"> </span><br><span class="line">class-loader      +-tair-plugin&#x27;s ModuleClassLoader</span><br><span class="line"> classLoaderHash   73ad2d6</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
-<p>见上面的例子，利用反射的方式？</p>
+
+
+<p>通过查看源码，了解相关的logger的实现</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">getstatic -c 73ad2d6 io.netty.channel.nio.NioEventLoop logger <span class="string">&#x27;getClass().getName()&#x27;</span></span></span><br><span class="line">field: logger</span><br><span class="line">@String[io.netty.util.internal.logging.Slf4JLogger]</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>tair插件里的logback没有设置ROOT logger，所以它的默认level是DEBUG，并且默认的appender会输出到stdout里。</strong></p>
+<p>一些经验</p>
+<ul>
+<li>logback默认的ROOT logger level是 <code>DEBUG</code>，输出是stdout</li>
+<li>利用arthas的 <code>sc</code>命令定位具体的类</li>
+<li>利用arthas的 <code>getstatic</code>获取static filed的值</li>
+<li>利用logger parent层联的特性，可以向上一层层获取到ROOT logger的配置</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/one-week/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/04/one-week/" class="post-title-link" itemprop="url">孤独的美食家</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-04 15:45:10" itemprop="dateCreated datePublished" datetime="2018-11-04T15:45:10+08:00">2018-11-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <hr>
 
       
     </div>
@@ -567,7 +545,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/71/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/71/">71</a><span class="page-number current">72</span><a class="page-number" href="/page/73/">73</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/73/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -635,7 +613,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -648,7 +626,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -676,7 +654,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

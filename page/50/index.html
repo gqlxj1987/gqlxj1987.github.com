@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/programming-models-for-the-event-driven-architecture/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/04/04/akka-persistence/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/20/programming-models-for-the-event-driven-architecture/" class="post-title-link" itemprop="url">Programming Models for the Event-driven architecture</a>
+            <a href="/2019/04/04/akka-persistence/" class="post-title-link" itemprop="url">Akka Persistence</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,256 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-20 20:40:09" itemprop="dateCreated datePublished" datetime="2019-03-20T20:40:09+08:00">2019-03-20</time>
+              <time title="Created: 2019-04-04 17:09:20" itemprop="dateCreated datePublished" datetime="2019-04-04T17:09:20+08:00">2019-04-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000010309436">原文链接</a></p>
+<p>persistence actor</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">persistenceId</span> </span>= <span class="string">&quot;example&quot;</span> <span class="comment">//作为持久化Actor的唯一表示，用于持久化或者查询时使用</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">receiveCommand</span></span>: <span class="type">Receive</span> = ??? <span class="comment">//Actor正常运行时处理处理消息逻辑，可在这部分内容里持久化自己想要的消息</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">receiveRecover</span></span>: <span class="type">Receive</span> = ??? <span class="comment">//Actor重启恢复是执行的逻辑</span></span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">LuckyEvent</span>(<span class="params">  //抽奖成功事件</span></span></span><br><span class="line"><span class="params"><span class="class">    userId: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">    luckyMoney: <span class="type">Int</span></span></span></span><br><span class="line"><span class="params"><span class="class"></span>)</span></span><br><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">FailureEvent</span>(<span class="params">  //抽奖失败事件</span></span></span><br><span class="line"><span class="params"><span class="class">    userId: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">    reason: <span class="type">String</span></span></span></span><br><span class="line"><span class="params"><span class="class"></span>)</span></span><br><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">Lottery</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="class">    totalAmount: <span class="type">Int</span>,  //红包总金额</span></span></span><br><span class="line"><span class="params"><span class="class">    remainAmount: <span class="type">Int</span>  //剩余红包金额</span></span></span><br><span class="line"><span class="params"><span class="class"></span>) </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">update</span></span>(luckyMoney: <span class="type">Int</span>) = &#123;</span><br><span class="line">    copy(</span><br><span class="line">      remainAmount = remainAmount - luckyMoney</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LotteryActor</span>(<span class="params">initState: <span class="type">Lottery</span></span>) <span class="keyword">extends</span> <span class="title">PersistentActor</span> <span class="keyword">with</span> <span class="title">ActorLogging</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">persistenceId</span></span>: <span class="type">String</span> = <span class="string">&quot;lottery-actor-1&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> state = initState  <span class="comment">//初始化Actor的状态</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receiveRecover</span></span>: <span class="type">Receive</span> = &#123;</span><br><span class="line">    <span class="keyword">case</span> event: <span class="type">LuckyEvent</span> =&gt;</span><br><span class="line">      updateState(event)  <span class="comment">//恢复Actor时根据持久化的事件恢复Actor状态</span></span><br><span class="line">    <span class="keyword">case</span> <span class="type">SnapshotOffer</span>(_, snapshot: <span class="type">Lottery</span>) =&gt;</span><br><span class="line">      log.info(<span class="string">s&quot;Recover actor state from snapshot and the snapshot is <span class="subst">$&#123;snapshot&#125;</span>&quot;</span>)</span><br><span class="line">      state = snapshot <span class="comment">//利用快照恢复Actor的状态</span></span><br><span class="line">    <span class="keyword">case</span> <span class="type">RecoveryCompleted</span> =&gt; log.info(<span class="string">&quot;the actor recover completed&quot;</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">updateState</span></span>(le: <span class="type">LuckyEvent</span>) =</span><br><span class="line">    state = state.update(le.luckyMoney)  <span class="comment">//更新自身状态</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receiveCommand</span></span>: <span class="type">Receive</span> = &#123;</span><br><span class="line">    <span class="keyword">case</span> lc: <span class="type">LotteryCmd</span> =&gt;</span><br><span class="line">      doLottery(lc) <span class="keyword">match</span> &#123;     <span class="comment">//进行抽奖，并得到抽奖结果，根据结果做出不同的处理</span></span><br><span class="line">        <span class="keyword">case</span> le: <span class="type">LuckyEvent</span> =&gt;  <span class="comment">//抽到随机红包</span></span><br><span class="line">          persist(le) &#123; event =&gt;</span><br><span class="line">            updateState(event)</span><br><span class="line">            increaseEvtCountAndSnapshot()</span><br><span class="line">            sender() ! event</span><br><span class="line">          &#125;</span><br><span class="line">        <span class="keyword">case</span> fe: <span class="type">FailureEvent</span> =&gt;  <span class="comment">//红包已经抽完</span></span><br><span class="line">          sender() ! fe</span><br><span class="line">      &#125;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&quot;saveSnapshot&quot;</span> =&gt;  <span class="comment">// 接收存储快照命令执行存储快照操作</span></span><br><span class="line">      saveSnapshot(state)</span><br><span class="line">    <span class="keyword">case</span> <span class="type">SaveSnapshotSuccess</span>(metadata) =&gt;  ???  <span class="comment">//你可以在快照存储成功后做一些操作，比如删除之前的快照等</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">increaseEvtCountAndSnapshot</span></span>() = &#123;</span><br><span class="line">    <span class="keyword">val</span> snapShotInterval = <span class="number">5</span></span><br><span class="line">    <span class="keyword">if</span> (lastSequenceNr % snapShotInterval == <span class="number">0</span> &amp;&amp; lastSequenceNr != <span class="number">0</span>) &#123;  <span class="comment">//当有持久化5个事件后我们便存储一次当前Actor状态的快照</span></span><br><span class="line">      self ! <span class="string">&quot;saveSnapshot&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">doLottery</span></span>(lc: <span class="type">LotteryCmd</span>) = &#123;  <span class="comment">//抽奖逻辑具体实现</span></span><br><span class="line">    <span class="keyword">if</span> (state.remainAmount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">val</span> luckyMoney = scala.util.<span class="type">Random</span>.nextInt(state.remainAmount) + <span class="number">1</span></span><br><span class="line">      <span class="type">LuckyEvent</span>(lc.userId, luckyMoney)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="type">FailureEvent</span>(lc.userId, <span class="string">&quot;下次早点来，红包已被抽完咯！&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>actor里面，线程安全，关于数字的加减问题</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">PersistenceTest</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line">  <span class="keyword">val</span> lottery = <span class="type">Lottery</span>(<span class="number">10000</span>,<span class="number">10000</span>)</span><br><span class="line">  <span class="keyword">val</span> system = <span class="type">ActorSystem</span>(<span class="string">&quot;example-05&quot;</span>)</span><br><span class="line">  <span class="keyword">val</span> lotteryActor = system.actorOf(<span class="type">Props</span>(<span class="keyword">new</span> <span class="type">LotteryActor</span>(lottery)), <span class="string">&quot;LotteryActor-1&quot;</span>)  <span class="comment">//创建抽奖Actor</span></span><br><span class="line">  <span class="keyword">val</span> pool: <span class="type">ExecutorService</span> = <span class="type">Executors</span>.newFixedThreadPool(<span class="number">10</span>)</span><br><span class="line">  <span class="keyword">val</span> r = (<span class="number">1</span> to <span class="number">100</span>).map(i =&gt;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">LotteryRun</span>(lotteryActor, <span class="type">LotteryCmd</span>(i.toLong,<span class="string">&quot;godpan&quot;</span>,<span class="string">&quot;xx@gmail.com&quot;</span>))  <span class="comment">//创建100个抽奖请求</span></span><br><span class="line">  )</span><br><span class="line">  r.map(pool.execute(_))  <span class="comment">//使用线程池来发起抽奖请求，模拟同时多人参加</span></span><br><span class="line">  <span class="type">Thread</span>.sleep(<span class="number">5000</span>)</span><br><span class="line">  pool.shutdown()</span><br><span class="line">  system.terminate()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LotteryRun</span>(<span class="params">lotteryActor: <span class="type">ActorRef</span>, lotteryCmd: <span class="type">LotteryCmd</span></span>) <span class="keyword">extends</span> <span class="title">Runnable</span> </span>&#123; <span class="comment">//抽奖请求</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> timeout = <span class="type">Timeout</span>(<span class="number">3.</span>seconds)</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>: <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">      fut &lt;- lotteryActor ? lotteryCmd</span><br><span class="line">    &#125; <span class="keyword">yield</span> fut <span class="keyword">match</span> &#123;  <span class="comment">//根据不同事件显示不同的抽奖结果</span></span><br><span class="line">      <span class="keyword">case</span> le: <span class="type">LuckyEvent</span> =&gt; println(<span class="string">s&quot;恭喜用户<span class="subst">$&#123;le.userId&#125;</span>抽到了<span class="subst">$&#123;le.luckyMoney&#125;</span>元红包&quot;</span>)</span><br><span class="line">      <span class="keyword">case</span> fe: <span class="type">FailureEvent</span> =&gt;  println(fe.reason)</span><br><span class="line">      <span class="keyword">case</span> _ =&gt; println(<span class="string">&quot;系统错误，请重新抽取&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">persistAll(success.keys.toIndexedSeq) &#123;  <span class="comment">//批量持久化中奖用户事件</span></span><br><span class="line">      <span class="keyword">case</span> event =&gt;  println(event)</span><br><span class="line">        updateState(event)</span><br><span class="line">        increaseEvtCountAndSnapshot()</span><br><span class="line">        success(event) ! event</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>实现persitAll方法</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/27/akka-monitor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/27/akka-monitor/" class="post-title-link" itemprop="url">Akka Monitor</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-27 10:52:28" itemprop="dateCreated datePublished" datetime="2019-03-27T10:52:28+08:00">2019-03-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1014163">原文链接</a></p>
+<p>对比起我们习惯的行令式（imperative）编程模式，Actor编程模式更接近现实中的应用场景和功能测试模式。这是因为Actor是靠消息来驱动的，每种消息代表一项功能的运算指令</p>
+<p>由于每个Actor的运算都在自己独立的线程里进行，所以我们不必担心Actor函数在运行中的交叉调用问题。Akka程序本就是一种原生的多线程程序，每个Actor都在一个自己的线程内独立运算它的receive函数</p>
+<p>关于actor自有线程的实现？</p>
+<p>在Akka编程里我们可以把每段可能产生异常的代码放到一个独立的Actor中去运算</p>
+<p>父级Actor对发生异常的子级Actor有以下几种处理方式：</p>
+<p>1、恢复运算（Resume）：不必理会异常，保留当前状态，跳过当前异常消息，照常继续处理其它消息</p>
+<p>2、重新启动（Restart）：清除当前状态，保留邮箱及内容，终止当前Actor，再重新构建一个新的Actor实例，沿用原来的消息地址ActorRef继续工作</p>
+<p>3、彻底终止（Stop）：销毁当前Actor及ActorRef邮箱，把所有消息导向DeadLetter队列。</p>
+<p>4、向上提交（Esculate）：如果父级无法处理子级异常，则这种情况也视为父级出现的异常。按照规定，父级会将自己和子级Actor运算暂停挂起并把子级Actor实际产生的异常当作自己发生的异常提交给上一层父级处理（也就是说异常信息的发送者sender变成了父级Actor）</p>
+<p>Akka处理异常的方式简单直接：如果发生异常就先暂停挂起然后交给直属父级Actor去处理。这就把异常封闭在这个Actor的监管链条里。Akka系统的监管链条实际代表一个功能的分散封闭运算，所以一个监管链条里发生的异常不会影响其它监管链条。换句话说就是Actor发生异常是封闭在它所属的功能内部的，一个功能发生异常不会影响其它功能。</p>
+<p>Akka提供了OneForOneStrategy和AllForOneStrategy两种对待异常Actor的策略配置</p>
+<ul>
+<li><p>OneForOneStrategy：只针对发生异常的Actor施用策略</p>
+</li>
+<li><p>AllForOneStrategy：虽然一个直属子级Actor发生了异常，监管父级Actor把它当作所有下属子级同时发生了相同异常，对所有子级Actor施用策略</p>
+</li>
+</ul>
+<p>生命周期</p>
+<p>preStart</p>
+<p>preStop</p>
+<p>Akka提供了一种逐步延时重启策略（BackoffSupervisor）</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> childProps = <span class="type">Props</span>(classOf[<span class="type">EchoActor</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> supervisor = <span class="type">BackoffSupervisor</span>.props(</span><br><span class="line">  <span class="type">Backoff</span>.onFailure(</span><br><span class="line">    childProps,</span><br><span class="line">    childName = <span class="string">&quot;myEcho&quot;</span>,</span><br><span class="line">    minBackoff = <span class="number">3.</span>seconds,</span><br><span class="line">    maxBackoff = <span class="number">30.</span>seconds,</span><br><span class="line">    randomFactor = <span class="number">0.2</span> <span class="comment">// adds 20% &quot;noise&quot; to vary the intervals slightly</span></span><br><span class="line">  ).withManualReset</span><br><span class="line">  .withSupervisorStrategy(</span><br><span class="line">    <span class="type">OneforOneStrategy</span>()&#123;</span><br><span class="line">      <span class="keyword">case</span> _: <span class="type">GivingUpException</span> =&gt; <span class="type">Stop</span></span><br><span class="line">      <span class="keyword">case</span> _: <span class="type">RetryableException</span> =&gt; <span class="type">Restart</span></span><br><span class="line">      <span class="keyword">case</span> _: <span class="type">MinorException</span> =&gt; <span class="type">Resume</span> </span><br><span class="line">    &#125;</span><br><span class="line">  )</span><br><span class="line">)</span><br><span class="line">  </span><br><span class="line">system.actorOf(supervisor, name = <span class="string">&quot;echoSupervisor&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>Akka提供了context.watch和context.unwatch来设置通过ActorRef对任何Actor的终止状态监视，无须父子级别关系要求。但是还是要求当前为actor？</p>
+<p>生命周期监控函数中只有postStop被调用过，preRestart和postRestart都没引用。如果这样的话BackoffSupervisor就是一锤子买卖，是正真的let it crash模式体现了。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/25/Centralized-logging-in-K8s/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/25/Centralized-logging-in-K8s/" class="post-title-link" itemprop="url">Centralized logging in K8s</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-25 23:06:43" itemprop="dateCreated datePublished" datetime="2019-03-25T23:06:43+08:00">2019-03-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/@maanadev/centralized-logging-in-kubernetes-d5a21ae10c6e">原文链接</a></p>
+<p>采用logstash作为sidecar的方式，去收集日志，类似于当前的filebeat的模式</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">wso2apim</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">minReadySeconds:</span> <span class="number">30</span></span><br><span class="line">  <span class="attr">strategy:</span></span><br><span class="line">    <span class="attr">rollingUpdate:</span></span><br><span class="line">      <span class="attr">maxSurge:</span> <span class="number">1</span></span><br><span class="line">      <span class="attr">maxUnavailable:</span> <span class="number">0</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">RollingUpdate</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">deployment:</span> <span class="string">wso2apim</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">initContainers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">init-wso2-elasticsearch-service</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">busybox</span></span><br><span class="line">        <span class="attr">command:</span> [<span class="string">&#x27;sh&#x27;</span>, <span class="string">&#x27;-c&#x27;</span>, <span class="string">&#x27;until nc -z wso2-elasticsearch-service 9200; do echo waiting for wso2-elasticsearch-service; sleep 2; done;&#x27;</span>]</span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">wso2apim</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">wso2/wso2am:2.6.0</span></span><br><span class="line">        <span class="attr">livenessProbe:</span></span><br><span class="line">          <span class="attr">exec:</span></span><br><span class="line">            <span class="attr">command:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">/bin/bash</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">-c</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">nc</span> <span class="string">-z</span> <span class="string">localhost</span> <span class="number">9443</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">150</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">10</span></span><br><span class="line">        <span class="attr">readinessProbe:</span></span><br><span class="line">          <span class="attr">exec:</span></span><br><span class="line">            <span class="attr">command:</span></span><br><span class="line">              <span class="bullet">-</span> <span class="string">/bin/bash</span></span><br><span class="line">              <span class="bullet">-</span> <span class="string">-c</span></span><br><span class="line">              <span class="bullet">-</span> <span class="string">nc</span> <span class="string">-z</span> <span class="string">localhost</span> <span class="number">9443</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">150</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">10</span></span><br><span class="line">        <span class="attr">imagePullPolicy:</span> <span class="string">Always</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">8280</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">8243</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">9763</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">9443</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">5672</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">9711</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">9611</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">7711</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="bullet">-</span></span><br><span class="line">          <span class="attr">containerPort:</span> <span class="number">7611</span></span><br><span class="line">          <span class="attr">protocol:</span> <span class="string">&quot;TCP&quot;</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">shared-logs</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/home/wso2carbon/wso2am-2.6.0/repository/logs/</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">logstash</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">maanadev/logstash:6.5.3-custom</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">shared-logs</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/logstash/mylogs/</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">logstash-yml</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/logstash/config/logstash.yml</span></span><br><span class="line">          <span class="attr">subPath:</span> <span class="string">logstash.yml</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">logstash-conf</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/logstash/pipeline/logstash.conf</span></span><br><span class="line">          <span class="attr">subPath:</span> <span class="string">logstash.conf</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ID</span></span><br><span class="line">          <span class="attr">value:</span> <span class="string">&quot;wso2-apim&quot;</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_IP</span></span><br><span class="line">          <span class="attr">valueFrom:</span></span><br><span class="line">            <span class="attr">fieldRef:</span></span><br><span class="line">             <span class="attr">fieldPath:</span> <span class="string">status.podIP</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">shared-logs</span></span><br><span class="line">        <span class="attr">emptyDir:</span> &#123;&#125;</span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">logstash-yml</span></span><br><span class="line">        <span class="attr">configMap:</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">logstash-yml</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">logstash-conf</span></span><br><span class="line">        <span class="attr">configMap:</span></span><br><span class="line">						<span class="attr">name:</span> <span class="string">logstash-conf</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>采用伴生容器的方式</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/25/The-Affinity-Between-Events-Streams-and-Serverless/" class="post-title-link" itemprop="url">The Affinity Between Events, Streams and Serverless</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-25 22:28:23" itemprop="dateCreated datePublished" datetime="2019-03-25T22:28:23+08:00">2019-03-25</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,193 +449,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://www.confluent.io/blog/journey-to-event-driven-part-2-programming-models-event-driven-architecture">原文链接</a></p>
-<p>Distributed object (RPC sync), service-oriented architecture (SOA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Enterprise_service_bus">enterprise service bus</a> (ESB), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Event-driven_architecture">event-driven architecture</a> (EDA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Reactive_programming">reactive programming</a> to <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Microservices">microservices</a> and now FaaS have each built on the learnings of the previous.</p>
-<p>####Event-driven reactive system</p>
-<p>The Reactive Manifesto has influenced many frameworks and platforms, including <a target="_blank" rel="noopener" href="https://akka.io/">Akka</a> (an <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Actor_model">actor-based library circa 1973</a>), <a target="_blank" rel="noopener" href="https://vertx.io/">Vert.x</a> (reactive microservices) and <a target="_blank" rel="noopener" href="http://www.lagomframework.com/">Lagom</a> (an opinionated, reactive microservice framework)</p>
-<p>The Akka scaling mechanism uses a <a target="_blank" rel="noopener" href="https://developer.lightbend.com/blog/2017-05-17-atotm-clustering-and-remoting/">cluster</a> service which pools actors from remote nodes that join as cluster members. Inactive actors are persisted to disk to minimize idle resource requirements</p>
-<p>Persistent actors will store their set of events to a journal (log)</p>
-<p>关于akka的持久化部分</p>
-<p>reactive以响应为主，RxJava这种，akka这种</p>
-<h4 id="Event-driven-stream-system"><a href="#Event-driven-stream-system" class="headerlink" title="Event-driven stream system"></a>Event-driven stream system</h4><p>Stream processor patterns enable <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/kstream/KStream.html#filter-org.apache.kafka.streams.kstream.Predicate-">filtering</a>, projections, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#joining">joins</a>, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#streams-developer-guide-dsl-aggregating">aggregations</a>, materialized views and other <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html">streaming functionality</a>. </p>
-<p>A proven approach is to capture domain knowledge as events using [domain-driven design](<a target="_blank" rel="noopener" href="http://a/">http://A</a> proven approach is to capture domain knowledge as events using Domain Driven Design (DDD) and event storming. This approach works well because the events centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the systems functions.)(DDD) and event storming. This approach works well because the events-centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the system’s functions</p>
-<p>Stream processors can also be used to materialize tables from the stream of events to enable a view of the data (e.g., how much money was in my account at time X). The term is called <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/">turning the database inside out</a></p>
-<p>Unlike a traditional database, the platform scales horizontally to thousands of processors, observe real-time events, replay streams on demand to perform historical processing and catch up with the live, data-in-motion view.</p>
-<p>A traditional OLTP system uses a two-phase commit to move money from a debit account to a credit account. It is very simple but presents scalability challenges. In the event-driven world, we’d build a scalable model where the event streams flow between processors. By the end of the flow, the payment is transacted. (通过分拆processor达到transacted的特点)</p>
-<h4 id="scaling-mechanism"><a href="#scaling-mechanism" class="headerlink" title="scaling mechanism"></a>scaling mechanism</h4><p>通过partition来达到scaling的目的</p>
-<h4 id="Comparing-persistence-models"><a href="#Comparing-persistence-models" class="headerlink" title="Comparing persistence models"></a>Comparing persistence models</h4><p>CQRS的意思？</p>
-<p>持久化，通过event log的方式</p>
-<p>With stream processing, <a target="_blank" rel="noopener" href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying">the log</a> stores the truth for the entity; it is organized as a stream. The log (stream) also stores every version of the entity.</p>
-<p>The event streaming platform provides the means of storing data as a stream and streaming events at scale. In order to facilitate this functionality the underlying protocol needs to ensure qualities such as offline status, different consumer rates, high throughput, low latency and elasticity (amongst others). The <a target="_blank" rel="noopener" href="https://docs.confluent.io/5.0.1/clients/javadocs/org/apache/kafka/clients/consumer/KafkaConsumer.html">consumer model</a> is one which exposes the protocol to the developer; this means the<br>consumer will have the opportunity to ACK, NACK message receipt and interact with the correctness of accepting a message payload.</p>
-<p>We also hear about backpressure being a concern to control event throughput. I would question if this is actually a requirement or<br>marketing speak. Brokered systems like Kafka provide huge buffers (the default in Kafka is two weeks) which negate the need for explicit flow control for the vast majority of use cases. In the very few that remain you can easily build backpressure as a control plane detail; it would be developed using stream processors that analyze throughput of events and apply rate limiting events to the relevant producers.(由于提供buffer的问题，backpressure基本不需要考虑)</p>
-<p>However, for event-sourcing, things get more complex; the ability to rebuild application state on demand needs a dedicated framework and process control to ensure point-in-time or snapshot state is correctly rebuilt. You cannot simply start replaying events from an offset and expect the downstream aggregates to be deterministically reproduced as they were previously. (关于恢复的困难性)</p>
-<p>All of the <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/apache-kafka-tested/">trust and resilience</a> is based upon the event streaming platform’s <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/">correctness</a> and guarantees of working with the commit log.(面向commit log部分)</p>
-<p>以数据为中心</p>
-<p>By storing only the events and never the commands, we have a wealth of capability that not only allows the system to be refined, extended and proven but also supports evolutionary change.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/concurrency-in-go-vs-erlang/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/20/concurrency-in-go-vs-erlang/" class="post-title-link" itemprop="url">Concurrency in go vs erlang</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-20 19:49:09" itemprop="dateCreated datePublished" datetime="2019-03-20T19:49:09+08:00">2019-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://dev.to/pieohpah/concurrency-in-go-vs-erlang-595a">原文链接</a></p>
-<p>A process’s mailbox is akin to Go’s channel, but it is not shared. It’s a private data buffer for that particular process to go through, one by one, synchronously. When a process sends something to another process’s mailbox, that thing gets stored there until that process can make use of it.</p>
-<p>In imperative programming (in Go’s case, structured, which is imperative), you mostly program to change some states, and thus you have to care about <em>WHEN</em> each line of code gets run (<code>A</code> changes state <code>X</code>, then <code>B</code> reads <code>X</code> is consequentially different from <code>B</code> reads <code>X</code>, then <code>A</code> changes <code>X</code>)</p>
-<p>In declarative programming, one expresses the logic without caring about control flow because each expression &#x2F; function does not have side effects aka changing the state outside of itself.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/actor-vs-goroutine/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/20/actor-vs-goroutine/" class="post-title-link" itemprop="url">actor vs goroutine</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-20 09:58:17" itemprop="dateCreated datePublished" datetime="2019-03-20T09:58:17+08:00">2019-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>参考<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/22621514/is-scalas-actors-similar-to-gos-coroutines">stackoverflow1</a></p>
-<p>CSP模型：Communicating Sequential Processes(formal language for describing patterns of interaction in concurrent systems)</p>
-<p>processes share a “channel”</p>
-<p>at this time they are limited to the current runtime and cannot be distributed, even between two runtimes on the same physical box</p>
-<p>CSP does not support fault tolerance in a meaningful way, so you as the developer have to figure out how to handle failure that can occur on both sides of channels, and such logic ends up getting strewn about all over the application</p>
-<p>CSP强调通信，channel可以被多个生产者和消费者共享，但是消息是否被消费了？unbuffered?</p>
-<p>actor: involve entities that have their own mailbox.  They are asynchronous by nature, and have location transparency that spans runtimes and machines</p>
-<p>也有共享的机制，通过eventbus部分？</p>
-<p>Actors have another very nice feature - fault tolerance.  By organizing actors into a supervision hierarchy per the OTP specification devised inErlang, you can build a domain of failure into your application.</p>
-<p>Actors are also a concurrency paradigm, where the actor can have mutable state inside of it and a guarantee of no multithreaded access to the state, unless the developer building an actor-based system accidentally introduces it, for example by registering the Actor as a listener for a callback, or going asynchronous inside the actor via Futures.(actor的状态不变性)</p>
-<p><strong>The only similarity (aside the nitpicking) is they both have to do with concurrency and message passing. But that is where the similarity ends.</strong></p>
-<p>Actors help things to be “worry free distributed”</p>
-<p>Where a “worry free” piece is usually associated with terms such as: <code>fault tolerance</code>, <code>resiliency</code>, <code>availability</code>, etc.. </p>
-<p>Goroutines help to reason about concurrency sequentially</p>
-<p>参考<a target="_blank" rel="noopener" href="https://www.quora.com/How-are-Akka-actors-different-from-Go-channels-How-are-two-related-to-each-other">quora1</a></p>
-<p>Go has a <em>select</em> statement for choosing between alternatives (the CSP <em>choice</em>) which may include channels, timers or simply skipping on to the next thing. This allows what one might call “waiting faster” by picking up from whichever channel is available first. But remember that whilst a goroutine is waiting on the channels (CSP calls them guards) in a <em>select</em>, it consumes no CPU and very little memory.</p>
-<p>Akka implements a fixed kind  network (of variable topology) in CSP terms. One feature of this kind of network is that there is no explicit flow control because no write rendezvous is ever needed on an infinite buffer. The model is fully asynchronous.</p>
-<p>downsides to the actor model</p>
+          <p><a target="_blank" rel="noopener" href="https://www.confluent.io/blog/journey-to-event-driven-part-3-affinity-between-events-streams-serverless">原文链接</a></p>
+<p>The key to event-first systems design is understanding that a series of events captures behavior. By persisting the streams in Kafka we then have a record of all system activity (a source of truth), and also a mechanism to drive reactions. </p>
+<h3 id="FaaS"><a href="#FaaS" class="headerlink" title="FaaS"></a>FaaS</h3><p>FaaS is the ability to take a function and run it somewhere in the cloud; it’s the “compute” part of the serverless stack where you bring your own code.</p>
+<p>The function contains a bespoke logic block. It is then called via some kind of registry like an API gateway, or it is scheduled or triggered by a cloud-related event (i.e., data written to Amazon S3).</p>
+<p>There are many benefits to FaaS:</p>
 <ul>
-<li>There are cases where flow control is needed. Although these can be implemented in Akka using handshake dialogues, the code gets messy and it’s not efficient any more</li>
-<li>There is no ability of an actor to <em>refuse</em> to communicate. When a message arrives, it has to be processed or, perhaps, put into a buffer to be dealt with later. 消息ignore机制</li>
-<li>Akka places full reliance on the infinite input buffers never running out of memory - but this is not guaranteed.</li>
+<li>Lightweight</li>
+<li>Decoupled</li>
+<li>Scalable</li>
+<li>Very cost efficient (pay per use)</li>
 </ul>
-<p>downside to the csp:</p>
-<ul>
-<li>Any network of goroutines that has some mutual dependency may deadlock. The developer must be aware of this and code so that deadlock is eliminated; this involves identifying mutual dependencies and altering them in some way (there are several well-known techniques, the easiest of these being to use a pure client-server pattern, which is known to be deadlock-free).</li>
-</ul>
-<p>The main difference is that a message exchange is synchronous in CSP (i.e. a “touch point” of the execution of two processes where they hand over the message) whereas it is completely decoupled in the Actor model, with message delivery being unconfirmed to the sender and taking an arbitrary amount of time</p>
+<p>They are processed in isolation to perform simple enrichment and filtering before passing to a storage layer or queue. If the system<br>needs to guarantee event ordering when writing to an output stream then, as previously discussed, concurrent FaaS execution will lead to corruption unless they are synchronously driven at the partition level.</p>
+<p>主要针对stateless的stream，FaaS的优势就体现出来了</p>
+<blockquote>
+<h4 id="Caveat-emptor-FaaS-gives-us-an-excellent-solution-where-processing-is-atomic-stateless-reliable-latency-is-not-a-concern-1–100-ms-and-the-order-of-processing-is-not-important-Stateful-processing-is-also-suitable-provided-that-it-is-against-an-external-resource-and-stale-data-concerns-are-understood"><a href="#Caveat-emptor-FaaS-gives-us-an-excellent-solution-where-processing-is-atomic-stateless-reliable-latency-is-not-a-concern-1–100-ms-and-the-order-of-processing-is-not-important-Stateful-processing-is-also-suitable-provided-that-it-is-against-an-external-resource-and-stale-data-concerns-are-understood" class="headerlink" title="Caveat emptor: FaaS gives us an excellent  solution where processing is atomic (stateless), reliable latency is not  a concern (1–100 ms) and the order of processing is not important.  Stateful processing is also suitable provided that it is against an  external resource and stale data concerns are understood."></a>Caveat emptor: FaaS gives us an excellent  solution where processing is atomic (stateless), reliable latency is not  a concern (1–100 ms) and the order of processing is not important.  Stateful processing is also suitable provided that it is against an  external resource and stale data concerns are understood.</h4></blockquote>
+<p><strong>FaaS event-driven principles:</strong></p>
+<ol>
+<li><strong>In band but edge</strong> (stateless on the way in or out), i.e., map user GeoIP to a geocell</li>
+<li><strong>In band, stateless and not latency sensitive</strong></li>
+<li><strong>In band and enriched against external resources</strong>, i.e., enrich a user’s address</li>
+<li><strong>Out of band, but edge:</strong>  This is FaaS processing on a known set of data in response to an event  where there is no downstream stream processing. For example, you can  perform large-scale analytic processing of all auction site bidders  against “cars in 2018” (a non-event-streaming problem).</li>
+<li><strong>Ad hoc requests, but not streaming:</strong>  They tend to be historic. If a large set of data is to be processed,  then it is likely to be batch oriented. Historic analytics include Monte  Carlo simulation, raw number crunching of event data, etc.</li>
+</ol>
+<p>尽量在一些对时间不敏感的位置，偶尔的请求，但不要持续性。。</p>
+<h3 id="Next"><a href="#Next" class="headerlink" title="Next"></a>Next</h3><p>The CNCF Serverless Working Group (which Confluent participates in) is shaping how FaaS will look in the next couple of years. There is a grand plan that CloudEvents should be publishable, emit through multiple transports and clouds and be consumed by a destination function that is written in any language.(有关CloudEvents部分)</p>
 
       
     </div>
@@ -406,7 +493,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/19/completionStage-and-compltetableFuture/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/21/AutoML-and-Neural-Architecture-Search/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -420,7 +507,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/19/completionStage-and-compltetableFuture/" class="post-title-link" itemprop="url">CompletionStage and CompltetableFuture</a>
+            <a href="/2019/03/21/AutoML-and-Neural-Architecture-Search/" class="post-title-link" itemprop="url">AutoML and Neural Architecture Search</a>
         </h2>
 
         <div class="post-meta">
@@ -430,7 +517,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-19 18:24:51" itemprop="dateCreated datePublished" datetime="2019-03-19T18:24:51+08:00">2019-03-19</time>
+              <time title="Created: 2019-03-21 23:55:48" itemprop="dateCreated datePublished" datetime="2019-03-21T23:55:48+08:00">2019-03-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -438,7 +525,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                  <a href="/categories/automl/" itemprop="url" rel="index"><span itemprop="name">automl</span></a>
                 </span>
             </span>
 
@@ -453,122 +540,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://millross-consultants.com/completion-stage-future-introduction.html">原文链接</a></p>
-<p>CompletionStage pipelines</p>
-<p>CompletableFuture implements the CompletionStage interface.</p>
-<p>A convenient example of this is the thenApply method, which is analogous to map on the streaming API (or on the Optional class, for example).</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// We&#x27;ll allow a 2-sized thread pool for async execution, rather than using the fork/join pool for asynchronous</span></span><br><span class="line"><span class="comment">// value generation</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">Executor</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">demoThenApply</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">1</span>), executor) </span><br><span class="line">        .thenApply(i -&gt; i + <span class="number">3</span>);</span><br><span class="line">    assertThat(future.get(), is(<span class="number">4</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title function_">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> value)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> delayedValueSupplier(value, <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title function_">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> value, <span class="keyword">final</span> <span class="type">int</span> delayMs)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> () -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(delayMs);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;Problem while waiting to return value&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>pipeline</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">demoMultiStagePipeline</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="comment">// We&#x27;ll use one future to specify how long a subsequent future will take</span></span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">3</span>), executor)</span><br><span class="line">        .thenApply(i -&gt; &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;First future completed, &quot;</span> + i);</span><br><span class="line">            <span class="keyword">return</span> i + <span class="number">1</span>;</span><br><span class="line">        &#125;)</span><br><span class="line">        .thenCompose(i -&gt; CompletableFuture</span><br><span class="line">            .supplyAsync(delayedValueSupplier(i + <span class="number">2</span>, i * <span class="number">100</span>), executor));</span><br><span class="line">    assertThat(future.get(), is(<span class="number">6</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/19/nginx-quick-reference/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/19/nginx-quick-reference/" class="post-title-link" itemprop="url">Nginx Quick Reference</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-19 17:39:09" itemprop="dateCreated datePublished" datetime="2019-03-19T17:39:09+08:00">2019-03-19</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/nginx/" itemprop="url" rel="index"><span itemprop="name">nginx</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/trimstray/nginx-quick-reference">原文链接</a></p>
-<p>通过map去代替allow&#x2F;deny</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">map $remote_addr $globals_internal_map_acl &#123;</span><br><span class="line"></span><br><span class="line">  # Status code:</span><br><span class="line">  #  - 0 = false</span><br><span class="line">  #  - 1 = true</span><br><span class="line">  default 0;</span><br><span class="line"></span><br><span class="line">  ### INTERNAL ###</span><br><span class="line">  10.255.10.0/24 1;</span><br><span class="line">  10.255.20.0/24 1;</span><br><span class="line">  10.255.30.0/24 1;</span><br><span class="line">  192.168.0.0/16 1;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>map anything</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">map $http_user_agent $device_redirect &#123;</span><br><span class="line"></span><br><span class="line">  default &quot;desktop&quot;;</span><br><span class="line"></span><br><span class="line">  ~(?i)ip(hone|od) &quot;mobile&quot;;</span><br><span class="line">  ~(?i)android.*(mobile|mini) &quot;mobile&quot;;</span><br><span class="line">  ~Mobile.+Firefox &quot;mobile&quot;;</span><br><span class="line">  ~^HTC &quot;mobile&quot;;</span><br><span class="line">  ~Fennec &quot;mobile&quot;;</span><br><span class="line">  ~IEMobile &quot;mobile&quot;;</span><br><span class="line">  ~BB10 &quot;mobile&quot;;</span><br><span class="line">  ~SymbianOS.*AppleWebKit &quot;mobile&quot;;</span><br><span class="line">  ~Opera\sMobi &quot;mobile&quot;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($device_redirect = &quot;mobile&quot;) &#123;</span><br><span class="line"></span><br><span class="line">  return 301 https://m.domain.com$request_uri;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>work_processes</p>
-<blockquote>
-<p>I think for high load proxy servers (also standalone servers) good value is <code>ALL_CORES - 1</code> (please test it before used).</p>
-</blockquote>
-<p>gzip</p>
-<blockquote>
-<p>You shouldn’t use HTTP compression on private responses when using TLS.</p>
-<p>Compression can be (I think) okay to HTTP compress publicly available static content like css or js and HTML content with zero sensitive info (like an “About Us” page).</p>
-</blockquote>
-<p>#####Mitigating Slow HTTP DoS attack (Closing Slow Connections)</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">client_body_timeout 10s;</span><br><span class="line">client_header_timeout 10s;</span><br><span class="line">keepalive_timeout 5s 5s;</span><br><span class="line">send_timeout 10s;</span><br></pre></td></tr></table></figure>
-
-
-
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/everything-you-need-to-know-about-automl-and-neural-architecture-search-8db1863682bf">原文链接</a></p>
+<p>NAS is an algorithm that <em>searches</em> for the best <em>neural network architecture</em>.(Neural Architecture Search)</p>
+<p>In the NAS algorithm, a controller Recurrent Neural Network (RNN) samples these building blocks, putting them together to create some kind of end-to-end architecture.</p>
+<p>the search space itself is quite limited. NAS is designed to build architectures that are very similar in style to the current state-of-the-art.(重复性)</p>
 
       
     </div>
@@ -587,7 +562,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/49/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/49/">49</a><span class="page-number current">50</span><a class="page-number" href="/page/51/">51</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/51/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -655,7 +630,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -668,7 +643,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -696,7 +671,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

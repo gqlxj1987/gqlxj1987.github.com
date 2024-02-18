@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/leveldb/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/reactive-programing/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/17/leveldb/" class="post-title-link" itemprop="url">Leveldb 101</a>
+            <a href="/2019/03/18/reactive-programing/" class="post-title-link" itemprop="url">Reactive Programing</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-17 10:29:44" itemprop="dateCreated datePublished" datetime="2019-03-17T10:29:44+08:00">2019-03-17</time>
+              <time title="Created: 2019-03-18 19:59:33" itemprop="dateCreated datePublished" datetime="2019-03-18T19:59:33+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index"><span itemprop="name">leveldb</span></a>
+                  <a href="/categories/reactive/" itemprop="url" rel="index"><span itemprop="name">reactive</span></a>
                 </span>
             </span>
 
@@ -200,115 +200,27 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html">原文链接</a></p>
-<p>我们可以从两个不同的角度来看待LevleDb：静态角度和动态角度。</p>
-<ul>
-<li><p>从静态角度，可以假想整个系统正在运行过程中（不断插入删除读取数据），此时我们给LevelDb照相，从照片可以看到之前系统的数据在内存和磁盘中是如何分布的，处于什么状态等；</p>
-</li>
-<li><p>从动态的角度，主要是了解系统是如何写入一条记录，读出一条记录，删除一条记录的，同时也包括除了这些接口操作外的内部操作比如compaction，系统运行时崩溃后如何恢复系统等等方面。</p>
-</li>
-</ul>
-<p>对于分析一个数据库，也基本遵循这样的思路</p>
-<p>构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。</p>
-<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15lqug1xfj30mn0lbjso.jpg" alt="leveldb结构"></p>
-<p>当应用写入一条Key:Value记录的时候，LevelDb会先往log文件里写入，成功后将记录插进Memtable中，这样基本就算完成了写入操作，因为一次写入操作只涉及一次磁盘顺序写和一次内存写入，所以这是为何说LevelDb写入速度极快的主要原因</p>
-<p>log的作用主要是用于系统崩溃恢复</p>
-<p>有序的key值，对于其它Level的SSTable文件来说，则不会出现同一层级内.sst文件的key重叠现象，就是说Level L中任意两个.sst文件，那么可以保证它们的key值是不会重叠的</p>
-<p>由于log采用32K作为一个block部分，必然出现数据拆分的问题，这时候，数据分为几个类型：FULL&#x2F;FIRST&#x2F;MIDDLE&#x2F;LAST</p>
-<p>SSTable</p>
-<p>可以将.sst文件划分为数据存储区和数据管理区，数据存储区存放实际的Key:Value数据，数据管理区则提供一些索引指针等管理数据，目的是更快速便捷的查找相应的记录。两个区域都是在上述的分块基础上的，就是说文件的前面若干块实际存储KV数据，后面数据管理区存储管理数据。管理数据又分为四种不同类型：紫色的Meta Block，红色的MetaBlock 索引和蓝色的数据索引块以及一个文件尾部块</p>
-<p><img src="https://ws2.sinaimg.cn/large/006tKfTcly1g15pcamqbnj30jk0bb753.jpg" alt="sstable"></p>
-<p>Data Block 内的 KV 记录是按照 Key 由小到大排列的，数据索引区的每条记录是对某个 Data Block 建立的索引信息，每条索引信息包含三个内容，以图 所示的数据块 i 的索引 Index i 来说：红色部分的第一个字段记载大于等于数据块 i 中最大的 Key 值的那个 Key，第二个字段指出数据块 i 在.sst 文件中的起始位置，第三个字段指出 Data Block i 的大小（有时候是有数据压缩的）。后面两个字段好理解，是用于定位数据块在文件中的位置的</p>
-<p>关于数据记录，还有重启点</p>
-<p>“重启点” 的意思是：在这条记录开始，不再采取只记载不同的 Key 部分，而是重新记录所有的 Key 值，假设 Key i+1 是一个重启点，那么 Key 里面会完整存储 “the color”，而不是采用简略的 “olor” 方式。Block 尾部就是指出哪些记录是这些重启点的。</p>
-<h4 id="MemTable"><a href="#MemTable" class="headerlink" title="MemTable"></a>MemTable</h4><p>核心的数据结构是一个skiplist</p>
-<p>关于k8s上的database的争论部分？</p>
-<p>log 文件内是 key 无序的，而 Memtable 中是 key 有序的。</p>
-<h4 id="查找记录"><a href="#查找记录" class="headerlink" title="查找记录"></a>查找记录</h4><p>从 Memtable 到 Immutable Memtable，再从 Immutable Memtable 到文件，而文件是从低 level 到高 level 这么一个查询路径</p>
-<p>level 0的文件查找，同其他level文件的查找不同(level 0存在不同文件重叠key的情况，需要按新鲜度进行排序)</p>
-<h4 id="Compaction"><a href="#Compaction" class="headerlink" title="Compaction"></a>Compaction</h4><p>当memTable满的时候，发生minor compaction. minor compaction 实现起来也很简单，就是按照 immutable memtable 中记录由小到大遍历，并依次写入一个 level 0 的新建 SSTable 文件中，写完后建立文件的 index 数据，这样就完成了一次 minor compaction。</p>
-<p><img src="https://ws3.sinaimg.cn/large/006tKfTcly1g15qbhauxnj30ih0fjwf7.jpg" alt="major compaction"></p>
-<h4 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h4>
-      
-    </div>
+          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2018/03/10/functional-reactive-programming/">原文链接</a></p>
+<p>因为<strong>无状态是微服务的潜在要求</strong>也是最重要的一个要求之一； 函数式编程相较于其他编程范式更强调无副作用的编程思维，和微服务的基本要求自然契合的很好</p>
+<p>函数式编程的基本思路是将<strong>程序的执行看作是一堆函数的组合处理和求值</strong>过程；纯粹的函数式编程要求数据是不可变的， 同样的数值输入在流经同样的函数处理的时候必须得到确定的输出，不容许有预料之外的副作用产生。(数据的不变性)</p>
+<p>流+函数式-&gt;响应式</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">requestStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">requestUrl</span>) &#123;</span><br><span class="line">    <span class="comment">// execute the request</span></span><br><span class="line">    <span class="keyword">var</span> responseStream = <span class="title class_">Rx</span>.<span class="property">Observable</span>.<span class="title function_">create</span>(<span class="keyword">function</span> (<span class="params">observer</span>) &#123;</span><br><span class="line">        jQuery.<span class="title function_">getJSON</span>(requestUrl)</span><br><span class="line">            .<span class="title function_">done</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123; observer.<span class="title function_">onNext</span>(response); &#125;)</span><br><span class="line">            .<span class="title function_">fail</span>(<span class="keyword">function</span>(<span class="params">jqXHR, status, error</span>) &#123; observer.<span class="title function_">onError</span>(error); &#125;)</span><br><span class="line">            .<span class="title function_">always</span>(<span class="keyword">function</span>(<span class="params"></span>) &#123; observer.<span class="title function_">onCompleted</span>(); &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    responseStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123;</span><br><span class="line">    <span class="comment">// do something with the response</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+<p>处理这些响应数据的代码放在第二个subscribe中</p>
+<p>Java8采用<code>stream()</code>接口来引入</p>
+<p>RxJava扩展观察者模式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.reactivex.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Flowable.just(<span class="string">&quot;Hello world&quot;</span>).subscribe(System.out::println);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/15/zhongtai/">
+<p>数据流传递给方法</p>
+<p>使用并发的方式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .flatMap(v -&gt;</span><br><span class="line">    Flowable.just(v)</span><br><span class="line">      .subscribeOn(Schedulers.computation())</span><br><span class="line">      .map(w -&gt; w * w)</span><br><span class="line">  ).blockingSubscribe(System.out::println);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .parallel()</span><br><span class="line">  .runOn(Schedulers.computation())</span><br><span class="line">  .map(v -&gt; v * v)</span><br><span class="line">  .sequential()</span><br><span class="line">  .blockingSubscribe(System.out::println);</span><br></pre></td></tr></table></figure>
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/15/zhongtai/" class="post-title-link" itemprop="url">阿里中台架构实践</a>
-        </h2>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-15 20:04:03" itemprop="dateCreated datePublished" datetime="2019-03-15T20:04:03+08:00">2019-03-15</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E4%B8%AD%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">中台</span></a>
-                </span>
-            </span>
 
-          
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Assume the record values represent lines of text.  For the sake of this example, you can ignore</span></span><br><span class="line"><span class="comment">// whatever may be stored in the record keys.</span></span><br><span class="line">KStream&lt;String, String&gt; textLines = ...;</span><br><span class="line"></span><br><span class="line">KStream&lt;String, Long&gt; wordCounts = textLines</span><br><span class="line">    <span class="comment">// Split each text line, by whitespace, into words.  The text lines are the record</span></span><br><span class="line">    <span class="comment">// values, i.e. you can ignore whatever data is in the record keys and thus invoke</span></span><br><span class="line">    <span class="comment">// `flatMapValues` instead of the more generic `flatMap`.</span></span><br><span class="line">    .flatMapValues(value -&gt; Arrays.asList(value.toLowerCase().split(<span class="string">&quot;\\W+&quot;</span>)))</span><br><span class="line">    <span class="comment">// Group the stream by word to ensure the key of the record is the word.</span></span><br><span class="line">    .groupBy((key, word) -&gt; word)</span><br><span class="line">    <span class="comment">// Count the occurrences of each word (record key).</span></span><br><span class="line">    <span class="comment">// This will change the stream type from `KGroupedStream&lt;String, String&gt;` to</span></span><br><span class="line">    <span class="comment">// `KTable&lt;String, Long&gt;` (word -&gt; count).</span></span><br><span class="line">    .count()</span><br><span class="line">    <span class="comment">// Convert the `KTable&lt;String, Long&gt;` into a `KStream&lt;String, Long&gt;`.</span></span><br><span class="line">    .toStream();</span><br></pre></td></tr></table></figure>
 
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>SOA价值出现了本末倒置的现象</p>
-<p>烟囱式方式建设的系统体系</p>
-<p>回归SOA的本质，服务重用</p>
-<p><strong>松耦合的服务带来业务的复用，通过服务的编排助力业务的快速响应和创新</strong></p>
-<p>通过共享中间层，来代替ESB的组件</p>
-<p>过多的带特定属性的需求在服务中心层面实现，导致的结果就可能是随着不断业务的对接，服务中心逐渐丧失了他的业务通用性，最终变得对新业务需求无法提供服务，同时，服务中心的业务逻辑过于复杂，带来了稳定性的风险</p>
-<p>SOA的主要特性：</p>
-<ul>
-<li>面向服务的分布式计算</li>
-<li>服务间松散耦合</li>
-<li>支持服务的整合</li>
-<li>服务的注册和自动发现</li>
-<li>以服务契约方式定义服务交互方式</li>
-</ul>
-<p>探讨有没有esb参与其中，算不算SOA？</p>
 
       
     </div>
@@ -328,7 +240,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/akka-in-action/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/clean-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -342,7 +254,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/14/akka-in-action/" class="post-title-link" itemprop="url">Akka in action</a>
+            <a href="/2019/03/18/clean-architecture/" class="post-title-link" itemprop="url">Clean Architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -352,7 +264,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-14 19:09:15" itemprop="dateCreated datePublished" datetime="2019-03-14T19:09:15+08:00">2019-03-14</time>
+              <time title="Created: 2019-03-18 19:28:15" itemprop="dateCreated datePublished" datetime="2019-03-18T19:28:15+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -360,7 +272,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/akka/" itemprop="url" rel="index"><span itemprop="name">akka</span></a>
+                  <a href="/categories/architecture/" itemprop="url" rel="index"><span itemprop="name">architecture</span></a>
                 </span>
             </span>
 
@@ -375,100 +287,41 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://lantaozi.gitbooks.io/akka-in-action-cn/content/chapter1.html">原文链接</a></p>
-<p>针对买票的一个并发问题</p>
-<p>akka的模型：</p>
-<ol>
-<li>在票务代理和打印室之间，事件和票只能以不变的消息的方式进行传递。</li>
-<li>票务代理和打印室的请求已异步消息入队的方式进行，这样就不需要线程等待方法的执行和甚至接受。</li>
-<li>票务代理和打印室可以持有彼此的引用，这个引用包含了彼此之间可以发送消息的地址。这些消息会被暂时存在一个信箱里，然后根据到底的顺序一个个执行。（别担心，等会我们会好好解释这个工具集是怎么实现这个的）</li>
-</ol>
-<p>流式处理中，重要的是传递的不变性</p>
-<p>像 Spring 之类的框架在容器&#x2F;bean 层级处理，Akka 把可替换性引入运行时 （这就是 Actor“让它崩溃”的概念）：我们预计到会出现单个处理者不能执行任务的情况， 我们准备着重新分配工作以避免灾难性的失败。</p>
-<p>在运行时可替换</p>
-<p>Actors 运行在称为**分派者(dispatcher)**的抽象层上。 分派者操心使用哪个线程模型，并处理信箱。 类似线程池的工作方式，只是基于极端重要的消息传递方案之上，线程池处理任务调度，Akka 的分派者&#x2F;信箱会处理线程模型(TODO)和消息。</p>
-<p>出现父节点的概念不只是为了整齐：Akka 中最重要的概念之一，监控，就是层级的功能：每个 actor 都自动成为子节点的监控者。 这意味着，当子 actor 崩溃，父节点来决定采取何种策略来纠正问题。 这使得问题可以顺着层级上升，上层的监控者可以处理这种更为全局的问题，这这是它关注的</p>
-<p>actor的核心操作：</p>
+          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2019/01/26/clean-architecture-notes/">原文链接</a></p>
+<p>软件架构师的主要核心职责<strong>不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构</strong>使得添加新的功能保持简单、经济和高效。</p>
+<p>真正<strong>本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化</strong></p>
+<p>相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用<strong>间接控制流转移</strong>的方法来提高可维护性</p>
+<p>函数式编程-&gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时数据一旦产生就不能被修改了，否则就会有副作用。 流行起来的原因，在于数据的隔离性</p>
+<p>软件架构师的任务就是需要清楚地认识到这些编程范式<strong>只是在不同的维度上对程序员加了各种各样的约束</strong>，以解决它所适应的场景的问题而已。 理顺问题的场景然后清楚地了解编程实现和交付中的各种困难，减小软件扩展和维护的成本，是架构师所面临的最根本的挑战</p>
+<p>设计的目标：</p>
 <ul>
-<li>创建</li>
-<li>发送</li>
-<li>变化</li>
-<li>监控</li>
+<li><strong>变更它们的成本很低</strong>，因为软件系统总是要添加新功能才更有生命力，修改困难的软件就会被慢慢放弃了</li>
+<li><strong>理解起来容易</strong>，因为维护软件总是需要人来做，而参与其中的人总是在流动的</li>
+<li><strong>可以被轻易地重用在合适的地方</strong>，因为永远也没有人可以预测未来的软件项目需求；重头再写类似的代码的代价又过于高昂</li>
 </ul>
-<p>akka的tdd？</p>
-<p>测试 Actors 比测试一般对象要难，因为：</p>
+<p>单一原则</p>
+<p> <strong>一个模块和他相关联交互的Actor只有一个</strong>，这样用UML描述模块关系的时候就比较清楚的看出这一原则有没有呗违反了。</p>
+<p>使用UML描述</p>
+<p>核心的业务规则可以保持稳定，<strong>核心业务逻辑层的稳定提炼需要依赖于领域知识</strong></p>
+<p>现在我们可以支持在程序执行的过程中，<strong>不重启主要系统，而将新开发的功能插入运行的系统中的办法</strong>来实现功能的实时更新和扩展， 这种插件化技术甚至在很多开发环境中成为默认的扩展方式；这一技术能够工作的前提是系统的架构必须有良好的考虑和组织</p>
+<p>组件内聚原则：</p>
 <ul>
-<li>时机 - 消息发送是异步的，因此单元测试中难于知道何时断言期望值，</li>
-<li>异步性 - Actors 用来在多个线程中并行运行。 多线程测试比单线程测试困难，需要并发元语来同步各种 actor 的结果，如 lock, latch, 和 barriers 等。我们极力想避免的正是这些东西。一个 barrier 用不对就 可能中止了整个测试套件的执行。</li>
-<li>无状态 - actor 掩盖了内部状态，不允许外部访问。访问只能通过 ActorRef。 对 actor 调用方法，检查其状态，都被特意阻止了，这些都是你想在单元测试时做的。</li>
-<li>合作&#x2F;集成 - 如果你想集成测试很多 actors， 你可能想窃听 actors 之间的消息来 判断是否是预计值。怎样做并不能立即想到。</li>
+<li>重用和发布等同原则 (Common Resue&#x2F;Release Equivalence Principle)</li>
+<li>通用闭合原则 (Common Closure Principle)</li>
+<li>通用重用原则 (Common Reuse Principle)</li>
 </ul>
-<p>akka的容错</p>
-<blockquote>
-<p>既然我们不能阻止所有的故障的发生，我们就要采取一种策略，铭记以下：</p>
-</blockquote>
-<ol>
-<li>Things break.系统要容错，可恢复的故障不能导致灾难性的失败。</li>
-<li>在一些情况下，尽量长的保持系统的主功能可用是可以接受的。同时失败的部分被停止并清理出系统，确保不会重启系统或产生不可预知的结果。</li>
-<li>其他一些情况下，有些组件很重要，就需要有备份（active backups），当主组件出问题时，可以快速的替代主组件。</li>
-<li>在系统的某些部分发生故障时，不应该使整个系统崩溃，所以我们需要一种方法来隔离特定的故障，让我们可以稍后处理。</li>
-</ol>
-<blockquote>
-<p>我们已经看了一些actor的功能，这能够帮我们简化问题。 actor可被props对象建立和重建，这是actor系统的一部分，而且actor之间的通信是通过actor的引用而不是直接通信。</p>
-</blockquote>
-<blockquote>
-<p>akka没有用一个流程来处理正常代码和故障恢复代码，而是用两个不同的流程； 一个用于正常逻辑，一个用于故障恢复逻辑。 正常流程用于处理正常的消息，故障恢复流程包含一个actor用来检测正常流程的actor。 这个检测actor被称作supervisor</p>
-</blockquote>
-<blockquote>
-<p>akka让父actor作为supervisor，只要这个actor创建了其他actor，它就自动变为supervisor。 supervisor不捕获异常，而是监督失败的原因并给出一些策略。 supervisor也不去尝试恢复actor或者actor的状态。 它提供如何恢复的判断，然后触发相应的策略。</p>
-</blockquote>
-<p><img src="https://withshenhui.gitbooks.io/akka-in-action-cn/content/figures/file-85_1.png" alt="db writer actor"></p>
-<blockquote>
-<p>每个actor都经过这个生命周期。 启动，可能重启几次，直到停止或者终止。 preStart 、preRestart 、postRestart 和 postStop 用来初始化、清理状态或者崩溃后控制、恢复其状态。</p>
-</blockquote>
-<p> ActorContext提供了watch方法来监控actor和unwatch方法来取消监控。 一旦一个actor调用watch方法来监控另外一个actor的引用，它就成为被监控actor的monitor。 当被监控的actor终止时，会给monitor发送终止消息。 终止消息只包含被终止actor的引用。</p>
-<p>monitor的好处</p>
-<blockquote>
-<p>monitor不一定非要是supervisor，可以是任意一个actor。 只要这个actor有被监控actor的引用，就可以通过context.watch(actorRef)实现对actorRef的监控。 当被监控actor终止时，monitor就可以收到终止消息。</p>
-</blockquote>
-<blockquote>
-<p>在这个系统中，actor之间通过actorRef连接。 每个actor知道它要发送消息的actor的actorRef。</p>
-</blockquote>
-<p>以actor为核心</p>
-<p> “让它崩溃去吧”的理念不是忽略可能发生的故障，或者是提供个组件解决所有错误，实际上是： 程序员需要预先知道那些故障是可以恢复的，提供工具只是为了让这些处理起来简单，不用老开一些处理错误的会议或者编写大量代码。</p>
-<p>Futures</p>
-<p>futures 是最好的工具。一般来说，那些用例有一个或多个如下的特点：</p>
+<p>那么我们需要保证，在组件依赖关系图上，<strong>沿着依赖方向组件的稳定性值需要保持递减</strong>。 对于违反了这一原则的组件，一个简单的处理方法依然是<strong>使用依赖倒置原则创建新的抽象组件</strong>，从而避免稳定的组件依赖于不稳定的组件。</p>
+<p><strong>策略一旦选定变化起来就比较困难，而细节实现的变化往往容易</strong>。 策略的部分包括这些业务规则和过程，而细节则是具体的技术实现、数据库、通信协议、框架、库等。 由于<strong>商业业务规则比较稳定而技术的变化比较快，我们需要保持这些稳定的部分</strong>，而尽可能的不写死具体实现这些业务规则的技术细节。(关于策略的选取部分)</p>
+<p>好的边界划分方法是<strong>尽可能降低一些不成熟的决策产生的影响，降低对这些容易变化的决策的依赖</strong>。 我们需要在在重要的模块或者子系统和不太重要的子系统之间划分出清晰的边界(边界的制定，又有利于第三方组件的实现)</p>
+<p>整洁架构的特征：</p>
 <ul>
-<li>你不想阻塞(等在当前线程上)来处理函数结果。</li>
-<li>一次性地调用函数，在之后的某个时间点处理结果。</li>
-<li>结合多个一次性函数，并结合结果。</li>
-<li>调用多个竞争的函数，只使用部分结果，如只用最快的响应。</li>
-<li>调用函数，当函数抛出异常，返回默认的结果，让流可以继续。</li>
-<li>流水线化这类函数，其中一个函数依赖于一个或多个其他函数的结果。</li>
+<li>框架独立性：不依赖于任何库或者软件架构</li>
+<li>可测试性，各个部分可以独立测试</li>
+<li>界面隔离和独立，不管是命令行界面系统还是桌面客户端或者是浏览器等技术</li>
+<li>数据库独立性，可以替换各种SQL数据库，或者是文档数据库等，核心的业务逻辑不依赖于这些具体技术</li>
+<li>外部代理独立性，核心的业务系统并不知道外围的接口和协议</li>
 </ul>
-<p>关于route部分？</p>
-<p>futures部分，提供onComplete方法来处理success和failure</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"><span class="keyword">import</span> scala.util._</span><br><span class="line"><span class="keyword">import</span> scala.util.control.<span class="type">NonFatal</span></span><br><span class="line"><span class="keyword">import</span> scala.concurrent._</span><br><span class="line"><span class="keyword">import</span> <span class="type">ExecutionContext</span>.<span class="type">Implicits</span>.global</span><br><span class="line"><span class="keyword">val</span> futureFail = <span class="type">Future</span> &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">Exception</span>(<span class="string">&quot;error!&quot;</span>)&#125;</span><br><span class="line">futureFail.onComplete &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Success</span>(value) =&gt; println(value)</span><br><span class="line">  <span class="keyword">case</span> <span class="type">Failure</span>(<span class="type">NonFatal</span>(e)) =&gt; println(e)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line">java.lang.<span class="type">Exception</span>: error!</span><br></pre></td></tr></table></figure>
-
-
-
-<p>futures的组合部分</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getWeather</span></span>(ticketInfo:<span class="type">TicketInfo</span>):<span class="type">Future</span>[<span class="type">TicketInfo</span>] = &#123;</span><br><span class="line">  <span class="keyword">val</span> futureWeatherX = callWeatherXService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futureWeatherY = callWeatherYService(ticketInfo)</span><br><span class="line">                        .recover(withNone)</span><br><span class="line">  <span class="keyword">val</span> futures = <span class="type">Seq</span>(futureWeatherX, futureWeatherY)</span><br><span class="line">  <span class="keyword">val</span> fastestResponse = <span class="type">Future</span>.firstCompletedOf(futures)</span><br><span class="line">  fastestResponse.map&#123; weatherResponse =&gt;</span><br><span class="line">    ticketInfo.copy(weather = weatherResponse)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h4 id="Akka构建本地以及分布式系统"><a href="#Akka构建本地以及分布式系统" class="headerlink" title="Akka构建本地以及分布式系统"></a>Akka构建本地以及分布式系统</h4><p>分布式系统遇到的问题：</p>
-<ul>
-<li>延迟：在合作者之间有网络意味着a，每个消息有延时，和b(TODO:不知所云)。由于拥塞导致的延时，重发的包，断断续续的连接，等等。</li>
-<li>部分失败：当系统中的某一部分总是出现、消失、重现时，知道分布式系统中所有部分是够工作是非常难于解决的问题。</li>
-<li>内存访问：本地系统中获取一个内存中对象的引用不会时不时失败，但是在分布式系统中的确会发生。</li>
-<li>并发：没有什么拥有一切东西，上述因素意味着交错操作的计划可能会出错。</li>
-</ul>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; :paste</span><br><span class="line"><span class="comment">// Entering paste mode (ctrl-D to finish)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> path = <span class="string">&quot;akka.tcp://backend@0.0.0.0:2551/user/simple&quot;</span></span><br><span class="line"><span class="keyword">val</span> simple = frontend.actorSelection(path)</span><br><span class="line"><span class="comment">// Exiting paste mode, now interpreting.</span></span><br><span class="line"></span><br><span class="line">path: <span class="type">String</span> = akka.tcp:<span class="comment">//backend@0.0.0.0:2551/user/simple</span></span><br><span class="line">simple: akka.actor.<span class="type">ActorSelection</span> = <span class="type">ActorSelection</span>[<span class="type">Actor</span>[akka.tcp:<span class="comment">//backend@0.0.0.0:2551/]/user/simple]</span></span><br></pre></td></tr></table></figure>
-
-<p>远端的actor路径</p>
+<p>一定的框架独立性，非常好的可测试性部分，很值得去探究</p>
 
       
     </div>
@@ -488,7 +341,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/json-style/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/oracle-jfr/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -502,7 +355,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/14/json-style/" class="post-title-link" itemprop="url">Json Style</a>
+            <a href="/2019/03/18/oracle-jfr/" class="post-title-link" itemprop="url">oracle JFR</a>
         </h2>
 
         <div class="post-meta">
@@ -512,7 +365,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-14 15:24:56" itemprop="dateCreated datePublished" datetime="2019-03-14T15:24:56+08:00">2019-03-14</time>
+              <time title="Created: 2019-03-18 10:36:58" itemprop="dateCreated datePublished" datetime="2019-03-18T10:36:58+08:00">2019-03-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -520,7 +373,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/json/" itemprop="url" rel="index"><span itemprop="name">json</span></a>
+                  <a href="/categories/jfr/" itemprop="url" rel="index"><span itemprop="name">jfr</span></a>
                 </span>
             </span>
 
@@ -535,19 +388,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://github.com/darcyliu/google-styleguide/blob/master/JSONStyleGuide.md">原文链接</a></p>
-<p>针对null的情况</p>
-<p>如果一个属性是可选的或者包含空值或<em>null</em>值，考虑从JSON中去掉该属性，除非它的存在有很强的语义原因。</p>
-<h3 id="日期属性值"><a href="#日期属性值" class="headerlink" title="日期属性值"></a>日期属性值</h3><p><strong>日期应该使用RFC3339建议的格式</strong></p>
-<p>日期应该是RFC 3339所建议的字符串格式。</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;lastUpdate&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2007-11-06T16:34:41.000Z&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://zhouhai02.com/post/flink-internals/flink-application-profile-by-jfr-jmc-flame-graph/">原文链接</a></p>
+<p>和传统的JProfiler&#x2F;VisualVM这些基于JMX的工具所不同的是，JFR记录的信息是<strong>近似而非精确</strong>的；当然大部分情况下这些<strong>模糊性信息就足够说明问题</strong>了。 对于大部分场景下，这些近似信息反而可以更容易发现一些真正的问题。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">env.java.opts: &quot;-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints&quot;</span><br></pre></td></tr></table></figure>
+
+<p>加入java opts</p>
+<p>开启jfr</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.start name=MyRecording settings=/home/zhouhai02/flink_profiler.jfc delay=5s duration=10m</span></span><br></pre></td></tr></table></figure>
 
 
 
-<p>关于一些保留字部分？</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;apiVersion&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;data&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2010-02-04T19:29:54.001Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;totalItems&quot;</span><span class="punctuation">:</span> <span class="number">6741</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;startIndex&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;itemsPerPage&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;items&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">      <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;BGODurRfVv4&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;uploaded&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2009-11-17T20:10:06.000Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2010-02-04T06:25:57.000Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;uploader&quot;</span><span class="punctuation">:</span> <span class="string">&quot;docchat&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;category&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Animals&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;title&quot;</span><span class="punctuation">:</span> <span class="string">&quot;From service dog to SURFice dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;description&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Surf dog Ricochets inspirational video ...&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;tags&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">          <span class="string">&quot;Surf dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;dog surfing&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;dog&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="string">&quot;golden retriever&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;thumbnail&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;default&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://i.ytimg.com/vi/BGODurRfVv4/default.jpg&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;hqDefault&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://i.ytimg.com/vi/BGODurRfVv4/hqdefault.jpg&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;player&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;default&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://www.youtube.com/watch?v=BGODurRfVv4&amp;feature=youtube_gdata&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;mobile&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://m.youtube.com/details?v=BGODurRfVv4&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;content&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;1&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rtsp://v5.cache6.c.youtube.com/CiILENy73wIaGQn-Vl-0uoNjBBMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;5&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://www.youtube.com/v/BGODurRfVv4?f=videos&amp;app=youtube_gdata&quot;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;6&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rtsp://v7.cache7.c.youtube.com/CiILENy73wIaGQn-Vl-0uoNjBBMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;duration&quot;</span><span class="punctuation">:</span> <span class="number">315</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;rating&quot;</span><span class="punctuation">:</span> <span class="number">4.96</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;ratingCount&quot;</span><span class="punctuation">:</span> <span class="number">2043</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;viewCount&quot;</span><span class="punctuation">:</span> <span class="number">1781691</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;favoriteCount&quot;</span><span class="punctuation">:</span> <span class="number">3363</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;commentCount&quot;</span><span class="punctuation">:</span> <span class="number">1007</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;commentsAllowed&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span></span><br><span class="line">      <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>check</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.check</span><br></pre></td></tr></table></figure>
 
-<p>一个示例</p>
+
+
+<p>导出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.dump name=MyRecording filename=dump.jfr</span><br></pre></td></tr></table></figure>
+
+
+
+<p>导入到JMC上去分析</p>
+<p><strong>Java Mission Control</strong></p>
+<p>热点线程</p>
+<p><img src="https://skyscribe.github.io/assets/images/jfr/jfr_threads_hot_threads.jpg" alt="hot thread"></p>
+<p>给出线程上下文切换的频率。同样，也可以类似得出相应的切换时间</p>
+<p>同时，火焰图部分</p>
+<p><img src="https://zhouhai02.com/img/troubleshooting/flink-jm-dump.svg" alt="火焰图"></p>
+<p>火焰图展示了在采样周期内，code-path被执行的时间占比，纵轴是code-path，从下至上一般就是调用栈，相同的采样调用栈会被合并，栈顶元素就是采样的时候CPU运行的stack，横轴是某个stack的占用时间，跨度越大说明其占CPU比重越高，也就是最耗费CPU的，stack在横轴上是按照字母序排列的，颜色深浅仅仅是为了区分，并没特殊意义。我只需要关注火焰图中的“平顶山”，这往往代表着某段代码的调用占用CPU过多。</p>
 
       
     </div>
@@ -567,7 +435,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/14/event-bus-in-go/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/time-plan/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -581,7 +449,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/14/event-bus-in-go/" class="post-title-link" itemprop="url">Event bus in go</a>
+            <a href="/2019/03/17/time-plan/" class="post-title-link" itemprop="url">2019时间的安排</a>
         </h2>
 
         <div class="post-meta">
@@ -591,7 +459,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-14 10:43:17" itemprop="dateCreated datePublished" datetime="2019-03-14T10:43:17+08:00">2019-03-14</time>
+              <time title="Created: 2019-03-17 22:16:29" itemprop="dateCreated datePublished" datetime="2019-03-17T22:16:29+08:00">2019-03-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -599,7 +467,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/time/" itemprop="url" rel="index"><span itemprop="name">time</span></a>
                 </span>
             </span>
 
@@ -614,31 +482,105 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://levelup.gitconnected.com/lets-write-a-simple-event-bus-in-go-79b9480d8997">原文链接</a></p>
-<p>The traditional approach to implementing an event bus involves using callbacks. Subscribers usually implement an interface and then the event bus propagates data via the interface.</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> DataEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">   Data <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">   Topic <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DataChannel is a channel which can accept an DataEvent</span></span><br><span class="line"><span class="keyword">type</span> DataChannel <span class="keyword">chan</span> DataEvent</span><br><span class="line"><span class="comment">// DataChannelSlice is a slice of DataChannels</span></span><br><span class="line"><span class="keyword">type</span> DataChannelSlice [] DataChannel</span><br></pre></td></tr></table></figure>
+          <p>尝试更严格的自律。。。</p>
+<hr>
 
+      
+    </div>
 
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
 
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/2019-plan/">
 
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
 
-<p>关键的数据结构</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// EventBus stores the information about subscribers interested for // a particular topic</span></span><br><span class="line"><span class="keyword">type</span> EventBus <span class="keyword">struct</span> &#123;</span><br><span class="line">   subscribers <span class="keyword">map</span>[<span class="type">string</span>]DataChannelSlice</span><br><span class="line">   rm sync.RWMutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/17/2019-plan/" class="post-title-link" itemprop="url">2019活下去</a>
+        </h2>
 
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
 
+              <time title="Created: 2019-03-17 15:17:17" itemprop="dateCreated datePublished" datetime="2019-03-17T15:17:17+08:00">2019-03-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
+                </span>
+            </span>
 
-<p>publisher</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(eb *EventBus)</span></span>Publish(topic <span class="type">string</span>, data <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">   eb.rm.RLock()</span><br><span class="line">   <span class="keyword">if</span> chans, found := eb.subscribers[topic]; found &#123;</span><br><span class="line">      <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(data DataEvent, dataChannelSlices DataChannelSlice)</span></span> &#123;</span><br><span class="line">         <span class="keyword">for</span> _, ch := <span class="keyword">range</span> dataChannelSlices &#123;</span><br><span class="line">            ch &lt;- data</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;(DataEvent&#123;Data: data, Topic:topic&#125;, chans)</span><br><span class="line">   &#125;</span><br><span class="line">   eb.rm.RUnlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          
 
+        </div>
+      </header>
 
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
-<p>代替callback？</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ch1 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch2 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line">	ch3 := <span class="built_in">make</span>(<span class="keyword">chan</span> DataEvent)</span><br><span class="line"></span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic1&quot;</span>, ch1)</span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic2&quot;</span>, ch2)</span><br><span class="line">	eb.Subscribe(<span class="string">&quot;topic2&quot;</span>, ch3)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">&quot;topic1&quot;</span>, <span class="string">&quot;Hi topic 1&quot;</span>)</span><br><span class="line">	<span class="keyword">go</span> publisTo(<span class="string">&quot;topic2&quot;</span>, <span class="string">&quot;Welcome to topic 2&quot;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch1:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch1&quot;</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch2:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch2&quot;</span>, d)</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-ch3:</span><br><span class="line">			<span class="keyword">go</span> printDataEvent(<span class="string">&quot;ch3&quot;</span>, d)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>从代码看来，subscribe部分，也只是接受数据，后面可以统一定义操作？再做一层</p>
-<blockquote>
-<p><em>I’ve used a slice to store all the subscribers for a topic. This is used to simplifying the article. This need to be replaced with a</em> <strong>SET</strong> <em>so no duplicate entries present in the list</em></p>
-</blockquote>
+      
+          <p>方向的变化，外界的压力，莫名其妙的情绪，很容易让人很丧气，不知道目标和方向在哪里，今天的自己，能否撑到明天。。。</p>
+<p>有时候，挺丧气的，不再是一人吃饱，全家不饿的状态，但是自己不管是状态上，还是心理上，完全没达到相应的状态，很是苦笑。。。</p>
+<p>但不管怎么样，活下去，认真地活下去，不用管后面是什么样，想着可以为现在做一些事情，为后面的人留下一些东西，就够了，这才是应该有的野望。。</p>
+<hr>
+<p>工作上：</p>
+<ul>
+<li>方向上的转换有点快，但是一些主线上的东西，不会变，看能不能基于akka部分，将整套流程能够实现出来</li>
+<li>基础上，尝试运用重构的一些概念理论去重构下整个项目，作为一个实践的课题</li>
+<li>语言上，尝试下rust的学习，例如rust os部分，起码可以尝试去学习一下</li>
+<li>作为转型的机器学习部分，能不能找一些例子，在现有的资源上，做一些东西出来(资源不能浪费)</li>
+</ul>
+<p>业余上：</p>
+<ul>
+<li>rust部分，看能不能按照os的路子，写出来</li>
+<li>blog部分，要保持更新的节奏，尤其是技术上，多写写读后感。。看能不能到550大关，加油</li>
+<li>leetcode。。。<a target="_blank" rel="noopener" href="https://github.com/gqlxj1987/leetcode-daily">leetcode daily</a></li>
+</ul>
+<p>生活上：</p>
+<ul>
+<li>下江南，走西北，去东南亚过年？</li>
+<li>身体锻炼，要恢复起来，周末的跑步，周中的keep以及跳舞部分，要逐渐地恢复起来。。</li>
+<li>电影和书上，要保持频率，是不是可以把布袋戏捡起来了，作为保持节奏的一种？</li>
+<li>相机要重新拿起来，拍一些有意思的东西出来。。</li>
+</ul>
+<p>待人处物上：</p>
+<ul>
+<li>也没有什么小心翼翼的了，既然都做好了打算，没什么好失去的，能留下一点是一点，做好自己就可以了</li>
+<li>尝试去沟通，多去陪伴，不要懒</li>
+<li>身外之物，尝试去长期去看待，起码今年的形势会比去年好，慢慢来，ps4没有的话，换一个显示器+手柄也是可以的</li>
+</ul>
+<p>活下去，认真地活下去，全力以赴，但又不报任何希望，有付出就可以了</p>
 
       
     </div>
@@ -657,7 +599,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/51/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/51/">51</a><span class="page-number current">52</span><a class="page-number" href="/page/53/">53</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/53/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/51/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/51/">51</a><span class="page-number current">52</span><a class="page-number" href="/page/53/">53</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/53/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -725,7 +667,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -738,7 +680,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -766,7 +708,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

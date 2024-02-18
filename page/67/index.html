@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jvm-start/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/redis-cluster/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/15/jvm-start/" class="post-title-link" itemprop="url">jvm的启动过程</a>
+            <a href="/2018/12/18/redis-cluster/" class="post-title-link" itemprop="url">redis集群下key的一些策略</a>
         </h2>
 
         <div class="post-meta">
@@ -177,87 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-15 11:11:19" itemprop="dateCreated datePublished" datetime="2018-12-15T11:11:19+08:00">2018-12-15</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jvm/" itemprop="url" rel="index"><span itemprop="name">jvm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://weinan.io/2018/12/07/jvm.html">原文链接</a></p>
-<p>查看java.c</p>
-<p>上面是一些关键的函数，比如<code>RegisterThread()</code>和<code>InitializeJVM(...)</code></p>
-<p>就是<code>LoadMainClass()</code>，然后通过<code>GetStaticMethodID</code>，来执行<code>main</code>方法</p>
-<p><code>InitializeJVM(...)</code> -&gt;<code>CreateJavaVM(...)</code></p>
-<p>可以看到，在JDK的源代码里面并没有<code>CreateJavaVM(...)</code>的具体实现，它只是一个接口定义，而由传入的<code>InvocationFunctions</code>来进行具体的定义</p>
-<p>hotspot平台的定义</p>
-<p><img src="http://weinan.io/assets/794D5CB7-EC65-437A-9979-AC18F74B2C7D.png" alt="loadLibrary"></p>
-<p>bsd平台上，就是dl_open相应的filename</p>
-<p>tips:</p>
-<ul>
-<li>采用<code>grep -rn &#39;CreateJavaVM&#39;</code>的方式去查找相应的函数调用</li>
-<li></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/12/slowlog/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/12/slowlog/" class="post-title-link" itemprop="url">redis slowlog</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-12 10:22:16" itemprop="dateCreated datePublished" datetime="2018-12-12T10:22:16+08:00">2018-12-12</time>
+              <time title="Created: 2018-12-18 19:55:23" itemprop="dateCreated datePublished" datetime="2018-12-18T19:55:23+08:00">2018-12-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -280,224 +200,123 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzA5OTAyNzQ2OA==&mid=2649699682&idx=1&sn=8d9a61974bbfcd068aa8a8caf2b67281&chksm=88930a01bfe483177c2d7ab7626cdf1eb26cee4d941ed364fff57b506aac2da9f7b0a232daac&mpshare=1&scene=1&srcid=1206KGxNWjDMrrSnG4umLjhg#rd">原文链接</a></p>
-<p>slow-log</p>
-<p>阅读Redis源码（图2）不难发现，当某次Redis的操作大于配置中slowlog-log-slower-than设置的值时，Redis就会将该值记录到内存中，通过slowlog get可以获取该次slowlog发生的时间和耗时</p>
-<p>重新审视系统调用gettimeofday获取当前时间背后的原理</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /sys/devices/system/clocksource/clocksource0/current_clocksource</span><br></pre></td></tr></table></figure>
+          <table>
+<thead>
+<tr>
+<th>压测client</th>
+<th>压测server</th>
+<th>线程&#x2F;进程</th>
+<th>最大qps</th>
+<th>command</th>
+<th>args</th>
+<th>是否pipeline</th>
+<th>集群是否指定slot</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>20</td>
+<td>522</td>
+<td>mget</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>7200</td>
+<td>mget</td>
+<td>700</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>1418</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11435</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>tencent-recom-redis02</td>
+<td>20</td>
+<td>11295</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12300</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>15354</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>n</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>12378</td>
+<td>lrange</td>
+<td>100</td>
+<td>n</td>
+<td>y</td>
+</tr>
+<tr>
+<td>tencent-recom-center01</td>
+<td>cluster</td>
+<td>40</td>
+<td>13618</td>
+<td>lrange</td>
+<td>100</td>
+<td>y</td>
+<td>y</td>
+</tr>
+</tbody></table>
+<p>测试主要集中在mget以及lrange部分</p>
+<p>mget部分</p>
+<p>对于mget命令，在集群执行时，相比对单点redis执行，会增加了拆分成get的多次网络连接成本，因此效率会大大降低。解决方案是将需要再同一条mget命令出现的key写在同一个slot上，这样的话jedis客户端会将mget保留并传给对应的redis node，而不是拆分成多个get</p>
+<p>关于slot的使用</p>
+<p>因此对于需要mget的key需要手动分配到同一个slot上，官方给出的具体方式是使用{}将需要hash计算的部分扩起来，这样只要{} 内包含的字段一样的key，都会被分配到同一个slot上，例如下面这三条会被分配到同一个slot上</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;recom:item_123:i2i&#125;:xxxxxxxxxxxxx</span><br><span class="line">&#123;recom:item_123:i2i&#125;:qqqqqqqqqqqqq</span><br><span class="line">&#123;recom:item_123:i2i&#125;:fffffffffffff</span><br></pre></td></tr></table></figure>
+
+<p>扩起来的话，具体的写法是什么样的？</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;5400&quot;       #查看key存在于哪个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br><span class="line"> </span><br><span class="line">CLUSTER KEYSLOT &quot;&#123;lewis1&#125;421&quot;        #括号部分内容一样的key会被hash到同一个slot上</span><br><span class="line"> </span><br><span class="line">(integer) 938</span><br></pre></td></tr></table></figure>
 
 
 
-<p>内核级别的bug</p>
-<p>该commit非常清楚指出，在4.9以后添加了一个宏定义INTEL_FAM6_SKYLAKE_X，但因为搞错了该类型CPU的crystal frequency会导致该类型的CPU每10分钟慢1秒钟。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/11/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/11/one-week/" class="post-title-link" itemprop="url">winter is coming</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-11 22:23:10" itemprop="dateCreated datePublished" datetime="2018-12-11T22:23:10+08:00">2018-12-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>winter is coming!</p>
-<p>尽最大的努力，同时又不抱有任何希望</p>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>kaggle部分的试验</li>
-<li>1.3部分的功能</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>起码对kaggle有所了解</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>jenkins入门，对plugin框架有所了解</li>
-<li>提测相关的</li>
-<li>ci&#x2F;cd部分，一些策略，关于前后端开发的一些想法落地</li>
-</ul>
-<p>工作上的事情还是按部就班的来，但是感觉还有点慢，包括自己后面的方向，以及所涉及到的一些想法，感觉还是有点空，尽快地落地吧，边做边想。。。</p>
-<p>做一些自己能做的事情，以及自己想做的事情，其他的就不是自己能够决定了。。。</p>
-<p>也不用想太多，尽自己最大的努力，同时也不抱任何希望。。。加油</p>
-<p>锻炼。。拉下。。恢复。。</p>
-<p></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/07/miaosha/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/07/miaosha/" class="post-title-link" itemprop="url">秒杀架构浅析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-12-07 10:25:33" itemprop="dateCreated datePublished" datetime="2018-12-07T10:25:33+08:00">2018-12-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sql/" itemprop="url" rel="index"><span itemprop="name">sql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://crossoverjie.top/2018/05/07/ssm/SSM18-seconds-kill/">原文链接</a></p>
-<p>其实抛开秒杀这个场景来说正常的一个下单流程可以简单分为以下几步：</p>
-<ul>
-<li>校验库存</li>
-<li>扣库存</li>
-<li>创建订单</li>
-<li>支付</li>
-</ul>
-<p>超卖现象</p>
-<p>采用乐观锁的实现方式</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">update</span> <span class="attr">id</span>=<span class="string">&quot;updateByOptimistic&quot;</span> <span class="attr">parameterType</span>=<span class="string">&quot;com.crossoverJie.seconds.kill.pojo.Stock&quot;</span>&gt;</span></span><br><span class="line">    update stock</span><br><span class="line">    <span class="tag">&lt;<span class="name">set</span>&gt;</span></span><br><span class="line">        sale = sale + 1,</span><br><span class="line">        version = version + 1,</span><br><span class="line">    <span class="tag">&lt;/<span class="name">set</span>&gt;</span></span><br><span class="line">    WHERE id = #&#123;id,jdbcType=INTEGER&#125;</span><br><span class="line">    AND version = #&#123;version,jdbcType=INTEGER&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">update</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `stock` (</span><br><span class="line">  `id` <span class="type">int</span>(<span class="number">11</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `name` <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">&#x27;&#x27;</span> COMMENT <span class="string">&#x27;名称&#x27;</span>,</span><br><span class="line">  `count` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;库存&#x27;</span>,</span><br><span class="line">  `sale` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;已售&#x27;</span>,</span><br><span class="line">  `version` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;乐观锁，版本号&#x27;</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>version作为关键字来使用？</p>
-<p>分布式限流的方式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//限流</span></span><br><span class="line"><span class="type">boolean</span> <span class="variable">limit</span> <span class="operator">=</span> redisLimit.limit();</span><br><span class="line"><span class="keyword">if</span> (!limit)&#123;</span><br><span class="line">    res.setCode(StatusEnum.REQUEST_LIMIT.getCode());</span><br><span class="line">    res.setMessage(StatusEnum.REQUEST_LIMIT.getMessage());</span><br><span class="line">    <span class="keyword">return</span> res ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>每次请求时将当前时间(精确到秒)作为 Key 写入到 Redis 中，超时时间设置为 2 秒，Redis 将该 Key 的值进行自增。</li>
-<li>当达到阈值时返回错误。</li>
-<li>写入 Redis 的操作用 Lua 脚本来完成，利用 Redis 的单线程机制可以保证每个 Redis 请求的原子性。</li>
-</ul>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">--lua 下标从 1 开始</span></span><br><span class="line"><span class="comment">-- 限流 key</span></span><br><span class="line"><span class="keyword">local</span> key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="comment">-- 限流大小</span></span><br><span class="line"><span class="keyword">local</span> limit = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="comment">-- 获取当前流量大小</span></span><br><span class="line"><span class="keyword">local</span> curentLimit = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;get&#x27;</span>, key) <span class="keyword">or</span> <span class="string">&quot;0&quot;</span>)</span><br><span class="line"><span class="keyword">if</span> curentLimit + <span class="number">1</span> &gt; limit <span class="keyword">then</span></span><br><span class="line">    <span class="comment">-- 达到限流大小 返回</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="comment">-- 没有达到阈值 value + 1</span></span><br><span class="line">    redis.call(<span class="string">&quot;INCRBY&quot;</span>, key, <span class="number">1</span>)</span><br><span class="line">    redis.call(<span class="string">&quot;EXPIRE&quot;</span>, key, <span class="number">2</span>)</span><br><span class="line">    <span class="keyword">return</span> curentLimit + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">limit</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> String.valueOf(System.currentTimeMillis() / <span class="number">1000</span>);</span><br><span class="line">    <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> Jedis) &#123;</span><br><span class="line">        result = ((Jedis) <span class="built_in">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (jedis <span class="keyword">instanceof</span> JedisCluster) &#123;</span><br><span class="line">        result = ((JedisCluster) <span class="built_in">this</span>.jedis).eval(script, Collections.singletonList(key), Collections.singletonList(String.valueOf(limit)));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//throw new RuntimeException(&quot;instance is error&quot;) ;</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (FAIL_CODE != (Long) result) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p>乐观锁更新+分布式限流+redis缓存</p>
-<ul>
-<li>每次查询库存时走 Redis。</li>
-<li>扣库存时更新 Redis。</li>
-<li>需要提前将库存信息写入 Redis（手动或者程序自动都可以）</li>
-</ul>
-<p>更进一步，加上kafka异步队列</p>
-<p>因为异步了，所以最终需要采取回调或者是其他提醒的方式提醒用户购买完成。</p>
-<p>但好像代码里面没有采用回调的方式？</p>
-<p>其实经过上面的一顿优化总结起来无非就是以下几点：</p>
-<ul>
-<li>尽量将请求拦截在上游。</li>
-<li>还可以根据 UID 进行限流。</li>
-<li>最大程度的减少请求落到 DB。</li>
-<li>多利用缓存。</li>
-<li>同步操作异步化。</li>
-<li>fail fast，尽早失败，保护应用</li>
-</ul>
+<p>这样写的情况下，手动指定的情况下，与codis的区别是？</p>
 
       
     </div>
@@ -517,7 +336,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/06/resteasy/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/18/spring-boot-actuator/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -531,7 +350,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/12/06/resteasy/" class="post-title-link" itemprop="url">Resteasy</a>
+            <a href="/2018/12/18/spring-boot-actuator/" class="post-title-link" itemprop="url">Spring Boot Actuator</a>
         </h2>
 
         <div class="post-meta">
@@ -541,7 +360,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-12-06 21:34:00" itemprop="dateCreated datePublished" datetime="2018-12-06T21:34:00+08:00">2018-12-06</time>
+              <time title="Created: 2018-12-18 19:40:52" itemprop="dateCreated datePublished" datetime="2018-12-18T19:40:52+08:00">2018-12-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -549,7 +368,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/resteasy/" itemprop="url" rel="index"><span itemprop="name">resteasy</span></a>
+                  <a href="/categories/spring-boot/" itemprop="url" rel="index"><span itemprop="name">spring boot</span></a>
                 </span>
             </span>
 
@@ -564,11 +383,288 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>RESTEasy is a JBoss project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is a <strong>fully certified</strong> and portable implementation of the <a target="_blank" rel="noopener" href="https://jax-rs-spec.java.net/">JAX-RS 2.1</a> specification, a JCP specification that provides a Java API for RESTful Web Services over the HTTP protocol.</p>
-<p>采用的是跟spring boot不一样的策略，任意的servlet的容器中都可以运行的restful的服务？</p>
-<p>感觉又不是，前者更强调servlet的体系部分，而后者掩盖了这一体系</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/resteasy/Resteasy">repo</a></p>
-<p>关于JAX-RS的意思？</p>
+          <p><a target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready.html">原文链接</a></p>
+<p>You can choose to manage and monitor your application by using HTTP endpoints or with JMX. Auditing, health, and metrics gathering can also be automatically applied to your application</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>exposing endpoints</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.endpoints.web.exposure.include</span>=<span class="string">*</span></span><br><span class="line"><span class="attr">management.endpoints.web.exposure.exclude</span>=<span class="string">env,beans</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>注意有JMX和web的两种不同类型</p>
+<p>CORS Support</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.endpoints.web.cors.allowed-origins</span>=<span class="string">http://example.com</span></span><br><span class="line"><span class="attr">management.endpoints.web.cors.allowed-methods</span>=<span class="string">GET,POST</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>实现一些自定义的endpoints</p>
+<p>You can also write technology-specific endpoints by using <code>@JmxEndpoint</code> or <code>@WebEndpoint</code>. These endpoints are restricted to their respective technologies. For example, <code>@WebEndpoint</code> is exposed only over HTTP and not over JMX.</p>
+<p>You can write technology-specific extensions by using <code>@EndpointWebExtension</code> and <code>@EndpointJmxExtension</code>. These annotations let you provide technology-specific operations to augment an existing endpoint.</p>
+<p>To provide custom health information, you can register Spring beans that implement the <a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-boot/tree/v2.1.1.RELEASE/spring-boot-project/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java"><code>HealthIndicator</code></a> interface. You need to provide an implementation of the <code>health()</code> method and return a <code>Health</code> response.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.Health;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.health.HealthIndicator;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyHealthIndicator</span> <span class="keyword">implements</span> <span class="title class_">HealthIndicator</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Health <span class="title function_">health</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="type">int</span> <span class="variable">errorCode</span> <span class="operator">=</span> check(); <span class="comment">// perform some specific health check</span></span><br><span class="line">		<span class="keyword">if</span> (errorCode != <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> Health.down().withDetail(<span class="string">&quot;Error Code&quot;</span>, errorCode).build();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> Health.up().build();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>引出来一个reactive health indicators部分，如何监控</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyReactiveHealthIndicator</span> <span class="keyword">implements</span> <span class="title class_">ReactiveHealthIndicator</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Mono&lt;Health&gt; <span class="title function_">health</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> doHealthCheck() <span class="comment">//perform some specific health check that returns a Mono&lt;Health&gt;</span></span><br><span class="line">			.onErrorResume(ex -&gt; Mono.just(<span class="keyword">new</span> <span class="title class_">Health</span>.Builder().down(ex).build())));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>类似流式的方式</p>
+<p>http的management配置</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">management.server.port</span>=<span class="string">8081</span></span><br><span class="line"><span class="attr">management.server.address</span>=<span class="string">127.0.0.1</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>Jmx的配置</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring.jmx.unique-names</span>=<span class="string">true</span></span><br><span class="line"><span class="attr">management.endpoints.jmx.domain</span>=<span class="string">com.example.myapp</span></span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-plugin-manager/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/jenkins-plugin-manager/" class="post-title-link" itemprop="url">Jenkins plugin manager(1)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 18:47:50" itemprop="dateCreated datePublished" datetime="2018-12-15T18:47:50+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/jenkins-build/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/jenkins-build/" class="post-title-link" itemprop="url">Jenkins Build</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 18:43:11" itemprop="dateCreated datePublished" datetime="2018-12-15T18:43:11+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/jenkins/" itemprop="url" rel="index"><span itemprop="name">jenkins</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/12/15/graphql-api/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/15/graphql-api/" class="post-title-link" itemprop="url">GraphQL Api</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-15 11:51:05" itemprop="dateCreated datePublished" datetime="2018-12-15T11:51:05+08:00">2018-12-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/graphQL/" itemprop="url" rel="index"><span itemprop="name">graphQL</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/Shopify/graphql-design-tutorial/blob/master/TUTORIAL.md?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_145">原文链接</a></p>
+<p>针对collection-&gt;product的多对多关系</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">interface Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>AutomaticCollectionRule!<span class="punctuation">]</span>!</span><br><span class="line">  rulesApplyDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  memberships<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionMembership!<span class="punctuation">]</span>!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  imageId<span class="punctuation">:</span> ID</span><br><span class="line">  bodyHtml<span class="punctuation">:</span> String</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule <span class="punctuation">&#123;</span></span><br><span class="line">  column<span class="punctuation">:</span> String!</span><br><span class="line">  relation<span class="punctuation">:</span> String!</span><br><span class="line">  condition<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionMembership <span class="punctuation">&#123;</span></span><br><span class="line">  collectionId<span class="punctuation">:</span> ID!</span><br><span class="line">  productId<span class="punctuation">:</span> ID!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>针对er模型</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">interface Collection <span class="punctuation">&#123;</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  <span class="punctuation">[</span>AutomaticCollectionRule<span class="punctuation">]</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type ManualCollection implements Collection <span class="punctuation">&#123;</span></span><br><span class="line">  Image</span><br><span class="line">  <span class="punctuation">[</span>CollectionMembership<span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type AutomaticCollectionRule <span class="punctuation">&#123;</span> <span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionMembership <span class="punctuation">&#123;</span></span><br><span class="line">  Collection</span><br><span class="line">  Product</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><em>Rule #1: Always start with a high-level view of the objects and their relationships before you deal with specific fields.</em></p>
+<p>对于状态进行clean</p>
+<p>去掉了collectionMembership部分，替换成为product</p>
+<p><em>Rule #2: Never expose implementation details in your API design.</em></p>
+<p><em>Rule #3: Design your API around the business domain, not the implementation, user-interface, or legacy APIs.</em></p>
+<p>Most of your major identifiable business objects (e.g. products, collections, etc) should implement <code>Node</code>.</p>
+<p><em>Rule #7: Always check whether list fields should be paginated or not.</em></p>
+<h3 id=""><a href="#" class="headerlink" title=""></a></h3><p>针对每一个field去判断其合适的一个展现形式，以及继承方式等，这样在后面的扩展的时候，能够随时添加，游刃有余</p>
+<p><em>Rule #8: Always use object references instead of ID fields.</em></p>
+<p><em>Rule #9: Choose field names based on what makes sense, not based on the implementation or what the field is called in legacy APIs.</em></p>
+<p>最终版的schema如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">type Collection implements Node <span class="punctuation">&#123;</span></span><br><span class="line">  id<span class="punctuation">:</span> ID!</span><br><span class="line">  ruleSet<span class="punctuation">:</span> CollectionRuleSet</span><br><span class="line">  products<span class="punctuation">:</span> ProductConnection!</span><br><span class="line">  title<span class="punctuation">:</span> String!</span><br><span class="line">  image<span class="punctuation">:</span> Image</span><br><span class="line">  description<span class="punctuation">:</span> HTML!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionRuleSet <span class="punctuation">&#123;</span></span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionRule!<span class="punctuation">]</span>!</span><br><span class="line">  appliesDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">type CollectionRule <span class="punctuation">&#123;</span></span><br><span class="line">  field<span class="punctuation">:</span> CollectionRuleField!</span><br><span class="line">  relation<span class="punctuation">:</span> CollectionRuleRelation!</span><br><span class="line">  value<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">enum CollectionRuleField <span class="punctuation">&#123;</span></span><br><span class="line">  TAG</span><br><span class="line">  TITLE</span><br><span class="line">  TYPE</span><br><span class="line">  INVENTORY</span><br><span class="line">  PRICE</span><br><span class="line">  VENDOR</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">enum CollectionRuleRelation <span class="punctuation">&#123;</span></span><br><span class="line">  CONTAINS</span><br><span class="line">  ENDS_WITH</span><br><span class="line">  EQUALS</span><br><span class="line">  GREATER_THAN</span><br><span class="line">  LESS_THAN</span><br><span class="line">  NOT_CONTAINS</span><br><span class="line">  NOT_EQUALS</span><br><span class="line">  STARTS_WITH</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="考虑接口部分的问题"><a href="#考虑接口部分的问题" class="headerlink" title="考虑接口部分的问题:"></a>考虑接口部分的问题:</h4><p>在考虑关系membership部分的时候，考虑的几个点：</p>
+<ul>
+<li>整个关系是否适合crud</li>
+<li>对于关联field部分，有一些delta的修改，关系是否需要改变</li>
+<li>关系是否large或者需要分页</li>
+<li>Is the relationship ordered</li>
+<li>Is the relationship mandatory</li>
+<li>Do both sides have IDs</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">type Mutation <span class="punctuation">&#123;</span></span><br><span class="line">  collectionDelete(id<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionPublish(collectionId<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionUnpublish(collectionId<span class="punctuation">:</span> ID!)</span><br><span class="line">  collectionAddProducts(collectionId<span class="punctuation">:</span> ID!<span class="punctuation">,</span> productIds<span class="punctuation">:</span> <span class="punctuation">[</span>ID!<span class="punctuation">]</span>!)</span><br><span class="line">  collectionRemoveProducts(collectionId<span class="punctuation">:</span> ID!<span class="punctuation">,</span> productIds<span class="punctuation">:</span> <span class="punctuation">[</span>ID!<span class="punctuation">]</span>)</span><br><span class="line">  collectionCreate(title<span class="punctuation">:</span> String!<span class="punctuation">,</span> ruleSet<span class="punctuation">:</span> CollectionRuleSetInput<span class="punctuation">,</span> image<span class="punctuation">:</span> ImageInput<span class="punctuation">,</span> description<span class="punctuation">:</span> HTML!)</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">input CollectionRuleSetInput <span class="punctuation">&#123;</span></span><br><span class="line">  rules<span class="punctuation">:</span> <span class="punctuation">[</span>CollectionRuleInput!<span class="punctuation">]</span>!</span><br><span class="line">  appliesDisjunctively<span class="punctuation">:</span> Bool!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">input CollectionRuleInput <span class="punctuation">&#123;</span></span><br><span class="line">  field<span class="punctuation">:</span> CollectionRuleField!</span><br><span class="line">  relation<span class="punctuation">:</span> CollectionRuleRelation!</span><br><span class="line">  value<span class="punctuation">:</span> String!</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><em>Rule #16: When writing separate mutations for relationships, consider whether it would be useful for the mutations to operate on multiple elements at once.</em></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type CollectionUpdatePayload <span class="punctuation">&#123;</span></span><br><span class="line">  userErrors<span class="punctuation">:</span> <span class="punctuation">[</span>UserError!<span class="punctuation">]</span>!</span><br><span class="line">  collection<span class="punctuation">:</span> Collection</span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><em>Rule #23: Most payload fields for a mutation should be nullable, unless there is really a value to return in every possible error case.</em> 关于这条的理解，大部分的payload都是nullable</p>
+<p>tips:</p>
+<ul>
+<li>graphQL，更体现domain部分</li>
+</ul>
 
       
     </div>
@@ -587,7 +683,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/66/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/66/">66</a><span class="page-number current">67</span><a class="page-number" href="/page/68/">68</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/68/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/66/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/66/">66</a><span class="page-number current">67</span><a class="page-number" href="/page/68/">68</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/68/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -655,7 +751,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -668,7 +764,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -696,7 +792,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

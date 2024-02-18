@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/06/basic-jit-compiler/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/dataflow-model/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/06/basic-jit-compiler/" class="post-title-link" itemprop="url">Basic JIT compiler</a>
+            <a href="/2019/09/09/dataflow-model/" class="post-title-link" itemprop="url">The Dataflow Model</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-06 17:39:19" itemprop="dateCreated datePublished" datetime="2019-09-06T17:39:19+08:00">2019-09-06</time>
+              <time title="Created: 2019-09-09 22:24:07" itemprop="dateCreated datePublished" datetime="2019-09-09T22:24:07+08:00">2019-09-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jit/" itemprop="url" rel="index"><span itemprop="name">jit</span></a>
+                  <a href="/categories/data/" itemprop="url" rel="index"><span itemprop="name">data</span></a>
                 </span>
             </span>
 
@@ -200,279 +200,84 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://nullprogram.com/blog/2015/03/19/">原文链接</a></p>
-<p> So rather than stepping through the operations one by one, my program converts the operations into native machine code and lets the hardware do the work directly</p>
-<p>Modern operating systems have page-granularity protections for different parts of <a target="_blank" rel="noopener" href="http://marek.vavrusa.com/c/memory/2015/02/20/memory/">process memory</a>: read, write, and execute.</p>
-<p>In a running process, the pages holding program code and loaded libraries will have their write bit cleared and execute bit set. Most of the other pages will have their execute bit cleared and their write bit set. 读写部分的安全以及独立性</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> asmbuf *</span><br><span class="line"><span class="title function_">asmbuf_create</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> prot = PROT_READ | PROT_WRITE;</span><br><span class="line">    <span class="type">int</span> flags = MAP_ANONYMOUS | MAP_PRIVATE;</span><br><span class="line">    <span class="keyword">return</span> mmap(<span class="literal">NULL</span>, PAGE_SIZE, prot, flags, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>在编译器级别来做</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (operator) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">        asmbuf_ins(buf, <span class="number">3</span>, <span class="number">0x4801f8</span>);   <span class="comment">// add   rax, rdi</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">        asmbuf_ins(buf, <span class="number">3</span>, <span class="number">0x4829f8</span>);   <span class="comment">// sub   rax, rdi</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">        asmbuf_ins(buf, <span class="number">4</span>, <span class="number">0x480fafc7</span>); <span class="comment">// imul  rax, rdi</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">        asmbuf_ins(buf, <span class="number">3</span>, <span class="number">0x4831d2</span>);   <span class="comment">// xor   rdx, rdx</span></span><br><span class="line">        asmbuf_ins(buf, <span class="number">3</span>, <span class="number">0x48f7ff</span>);   <span class="comment">// idiv  rdi</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/06/Using-CompletableFuture/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/06/Using-CompletableFuture/" class="post-title-link" itemprop="url">Using CompletableFuture</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-06 16:46:28" itemprop="dateCreated datePublished" datetime="2019-09-06T16:46:28+08:00">2019-09-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://dzone.com/articles/20-examples-of-using-javas-completablefuture">原文链接</a></p>
-<p>This post revisits Java 8’s <code>CompletionStage</code> API and specifically its implementation in the standard Java library <code>CompletableFuture</code>.</p>
-<p>It represents a stage of a certain computation which can be done either synchronously or asynchronously.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">runAsyncExample</span><span class="params">()</span> &#123;</span><br><span class="line">    CompletableFuture&lt;Void&gt; cf = CompletableFuture.runAsync(() -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">    &#125;);</span><br><span class="line">    assertFalse(cf.isDone());</span><br><span class="line">    sleepEnough();</span><br><span class="line">    assertTrue(cf.isDone());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>关于sleepEnough？</p>
-<p>By default (when no <code>Executor</code> is specified), asynchronous execution uses the common <code>ForkJoinPool</code> implementation, which uses <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/9/docs/api/java/lang/Thread.html#setDaemon-boolean-">daemon</a> threads to execute the <code>Runnable</code> task. Note that this is specific to <code>CompletableFuture</code>. Other <code>CompletionStage</code> implementations can override the default behavior.</p>
-<p>use executors</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">3</span>, <span class="keyword">new</span> <span class="title class_">ThreadFactory</span>() &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Thread <span class="title function_">newThread</span><span class="params">(Runnable runnable)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(runnable, <span class="string">&quot;custom-executor-&quot;</span> + count++);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">thenApplyAsyncWithExecutorExample</span><span class="params">()</span> &#123;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(<span class="string">&quot;message&quot;</span>).thenApplyAsync(s -&gt; &#123;</span><br><span class="line">        assertTrue(Thread.currentThread().getName().startsWith(<span class="string">&quot;custom-executor-&quot;</span>));</span><br><span class="line">        assertFalse(Thread.currentThread().isDaemon());</span><br><span class="line">        randomSleep();</span><br><span class="line">        <span class="keyword">return</span> s.toUpperCase();</span><br><span class="line">    &#125;, executor);</span><br><span class="line">    assertNull(cf.getNow(<span class="literal">null</span>));</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGE&quot;</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>thenApply return value</p>
-<p>thenAccept do not need to return a value</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">applyToEitherExample</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">original</span> <span class="operator">=</span> <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf1 = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s));</span><br><span class="line">    CompletableFuture&lt;String&gt; cf2 = cf1.applyToEither(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">            s -&gt; s + <span class="string">&quot; from applyToEither&quot;</span>);</span><br><span class="line">    assertTrue(cf2.join().endsWith(<span class="string">&quot; from applyToEither&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">thenAcceptBothExample</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">original</span> <span class="operator">=</span> <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    <span class="type">StringBuilder</span> <span class="variable">result</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">    CompletableFuture.completedFuture(original).thenApply(String::toUpperCase).thenAcceptBoth(</span><br><span class="line">            CompletableFuture.completedFuture(original).thenApply(String::toLowerCase),</span><br><span class="line">            (s1, s2) -&gt; result.append(s1 + s2));</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGEmessage&quot;</span>, result.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">thenCombineAsyncExample</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">original</span> <span class="operator">=</span> <span class="string">&quot;Message&quot;</span>;</span><br><span class="line">    CompletableFuture&lt;String&gt; cf = CompletableFuture.completedFuture(original)</span><br><span class="line">            .thenApplyAsync(s -&gt; delayedUpperCase(s))</span><br><span class="line">            .thenCombine(CompletableFuture.completedFuture(original).thenApplyAsync(s -&gt; delayedLowerCase(s)),</span><br><span class="line">                    (s1, s2) -&gt; s1 + s2);</span><br><span class="line">    assertEquals(<span class="string">&quot;MESSAGEmessage&quot;</span>, cf.join());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// sync</span></span><br><span class="line">CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> <span class="title class_">CompletableFuture</span>[futures.size()])).whenComplete((v, th) -&gt; &#123;</span><br><span class="line">        futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="literal">null</span>))));</span><br><span class="line">        result.append(<span class="string">&quot;done&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// async</span></span><br><span class="line">CompletableFuture&lt;Void&gt; allOf = CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> <span class="title class_">CompletableFuture</span>[futures.size()]))</span><br><span class="line">            .whenComplete((v, th) -&gt; &#123;</span><br><span class="line">                futures.forEach(cf -&gt; assertTrue(isUpperCase(cf.getNow(<span class="literal">null</span>))));</span><br><span class="line">                result.append(<span class="string">&quot;done&quot;</span>);</span><br><span class="line">            &#125;);</span><br><span class="line"> allOf.join();</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/05/java-types-intro/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/05/java-types-intro/" class="post-title-link" itemprop="url">java类型系统介绍</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-05 14:51:25" itemprop="dateCreated datePublished" datetime="2019-09-05T14:51:25+08:00">2019-09-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/sU_SQ6GU65BstkyR1t2PiA">原文链接</a></p>
-<p>首先是对参数化多态的扩展，支持给泛型变量添加边界，即：<code>&lt;T extends X&gt;</code>等，这样可以表示更加精确的类型约束，而不仅仅是 forall；不仅如此，Java 还支持 F-bounded，即类型变量可以出现在自己的上边界中：<code>&lt;T extends F&lt;T&gt;&gt;</code></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    Comparable&lt;String&gt; a = min(<span class="string">&quot;cat&quot;</span>, <span class="string">&quot;dog&quot;</span>);</span><br><span class="line">    Comparable&lt;Integer&gt; b = min(<span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">10</span>), <span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">3</span>));</span><br><span class="line">    <span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> Fmin(<span class="string">&quot;cat&quot;</span>, <span class="string">&quot;dog&quot;</span>);</span><br><span class="line">    <span class="type">Integer</span> <span class="variable">i</span> <span class="operator">=</span> Fmin(<span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">10</span>), <span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">3</span>));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;S <span class="keyword">extends</span> <span class="title class_">Comparable</span>&gt; S <span class="title function_">min</span><span class="params">(S a, S b)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> &lt;T <span class="keyword">extends</span> <span class="title class_">Comparable</span>&lt;T&gt;&gt; T <span class="title function_">Fmin</span><span class="params">(T a, T b)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (a.compareTo(b) &lt;= <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>注意 Fmin 方法的 <code>&lt;T extends Comparable&lt;T&gt;&gt;</code>，如果Comparable 不能包含 T，即像 min 方法那样，就会丢失接口 Comparable compareTo 方法的参数类型 (变成 Object)，你会收到一个编译器的警告，说你绕过了编译检查直接使用了 raw type（参数化类型擦除后的类型）；详情可参考 F-bounded quantification</p>
-<p>引入了 wildcards，<code>List&lt;? extends Integer&gt;</code> 就是 <code>List&lt;? extends Number&gt;</code> 的子类 （详情参考Wildcards and Subtyping)</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">typeof: (Γ, e) -&gt; t</span><br></pre></td></tr></table></figure>
-
-<p>大写希腊字母  Γ 用于表示当前上下文（typing context, aka typing environment），它就是一个类型绑定关系的  Map，保存了项的类型（即：e 到 t），e 为表达式的 AST（抽象语法树），t 为类型（具体实现时也是一类特殊的 AST  节点），typeof 在数学上的写法为：<code>Γ ├ e: t</code> 读作：在类型上下文 Γ 下，e 的类型为 t；符号 ‘├’ 在数学上是推导，推断的意思，它在这是一种三元关系即：HasType(Γ, e, t)。</p>
-<p>所以只要在当前上下文下，语法项有具体类型，则类型检查就通过，如果无法返回其类型，那么就报错了，也就是我们常常看到的编译不过。</p>
-<p>类型是什么呢？有两种不同的角度，一种是计算的角度（程序员的角度）或者称 Church 的角度，另一种是逻辑的角度，或者叫 Curry 的角度；前者根据所计算的值的性质来对项（语法项）进行分类，你可以把类型比作集合；后者就是对程序行为进行证明的推理工具，所以类型理论常常和证明理论扯上关系。</p>
-<p>####类型系统</p>
-<p>Lambda 演算可以看做是一门微小的函数式编程语言，它的语法构造非常简单，只有变量，函数(aka 抽象)，和函数应用（调用）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;expr&gt; ::= &lt;name&gt; | &lt;function&gt; | &lt;application&gt;</span><br><span class="line">&lt;function&gt; ::= λ&lt;name&gt;.&lt;body&gt;</span><br><span class="line">&lt;body&gt; ::= &lt;expr&gt;</span><br><span class="line">&lt;application&gt; ::= (&lt;expr&gt; &lt;expr&gt;)</span><br></pre></td></tr></table></figure>
-
-<p>主要是利用函数部分，利用函数式编程中的，一切皆函数</p>
-<h4 id="STLC-Simply-Typed-Lambda-calculus"><a href="#STLC-Simply-Typed-Lambda-calculus" class="headerlink" title="STLC (Simply Typed Lambda calculus)"></a>STLC (Simply Typed Lambda calculus)</h4><p>就是在无类型的 Lambda 演算基础上添加了类型，其语法结构（BNF）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">types:</span><br><span class="line">τ ::= α        base type</span><br><span class="line">    | τ → τ&#x27;   function type</span><br><span class="line"></span><br><span class="line">terms:</span><br><span class="line">e ::= e : τ    annotated term type τ</span><br><span class="line">    | x        variable</span><br><span class="line">    | (e e&#x27;)   application</span><br><span class="line">    | λx.e     lambda abstraction</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/03/system-performance-telemetry/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/03/system-performance-telemetry/" class="post-title-link" itemprop="url">System performance telemetry</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-09-03 10:25:42" itemprop="dateCreated datePublished" datetime="2019-09-03T10:25:42+08:00">2019-09-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index"><span itemprop="name">system</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://github.com/twitter/rezolus">原文repo</a></p>
-<p>rezolus</p>
-<p>Currently, Rezolus collects telemetry from traditional sources (procfs, sysfs), the perf_events subsystem, and from eBPF</p>
-<h3 id="Features"><a href="#Features" class="headerlink" title="Features"></a>Features</h3><ul>
-<li>traditional telemetry sources (procfs, sysfs, …)</li>
-<li>perf_events support for hardware performance counters</li>
-<li>eBPF support to instrument kernel and user space activities</li>
-<li>oversampling and percentile metrics to capture bursts</li>
+          <p><a target="_blank" rel="noopener" href="http://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf">论文地址</a></p>
+<p>针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost</p>
+<p>举的例子，流式视频的广告投放问题</p>
+<p>关于数据处理的几个重点：</p>
+<ul>
+<li>exactly-once semantics</li>
+<li>temporal primitives necessary for windowing, not provide windowing semantics that are limited totuple- or processing-time-based windows</li>
+<li>provide event-time-based windowing either rely on ordering (SQLStream [27]),or have limited window triggering3semantics in event-timemode (Stratosphere&#x2F;Flink)</li>
 </ul>
+<p>a single unified model</p>
+<ul>
+<li>Allows for the calculation of event-time5ordered re-sults, windowed by features of the data themselves,over an unbounded, unordered data source, with cor-rectness, latency, and cost tunable across a broad spec-trum of combinations</li>
+<li>Decomposes pipeline implementation across four re-lated dimensions, providing clarity, composability, andflexibility:<ul>
+<li>– Whatresults are being computed.</li>
+<li>– Wherein event time they are being computed.</li>
+<li>– Whenin processing time they are materialized.</li>
+<li>– Howearlier results relate to later refinements.</li>
+</ul>
+</li>
+<li>Separates the logical notion of data processing fromthe underlying physical implementation, allowing thechoice of batch, micro-batch, or streaming engine tobecome one of simply correctness, latency, and cost</li>
+</ul>
+<p>那么总结起来：</p>
+<ul>
+<li>a window model</li>
+<li>a triggering model</li>
+<li>a incremental processing model</li>
+<li>scalable implements</li>
+</ul>
+<h3 id="Window"><a href="#Window" class="headerlink" title="Window"></a>Window</h3><p>When dealing with unbounded data,windowing is required for some operations (to delineate fi-nite boundaries in most forms of grouping: aggregation,outer joins, time-bounded operations, etc.), and unneces-sary for others (filtering, mapping, inner joins, etc.).</p>
+<ul>
+<li>Fixed，静态window</li>
+<li>Sliding，滑动窗口</li>
+<li>Sessions，windows that capture some period of activ-ity over a subset of the data，按照key以及timeout来计算</li>
+</ul>
+<p>(particularly time management [28] and semantic models [9], but alsowindowing [22], out-of-order processing [23], punctuations[30], heartbeats [21], watermarks [2], frames)</p>
+<h3 id="DATA-FLOW-MODEL"><a href="#DATA-FLOW-MODEL" class="headerlink" title="DATA FLOW MODEL"></a>DATA FLOW MODEL</h3><p>核心要素：</p>
+<ul>
+<li>ParDo, Each input ele-ment to be processed (which itself may be a finite col-lection) is provided to a user-defined function (calledaDoFnin Dataflow), which can yield zero or more out-put elements per input. (多输出设定？)</li>
+<li>GroupByKey, key-grouping (key, value) pairs</li>
+</ul>
+<p>可map也可以reduce</p>
+<ul>
+<li>support for un-aligned windows, for which there are two key insights. Thefirst is that it is simpler to treat all windowing strategiesas unaligned from the perspective of the model, and allowunderlying implementations to apply optimizations relevantto the aligned cases where applicable. </li>
+<li>windowing can be broken apart into two related operations: assignWindow and mergedWindow</li>
+</ul>
+<p>pass (key, value, eventtime, window) 4-tuples</p>
+<p>window assign-&gt;window merge:</p>
+<ul>
+<li>DropTimestamps- Drops element timestamps, asonly the window is relevant from here on out9.</li>
+<li>GroupByKey- Groups (value, window) tuples by key.</li>
+<li>MergeWindows- Merges the set of currently bufferedwindows for a key. The actual merge logic is definedby the windowing strategy. In this case, the windowsforv1andv4overlap, so the sessions windowing strat-egy merges them into a single new, larger session, asindicated in bold.</li>
+<li>GroupAlsoByWindow- For each key, groups valuesby window. After merging in the prior step,v1andv4are now in identical windows, and thus are groupedtogether at this step</li>
+<li>ExpandToElements- Expands per-key, per-windowgroups of values into (key, value, eventtime, window)tuples, with new per-window timestamps. In this ex-ample, we set the timestamp to the end of the window,but any timestamp greater than or equal to the times-tamp of the earliest event in the window is valid withrespect to watermark correctness</li>
+</ul>
+<img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg" style="zoom:40%" />
+
+
+
+<p>有关watermarks，too fast or too slow</p>
+<p>A useful insight in addressing the complete-ness problem is that the Lambda Architecture effectivelysidesteps the issue: it does not solve the completeness prob-lem by somehow providing correct answers faster; it simplyprovides the best low-latency estimate of a result that thestreaming pipeline can provide, with the promise of eventualconsistency and correctness once the batch pipeline runs</p>
+<ul>
+<li>Windowing determines where in event time data are grouped together for processing.</li>
+<li>Triggering determines when in processing time the results of groupings are emitted as panes</li>
+</ul>
+<p>trigger同window的结合</p>
+<ul>
+<li>Discarding: Upon triggering, window contents arediscarded, and later results bear no relation to previ-ous results. </li>
+<li>Accumulating: Upon triggering, window contentsare left intact in persistent state, and later results be-come a refinement of previous results.</li>
+<li>Accumulating &amp; Retracting: Upon triggering, inaddition to theAccumulatingsemantics, a copy of theemitted value is also stored in persistent state. Whenthe window triggers again in the future, a retraction forthe previous value will be emitted first, followed by thenew value as a normal datum(反馈+反向更新)</li>
+</ul>
+<p>design principles</p>
+<ul>
+<li>Never rely on any notion of completeness.</li>
+<li>Be flexible, to accommodate the diversity of known usecases, and those to come in the future.</li>
+<li>Not only make sense, but also add value, in the contextof each of the envisioned execution engines.</li>
+<li>Encourage clarity of implementation.•Support robust analysis of data in the context in whichthey occurred</li>
+</ul>
+<p>One particularly large log join pipeline runs in streamingmode on MillWheel by default, but has a separate Flume-Java batch implementation used for large scale backfills.</p>
 
       
     </div>
@@ -492,7 +297,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/02/pprof-for-investigated-memory-leaks/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/09/life-is-fruit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -506,7 +311,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/09/02/pprof-for-investigated-memory-leaks/" class="post-title-link" itemprop="url">Pprof for investigated memory leaks</a>
+            <a href="/2019/09/09/life-is-fruit/" class="post-title-link" itemprop="url">人生果实</a>
         </h2>
 
         <div class="post-meta">
@@ -516,7 +321,84 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-09-02 22:51:08" itemprop="dateCreated datePublished" datetime="2019-09-02T22:51:08+08:00">2019-09-02</time>
+              <time title="Created: 2019-09-09 19:54:20" itemprop="dateCreated datePublished" datetime="2019-09-09T19:54:20+08:00">2019-09-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>很久没有写周结了，感觉都提不起精神，不管是生活还是工作，感觉很是一团糟，本来以为自己能够做到，但是现实还是不断地冲击着自己，自己并不能做到照顾好别人，连自己都照顾不好，还谈什么照顾别人，呵呵</p>
+<p>还是做好枯叶的觉悟，收拾好自己，拾掇好自己，提升自己，加强自律。。</p>
+<p>至于照顾她人什么的，能做到什么程度就做到什么样子，缓慢而坚定地做好自己能做的事情就够了，不要心太大，也不要心太累。。。</p>
+<p>重要的是，重新把握好节奏，把自己的时间&#x2F;节奏都安排好。</p>
+<p>少抱怨，多鼓励，多鼓励去做自己想做的事情，减少双方的依赖，这样才能独立地活下去，挺好的</p>
+<p>既然死亡必不可免的话，何不去充实地去面对它，这样起码的话，不会太后悔，任何事情都尝试过，自己也提升过，而不是在那儿自怨自艾，原地踏步</p>
+<h4 id="时间计划"><a href="#时间计划" class="headerlink" title="时间计划"></a>时间计划</h4><p>早上8点起的话，在做早餐的时候，能否找一些事情来填充这其中的空白，听一段播客，或者学英语？</p>
+<p>晚上10点回家，保证10分钟左右的锻炼，先从4分钟burpas开始</p>
+<p>保证1个小时的学习时间，不管是学什么，blog、代码什么样子都可以</p>
+<p>周末，至少保证5公里的跑步，尽量朝10公里去努力</p>
+<p>缓慢而坚定的做好自己能做的事情，不要焦虑，也不要急躁，慢生活，慢学习</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/Sync-pool-in-Go/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/08/Sync-pool-in-Go/" class="post-title-link" itemprop="url">Sync pool in Go</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-08 23:50:15" itemprop="dateCreated datePublished" datetime="2019-09-08T23:50:15+08:00">2019-09-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -539,34 +421,192 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/free-code-camp/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192">原文链接</a></p>
-<p><strong>memory pressure</strong>issues materialize are:</p>
-<ul>
-<li>Too many allocations, incorrect data representation</li>
-<li>Heavy usage of reflection or strings</li>
-<li>Using globals</li>
-<li>Orphaned, never-ending goroutines</li>
-</ul>
-<p>利用golang实现blockchain</p>
-<p>Since in Go there is no simple way to analyze the full core dump, getting to the roots of an object that does not get GC-ed is difficult.</p>
-<p>It is more important to build the system in a way that <strong>avoids premature optimizations</strong> and enables you to perform them later on as the code matures, rather than over engineer it from the get-go.</p>
-<p>Go has several built in profiles for us to use in common cases:</p>
-<ul>
-<li>goroutine — stack traces of all current goroutines</li>
-<li>heap — a sampling of memory allocations of live objects</li>
-<li>allocs — a sampling of all past memory allocations</li>
-<li>threadcreate — stack traces that led to the creation of new OS threads</li>
-<li>block — stack traces that led to blocking on synchronization primitives</li>
-<li>mutex — stack traces of holders of contended mutexes</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">(pprof) top</span><br><span class="line">Showing nodes accounting for 330.04MB, 93.73% of 352.11MB total</span><br><span class="line">Dropped 19 nodes (cum &lt;= 1.76MB)</span><br><span class="line">Showing top 10 nodes out of 56</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  142.02MB 40.33% 40.33%   142.02MB 40.33%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/membuffers/go.(*InternalMessage).lazyCalcOffsets</span><br><span class="line">      28MB  7.95% 48.29%       28MB  7.95%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockProofReader (inline)</span><br><span class="line">   26.51MB  7.53% 55.81%    39.01MB 11.08%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockHeaderBuilder).Build</span><br><span class="line">   25.51MB  7.24% 63.06%    32.51MB  9.23%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*ResultsBlockProofBuilder).Build</span><br><span class="line">      23MB  6.53% 69.59%       23MB  6.53%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockHeaderReader (inline)</span><br><span class="line">   20.50MB  5.82% 75.41%    20.50MB  5.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockMetadataReader (inline)</span><br><span class="line">      20MB  5.68% 81.09%       20MB  5.68%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.TransactionsBlockHeaderReader (inline)</span><br><span class="line">      16MB  4.54% 85.64%       24MB  6.82%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.(*TransactionsBlockHeaderBuilder).Build</span><br><span class="line">   14.50MB  4.12% 89.76%   122.51MB 34.79%  github.com/orbs-network/orbs-network-go/services/gossip/codec.DecodeBlockPairs</span><br><span class="line">      14MB  3.98% 93.73%       14MB  3.98%  github.com/orbs-network/orbs-network-go/vendor/github.com/orbs-network/orbs-spec/types/go/protocol.ResultsBlockProofReader (inline)</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://medium.com/a-journey-with-go/go-understand-the-design-of-sync-pool-2dde3024e277">原文链接</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Small <span class="keyword">struct</span> &#123;</span><br><span class="line">   a <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pool = sync.Pool&#123;</span><br><span class="line">   New: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="keyword">interface</span>&#123;&#125; &#123; <span class="keyword">return</span> <span class="built_in">new</span>(Small) &#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:noinline</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">inc</span><span class="params">(s *Small)</span></span> &#123; s.a++ &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkWithoutPool</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">   <span class="keyword">var</span> s *Small</span><br><span class="line">   <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">      <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">         s = &amp;Small&#123; a: <span class="number">1</span>, &#125;</span><br><span class="line">         b.StopTimer(); inc(s); b.StartTimer()</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkWithPool</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">   <span class="keyword">var</span> s *Small</span><br><span class="line">   <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">      <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">         s = pool.Get().(*Small)</span><br><span class="line">         s.a = <span class="number">1</span></span><br><span class="line">         b.StopTimer(); inc(s); b.StartTimer()</span><br><span class="line">         pool.Put(s)</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<p>Since the loop has 10k iterations, the benchmark that does not use the pool made 10k allocations on the heap vs only 3 for the benchmark with pool.</p>
+<p><img src="https://miro.medium.com/max/1144/1*OXMSVCef1UByrMBfK0_viQ.png" alt="sync.pool workflow"></p>
+<p><img src="https://miro.medium.com/max/1772/1*BAH0gDeO2OuF-m2qwvQVpA.png" alt="shared pool"></p>
+<p>Go version 1.13 brings <a target="_blank" rel="noopener" href="https://github.com/golang/go/commit/d5fd2dd6a17a816b7dfd99d4df70a85f1bf0de31#diff-491b0013c82345bf6cfa937bd78b690d">a new doubly-linked list</a>as a shared pool that removes the lock and improves the shared access.</p>
+<p>With this new chained pool, each processor with push and pop at the head of its queue while the shared access will pop from the tail. 大小的增长，类似于hashmap的增长</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Drop victim caches from all pools.</span></span><br><span class="line"><span class="keyword">for</span> _, p := <span class="keyword">range</span> oldPools &#123;</span><br><span class="line">   p.victim = <span class="literal">nil</span></span><br><span class="line">   p.victimSize = <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Move primary cache to victim cache.</span></span><br><span class="line"><span class="keyword">for</span> _, p := <span class="keyword">range</span> allPools &#123;</span><br><span class="line">   p.victim = p.local</span><br><span class="line">   p.victimSize = p.localSize</span><br><span class="line">   p.local = <span class="literal">nil</span></span><br><span class="line">   p.localSize = <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The pools with non-empty primary caches now have non-empty</span></span><br><span class="line"><span class="comment">// victim caches and no pools have primary caches.</span></span><br><span class="line">oldPools, allPools = allPools, <span class="literal">nil</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/update-k8s-deployment-on-a-configmap-change/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/08/update-k8s-deployment-on-a-configmap-change/" class="post-title-link" itemprop="url">Update k8s deployment on a configmap change</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-08 15:50:26" itemprop="dateCreated datePublished" datetime="2019-09-08T15:50:26+08:00">2019-09-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.questionable.services/article/kubernetes-deployments-configmap-change/">原文链接</a></p>
+<blockquote>
+<p>kubectl v1.15 now provides a <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG-1.15.md#cli-improvements"><code>rollout restart</code></a> sub-command that allows you to restart Pods in a <code>Deployment</code> - taking into account your surge&#x2F;unavailability config - and thus have them pick up changes to a referenced <code>ConfigMap</code>, <code>Secret</code> or similar. It’s worth noting that you can use this with clusters older than v1.15, as it’s implemented in the client.</p>
+<p>Example usage: <code>kubectl rollout restart deploy/admission-control</code> to restart a specific deployment. Easy as that!</p>
+</blockquote>
+<p>there are certainly cases where we want to:</p>
 <ul>
-<li><strong>flat</strong> means that the memory allocated by this function and is held by that function</li>
-<li><strong>cum</strong> means that the memory was allocated by this function or function that it called down the stack</li>
+<li>Update a ConfigMap</li>
+<li>Have our Deployment reference that specific ConfigMap version (in a version-control &amp; CI friendly way)</li>
+<li>Rollout a new revision of our Deployment</li>
 </ul>
-<p><img src="https://miro.medium.com/max/8462/1*zX28meov6lzXVo4nCkcNvQ.png" alt="visualizations"></p>
-<p>understanding that when we serialize data, meaning that we allocate memory to structs and primitive objects (int, string), it is never released.在数据序列化过城中，相关的memory还依旧被保存着</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">demo-deployment</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">config-demo-app</span></span><br><span class="line">    <span class="attr">annotations:</span></span><br><span class="line">      <span class="comment"># The field we&#x27;ll use to couple our ConfigMap and Deployment</span></span><br><span class="line">      <span class="attr">configHash:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-demo-app</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">gcr.io/optimum-rock-145719/config-demo-app</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">envFrom:</span></span><br><span class="line">        <span class="comment"># The ConfigMap we want to use</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">configMapRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">demo-config</span></span><br><span class="line">        <span class="comment"># Extra-curricular: We can make the hash of our ConfigMap available at a</span></span><br><span class="line">        <span class="comment"># (e.g.) debug endpoint via a fieldRef</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">CONFIG_HASH</span></span><br><span class="line">            <span class="attr">valueFrom:</span></span><br><span class="line">              <span class="attr">fieldRef:</span></span><br><span class="line">                <span class="attr">fieldPath:</span> <span class="string">spec.template.metadata.annotations.configHash</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>采用confighash的方式</p>
+<p>这样就可以自动rollout restart</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Invoke as hash-deploy-config deployment.yaml configHash myConfigMap</span></span><br><span class="line">hash-deploy-config() &#123;</span><br><span class="line">  yq w $1 spec.template.metadata.annotations.$2 \</span><br><span class="line"><span class="meta prompt_">  $</span><span class="language-bash">(kubectl get cm/<span class="variable">$3</span> -oyaml | <span class="built_in">sha256sum</span>)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>We can now re-deploy our Deployment, and because our <code>spec.template</code> changed, Kubernetes will detect it as a change and re-create our Pods.</p>
+<p>以此为原理的工程</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/stakater/Reloader">repo</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/09/08/Almighty-pause-container/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/08/Almighty-pause-container/" class="post-title-link" itemprop="url">Almighty pause container</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-08 15:30:05" itemprop="dateCreated datePublished" datetime="2019-09-08T15:30:05+08:00">2019-09-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/docker/" itemprop="url" rel="index"><span itemprop="name">docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://www.ianlewis.org/en/almighty-pause-container">原文链接</a></p>
+<p>Kubernetes provides a clean abstraction called pods for just this use case. It hides the complexity of Docker flags and the need to babysit the containers, shared volumes, and the like. It also hides differences between container runtimes</p>
+<p>In Kubernetes, the pause container serves as the “parent container” for all of the containers in your pod. The pause container has two core responsibilities. First, it serves as the basis of Linux namespace sharing in the pod. And second, with PID (process ID) namespace sharing enabled, it serves as PID 1 for each pod and reaps zombie processes.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">docker run -d --name pause -p 8080:80 gcr.io/google_containers/pause-amd64:3.0</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">docker run -d --name nginx -v `<span class="built_in">pwd</span>`/nginx.conf:/etc/nginx/nginx.conf --net=container:pause --ipc=container:pause --pid=container:pause nginx</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">docker run -d --name ghost --net=container:pause --ipc=container:pause --pid=container:pause ghost</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://storage.googleapis.com/static.ianlewis.org/prod/img/767/pause_container.png" alt="pause container"></p>
+<p>Zombie processes are processes that have stopped running but their process table entry still exists because the parent process hasn’t retrieved it via the <code>wait</code> syscall. Technically each process that terminates is a zombie for a very short period of time but they could live for longer.</p>
+<p>Longer lived zombie processes occur when parent processes don’t call the <code>wait</code> syscall after the child process has finished</p>
+<p>但并不是所有的container部分都可以被指定为PID为1的角色</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">sigdown</span><span class="params">(<span class="type">int</span> signo)</span> &#123;</span><br><span class="line">  psignal(signo, <span class="string">&quot;Shutting down, got signal&quot;</span>);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">sigreap</span><span class="params">(<span class="type">int</span> signo)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (waitpid(<span class="number">-1</span>, <span class="literal">NULL</span>, WNOHANG) &gt; <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (getpid() != <span class="number">1</span>)</span><br><span class="line">    <span class="comment">/* Not an error because pause sees use outside of infra containers. */</span></span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Warning: pause should be the first process\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGINT, &amp;(<span class="keyword">struct</span> sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGTERM, &amp;(<span class="keyword">struct</span> sigaction)&#123;.sa_handler = sigdown&#125;, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">if</span> (sigaction(SIGCHLD, &amp;(<span class="keyword">struct</span> sigaction)&#123;.sa_handler = sigreap,</span><br><span class="line">                                             .sa_flags = SA_NOCLDSTOP&#125;,</span><br><span class="line">                <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (;;)</span><br><span class="line">    pause();</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error: infinite loop terminated\n&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">42</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>If PID namespace sharing is not enabled then each container in a Kubernetes pod will have its own PID 1 and each one will need to reap zombie processes itself.</p>
 
       
     </div>
@@ -585,7 +625,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/34/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><span class="page-number current">35</span><a class="page-number" href="/page/36/">36</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/36/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/34/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><span class="page-number current">35</span><a class="page-number" href="/page/36/">36</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/36/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -653,7 +693,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -666,7 +706,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -694,7 +734,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

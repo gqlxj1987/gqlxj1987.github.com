@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/virtual-memory/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/22/graphFrames-in-jupyter/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/11/13/virtual-memory/" class="post-title-link" itemprop="url">算子虚存</a>
+            <a href="/2018/11/22/graphFrames-in-jupyter/" class="post-title-link" itemprop="url">GraphFrames in Jupyter</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-11-13 21:58:29" itemprop="dateCreated datePublished" datetime="2018-11-13T21:58:29+08:00">2018-11-13</time>
+              <time title="Created: 2018-11-22 10:34:36" itemprop="dateCreated datePublished" datetime="2018-11-22T10:34:36+08:00">2018-11-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index"><span itemprop="name">linux</span></a>
+                  <a href="/categories/graphFrames/" itemprop="url" rel="index"><span itemprop="name">graphFrames</span></a>
                 </span>
             </span>
 
@@ -200,37 +200,25 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>首先是hadoop部分涉及到的虚存问题</p>
-<p>关于虚存限制，Hadoop 有两个参数控制，第一个参数决定是否打开虚存检查，默认为 true，第二个参数指出虚存的 Limit 的计算规则是申请实存的 2.1 倍，这解释了为什么实存设置的小了之后虚存也小了。 </p>
-<table>
-<thead>
-<tr>
-<th>yarn.nodemanager.vmem-check-enabled</th>
-<th>true</th>
-<th>Whether virtual memory limits will be enforced for containers.</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>yarn.nodemanager.vmem-pmem-ratio</td>
-<td>2.1</td>
-<td>Ratio between virtual memory to physical memory when setting memory limits for containers. Container allocations are expressed in terms of physical memory, and virtual memory usage is allowed to exceed this allocation by this ratio.</td>
-</tr>
-</tbody></table>
-<h3 id="什么是虚存"><a href="#什么是虚存" class="headerlink" title="什么是虚存"></a>什么是虚存</h3><p>虚存本质上是 OS 对内存资源的超售，技术上来说从 OS 角度有 Demand Paging，从进程角度有 Overcommit。而 Overcommit 是 OOM 的根源，内核对进程对内存的使用做了较为乐观的估计和假设，所以像 JVM 这种一起来就申请 (malloc) 巨大内存的情况虽然很多，但由于 Overcommit 机制所以能很好的运行。 又因为这种假设并不能放之四海而皆准，所以当遇到进程真的挤兑资源的时候(与 Overcommit 假设不符)，操作系统会通过 OOM - Killer 机制来挽救。挽救的方式是使用一些特殊的策略来随机的杀死进程，在进程的角度看到的就是跑的好好地被 OOM Killed 了。 </p>
-<p>当然，日常使用中还存在另一种 OOM，不同于 Overcommit 策略被挤兑时才出现，在 CGroup 生效的时候进程通过 cgroup 与内核协商了最大的资源限制，一旦 RSS(实存) 超过此限制后同样会被 OOM Killed。 </p>
-<p><a target="_blank" rel="noopener" href="http://linuxperf.com/?p=102">理解linux的memory overcommit</a></p>
-<p>理解memory overcommit的关键：commit(或overcommit)针对的是内存申请，内存申请不等于内存分配，内存只在实际用到的时候才分配。</p>
-<p>内核参数 vm.overcommit_memory 接受三种取值：</p>
-<ul>
-<li>0 – Heuristic overcommit handling. 这是缺省值，它允许overcommit，但过于明目张胆的overcommit会被拒绝，比如malloc一次性申请的内存大小就超过了系统总内存。Heuristic的意思是“试探式的”，内核利用某种算法（对该算法的详细解释请看文末）猜测你的内存申请是否合理，它认为不合理就会拒绝overcommit。</li>
-<li>1 – Always overcommit. 允许overcommit，对内存申请来者不拒。</li>
-<li>2 – Don’t overcommit. 禁止overcommit。</li>
-</ul>
-<p><em>“sar -r”是查看内存使用状况的常用工具，它的输出结果中有两个与overcommit有关，kbcommit 和 %commit：</em><br><em>kbcommit对应&#x2F;proc&#x2F;meminfo中的 Committed_AS；</em><br><em>%commit的计算公式并没有采用 CommitLimit作分母，而是Committed_AS&#x2F;(MemTotal+SwapTotal)，意思是_内存申请_占_物理内存与交换区之和_的百分比。</em></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sar -r</span> </span><br><span class="line"> </span><br><span class="line">05:00:01 PM kbmemfree kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty</span><br><span class="line">05:10:01 PM    160576   3648460     95.78         0   1846212   4939368     62.74   1390292   1854880         4</span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/graphframes-in-jupyter-a-practical-guide-9b3b346cebc5">原文链接</a></p>
+<p>GraphX</p>
+<p>Graphframes</p>
+<p>GraphX is to RDDs as GraphFrames are to DataFrames</p>
+<p>A GraphFrame is always created from a vertex DataFrame (e.g. users) and an edges DataFrame (e.g. relationships between users). The schema of both DataFrames has some mandatory columns. The vertex DataFrame must contain a column named <em>id</em> that stores unique vertex IDs. The edges DataFrame must contain a column named <em>src</em> that stores the source of the edge and a column named <em>dst</em> that stores the destination of the edge. All other columns are optional and can be added depending on one’s needs.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">g = GraphFrame(vertices, edges)</span><br><span class="line"><span class="comment">## Take a look at the DataFrames</span></span><br><span class="line">g.vertices.show()</span><br><span class="line">g.edges.show()</span><br><span class="line"><span class="comment">## Check the number of edges of each vertex</span></span><br><span class="line">g.degrees.show()</span><br></pre></td></tr></table></figure>
 
 
 
+<h4 id="directed-vs-undirected-edges"><a href="#directed-vs-undirected-edges" class="headerlink" title="directed vs undirected edges"></a>directed vs undirected edges</h4><p>有向边以及无向边部分</p>
+<p>A GraphFrame itself can’t be filtered, but DataFrames deducted from a Graph can. Consequently, the <em>filter</em>-function (or any other function) can be used just as you would use it with DataFrames.</p>
+<p>图的全连通部分</p>
+<h4 id="Motif-finding"><a href="#Motif-finding" class="headerlink" title="Motif finding"></a>Motif finding</h4><p>Finding motifs helps to execute queries to discover structural patterns in graphs</p>
+<p>As an example we can try to find the mutual friends for any pair of users <em>a</em> and <em>c</em>. In order to be a mutual friend <em>b</em>, <em>b</em> must be a friend with both <em>a</em> and <em>c</em> (and not just followed by <em>c</em>, for example).</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mutualFriends = </span><br><span class="line">g.find(<span class="string">&quot;(a)-[]-&gt;(b); (b)-[]-&gt;(c); (c)-[]-&gt;(b); (b)-[]-&gt;(a)&quot;</span>)\</span><br><span class="line">.dropDuplicates()</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="TriangleCount-and-PageRank"><a href="#TriangleCount-and-PageRank" class="headerlink" title="TriangleCount and PageRank"></a>TriangleCount and PageRank</h3><p>由graphFrames衍生的很自然的两个算法</p>
 
       
     </div>
@@ -250,7 +238,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/05/reservoir-sampling/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/16/spark-sql-window/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -264,7 +252,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/11/05/reservoir-sampling/" class="post-title-link" itemprop="url">Reservoir Sampling</a>
+            <a href="/2018/11/16/spark-sql-window/" class="post-title-link" itemprop="url">Spark Sql Join部分</a>
         </h2>
 
         <div class="post-meta">
@@ -274,7 +262,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-11-05 10:23:09" itemprop="dateCreated datePublished" datetime="2018-11-05T10:23:09+08:00">2018-11-05</time>
+              <time title="Created: 2018-11-16 10:21:52" itemprop="dateCreated datePublished" datetime="2018-11-16T10:21:52+08:00">2018-11-16</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -282,7 +270,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/algorithm/" itemprop="url" rel="index"><span itemprop="name">algorithm</span></a>
+                  <a href="/categories/spark/" itemprop="url" rel="index"><span itemprop="name">spark</span></a>
                 </span>
             </span>
 
@@ -297,22 +285,26 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h4 id="解决的问题"><a href="#解决的问题" class="headerlink" title="解决的问题"></a>解决的问题</h4><p>要求从N个元素中随机的抽取k个元素，其中N无法确定。<br>这种应用的场景一般是数据流的情况下，由于数据只能被读取一次，而且数据量很大，并不能全部保存，因此数据量N是无法在抽样开始时确定的；但又要保持随机性</p>
-<h4 id="证明过程"><a href="#证明过程" class="headerlink" title="证明过程"></a>证明过程</h4><p>假设数据序列的规模为 nn，需要采样的数量的为 kk。</p>
-<p>首先构建一个可容纳 kk 个元素的数组，将序列的前 kk 个元素放入数组中。</p>
-<p>然后从第 k+1 个元素开始，以 $\frac {k}{n}$ 的概率来决定该元素是否被替换到数组中（数组中的元素被替换的概率是相同的）。 当遍历完所有元素之后，数组中剩下的元素即为所需采取的样本。</p>
-<p>对于第 <em>i</em>个数（i≤k）。在 <em>k</em> 步之前，被选中的概率为 <em>1</em>。当走到第 <em>k+1</em> 步时，被 <em>k+1</em> 个元素替换的概率 <em>&#x3D; k+1</em>个元素被选中的概率 * <em>i</em> 被选中替换的概率，即为 $\frac{k}{k+1}×\frac{1}{k}&#x3D;\frac{1}{k+1}$。则被保留的概率为 $1−\frac{1}{k+1}&#x3D;\frac{k}{k+1}$。依次类推，不被 <em>k+2</em>个元素替换的概率为 $1−\frac{k}{k+2}×\frac{1}{k}&#x3D;\frac{k+1}{k+2}$。则运行到第 <em>n</em>步时，被保留的概率 &#x3D; 被选中的概率 * 不被替换的概率，即：</p>
-<p>$$1×\frac{k}{k+1}×\frac{k+1}{k+2}×\frac{k+2}{k+3}×…×\frac{n−1}{n}&#x3D;\frac{k}{n}$$</p>
-<p>对于第 <em>j</em> 个数（j&gt;k）。在第 j 步被选中的概率为 kjkj。不被 j+1j+1 个元素替换的概率为 1−kj+1×1k&#x3D;jj+11−kj+1×1k&#x3D;jj+1。则运行到第 nn 步时，被保留的概率 &#x3D; 被选中的概率 * 不被替换的概率，即：</p>
-<p>$$\frac{k}{j}×\frac{j}{j+1}×\frac{j+1}{j+2}×\frac{j+2}{j+3}×…×\frac{n−1}{n}&#x3D;\frac{k}{n}$$</p>
-<p>所以对于其中每个元素，被保留的概率都为 $\frac{k}{n}$.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ReservoirSamplingTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span>[] pool; <span class="comment">// 所有数据</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">N</span> <span class="operator">=</span> <span class="number">100000</span>; <span class="comment">// 数据规模</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">Random</span> <span class="variable">random</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Before</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setUp</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 初始化</span></span><br><span class="line">        pool = <span class="keyword">new</span> <span class="title class_">int</span>[N];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">            pool[i] = i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span>[] sampling(<span class="type">int</span> K) &#123;</span><br><span class="line">        <span class="type">int</span>[] result = <span class="keyword">new</span> <span class="title class_">int</span>[K];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; K; i++) &#123; <span class="comment">// 前 K 个元素直接放入数组中</span></span><br><span class="line">            result[i] = pool[i];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> K; i &lt; N; i++) &#123; <span class="comment">// K + 1 个元素开始进行概率采样</span></span><br><span class="line">            <span class="type">int</span> <span class="variable">r</span> <span class="operator">=</span> random.nextInt(i + <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (r &lt; K) &#123;</span><br><span class="line">                result[r] = pool[i];</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i : sampling(<span class="number">100</span>)) &#123;</span><br><span class="line">            System.out.println(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
+          <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>spark 1.6.2 -&gt; spark 2.2</p>
+<p>内存中的数据组织形式</p>
+<p><img src="https://user-images.githubusercontent.com/22542670/26998244-18ed1b40-4d9f-11e7-897d-5d2b032c3001.png" alt="memory"></p>
+<p>在内存中，改成了以列式存储为主</p>
+<p>(1) 与numpy或者tensorflow接入时可实现zero serialization（零序列化）</p>
+<p>(2) 与Spark的in-memory columnar-cache无缝兼容</p>
+<p>(3) 更利于压缩技术的引入</p>
+<h4 id="CBO"><a href="#CBO" class="headerlink" title="CBO"></a>CBO</h4><p>基于成本的优化器CBO，是根据计算出的所有可能的物理计划的代价，选择代价最小的物理执行计划。关键点在于能评估一个物理执行计划的代价。</p>
 <ul>
-<li>注意random部分</li>
-<li>以及r&lt;K</li>
+<li><p>HashJoin中build side and probe side中的问题</p>
+</li>
+<li><p>在 Spark SQL 中，Join主要有两种执行方式，Shuffle-based Join, BroadcastJoin。Shuffle-based Join会有Shuffle，代价比较。BroadcastJoin不需要shuffle，但要求至少有一张表足够小，这样就能通过Broadcast机制，广播到每个Executor中。</p>
+<p>如下图所示，在没CBO的情况下，SparkSQL通过spark.sql.autoBroadcastJoinThreshold来判断是否选择BroadcastJoin（默认值为10MB）。如果判断基于原始表大小，会选用SortMergeJoin。</p>
+<p>在有CBO的情况下，经过Filter后的Table 2的大小正好满足小于10MB的情况下，会正确地采用性能更好的BroadcastJoin。</p>
+</li>
 </ul>
-<p>保证$\frac{k}{n}$的概率</p>
+<p><img src="http://www.jasongj.com/img/spark/spark3_cbo/spark_cbo_join_type.png" alt="broadcast"></p>
+<ul>
+<li>并行的join的情况</li>
+</ul>
 
       
     </div>
@@ -332,7 +324,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/jenkins-analysis/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/14/tensorflow-large-batch/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -346,7 +338,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/11/04/jenkins-analysis/" class="post-title-link" itemprop="url">jenkins analysis</a>
+            <a href="/2018/11/14/tensorflow-large-batch/" class="post-title-link" itemprop="url">Tensorflow Large batch</a>
         </h2>
 
         <div class="post-meta">
@@ -356,64 +348,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-11-04 20:59:55" itemprop="dateCreated datePublished" datetime="2018-11-04T20:59:55+08:00">2018-11-04</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/arthas-log/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/04/arthas-log/" class="post-title-link" itemprop="url">Arthas Log Bug追查</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-11-04 17:31:36" itemprop="dateCreated datePublished" datetime="2018-11-04T17:31:36+08:00">2018-11-04</time>
+              <time title="Created: 2018-11-14 22:53:58" itemprop="dateCreated datePublished" datetime="2018-11-14T22:53:58+08:00">2018-11-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -421,7 +356,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                  <a href="/categories/tensorflow/" itemprop="url" rel="index"><span itemprop="name">tensorflow</span></a>
                 </span>
             </span>
 
@@ -436,30 +371,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/boGS0VK45mZ_zT25K44S5Q">原文链接</a></p>
-<p>利用arthas直接在线上定位问题的过程，主要使用 <code>sc</code>和 <code>getstatic</code>命令。</p>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/sc.html">https://alibaba.github.io/arthas/sc.html</a></li>
-<li><a target="_blank" rel="noopener" href="https://alibaba.github.io/arthas/getstatic.html">https://alibaba.github.io/arthas/getstatic.html</a></li>
-</ul>
-<p>例如：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sc io.netty.channel.nio.NioEventLoop</span></span><br><span class="line">class-info        io.netty.channel.nio.NioEventLoop</span><br><span class="line"> code-source       file:/opt/app/plugins/tair-plugin/lib/netty-all-4.0.35.Final.jar!/</span><br><span class="line"> name              io.netty.channel.nio.NioEventLoop</span><br><span class="line"> isInterface       false</span><br><span class="line"> isAnnotation      false</span><br><span class="line"> isEnum            false</span><br><span class="line"> isAnonymousClass  false</span><br><span class="line"> isArray           false</span><br><span class="line"> isLocalClass      false</span><br><span class="line"> isMemberClass     false</span><br><span class="line"> isPrimitive       false</span><br><span class="line"> isSynthetic       false</span><br><span class="line"> simple-name       NioEventLoop</span><br><span class="line"> modifier          final,public</span><br><span class="line"> annotation</span><br><span class="line"> interfaces</span><br><span class="line"> </span><br><span class="line">super-class     +-io.netty.channel.SingleThreadEventLoop</span><br><span class="line">                     +-io.netty.util.concurrent.SingleThreadEventExecutor</span><br><span class="line">                       +-io.netty.util.concurrent.AbstractScheduledEventExecutor</span><br><span class="line">                         +-io.netty.util.concurrent.AbstractEventExecutor</span><br><span class="line">                           +-java.util.concurrent.AbstractExecutorService</span><br><span class="line">                             +-java.lang.Object</span><br><span class="line"> </span><br><span class="line">class-loader      +-tair-plugin&#x27;s ModuleClassLoader</span><br><span class="line"> classLoaderHash   73ad2d6</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+          <p>GPU不够的情况下，</p>
+<p>在TensorFlow上，我们可以比较方便地定制一个optimizer来实现这种操作，封装一下实际的optimizer，实际上做梯度累加和延迟更新两部就好了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LazyUpdateOptimizer</span>(tf.train.Optimizer):</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, optimizer, batch_size=<span class="number">1</span>,</span></span><br><span class="line"><span class="params">                 use_locking=<span class="literal">True</span>, name=<span class="string">&quot;LazyUpdateOptimizer&quot;</span></span>):</span><br><span class="line"> </span><br><span class="line">        tf.train.Optimizer.__init__(self, use_locking=use_locking, name=name)</span><br><span class="line"> </span><br><span class="line">        self._name = name</span><br><span class="line">        self._batch_size = batch_size</span><br><span class="line">        self._grad_cache = &#123;&#125;</span><br><span class="line">        self._optimizer = optimizer</span><br><span class="line">        self._<span class="built_in">vars</span> = []</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">with</span> tf.variable_scope(self._name):</span><br><span class="line">            self._batch_count_variable = \</span><br><span class="line">                tf.get_variable(name=<span class="string">&quot;batch_count&quot;</span>,</span><br><span class="line">                                shape=[],</span><br><span class="line">                                dtype=tf.int64,</span><br><span class="line">                                initializer=tf.constant_initializer(self._batch_size),</span><br><span class="line">                                collections=[tf.GraphKeys.LOCAL_VARIABLES])</span><br><span class="line">            self._<span class="built_in">vars</span>.append(self._batch_count_variable)</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">optimizer</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> self._optimizer</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">name</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> self._name</span><br><span class="line"> </span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">batch_size</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> self._batch_size</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">get_initializer</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> tf.group([_.initializer <span class="keyword">for</span> _ <span class="keyword">in</span> self._<span class="built_in">vars</span>])</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">apply_gradients</span>(<span class="params">self, grads_and_vars, global_step=<span class="literal">None</span>, name=<span class="literal">None</span></span>):</span><br><span class="line">        scope_name = self._name</span><br><span class="line">        <span class="keyword">if</span> name <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            scope_name += <span class="string">&quot;_&quot;</span> + name</span><br><span class="line"> </span><br><span class="line">        cached_grads = []</span><br><span class="line">        <span class="keyword">for</span> grad, var <span class="keyword">in</span> grads_and_vars:</span><br><span class="line">            <span class="keyword">if</span> grad <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"> </span><br><span class="line">            <span class="keyword">if</span> var <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> var <span class="keyword">not</span> <span class="keyword">in</span> self._grad_cache:</span><br><span class="line">                <span class="keyword">with</span> tf.variable_scope(scope_name):</span><br><span class="line">                    <span class="keyword">with</span> tf.colocate_with(var):</span><br><span class="line">                        cached_grad = tf.get_variable(name=var.name.split(<span class="string">&quot;:&quot;</span>)[<span class="number">0</span>] + <span class="string">&quot;_grad_cache&quot;</span>,</span><br><span class="line">                                                      dtype=var.dtype,</span><br><span class="line">                                                      shape=var.shape,</span><br><span class="line">                                                      initializer=tf.zeros_initializer(),</span><br><span class="line">                                                      trainable=<span class="literal">False</span>,</span><br><span class="line">                                                      collections=[tf.GraphKeys.LOCAL_VARIABLES])</span><br><span class="line">                        self._<span class="built_in">vars</span>.append(cached_grad)</span><br><span class="line">                self._grad_cache[var] = cached_grad</span><br><span class="line">            cached_grads.append(self._grad_cache[var])</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">with</span> tf.name_scope(scope_name):</span><br><span class="line">            cache_gradients_op = self.__cache_gradients(grads_and_vars, cached_grads)</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies([cache_gradients_op]):</span><br><span class="line">                apply_op = tf.cond(</span><br><span class="line">                    tf.equal(self._batch_count_variable, <span class="number">0</span>),</span><br><span class="line">                    true_fn=<span class="keyword">lambda</span>: self.__actual_apply_gradients(grads_and_vars, global_step=global_step),</span><br><span class="line">                    false_fn=<span class="keyword">lambda</span>: tf.no_op())</span><br><span class="line">                <span class="keyword">with</span> tf.control_dependencies([apply_op]):</span><br><span class="line">                    <span class="keyword">return</span> tf.no_op()</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__cache_gradients</span>(<span class="params">self, grads_and_vars, cached_grads</span>):</span><br><span class="line">        update_ops = []</span><br><span class="line">        <span class="keyword">with</span> tf.name_scope(<span class="string">&quot;cache_grad&quot;</span>):</span><br><span class="line">            <span class="keyword">for</span> (grad, var), cached_grad <span class="keyword">in</span> itertools.izip(grads_and_vars, cached_grads):</span><br><span class="line">                <span class="keyword">with</span> tf.colocate_with(cached_grad):</span><br><span class="line">                    <span class="keyword">if</span> <span class="built_in">isinstance</span>(grad, tf.Tensor):</span><br><span class="line">                        update_op = tf.assign_add(cached_grad, grad)</span><br><span class="line">                    <span class="keyword">elif</span> <span class="built_in">isinstance</span>(grad, tf.IndexedSlices):</span><br><span class="line">                        update_op = tf.scatter_add(cached_grad, grad.indices, grad.values)</span><br><span class="line">                    <span class="keyword">else</span>:</span><br><span class="line">                        <span class="keyword">continue</span></span><br><span class="line"> </span><br><span class="line">                update_ops.append(update_op)</span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies([tf.group(update_ops, name=<span class="string">&quot;record_gradients&quot;</span>)]):</span><br><span class="line">                <span class="keyword">return</span> tf.assign_sub(self._batch_count_variable, <span class="number">1</span>)</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__actual_apply_gradients</span>(<span class="params">self, grads_and_vars, global_step=<span class="literal">None</span></span>):</span><br><span class="line">        actual_grads_and_vars = [(self._grad_cache[var], var) <span class="keyword">for</span> grad, var <span class="keyword">in</span> grads_and_vars <span class="keyword">if</span> grad <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>]</span><br><span class="line"> </span><br><span class="line">        apply_op = self._optimizer.apply_gradients(actual_grads_and_vars, global_step=global_step)</span><br><span class="line">        <span class="keyword">with</span> tf.control_dependencies([apply_op]):</span><br><span class="line">            reset_ops = [tf.assign(self._batch_count_variable, self._batch_size)]</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">for</span> grad, var <span class="keyword">in</span> actual_grads_and_vars:</span><br><span class="line">                reset_ops.append(tf.assign(self._grad_cache[var], tf.zeros_like(var)))</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">with</span> tf.control_dependencies(reset_ops):</span><br><span class="line">                <span class="keyword">return</span> tf.no_op()</span><br></pre></td></tr></table></figure>
 
-
-
-<p>通过查看源码，了解相关的logger的实现</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">getstatic -c 73ad2d6 io.netty.channel.nio.NioEventLoop logger <span class="string">&#x27;getClass().getName()&#x27;</span></span></span><br><span class="line">field: logger</span><br><span class="line">@String[io.netty.util.internal.logging.Slf4JLogger]</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>tair插件里的logback没有设置ROOT logger，所以它的默认level是DEBUG，并且默认的appender会输出到stdout里。</strong></p>
-<p>一些经验</p>
-<ul>
-<li>logback默认的ROOT logger level是 <code>DEBUG</code>，输出是stdout</li>
-<li>利用arthas的 <code>sc</code>命令定位具体的类</li>
-<li>利用arthas的 <code>getstatic</code>获取static filed的值</li>
-<li>利用logger parent层联的特性，可以向上一层层获取到ROOT logger的配置</li>
-</ul>
 
       
     </div>
@@ -479,7 +394,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/04/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/jianlai/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -493,7 +408,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/11/04/one-week/" class="post-title-link" itemprop="url">孤独的美食家</a>
+            <a href="/2018/11/13/jianlai/" class="post-title-link" itemprop="url">剑来的一</a>
         </h2>
 
         <div class="post-meta">
@@ -503,7 +418,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-11-04 15:45:10" itemprop="dateCreated datePublished" datetime="2018-11-04T15:45:10+08:00">2018-11-04</time>
+              <time title="Created: 2018-11-13 23:50:15" itemprop="dateCreated datePublished" datetime="2018-11-13T23:50:15+08:00">2018-11-13</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -526,7 +441,100 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <hr>
+          <p>以一贯之</p>
+<p>一视同仁</p>
+<p>一往无前</p>
+<hr>
+<p>本周工作：</p>
+<ul>
+<li>完成featureGraph部分的第二版的接入</li>
+<li>了解在线预估部分，尤其是新版fe部分</li>
+<li>写一些文档</li>
+</ul>
+<p>本周所得：</p>
+<ul>
+<li>代码的合理性以及自测性部分</li>
+<li>捡起来code review</li>
+</ul>
+<p>下周：</p>
+<ul>
+<li>tuningEntryPoint框架部分的优化</li>
+<li>在线预估方案的一些详细设计部分</li>
+</ul>
+<p>不出意外的，还是哭了，还是压力太大。。。哎。。。还是静心地照顾好，虽然做不到像陈平安一样牛，但好歹也能尽量去做到以一贯之，不要有所放松和松懈，求一个心安，也求一个顺心意</p>
+<p>工作上，感觉有些放松，不能因为做完了一个迭代就以为自己上手了，自己的那么多的bug，还有设计上的遗漏，不正是表示自己还是远远不够。。。然后下一个迭代就歇菜了。。。还是把握不了节奏，哎，尽力去做吧，也有了最坏的打算，虽然做不了什么，但起码不要留下什么遗憾，尽力去完成。。。</p>
+<p>锻炼又翘了。。。都一个月了，不能再翘了23333</p>
+<p>jenkins的源码分析部分，争取11月底能够分享出来。。。尽力去加油了</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/11/13/scheduling-notebook/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/13/scheduling-notebook/" class="post-title-link" itemprop="url">notebook的调度</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-13 22:26:33" itemprop="dateCreated datePublished" datetime="2018-11-13T22:26:33+08:00">2018-11-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/scheduling/" itemprop="url" rel="index"><span itemprop="name">scheduling</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/scheduling-notebooks-348e6c14cfd6">原文链接</a></p>
+<p>We’re currently in the process of migrating all <strong>10,000</strong> of the scheduled jobs running on the Netflix Data Platform to use notebook-based execution</p>
+<p><strong>Notebooks are, in essence, managed JSON documents with a simple interface to execute code within.</strong></p>
+<p>Notebooks pose a lot of challenges: they’re frequently changed, their cell outputs need not match the code, they’re difficult to test, and there’s no easy way to dynamically configure their execution. Furthermore, you need a notebook server to run them, which creates architectural dependencies to facilitate execution.</p>
 
       
     </div>
@@ -545,7 +553,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/70/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/70/">70</a><span class="page-number current">71</span><a class="page-number" href="/page/72/">72</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/72/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/70/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/70/">70</a><span class="page-number current">71</span><a class="page-number" href="/page/72/">72</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/72/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -613,7 +621,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -626,7 +634,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -654,7 +662,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

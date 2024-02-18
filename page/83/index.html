@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/15/golang-distributed-data-store/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/18/k8s-tips/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/07/15/golang-distributed-data-store/" class="post-title-link" itemprop="url">Golang Distributed Data Store</a>
+            <a href="/2018/07/18/k8s-tips/" class="post-title-link" itemprop="url">Kubernetes tips</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-07-15 15:45:07" itemprop="dateCreated datePublished" datetime="2018-07-15T15:45:07+08:00">2018-07-15</time>
+              <time title="Created: 2018-07-18 14:44:15" itemprop="dateCreated datePublished" datetime="2018-07-18T14:44:15+08:00">2018-07-18</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a>
                 </span>
             </span>
 
@@ -200,81 +200,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://fosdem.org/2018/schedule/event/datastore/attachments/slides/2618/export/events/attachments/datastore/slides/2618/designing_distributed_datastore_in_go_timbala.pdf">原文链接</a></p>
-<h2 id="Timbala"><a href="#Timbala" class="headerlink" title="Timbala"></a>Timbala</h2><p>“A distributed system is a model in which components located on networked computers communicate and coordinate their actions by passing messages.”</p>
-<p>Requirements:</p>
-<ul>
-<li>Sharding</li>
-<li>Replication</li>
-<li>High availability and throughputfor data ingestion</li>
-</ul>
-<p>OpenTSDB</p>
-<p>分成多个里程碑</p>
-<ul>
-<li>单节点，可存，可查</li>
-<li>多节点的shared, replication部分，以及手动方式的rebalance</li>
-<li>anti-entropy?</li>
-<li>研究性的，numa,data&#x2F;cache locally, SSDs, 等等</li>
-</ul>
-<p>最终集中在几点：</p>
-<ul>
-<li>Coordination     <ul>
-<li>keep coordination to a minimum</li>
-<li>avoid coordination bottlenecks</li>
-</ul>
-</li>
-<li>Indexing      <ul>
-<li>each node knows what data is</li>
-<li>Consistent view; knows where each piece of data should reside</li>
-</ul>
-</li>
-<li>On-disk storage format         <ul>
-<li>Log-structured merge </li>
-<li>LevelDB </li>
-<li>RocksDB</li>
-<li>LMDB </li>
-<li>B-trees and b-tries (bitwise trie structure) for indexes </li>
-<li>Locality-preserving hashes</li>
-</ul>
-</li>
-<li>Cluster membership     </li>
-<li>node in cluster</li>
-<li>could be static动态更好？</li>
-<li>node dead to stop use</li>
-<li>Data placement (replication&#x2F;sharding)            <ul>
-<li>Consistent hashing, </li>
-<li>1&#x2F;n of data should be displaced&#x2F;relocated when a single node fails, partition key</li>
-</ul>
-</li>
-<li>Failure modes</li>
-</ul>
-<p>hashicorp’s memberlist</p>
-<p>Consistent hashing:</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Hash</span><span class="params">(key <span class="type">uint64</span>, numBuckets <span class="type">int</span>)</span></span> <span class="type">int32</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> b <span class="type">int64</span> = <span class="number">-1</span></span><br><span class="line">    <span class="keyword">var</span> j <span class="type">int64</span></span><br><span class="line">    <span class="keyword">for</span> j &lt; <span class="type">int64</span>(numBuckets) &#123;</span><br><span class="line">        b = j</span><br><span class="line">        key = key*<span class="number">2862933555777941757</span> + <span class="number">1</span></span><br><span class="line">        j = <span class="type">int64</span>(<span class="type">float64</span>(b+<span class="number">1</span>) * (<span class="type">float64</span>(<span class="type">int64</span>(<span class="number">1</span>)&lt;&lt;<span class="number">31</span>) / <span class="type">float64</span>((key&gt;&gt;<span class="number">33</span>)+<span class="number">1</span>)))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="type">int32</span>(b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>这里的测试挺有意思</p>
-<ul>
-<li><p>Unit tests</p>
-<ul>
-<li><p>data distributed tests 涉及到分配的平均性</p>
-</li>
-<li><p>data displacement tests 迁移的测试</p>
-</li>
-<li><p>data displacement failure 迁移失败的处理</p>
-</li>
-<li><p>jump hash gotcha 进入cluster，所有nodes的jump hash算法的调整</p>
-</li>
-</ul>
-</li>
-<li><p>Acceptance tests</p>
-</li>
-<li><p>Integration tests</p>
-</li>
-<li><p>Benchmarking</p>
-</li>
-</ul>
+          <p><a target="_blank" rel="noopener" href="https://1byte.io/developer-guide-to-docker-and-kubernetes/">原文链接</a></p>
+<p>典型的 Kubernetes 集群包含一个 master 和很多 node。Master 是控制集群的中心，node 是提供 CPU、内存和存储资源的节点。Master 上运行着多个进程，包括面向用户的 API 服务、负责维护集群状态的 Controller Manager、负责调度任务的 Scheduler 等。每个 node 上运行着维护 node 状态并和 master 通信的 kubelet，以及实现集群网络服务的 kube-proxy。</p>
+<p>可以理解为 pod 都运行在一个内网，我们无法从外部直接访问。要把服务暴露出来，我们需要创建一个 Service。Service 的作用有点像建立了一个反向代理和负载均衡器，负责把请求分发给后面的 pod</p>
+<h2 id="横向扩展、滚动更新、版本回滚"><a href="#横向扩展、滚动更新、版本回滚" class="headerlink" title="横向扩展、滚动更新、版本回滚"></a>横向扩展、滚动更新、版本回滚</h2><p>Kubernetes 的用户通常是用 Deployment 来管理服务的。一个 deployment 可以创建指定数量的 pod 部署到各个 node 上，并可完成更新、回滚等操作。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/9824247-1ae08462a61408d7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="k8s架构"></p>
 
       
     </div>
@@ -294,7 +224,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/10/Terratest/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/17/tcl-script-parse/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -308,7 +238,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/07/10/Terratest/" class="post-title-link" itemprop="url">Terratest</a>
+            <a href="/2018/07/17/tcl-script-parse/" class="post-title-link" itemprop="url">tcl script parse</a>
         </h2>
 
         <div class="post-meta">
@@ -318,7 +248,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-07-10 11:00:51" itemprop="dateCreated datePublished" datetime="2018-07-10T11:00:51+08:00">2018-07-10</time>
+              <time title="Created: 2018-07-17 15:37:24" itemprop="dateCreated datePublished" datetime="2018-07-17T15:37:24+08:00">2018-07-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -326,7 +256,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/parse/" itemprop="url" rel="index"><span itemprop="name">parse</span></a>
                 </span>
             </span>
 
@@ -341,14 +271,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://blog.gruntwork.io/open-sourcing-terratest-a-swiss-army-knife-for-testing-infrastructure-code-5d883336fcd5">原文链接</a></p>
-<p>基于infrastructure代码的自动化测试部分，针对基础框架部分</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestWebServer</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">  terraformOptions := &amp;terraform.Options &#123;</span><br><span class="line">    <span class="comment">// The path to where your Terraform code is located</span></span><br><span class="line">    TerraformDir: <span class="string">&quot;../web-server&quot;</span>,</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// At the end of the test, run `terraform destroy`</span></span><br><span class="line">  <span class="keyword">defer</span> terraform.Destroy(t, terraformOptions)</span><br><span class="line">  <span class="comment">// Run `terraform init` and `terraform apply`</span></span><br><span class="line">  terraform.InitAndApply(t, terraformOptions)</span><br><span class="line">  <span class="comment">// Run `terraform output` to get the value of an output variable</span></span><br><span class="line">  url := terraform.Output(t, terraformOptions, <span class="string">&quot;url&quot;</span>)</span><br><span class="line">  <span class="comment">// Verify that we get back a 200 OK with the expected text. It</span></span><br><span class="line">  <span class="comment">// takes ~1 min for the Instance to boot, so retry a few times.</span></span><br><span class="line">  status := <span class="number">200</span></span><br><span class="line">  text := <span class="string">&quot;Hello, World&quot;</span></span><br><span class="line">  retries := <span class="number">15</span></span><br><span class="line">  sleep := <span class="number">5</span> * time.Second</span><br><span class="line">  http_helper.HttpGetWithRetry(t, url, status, text, retries, sleep)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
+          <p><a target="_blank" rel="noopener" href="http://antirez.com/picol/picol.c.txt">原文链接</a></p>
 
       
     </div>
@@ -368,7 +291,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/09/golang-memory-model/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/17/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -382,7 +305,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/07/09/golang-memory-model/" class="post-title-link" itemprop="url">golang内存模型</a>
+            <a href="/2018/07/17/one-week/" class="post-title-link" itemprop="url">我不是药神</a>
         </h2>
 
         <div class="post-meta">
@@ -392,96 +315,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-07-09 16:37:42" itemprop="dateCreated datePublished" datetime="2018-07-09T16:37:42+08:00">2018-07-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="http://hugozhu.myalert.info/2013/04/20/31-golang-memory-model.html?utm_source=tuicool">原文链接</a></p>
-<p>内存模型的目的是为了定义清楚变量的读写在不同执行体里的可见性</p>
-<p>Go的并发模型是基于CSP（<a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">Communicating Sequential Process</a>）的，不同的Goroutine通过一种叫Channel的数据结构来通信；Java的并发模型则基于多线程和共享内存，有较多的概念（violatie, lock, final, construct, thread, atomic等）和场景，当然java.util.concurrent并发工具包大大简化了Java并发编程。</p>
-<h4 id="happen-before"><a href="#happen-before" class="headerlink" title="happen before"></a>happen before</h4><p>Happens-before用来指明Go程序里的内存操作的局部顺序。如果一个内存操作事件e1 happens-before e2，则e2 happens-after e1也成立；如果e1不是happens-before e2,也不是happens-after e2，则e1和e2是并发的。</p>
-<p>在这个定义之下，如果以下情况满足，则对变量（v）的内存写操作（w）对一个内存读操作（r）来说<strong>允许</strong>可见的：</p>
-<ol>
-<li>r不在w开始之前发生（可以是之后或并发）；</li>
-<li>w和r之间没有另一个写操作(w’)发生；</li>
-</ol>
-<p>为了保证对变量（v）的一个特定写操作（w）对一个读操作（r）可见，就需要确保w是r<strong>唯一</strong>允许<strong>的写操作，于是如果以下情况满足，则对变量（v）的内存写操作（w）对一个内存读操作（r）来说</strong>保证可见的：</p>
-<ol>
-<li>w在r开始之前发生；</li>
-<li>所有其它对v的写操作只在w之前或r之后发生；</li>
-</ol>
-<p>可以看出后一种约定情况比前一种更严格，这种情况要求没有w或r没有其他的并发写操作</p>
-<p>从本质上来讲，happens-before规则确定了CPU缓冲和主存的同步时间点（通过<a target="_blank" rel="noopener" href="http://hugozhu.myalert.info/2013/03/28/22-memory-barriers-or-fences.html">内存屏障</a>等指令），从而使得对变量的读写顺序可被确定–也就是我们通常说的“同步”。</p>
-<p>在Go编程中，Channel是被推荐的执行体间通信的方法，Go的编译器和运行态都会尽力对其优化。</p>
-<ol>
-<li><strong>对一个Channel的发送操作(send) happens-before 相应Channel的接收操作完成</strong></li>
-<li><strong>关闭一个Channel happens-before 从该Channel接收到最后的返回值0</strong></li>
-<li><strong>不带缓冲的Channel的接收操作（receive） happens-before 相应Channel的发送操作完成</strong></li>
-</ol>
-<p><code>sync.Once</code>仅一次的调用</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/08/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/08/one-week/" class="post-title-link" itemprop="url">菩萨畏因，众生畏果</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-07-08 18:39:13" itemprop="dateCreated datePublished" datetime="2018-07-08T18:39:13+08:00">2018-07-08</time>
+              <time title="Created: 2018-07-17 08:09:46" itemprop="dateCreated datePublished" datetime="2018-07-17T08:09:46+08:00">2018-07-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -504,32 +338,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>菩萨畏因，众生畏果。</p>
-<p>有点迷信转运什么的，其实有些东西都是注定和计划好的。尝试去进行正念修行。。。</p>
+          <p>世界上只有一种病，那就是穷病。。。</p>
+<p>身处绝境的病人和悲伤的家人，哪怕有一点点的希望，也会迫不及待地抓住。</p>
+<p>死亡也是不平等的。。</p>
 <hr>
 <p>本周工作：</p>
 <ul>
-<li>3.14的接入修复以及运营策略</li>
-<li>预装部分的支持</li>
+<li>上游接入部分</li>
+<li>关于es部分的修复，加入bulkprocessor部分，缓冲rejection error</li>
+<li>一些监控的梳理</li>
 </ul>
 <p>本周所得：</p>
 <ul>
-<li>几场面试得到的一些总结，尤其是关于lazy data的问题</li>
-<li>尝试养成每天1-2道leetcode题目的习惯</li>
+<li>关于elasticsearch的bulkprocessor部分的一些知识</li>
 </ul>
 <p>下周工作：</p>
 <ul>
-<li>整理一些相关文档，调整相关的环境以及报警部分</li>
-<li>是否可以针对每一家的点击部分，做些展示方面，方便进行对比</li>
+<li>k8s的一些入门以及使用</li>
+<li>spring boot的重新拣回来。。</li>
 </ul>
-<p>所期待的freewheel算是挂掉了，算是自己最有把握的也挂掉了。。哎。。。就这样吧，也算是见识到外企的风格，总体上不算那么差，毕竟偶尔说下英文也不错的感觉。。。</p>
-<p>那么剩下来，可能就是第四范式了。。。给合适的offer，就去吧。。。</p>
-<p>徐建相关的事情，也就这样，把该说的也说了，也无所谓顾及感受什么的。。。就这样吧，情况已经如斯坏了，也管不了那么多了。。。</p>
-<p>本职工作上，最近有点心不在焉，需要警惕了。。现在也没有面试了，把精力收一收，把相关的工作做好。。</p>
-<p>生活上，按部就班地进行，算是在慢慢体验所谓的同居生活什么的，慢慢来吧。。</p>
-<p>把自己想象成为万物的一种，去沉浸在自己做的事情中，这样就不会去焦虑和急躁。。。</p>
-<p>锻炼上慢慢开始恢复。。</p>
-<p>相关的一些时间管理上，慢慢恢复起来。。。不要偷懒。。。</p>
+<p>最终的offer确定下来，也算是有人收留吧。找工作的事情，也算是告一段落了，整个历程方面，还是要写一写，总结一下。后面就是交接的事情，一步步来吧。。</p>
+<p>事情算是定下来，心也要慢慢静下来，最近一段时间内，心不静，没有达成相应的目标，事情上也拖拉了一些，这些都要检讨一下，开始慢慢恢复和整理其中。。。</p>
+<p>同居的生活上，还是按部就班地进行，不过，是不是时间安排上，有点问题，每个周末部分，以及每天晚上的时候，没有投入足够多的时间去学习，这点要检讨一下。。。还有就是，关于相处的方式上，还是有点捉摸不定，有时候，会有点烦躁。。。可能感觉自己还是不够放松吧。。总感觉没有照顾好别人，别人有理由，有条件去享受和追求更好的，而我。。。呵呵。。。也就这样吧。。。尽力而行，也没有太多可以给予的，反正最坏的打算也做了。。。</p>
+<p>锻炼身体上，开始要保持节奏和频度，不能三天打鱼两天晒网了，将跑步恢复起来。。</p>
+<p>加油，不管是物质上，还是精神上，找到有所缓解的方式的，找到自己心安的方式。。。</p>
+<p>修禅，修心。。。</p>
 
       
     </div>
@@ -549,7 +382,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/04/sometime-conclusion/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/16/lxd/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -563,7 +396,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/07/04/sometime-conclusion/" class="post-title-link" itemprop="url">近段时间的总结</a>
+            <a href="/2018/07/16/lxd/" class="post-title-link" itemprop="url">LXD tips</a>
         </h2>
 
         <div class="post-meta">
@@ -573,7 +406,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-07-04 22:12:01" itemprop="dateCreated datePublished" datetime="2018-07-04T22:12:01+08:00">2018-07-04</time>
+              <time title="Created: 2018-07-16 10:29:38" itemprop="dateCreated datePublished" datetime="2018-07-16T10:29:38+08:00">2018-07-16</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -581,7 +414,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
+                  <a href="/categories/linux/" itemprop="url" rel="index"><span itemprop="name">linux</span></a>
                 </span>
             </span>
 
@@ -596,25 +429,93 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>由于本身工作，找工作，借钱等问题，导致这段时间异常焦躁，异常地烦躁不安，心静不下来。。哎。。。</p>
-<hr>
-<p>找工作的事情</p>
+          <p><a target="_blank" rel="noopener" href="https://linuxcontainers.org/lxd/introduction/">原文链接</a></p>
+<p>The core of LXD is a privileged daemon which exposes a REST API over a local unix socket as well as over the network (if enabled).</p>
+<p>Clients, such as the command line tool provided with LXD itself then do everything through that REST API. It means that whether you’re talking to your local host or a remote server, everything works the same way.</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/15/TSDB-from-Scratch/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/15/TSDB-from-Scratch/" class="post-title-link" itemprop="url">TSDB from Scratch</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-15 16:55:37" itemprop="dateCreated datePublished" datetime="2018-07-15T16:55:37+08:00">2018-07-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/TSDB/" itemprop="url" rel="index"><span itemprop="name">TSDB</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://fabxc.org/tsdb/">原文链接</a></p>
+<h3 id="Time-series-data"><a href="#Time-series-data" class="headerlink" title="Time series data"></a>Time series data</h3><p>Each data point is a tuple of a timestamp and a value</p>
+<p>A 64 bit float turns out to be a good representation for counter as well as gauge values, so we go with that. (时间戳？)</p>
+<p>定义好相应的label部分</p>
+<h3 id="Vertical-and-Horizontal"><a href="#Vertical-and-Horizontal" class="headerlink" title="Vertical and Horizontal"></a>Vertical and Horizontal</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">series</span><br><span class="line">  ^   </span><br><span class="line">  │   . . . . . . . . . . . . . . . . .   . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │     . . . . . . . . . . . . . . . . . . . . . .   &#123;__name__=&quot;request_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │         . . . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . . .   . . . .   </span><br><span class="line">  │     . . . . . . . . . .   . . . . . . . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;POST&quot;&#125;</span><br><span class="line">  │           . . .   . . . . . . . . .   . . . . .   &#123;__name__=&quot;errors_total&quot;, method=&quot;GET&quot;&#125;</span><br><span class="line">  │         . . . . . . . . .       . . . . .</span><br><span class="line">  │       . . .     . . . . . . . . . . . . . . . .                  ... </span><br><span class="line">  │     . . . . . . . . . . . . . . . .   . . . . </span><br><span class="line">  v</span><br><span class="line">    &lt;-------------------- time ---------------------&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>关于写放大的问题？</p>
+<p>解决方案:</p>
 <ul>
-<li>还是很想去freewheel这样，看有没有机会去感受一下大一点的数据，也去感受一下所谓的外企的氛围</li>
-<li>或者去ai公司去搞后端。。</li>
-<li>或者其他的方向</li>
+<li>Writes are now batched, samples are stored sequentially</li>
 </ul>
-<p>按照计划，按部就班的来，准备好一些tips，对于面试部分准备充分一些。。</p>
-<p>把面试当做学习，做好总结和归纳。。</p>
-<p>没有什么是一定可以获得的，也不要太多幻想以后的事情，做好现在的事情，学习更多的东西就可以了，其他的都不受控制。。</p>
-<p>能给个offer就可以了。。</p>
-<hr>
-<p>本身工作的事情：</p>
-<ul>
-<li>总结一下，运维上的一些事情，关于tracker部分的一些工作，</li>
-<li>复习以及本身工作方面，平衡好。。。</li>
-</ul>
-<p>做好正念，把心思放到做的每一件事情上，不要让心思各种摇摆，导致杂念丛生。。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tree ./data</span></span><br><span class="line">./data</span><br><span class="line">├── b-000001</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   ├── 000001</span><br><span class="line">│   │   ├── 000002</span><br><span class="line">│   │   └── 000003</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000004</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">├── b-000005</span><br><span class="line">│   ├── chunks</span><br><span class="line">│   │   └── 000001</span><br><span class="line">│   ├── index</span><br><span class="line">│   └── meta.json</span><br><span class="line">└── b-000006</span><br><span class="line">    ├── meta.json</span><br><span class="line">    └── wal</span><br><span class="line">        ├── 000001</span><br><span class="line">        ├── 000002</span><br><span class="line">        └── 000003</span><br></pre></td></tr></table></figure>
+
+
+
+<p>Queried data can be rather aggressively cached in memory, yet under memory pressure the pages will be evicted. If the machine has unused memory, Prometheus will now happily cache the entire database, yet will immediately return it once another application needs it.</p>
 
       
     </div>
@@ -633,7 +534,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/82/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/82/">82</a><span class="page-number current">83</span><a class="page-number" href="/page/84/">84</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/84/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/82/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/82/">82</a><span class="page-number current">83</span><a class="page-number" href="/page/84/">84</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/84/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -701,7 +602,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -714,7 +615,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -742,7 +643,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

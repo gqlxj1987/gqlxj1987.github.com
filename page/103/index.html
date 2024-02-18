@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/30/pytorch-intro/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/07/go-lock/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/30/pytorch-intro/" class="post-title-link" itemprop="url">Pytorch Introduction</a>
+            <a href="/2018/02/07/go-lock/" class="post-title-link" itemprop="url">Go Lock</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-30 16:06:51" itemprop="dateCreated datePublished" datetime="2018-01-30T16:06:51+08:00">2018-01-30</time>
+              <time title="Created: 2018-02-07 10:56:38" itemprop="dateCreated datePublished" datetime="2018-02-07T10:56:38+08:00">2018-02-07</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/pytorch/" itemprop="url" rel="index"><span itemprop="name">pytorch</span></a>
+                  <a href="/categories/lock/" itemprop="url" rel="index"><span itemprop="name">lock</span></a>
                 </span>
             </span>
 
@@ -200,9 +200,37 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="http://pytorch.org/2018/01/19/a-year-in.html">英文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://medium.com/@drumrick/2017-%E5%9B%9E%E9%A1%A7%E6%96%87%E6%91%98%E8%A6%81%E7%B3%BB%E5%88%97%E4%BA%8C-pytorch-dff8dcb12bc">中文链接</a></p>
-<p>我自己是覺得目前 PyTorch 的 ecosystem 還是不如 TensorFlow &#x2F; Keras 完整，但是在 NLP 相關研究上的使用相對於其他研究或是其他框架是有比較多的趨勢。</p>
+          <p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/33462152">原文链接</a></p>
+<p>golang部分的锁，主要在sync包里</p>
+<h3 id="runtime-x2F-sema-信号量"><a href="#runtime-x2F-sema-信号量" class="headerlink" title="runtime&#x2F;sema(信号量)"></a>runtime&#x2F;sema(信号量)</h3><p>runtime中的sema.go，信号量的同步功能是作用于goroutine的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> semaRoot <span class="keyword">struct</span> &#123;</span><br><span class="line">    lock  mutex</span><br><span class="line">    head  *sudog</span><br><span class="line">    tail  *sudog</span><br><span class="line">    nwait <span class="type">uint32</span> <span class="comment">// Number of waiters. Read w/o the lock.</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 主要结构就是一个sudog的链表和一个nwait。</span></span><br><span class="line"><span class="comment">// 链表用于存储等待的goroutine，nwait表示在该信号量上等待的goroutine数目。</span></span><br><span class="line"><span class="comment">// lock一个互斥量，是在多线程环境中保护链表的。（但是这个mutex不是sync中的mutex，是sema.go</span></span><br><span class="line"><span class="comment">// 内部使用的一个私有版本）</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>golang设置了可操作信号量个数的最大量是251，相关操作，还是看链表的操作</p>
+<h3 id="sync-x2F-atomic"><a href="#sync-x2F-atomic" class="headerlink" title="sync&#x2F;atomic"></a>sync&#x2F;atomic</h3><p>这里原子操作，是保证多个cpu（协程）对同一块内存区域的操作是原子的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 互斥量加锁操作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span></span> Lock() &#123;</span><br><span class="line">	<span class="comment">// Fast path: grab unlocked mutex.</span></span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</span><br><span class="line">		<span class="keyword">if</span> race.Enabled &#123;</span><br><span class="line">			race.Acquire(unsafe.Pointer(m))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="sync-x2F-mutex（互斥锁）"><a href="#sync-x2F-mutex（互斥锁）" class="headerlink" title="sync&#x2F;mutex（互斥锁）"></a>sync&#x2F;mutex（互斥锁）</h3><p>sync&#x2F;mutex.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// A Mutex must not be copied after first use.</span></span><br><span class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</span><br><span class="line">    state <span class="type">int32</span>    <span class="comment">// 一个int32整数，用其中的位来表示</span></span><br><span class="line">    sema  <span class="type">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//iota，特殊常量，可以认为是一个可以被编译器修改的常量。</span></span><br><span class="line"><span class="comment">//在每一个const关键字出现时，被重置为0，然后再下一个const出现之前，每出现一次iota，其所代表的数字会自动增加1。</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">//值为1，表示在state中由低向高第1位，意义：锁是否可用,0可用，1不可用</span></span><br><span class="line">    mutexWoken <span class="comment">// 值为2，表示在state中由低向高第2位，意义：mutex是否被唤醒</span></span><br><span class="line">    mutexWaiterShift = <span class="literal">iota</span> <span class="comment">//值为2，表示state中统计阻塞在此mutex上goroutine的数目需要位移的偏移量</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>lock流程</p>
+<blockquote>
+<p>简单来说，如果当前goroutine可以加锁，那么调用原子操作使得mutex中的flag设置成已占用达到互斥；如果当前goroutine发现锁已被占用，那么会有条件的循环尝试获取锁，这里是不用信号量去对goroutine进行sleep和wake操作的（尽可能避免开销），如果循环尝试失败，则最后调用原子操作争抢一次，获取不到则还是得调用runtime_Semacquire去判断阻塞goroutine还是继续争用锁。</p>
+</blockquote>
+<h3 id="sync-x2F-RWMutex（读写锁）"><a href="#sync-x2F-RWMutex（读写锁）" class="headerlink" title="sync&#x2F;RWMutex（读写锁）"></a>sync&#x2F;RWMutex（读写锁）</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></span><br><span class="line">	writerSem   <span class="type">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></span><br><span class="line">	readerSem   <span class="type">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></span><br><span class="line">	readerCount <span class="type">int32</span>  <span class="comment">// number of pending readers</span></span><br><span class="line">	readerWait  <span class="type">int32</span>  <span class="comment">// number of departing readers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>写锁定</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span></span> Lock() &#123;</span><br><span class="line">	<span class="comment">// First, resolve competition with other writers.</span></span><br><span class="line">	rw.w.Lock()</span><br><span class="line">	<span class="comment">// Announce to readers there is a pending writer.</span></span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</span><br><span class="line">	<span class="comment">// Wait for active readers.</span></span><br><span class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123;</span><br><span class="line">		runtime_Semacquire(&amp;rw.writerSem)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -222,7 +250,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/30/Netflix-flux/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -236,7 +264,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/30/Netflix-flux/" class="post-title-link" itemprop="url">Flux-A New Approach to System Intuition</a>
+            <a href="/2018/02/05/building-distributed-log-from-scratch-storage-mechanics/" class="post-title-link" itemprop="url">Building distributed log from scratch With Storage Mechanics</a>
         </h2>
 
         <div class="post-meta">
@@ -246,7 +274,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-30 14:47:03" itemprop="dateCreated datePublished" datetime="2018-01-30T14:47:03+08:00">2018-01-30</time>
+              <time title="Created: 2018-02-05 16:55:09" itemprop="dateCreated datePublished" datetime="2018-02-05T16:55:09+08:00">2018-02-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -254,7 +282,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/flux/" itemprop="url" rel="index"><span itemprop="name">flux</span></a>
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
                 </span>
             </span>
 
@@ -269,23 +297,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/netflix-techblog/flux-a-new-approach-to-system-intuition-cf428b7316ec">Flux:A New Approach to System Intuition</a></p>
-<p>Target:</p>
-<p>understand in real time what effect a variable is having on a subset of request traffic during a Chaos Experiment</p>
-<p>We require a tool that can give us this holistic understanding of traffic as it flows through our complex, distributed system</p>
-<p>requirements:</p>
-<ul>
-<li>Realtime data</li>
-<li>Data on the volume, latency, and health of requests</li>
-<li>Insight into traffic at network edge</li>
-<li>The ability to drill into IPC traffic</li>
-<li>Dependency information about the microservices as requests travel through the system</li>
-</ul>
-<p>Pain Suit: As a microservice experiences failure, the corresponding electrodes cause a painful sensation.</p>
-<p>主要是针对流量监控部分？</p>
-<p>traffic failover?</p>
-<p>控制流量流向，</p>
-<p>The inter-region traffic from victim to savior increases while the savior region scales up. At that point, we switch DNS to point to the savior region. For about 10 seconds you see traffic to the victim region die down as DNS propagates. At this point, about 56 seconds in, nearly all of the victim region’s traffic is now pointing to the savior region</p>
+          <p><a target="_blank" rel="noopener" href="https://bravenewgeek.com/building-a-distributed-log-from-scratch-part-1-storage-mechanics/">原文链接</a></p>
+<p>日志是完全顺序，只接受append操作的数据结构。</p>
+<p>I think there are at least three key priorities for the effectiveness of one of these types of systems: performance, high availability, and scalability. If it’s not fast enough, the data becomes decreasingly useful. If it’s not highly available, it means we can’t reliably get our data in or out. And if it’s not scalable, it won’t be able to meet the needs of many enterprises.</p>
 
       
     </div>
@@ -305,7 +319,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/26/cnn/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/mongodb-query-performance/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -319,7 +333,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/26/cnn/" class="post-title-link" itemprop="url">CNN架构</a>
+            <a href="/2018/02/05/mongodb-query-performance/" class="post-title-link" itemprop="url">Mongodb query performance over ranges</a>
         </h2>
 
         <div class="post-meta">
@@ -329,7 +343,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-26 16:26:27" itemprop="dateCreated datePublished" datetime="2018-01-26T16:26:27+08:00">2018-01-26</time>
+              <time title="Created: 2018-02-05 14:27:58" itemprop="dateCreated datePublished" datetime="2018-02-05T14:27:58+08:00">2018-02-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -337,7 +351,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CNN/" itemprop="url" rel="index"><span itemprop="name">CNN</span></a>
+                  <a href="/categories/mongodb/" itemprop="url" rel="index"><span itemprop="name">mongodb</span></a>
                 </span>
             </span>
 
@@ -352,51 +366,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://yq.aliyun.com/articles/363898?spm=5176.100239.bloghomeflow.64.243cef011nwfHp">一文读懂最近流行的CNN架构</a></p>
+          <p><a target="_blank" rel="noopener" href="https://blog.mlab.com/2012/06/cardinal-ins/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_115">原文链接</a></p>
+<p>针对<code>$in</code>操作：</p>
 <ul>
-<li><p><strong>为什么CNN模型战胜了传统的计算机视觉方法?</strong></p>
-<p>图像分类的传统流程涉及两个模块：</p>
-<ul>
-<li><p>特征提取	</p>
-<p>从原始像素中提取更高级的特征，常用的传统特征报告GIST,HOG,SIFT,LBP等</p>
+<li><p>index early</p>
+</li>
+<li><p>index often</p>
+</li>
+<li><p>index fully</p>
+<p>queries make use of indexes from left to right.</p>
+</li>
+<li><p>index sorts</p>
+<p>If your queries will contain a sort or orderby clause, add the sorted field to your index.</p>
+</li>
+<li><p>commands</p>
 <p>​</p>
 </li>
-<li><p>分类</p>
-<p>常用的分类模型有SVM,LR,随机森林及决策树</p>
-</li>
 </ul>
-</li>
-</ul>
-<p>​	流程的一大问题是：特征提取不能根据图像和其他标签进行调整。传统的流程比较好的方法是，使用多种特征提取器，然后组合他们得到一种更好的特征</p>
-<p>​	深度学习背后的哲学，没有建立硬编码的特征提取器。它将特征提取和分类两个模块集成一个系统，通过识别图像的特征来进行提取并基于有标签数据进行分类。这样的集成系统就是多层感知机，即有多层神经元密集连接而成的神经网络</p>
-<p>​	CNN模型中的两个特点：<strong>神经元间的权重共享和卷积层之间的稀疏连接</strong></p>
-<ul>
-<li><p><strong>为了理解CNN背后的设计哲学，你可能会问：其目标是什么？</strong></p>
-<p>准确度和计算量</p>
-</li>
-<li><p><strong>AlexNet</strong></p>
-<p>AlexNet采用ReLU激活函数，而不像传统神经网络早期所采用的Tanh或Sigmoid激活函数，<code>f(x)=max(0, x)</code></p>
-<p>优势是，训练速度更快，不会出现梯度消失的问题</p>
-<p>另一个特点是，其通过在每个全连接层后面加上Dropout层减少了模型的过拟合问题。Dropout层以一定的概率随机的关闭当前层中神经元激活值</p>
-</li>
-<li><p><strong>VGG16</strong></p>
-<p>VGG16相比AlexNet的一个改进是采用连续的几个3x3的卷积代替AlexNet中的较大卷积核(11x11, 5x5)</p>
-</li>
-</ul>
-<p>​	对于给定的感受野（与输出有关的输入图片的局部大小），采用堆积的小卷积核是优于采用大的卷积核，因为多层非线性层可以增加网络深度来保证学习更复杂的模式，而且代价还比较小（参数更少）。</p>
-<p>​	VGG-D，使用了一种块结构: 多次重复使用同一大小的卷积核来提取更复杂和更具有表达性的特征</p>
-<ul>
-<li><strong>GoogLeNet&#x2F;Inception</strong></li>
-</ul>
-<p>​	基于这样的理念：在深度网络中大部分的激活值是不必要的（为0），或者由于相关性是冗余。因为，最高效的深度网络架构应该是激活值之间是稀疏连接，这意味着512个输出特征图是没有必要与所有的512输入特征图相连</p>
-<p>​	设计了一种称为inception的模块，使用密集结构来近似一个稀疏的CNN。另一个特点是，使用了一中瓶颈层（实际上就是1x1卷积）来降低计算量</p>
-<p>​	另一个特殊设计是最后的卷积层后使用全局均值池化层替换全连接层。所谓全局池化就是在整个2D特征图上取均值</p>
-<ul>
-<li><strong>ResNet</strong></li>
-</ul>
-<p>​	从前面可以看到，随着网络深度增加，网络的准确度应该同步增加，当然要注意过拟合问题。但是网络深度增加的一个问题在于这些增加的层是参数更新的信号，因为梯度是从后向前传播的，增加网络深度后，比较靠前的层梯度会很小。</p>
-<p>​	这意味着这些层基本上学习停滞了，这就是梯度消失问题。深度网络的第二个问题在于训练，当网络更深时意味着参数空间更大，优化问题变得更难，因此简单地去增加网络深度反而出现更高的训练误差。</p>
-<p>​	引入所谓的学习残差的概念，</p>
+<p><strong>The order of fields in an index should be:</strong></p>
+<ol>
+<li><strong>First, fields on which you will query for exact values.</strong></li>
+<li><strong>Second, fields on which you will sort.</strong></li>
+<li><strong>Finally, fields on which you will query for a range of values.</strong></li>
+</ol>
+<p>先对sort field部分，进行index，这样能及时保证sort之后的顺序能够得到保证</p>
 
       
     </div>
@@ -416,7 +409,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/26/select-limit/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/02/05/spark-2-x-trouble-guide/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -430,7 +423,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/26/select-limit/" class="post-title-link" itemprop="url">毫秒级实时排序</a>
+            <a href="/2018/02/05/spark-2-x-trouble-guide/" class="post-title-link" itemprop="url">Spark 2.x Trouble guide</a>
         </h2>
 
         <div class="post-meta">
@@ -440,7 +433,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-26 15:53:26" itemprop="dateCreated datePublished" datetime="2018-01-26T15:53:26+08:00">2018-01-26</time>
+              <time title="Created: 2018-02-05 10:27:04" itemprop="dateCreated datePublished" datetime="2018-02-05T10:27:04+08:00">2018-02-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -448,7 +441,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sort/" itemprop="url" rel="index"><span itemprop="name">sort</span></a>
+                  <a href="/categories/spark/" itemprop="url" rel="index"><span itemprop="name">spark</span></a>
                 </span>
             </span>
 
@@ -463,9 +456,77 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://yq.aliyun.com/articles/378962?spm=a2c4e.11153940.bloghomeflow.105.FrxURS">实践：几十亿条数据分布在几十个节点上的毫秒级实时排序方法</a></p>
-<p><code>select a from tb order by a limit 100, 10;</code></p>
-<p><code>对分布在几十个节点上的上亿条数据要求1秒内排序。</code></p>
+          <p><a target="_blank" rel="noopener" href="https://www.slideshare.net/jcmia1/a-beginners-guide-on-troubleshooting-spark-applications?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_115">原文链接</a></p>
+<h3 id="Building-Spark"><a href="#Building-Spark" class="headerlink" title="Building Spark"></a>Building Spark</h3><p>JRE path</p>
+<p>Maven installed</p>
+<ul>
+<li>always explicitly set the following in ‘.bashrc’ for ‘root’</li>
+<li>specify support you want explicitly</li>
+<li>Rebuild only modified source code</li>
+</ul>
+<h3 id="Running-Spark"><a href="#Running-Spark" class="headerlink" title="Running Spark"></a>Running Spark</h3><ul>
+<li>always use ‘—verbose’ option on ‘spark-submit’ command to run your workland</li>
+<li>print<ul>
+<li>all default properties</li>
+<li>command line options</li>
+<li>settings from spark’ conf file</li>
+<li>setting from cli</li>
+</ul>
+</li>
+<li>order of lookup, ‘—package’<ul>
+<li>the local maven repo</li>
+<li>maven central - web</li>
+<li>additional remote repositories</li>
+</ul>
+</li>
+<li>OOM<ul>
+<li>increase ‘—driver-memory’</li>
+<li>saprk sql and spark streaming need large driver heap size</li>
+</ul>
+</li>
+<li>GC overhead limit exceeded<ul>
+<li>too much time spent in garbage collection</li>
+<li>increase executor heapsize</li>
+<li>modify gc policy<ul>
+<li>-XX:UseG1GC &amp;&amp; -XX:UseParallelGC</li>
+<li>spark default: -XX:UseParallelGC</li>
+<li>Try overwrite with -XX:G1GC</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>has a single SparkContext with multiple sessions supporting<ul>
+<li>concurrency</li>
+<li>re-useable connections</li>
+<li>shared cache</li>
+</ul>
+</li>
+<li>Not all CPUs are busy<ul>
+<li>sart with evenly divided memory and cores. <code>-executor-memroy 2500m --num-executors 200</code></li>
+<li>when heap size non-negotiable. <code>--executor-memory 6g --num-executors 80</code>  transfer to <code>--executor-memory 6g --num-executors 80 -executor-cores 2</code> (Forcing 80% utilization, boosting 33% performance!)</li>
+</ul>
+</li>
+<li>‘scratch’ space<ul>
+<li>‘&#x2F;tmp’ is full</li>
+<li>fix <code>spark.local.dir</code></li>
+</ul>
+</li>
+<li>max result size exceeded<ul>
+<li><code>saprk.driver.maxResultSize</code></li>
+</ul>
+</li>
+<li>out of space on a few data nodes<ul>
+<li><code>hdfs balancer</code> to start balancing</li>
+<li><code>dfs.datanode.balance.bandwidthPerSec</code> increase to 6GB&#x2F;s</li>
+<li><code>dfs.datanode.balance.max.concurrent.moves</code>  set to 5000 concurrent threads</li>
+</ul>
+</li>
+</ul>
+<h3 id="Profiling-Spark"><a href="#Profiling-Spark" class="headerlink" title="Profiling Spark"></a>Profiling Spark</h3><ul>
+<li>Yarn containers across multiple nodes</li>
+<li>get a full thread dump or get a full heap dump. <code>jstack -l</code>  <code>jmap -dump:live,format=b,file=xxx</code> </li>
+<li>step1: find the hostname in the error log; step 2: find the local directory where ‘stderr’ resides, step 3: open the ‘stderr’,</li>
+</ul>
 
       
     </div>
@@ -485,7 +546,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/10/golang-tips/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/01/31/failure-microservice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -499,7 +560,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/01/10/golang-tips/" class="post-title-link" itemprop="url">Golang Tips</a>
+            <a href="/2018/01/31/failure-microservice/" class="post-title-link" itemprop="url">Designing a Microservices Architecture for Failure</a>
         </h2>
 
         <div class="post-meta">
@@ -509,7 +570,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-01-10 15:15:16" itemprop="dateCreated datePublished" datetime="2018-01-10T15:15:16+08:00">2018-01-10</time>
+              <time title="Created: 2018-01-31 09:59:14" itemprop="dateCreated datePublished" datetime="2018-01-31T09:59:14+08:00">2018-01-31</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -517,7 +578,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                  <a href="/categories/microservice/" itemprop="url" rel="index"><span itemprop="name">microservice</span></a>
                 </span>
             </span>
 
@@ -532,98 +593,29 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h3 id="Go-Datastructures-slices"><a href="#Go-Datastructures-slices" class="headerlink" title="Go Datastructures slices"></a>Go Datastructures slices</h3><p><a target="_blank" rel="noopener" href="https://speakerdeck.com/rarchana2001asu/go-datastructure-slices?utm_campaign=CodeTengu&utm_content=buffer2deee&utm_medium=email&utm_source=CodeTengu_111">go datastructures</a></p>
-<p>diff between c arrays and go array</p>
-<ul>
-<li>array name in c is an alias, in go is reference&#x2F;pointer</li>
-<li>c arrays can passed to function as a pointer, but go is pass values</li>
-<li>in c, array can not be copied like ar1 &#x3D; ar2 unless ar1 and ar2 are pointer, but it is possible in go</li>
-<li>c array should be freed, go supports garbage collection</li>
-</ul>
-<p>diff between go array and slice</p>
-<ul>
-<li>go slice is a 3 word data structure &lt;pointer, length, capacity&gt;</li>
-</ul>
-<p>slice is a collection of data in contiguous blocks of memory</p>
-<p>Nil slice: <code>var slice[] int </code>, empty slice <code>slice:=make([]int, 0)</code> or <code>slice:=[]int&#123;&#125;</code></p>
-<p>growing slice -&gt; like java list, factor to grow? no..</p>
-<p>growing in slice</p>
-<ul>
-<li>the append function takes in a source slice and append values and returns a new slice</li>
-<li>append always increases the length of the new slice but capacity may or may not increase</li>
-</ul>
-<p>slice append - third index</p>
-<ul>
-<li>the third index of the slice restricts the capacity</li>
-<li>slice:&#x3D;source[2:3:4]</li>
-<li>by setting the capacity &#x3D;&#x3D; length, the new slice is forced to detach from source backing array and creates its own backing array</li>
-<li>the above technique is used in scenarios where we just want to modify the new slice backing array without changing the source backing array</li>
-</ul>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	k:=<span class="built_in">make</span>([]<span class="type">int</span>,<span class="number">0</span>)</span><br><span class="line">	</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">1</span>)</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">2</span>)</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">3</span>)</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">4</span>)</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">5</span>)</span><br><span class="line">	k = <span class="built_in">append</span>(k, <span class="number">6</span>)</span><br><span class="line">	</span><br><span class="line">	t:=k[<span class="number">2</span>:<span class="number">3</span>:<span class="number">3</span>]</span><br><span class="line">	</span><br><span class="line">	fmt.Println(k)</span><br><span class="line">	fmt.Println(t)</span><br><span class="line">	</span><br><span class="line">	t = <span class="built_in">append</span>(t, <span class="number">7</span>)</span><br><span class="line">	</span><br><span class="line">	fmt.Println(k)</span><br><span class="line">	fmt.Println(t)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p>the reuslt:</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[<span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span>]</span><br><span class="line">[<span class="number">3</span>]</span><br><span class="line">[<span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span>]</span><br><span class="line">[<span class="number">3</span> <span class="number">7</span>]</span><br></pre></td></tr></table></figure>
-
-
-
-<p>notice the detach operation</p>
-<p>but  what the meaning of the capacity?</p>
-<p>passing slices to functions</p>
-<p>since only the pointer to the backing array is passed, this is very efficient. whether the size of the backing array is 10 or one million only 24 bytes are passed to function</p>
-<h3 id="RFC-Apache-Beam-Go-SDK-design"><a href="#RFC-Apache-Beam-Go-SDK-design" class="headerlink" title="RFC: Apache Beam Go SDK design"></a>RFC: Apache Beam Go SDK design</h3><p><a target="_blank" rel="noopener" href="https://docs.google.com/document/d/1yj0_hxq2J1iestjFUUrm_BVQLsFxQiiqtcFhgodzIgM/mobilebasic?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_111">RFC: Apache Beam Go SDK design</a></p>
-<p><a target="_blank" rel="noopener" href="https://beam.apache.org/">Apache Beam</a></p>
-<p>is an advanced unified programming model, implement batch and streaming data processing jobs that run on any execution engine</p>
-<p>weak point:</p>
-<ul>
-<li>no generics</li>
-<li>no function or method overloading</li>
-<li>no inheritance</li>
-<li>limited reflection and serialization support</li>
-<li>no annotation support</li>
-</ul>
-<p>strong point:</p>
-<ul>
-<li>first-class functions</li>
-<li>full type reflection</li>
-<li>multiple return values</li>
-<li>and more</li>
-</ul>
-<h4 id="key-design-points"><a href="#key-design-points" class="headerlink" title="key design points"></a>key design points</h4><ul>
-<li><p>natively-typed dofns and other user functions</p>
-<p>​</p>
-</li>
-<li><p>weakly-typed ptransforms that capture arity natively</p>
-</li>
-<li><p>static type checking at pipeline construction time</p>
-<ul>
-<li>kv is implicit. we use multiple arguments and return tuples to represent unfolded KV for DoFns</li>
-<li>slide input forms. </li>
-<li>simulated generic types. we achieve some of the effect of generics by introducing special ‘universal’ types T,U,… X,Y,Z over interface{}</li>
-</ul>
-</li>
-<li><p>error handling</p>
-</li>
-</ul>
-<h4 id="examples"><a href="#examples" class="headerlink" title="examples"></a>examples</h4><h5 id="model-representation"><a href="#model-representation" class="headerlink" title="model representation"></a>model representation</h5><ul>
-<li>Pipeline</li>
-<li>Runner</li>
-<li>PCollection</li>
-<li>Coder</li>
-<li>DoFn and other user functions</li>
-</ul>
-<h5 id="Transforms"><a href="#Transforms" class="headerlink" title="Transforms"></a>Transforms</h5><ul>
-<li>Impulse</li>
-<li>Create</li>
-<li>ParDo family</li>
-<li>GroupByKey</li>
-<li>Flatten</li>
-<li>Combine</li>
-<li>Partition</li>
-<li>​</li>
+          <p><a target="_blank" rel="noopener" href="https://blog.risingstack.com/designing-microservices-architecture-for-failure/">原文链接</a></p>
+<p>microservices allow you to achieve graceful service degradation as components can be set up to fail separately</p>
+<p>we need to keep in mind that provider <strong>services can be temporarily unavailable</strong> by broken releases, configurations, and other changes as they are controlled by someone else and components move independently from each other.</p>
+<p>服务降解</p>
+<p>In a microservices architecture, services depend on each other. This is why you should minimize failures and limit their negative effect. To deal with issues from changes, you can implement change management strategies and <strong>automatic rollouts</strong>.</p>
+<h4 id="健康检查和负载平衡"><a href="#健康检查和负载平衡" class="headerlink" title="健康检查和负载平衡"></a>健康检查和负载平衡</h4><p> To avoid issues, your load balancer should <strong>skip unhealthy instances</strong> from the routing as they cannot serve your customers’ or sub-systems’ need.</p>
+<h4 id="Self-healing"><a href="#Self-healing" class="headerlink" title="Self-healing"></a>Self-healing</h4><p>In most of the cases, it is implemented by an external system that watches the instances health and restarts them when they are in a broken state for a longer period.</p>
+<p>Implementing an advanced self-healing solution which is prepared for a delicate situation - like a lost database connection - can be tricky. In this case, you need to add extra logic to your application to handle edge cases and let the external system know that the instance is not needed to restart immediately.</p>
+<h4 id="failover-caching"><a href="#failover-caching" class="headerlink" title="failover caching"></a>failover caching</h4><p>Failover caches usually use <strong>two different expiration dates</strong>; a shorter that tells how long you can use the cache in a normal situation, and a longer one that says how long can you use the cached data during failure.</p>
+<h4 id="retry-logic"><a href="#retry-logic" class="headerlink" title="retry logic"></a>retry logic</h4><p>In distributed system, a microservices system retry can trigger multiple other requests or retries and start a <strong>cascading effect</strong></p>
+<p> Using a unique <strong>idempotency-key</strong> for each of your transactions can help to handle retries.</p>
+<h4 id="Rate-Limiters-and-Load-Shedders"><a href="#Rate-Limiters-and-Load-Shedders" class="headerlink" title="Rate Limiters and Load Shedders"></a>Rate Limiters and Load Shedders</h4><p>A <em>fleet usage load shedder</em> can ensure that there are always enough resources available to <strong>serve critical transactions</strong></p>
+<h4 id="Fail-Fast-and-Independently"><a href="#Fail-Fast-and-Independently" class="headerlink" title="Fail Fast and Independently"></a>Fail Fast and Independently</h4><p>bulkhead pattern</p>
+<p>We can say that achieving the fail fast paradigm in microservices by <strong>using timeouts is an anti-pattern</strong> and you should avoid it.Instead of timeouts, you can apply the <em>circuit-breaker</em> pattern that depends on the success &#x2F; fail statistics of operations.</p>
+<h4 id="Bulkheads"><a href="#Bulkheads" class="headerlink" title="Bulkheads"></a>Bulkheads</h4><p>By applying the bulkheads pattern, we can <strong>protect limited resources</strong> from being exhausted.</p>
+<h4 id="Circuit-Breaks"><a href="#Circuit-Breaks" class="headerlink" title="Circuit Breaks"></a>Circuit Breaks</h4><p>A circuit breaker opens when a particular type of <strong>error occurs multiple times</strong> in a short period</p>
+<h4 id="Testing-for-Failures"><a href="#Testing-for-Failures" class="headerlink" title="Testing for Failures"></a>Testing for Failures</h4><p>ChaosMonkey for test</p>
+<h3 id="Key-Takeways"><a href="#Key-Takeways" class="headerlink" title="Key Takeways"></a>Key Takeways</h3><ul>
+<li>Dynamic environments and distributed systems - like microservices - lead to a higher chance of failures.</li>
+<li>Services should fail separately, achieve graceful degradation to improve user experience.</li>
+<li>70% of the outages are caused by changes, reverting code is not a bad thing.</li>
+<li>Fail fast and independently. Teams have no control over their service dependencies.</li>
+<li>Architectural patterns and techniques like caching, bulkheads, circuit breakers and rate-limiters help to build reliable microservices.</li>
 </ul>
 
       
@@ -643,7 +635,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/102/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/102/">102</a><span class="page-number current">103</span><a class="page-number" href="/page/104/">104</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/104/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/102/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/102/">102</a><span class="page-number current">103</span><a class="page-number" href="/page/104/">104</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/104/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -711,7 +703,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -724,7 +716,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -752,7 +744,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

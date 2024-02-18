@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/reactive-programing/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/programming-models-for-the-event-driven-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/18/reactive-programing/" class="post-title-link" itemprop="url">Reactive Programing</a>
+            <a href="/2019/03/20/programming-models-for-the-event-driven-architecture/" class="post-title-link" itemprop="url">Programming Models for the Event-driven architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -177,94 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-18 19:59:33" itemprop="dateCreated datePublished" datetime="2019-03-18T19:59:33+08:00">2019-03-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/reactive/" itemprop="url" rel="index"><span itemprop="name">reactive</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2018/03/10/functional-reactive-programming/">原文链接</a></p>
-<p>因为<strong>无状态是微服务的潜在要求</strong>也是最重要的一个要求之一； 函数式编程相较于其他编程范式更强调无副作用的编程思维，和微服务的基本要求自然契合的很好</p>
-<p>函数式编程的基本思路是将<strong>程序的执行看作是一堆函数的组合处理和求值</strong>过程；纯粹的函数式编程要求数据是不可变的， 同样的数值输入在流经同样的函数处理的时候必须得到确定的输出，不容许有预料之外的副作用产生。(数据的不变性)</p>
-<p>流+函数式-&gt;响应式</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">requestStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">requestUrl</span>) &#123;</span><br><span class="line">    <span class="comment">// execute the request</span></span><br><span class="line">    <span class="keyword">var</span> responseStream = <span class="title class_">Rx</span>.<span class="property">Observable</span>.<span class="title function_">create</span>(<span class="keyword">function</span> (<span class="params">observer</span>) &#123;</span><br><span class="line">        jQuery.<span class="title function_">getJSON</span>(requestUrl)</span><br><span class="line">            .<span class="title function_">done</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123; observer.<span class="title function_">onNext</span>(response); &#125;)</span><br><span class="line">            .<span class="title function_">fail</span>(<span class="keyword">function</span>(<span class="params">jqXHR, status, error</span>) &#123; observer.<span class="title function_">onError</span>(error); &#125;)</span><br><span class="line">            .<span class="title function_">always</span>(<span class="keyword">function</span>(<span class="params"></span>) &#123; observer.<span class="title function_">onCompleted</span>(); &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    responseStream.<span class="title function_">subscribe</span>(<span class="keyword">function</span>(<span class="params">response</span>) &#123;</span><br><span class="line">    <span class="comment">// do something with the response</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>处理这些响应数据的代码放在第二个subscribe中</p>
-<p>Java8采用<code>stream()</code>接口来引入</p>
-<p>RxJava扩展观察者模式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.reactivex.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Flowable.just(<span class="string">&quot;Hello world&quot;</span>).subscribe(System.out::println);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>数据流传递给方法</p>
-<p>使用并发的方式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .flatMap(v -&gt;</span><br><span class="line">    Flowable.just(v)</span><br><span class="line">      .subscribeOn(Schedulers.computation())</span><br><span class="line">      .map(w -&gt; w * w)</span><br><span class="line">  ).blockingSubscribe(System.out::println);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Flowable.range(<span class="number">1</span>, <span class="number">10</span>)</span><br><span class="line">  .parallel()</span><br><span class="line">  .runOn(Schedulers.computation())</span><br><span class="line">  .map(v -&gt; v * v)</span><br><span class="line">  .sequential()</span><br><span class="line">  .blockingSubscribe(System.out::println);</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Assume the record values represent lines of text.  For the sake of this example, you can ignore</span></span><br><span class="line"><span class="comment">// whatever may be stored in the record keys.</span></span><br><span class="line">KStream&lt;String, String&gt; textLines = ...;</span><br><span class="line"></span><br><span class="line">KStream&lt;String, Long&gt; wordCounts = textLines</span><br><span class="line">    <span class="comment">// Split each text line, by whitespace, into words.  The text lines are the record</span></span><br><span class="line">    <span class="comment">// values, i.e. you can ignore whatever data is in the record keys and thus invoke</span></span><br><span class="line">    <span class="comment">// `flatMapValues` instead of the more generic `flatMap`.</span></span><br><span class="line">    .flatMapValues(value -&gt; Arrays.asList(value.toLowerCase().split(<span class="string">&quot;\\W+&quot;</span>)))</span><br><span class="line">    <span class="comment">// Group the stream by word to ensure the key of the record is the word.</span></span><br><span class="line">    .groupBy((key, word) -&gt; word)</span><br><span class="line">    <span class="comment">// Count the occurrences of each word (record key).</span></span><br><span class="line">    <span class="comment">// This will change the stream type from `KGroupedStream&lt;String, String&gt;` to</span></span><br><span class="line">    <span class="comment">// `KTable&lt;String, Long&gt;` (word -&gt; count).</span></span><br><span class="line">    .count()</span><br><span class="line">    <span class="comment">// Convert the `KTable&lt;String, Long&gt;` into a `KStream&lt;String, Long&gt;`.</span></span><br><span class="line">    .toStream();</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/clean-architecture/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/18/clean-architecture/" class="post-title-link" itemprop="url">Clean Architecture</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-03-18 19:28:15" itemprop="dateCreated datePublished" datetime="2019-03-18T19:28:15+08:00">2019-03-18</time>
+              <time title="Created: 2019-03-20 20:40:09" itemprop="dateCreated datePublished" datetime="2019-03-20T20:40:09+08:00">2019-03-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -287,41 +200,29 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://skyscribe.github.io/post/2019/01/26/clean-architecture-notes/">原文链接</a></p>
-<p>软件架构师的主要核心职责<strong>不在于功能性的需求如何被实现出来，而是如何监控和设计软件系统的结构</strong>使得添加新的功能保持简单、经济和高效。</p>
-<p>真正<strong>本质的计算机技术和程序设计思想在过去的几十年中并没有发生太大的变化</strong></p>
-<p>相对于面向过程的编程范式，面向对象的编程范式其实是限制了程序员必须用<strong>间接控制流转移</strong>的方法来提高可维护性</p>
-<p>函数式编程-&gt;数据的不可变性，同样的数据经过同样的处理必然产生同样的输出，同时数据一旦产生就不能被修改了，否则就会有副作用。 流行起来的原因，在于数据的隔离性</p>
-<p>软件架构师的任务就是需要清楚地认识到这些编程范式<strong>只是在不同的维度上对程序员加了各种各样的约束</strong>，以解决它所适应的场景的问题而已。 理顺问题的场景然后清楚地了解编程实现和交付中的各种困难，减小软件扩展和维护的成本，是架构师所面临的最根本的挑战</p>
-<p>设计的目标：</p>
-<ul>
-<li><strong>变更它们的成本很低</strong>，因为软件系统总是要添加新功能才更有生命力，修改困难的软件就会被慢慢放弃了</li>
-<li><strong>理解起来容易</strong>，因为维护软件总是需要人来做，而参与其中的人总是在流动的</li>
-<li><strong>可以被轻易地重用在合适的地方</strong>，因为永远也没有人可以预测未来的软件项目需求；重头再写类似的代码的代价又过于高昂</li>
-</ul>
-<p>单一原则</p>
-<p> <strong>一个模块和他相关联交互的Actor只有一个</strong>，这样用UML描述模块关系的时候就比较清楚的看出这一原则有没有呗违反了。</p>
-<p>使用UML描述</p>
-<p>核心的业务规则可以保持稳定，<strong>核心业务逻辑层的稳定提炼需要依赖于领域知识</strong></p>
-<p>现在我们可以支持在程序执行的过程中，<strong>不重启主要系统，而将新开发的功能插入运行的系统中的办法</strong>来实现功能的实时更新和扩展， 这种插件化技术甚至在很多开发环境中成为默认的扩展方式；这一技术能够工作的前提是系统的架构必须有良好的考虑和组织</p>
-<p>组件内聚原则：</p>
-<ul>
-<li>重用和发布等同原则 (Common Resue&#x2F;Release Equivalence Principle)</li>
-<li>通用闭合原则 (Common Closure Principle)</li>
-<li>通用重用原则 (Common Reuse Principle)</li>
-</ul>
-<p>那么我们需要保证，在组件依赖关系图上，<strong>沿着依赖方向组件的稳定性值需要保持递减</strong>。 对于违反了这一原则的组件，一个简单的处理方法依然是<strong>使用依赖倒置原则创建新的抽象组件</strong>，从而避免稳定的组件依赖于不稳定的组件。</p>
-<p><strong>策略一旦选定变化起来就比较困难，而细节实现的变化往往容易</strong>。 策略的部分包括这些业务规则和过程，而细节则是具体的技术实现、数据库、通信协议、框架、库等。 由于<strong>商业业务规则比较稳定而技术的变化比较快，我们需要保持这些稳定的部分</strong>，而尽可能的不写死具体实现这些业务规则的技术细节。(关于策略的选取部分)</p>
-<p>好的边界划分方法是<strong>尽可能降低一些不成熟的决策产生的影响，降低对这些容易变化的决策的依赖</strong>。 我们需要在在重要的模块或者子系统和不太重要的子系统之间划分出清晰的边界(边界的制定，又有利于第三方组件的实现)</p>
-<p>整洁架构的特征：</p>
-<ul>
-<li>框架独立性：不依赖于任何库或者软件架构</li>
-<li>可测试性，各个部分可以独立测试</li>
-<li>界面隔离和独立，不管是命令行界面系统还是桌面客户端或者是浏览器等技术</li>
-<li>数据库独立性，可以替换各种SQL数据库，或者是文档数据库等，核心的业务逻辑不依赖于这些具体技术</li>
-<li>外部代理独立性，核心的业务系统并不知道外围的接口和协议</li>
-</ul>
-<p>一定的框架独立性，非常好的可测试性部分，很值得去探究</p>
+          <p><a target="_blank" rel="noopener" href="https://www.confluent.io/blog/journey-to-event-driven-part-2-programming-models-event-driven-architecture">原文链接</a></p>
+<p>Distributed object (RPC sync), service-oriented architecture (SOA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Enterprise_service_bus">enterprise service bus</a> (ESB), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Event-driven_architecture">event-driven architecture</a> (EDA), <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Reactive_programming">reactive programming</a> to <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Microservices">microservices</a> and now FaaS have each built on the learnings of the previous.</p>
+<p>####Event-driven reactive system</p>
+<p>The Reactive Manifesto has influenced many frameworks and platforms, including <a target="_blank" rel="noopener" href="https://akka.io/">Akka</a> (an <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Actor_model">actor-based library circa 1973</a>), <a target="_blank" rel="noopener" href="https://vertx.io/">Vert.x</a> (reactive microservices) and <a target="_blank" rel="noopener" href="http://www.lagomframework.com/">Lagom</a> (an opinionated, reactive microservice framework)</p>
+<p>The Akka scaling mechanism uses a <a target="_blank" rel="noopener" href="https://developer.lightbend.com/blog/2017-05-17-atotm-clustering-and-remoting/">cluster</a> service which pools actors from remote nodes that join as cluster members. Inactive actors are persisted to disk to minimize idle resource requirements</p>
+<p>Persistent actors will store their set of events to a journal (log)</p>
+<p>关于akka的持久化部分</p>
+<p>reactive以响应为主，RxJava这种，akka这种</p>
+<h4 id="Event-driven-stream-system"><a href="#Event-driven-stream-system" class="headerlink" title="Event-driven stream system"></a>Event-driven stream system</h4><p>Stream processor patterns enable <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/kstream/KStream.html#filter-org.apache.kafka.streams.kstream.Predicate-">filtering</a>, projections, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#joining">joins</a>, <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#streams-developer-guide-dsl-aggregating">aggregations</a>, materialized views and other <a target="_blank" rel="noopener" href="https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html">streaming functionality</a>. </p>
+<p>A proven approach is to capture domain knowledge as events using [domain-driven design](<a target="_blank" rel="noopener" href="http://a/">http://A</a> proven approach is to capture domain knowledge as events using Domain Driven Design (DDD) and event storming. This approach works well because the events centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the systems functions.)(DDD) and event storming. This approach works well because the events-centric view forces the use of a ubiquitous language; the business, technologist, developers and ops all have a common understanding of the system’s functions</p>
+<p>Stream processors can also be used to materialize tables from the stream of events to enable a view of the data (e.g., how much money was in my account at time X). The term is called <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/">turning the database inside out</a></p>
+<p>Unlike a traditional database, the platform scales horizontally to thousands of processors, observe real-time events, replay streams on demand to perform historical processing and catch up with the live, data-in-motion view.</p>
+<p>A traditional OLTP system uses a two-phase commit to move money from a debit account to a credit account. It is very simple but presents scalability challenges. In the event-driven world, we’d build a scalable model where the event streams flow between processors. By the end of the flow, the payment is transacted. (通过分拆processor达到transacted的特点)</p>
+<h4 id="scaling-mechanism"><a href="#scaling-mechanism" class="headerlink" title="scaling mechanism"></a>scaling mechanism</h4><p>通过partition来达到scaling的目的</p>
+<h4 id="Comparing-persistence-models"><a href="#Comparing-persistence-models" class="headerlink" title="Comparing persistence models"></a>Comparing persistence models</h4><p>CQRS的意思？</p>
+<p>持久化，通过event log的方式</p>
+<p>With stream processing, <a target="_blank" rel="noopener" href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying">the log</a> stores the truth for the entity; it is organized as a stream. The log (stream) also stores every version of the entity.</p>
+<p>The event streaming platform provides the means of storing data as a stream and streaming events at scale. In order to facilitate this functionality the underlying protocol needs to ensure qualities such as offline status, different consumer rates, high throughput, low latency and elasticity (amongst others). The <a target="_blank" rel="noopener" href="https://docs.confluent.io/5.0.1/clients/javadocs/org/apache/kafka/clients/consumer/KafkaConsumer.html">consumer model</a> is one which exposes the protocol to the developer; this means the<br>consumer will have the opportunity to ACK, NACK message receipt and interact with the correctness of accepting a message payload.</p>
+<p>We also hear about backpressure being a concern to control event throughput. I would question if this is actually a requirement or<br>marketing speak. Brokered systems like Kafka provide huge buffers (the default in Kafka is two weeks) which negate the need for explicit flow control for the vast majority of use cases. In the very few that remain you can easily build backpressure as a control plane detail; it would be developed using stream processors that analyze throughput of events and apply rate limiting events to the relevant producers.(由于提供buffer的问题，backpressure基本不需要考虑)</p>
+<p>However, for event-sourcing, things get more complex; the ability to rebuild application state on demand needs a dedicated framework and process control to ensure point-in-time or snapshot state is correctly rebuilt. You cannot simply start replaying events from an offset and expect the downstream aggregates to be deterministically reproduced as they were previously. (关于恢复的困难性)</p>
+<p>All of the <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/apache-kafka-tested/">trust and resilience</a> is based upon the event streaming platform’s <a target="_blank" rel="noopener" href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/">correctness</a> and guarantees of working with the commit log.(面向commit log部分)</p>
+<p>以数据为中心</p>
+<p>By storing only the events and never the commands, we have a wealth of capability that not only allows the system to be refined, extended and proven but also supports evolutionary change.</p>
 
       
     </div>
@@ -341,7 +242,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/18/oracle-jfr/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/concurrency-in-go-vs-erlang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -355,7 +256,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/18/oracle-jfr/" class="post-title-link" itemprop="url">oracle JFR</a>
+            <a href="/2019/03/20/concurrency-in-go-vs-erlang/" class="post-title-link" itemprop="url">Concurrency in go vs erlang</a>
         </h2>
 
         <div class="post-meta">
@@ -365,7 +266,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-18 10:36:58" itemprop="dateCreated datePublished" datetime="2019-03-18T10:36:58+08:00">2019-03-18</time>
+              <time title="Created: 2019-03-20 19:49:09" itemprop="dateCreated datePublished" datetime="2019-03-20T19:49:09+08:00">2019-03-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -373,7 +274,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/jfr/" itemprop="url" rel="index"><span itemprop="name">jfr</span></a>
+                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
                 </span>
             </span>
 
@@ -388,34 +289,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://zhouhai02.com/post/flink-internals/flink-application-profile-by-jfr-jmc-flame-graph/">原文链接</a></p>
-<p>和传统的JProfiler&#x2F;VisualVM这些基于JMX的工具所不同的是，JFR记录的信息是<strong>近似而非精确</strong>的；当然大部分情况下这些<strong>模糊性信息就足够说明问题</strong>了。 对于大部分场景下，这些近似信息反而可以更容易发现一些真正的问题。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">env.java.opts: &quot;-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints&quot;</span><br></pre></td></tr></table></figure>
-
-<p>加入java opts</p>
-<p>开启jfr</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.start name=MyRecording settings=/home/zhouhai02/flink_profiler.jfc delay=5s duration=10m</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>check</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.check</span><br></pre></td></tr></table></figure>
-
-
-
-<p>导出</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/jdk1.8.0_112/bin/jcmd 47897 JFR.dump name=MyRecording filename=dump.jfr</span><br></pre></td></tr></table></figure>
-
-
-
-<p>导入到JMC上去分析</p>
-<p><strong>Java Mission Control</strong></p>
-<p>热点线程</p>
-<p><img src="https://skyscribe.github.io/assets/images/jfr/jfr_threads_hot_threads.jpg" alt="hot thread"></p>
-<p>给出线程上下文切换的频率。同样，也可以类似得出相应的切换时间</p>
-<p>同时，火焰图部分</p>
-<p><img src="https://zhouhai02.com/img/troubleshooting/flink-jm-dump.svg" alt="火焰图"></p>
-<p>火焰图展示了在采样周期内，code-path被执行的时间占比，纵轴是code-path，从下至上一般就是调用栈，相同的采样调用栈会被合并，栈顶元素就是采样的时候CPU运行的stack，横轴是某个stack的占用时间，跨度越大说明其占CPU比重越高，也就是最耗费CPU的，stack在横轴上是按照字母序排列的，颜色深浅仅仅是为了区分，并没特殊意义。我只需要关注火焰图中的“平顶山”，这往往代表着某段代码的调用占用CPU过多。</p>
+          <p><a target="_blank" rel="noopener" href="https://dev.to/pieohpah/concurrency-in-go-vs-erlang-595a">原文链接</a></p>
+<p>A process’s mailbox is akin to Go’s channel, but it is not shared. It’s a private data buffer for that particular process to go through, one by one, synchronously. When a process sends something to another process’s mailbox, that thing gets stored there until that process can make use of it.</p>
+<p>In imperative programming (in Go’s case, structured, which is imperative), you mostly program to change some states, and thus you have to care about <em>WHEN</em> each line of code gets run (<code>A</code> changes state <code>X</code>, then <code>B</code> reads <code>X</code> is consequentially different from <code>B</code> reads <code>X</code>, then <code>A</code> changes <code>X</code>)</p>
+<p>In declarative programming, one expresses the logic without caring about control flow because each expression &#x2F; function does not have side effects aka changing the state outside of itself.</p>
 
       
     </div>
@@ -435,7 +312,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/time-plan/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/20/actor-vs-goroutine/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -449,7 +326,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/17/time-plan/" class="post-title-link" itemprop="url">2019时间的安排</a>
+            <a href="/2019/03/20/actor-vs-goroutine/" class="post-title-link" itemprop="url">actor vs goroutine</a>
         </h2>
 
         <div class="post-meta">
@@ -459,7 +336,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-17 22:16:29" itemprop="dateCreated datePublished" datetime="2019-03-17T22:16:29+08:00">2019-03-17</time>
+              <time title="Created: 2019-03-20 09:58:17" itemprop="dateCreated datePublished" datetime="2019-03-20T09:58:17+08:00">2019-03-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -467,7 +344,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/time/" itemprop="url" rel="index"><span itemprop="name">time</span></a>
+                  <a href="/categories/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
                 </span>
             </span>
 
@@ -482,8 +359,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>尝试更严格的自律。。。</p>
-<hr>
+          <p>参考<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/22621514/is-scalas-actors-similar-to-gos-coroutines">stackoverflow1</a></p>
+<p>CSP模型：Communicating Sequential Processes(formal language for describing patterns of interaction in concurrent systems)</p>
+<p>processes share a “channel”</p>
+<p>at this time they are limited to the current runtime and cannot be distributed, even between two runtimes on the same physical box</p>
+<p>CSP does not support fault tolerance in a meaningful way, so you as the developer have to figure out how to handle failure that can occur on both sides of channels, and such logic ends up getting strewn about all over the application</p>
+<p>CSP强调通信，channel可以被多个生产者和消费者共享，但是消息是否被消费了？unbuffered?</p>
+<p>actor: involve entities that have their own mailbox.  They are asynchronous by nature, and have location transparency that spans runtimes and machines</p>
+<p>也有共享的机制，通过eventbus部分？</p>
+<p>Actors have another very nice feature - fault tolerance.  By organizing actors into a supervision hierarchy per the OTP specification devised inErlang, you can build a domain of failure into your application.</p>
+<p>Actors are also a concurrency paradigm, where the actor can have mutable state inside of it and a guarantee of no multithreaded access to the state, unless the developer building an actor-based system accidentally introduces it, for example by registering the Actor as a listener for a callback, or going asynchronous inside the actor via Futures.(actor的状态不变性)</p>
+<p><strong>The only similarity (aside the nitpicking) is they both have to do with concurrency and message passing. But that is where the similarity ends.</strong></p>
+<p>Actors help things to be “worry free distributed”</p>
+<p>Where a “worry free” piece is usually associated with terms such as: <code>fault tolerance</code>, <code>resiliency</code>, <code>availability</code>, etc.. </p>
+<p>Goroutines help to reason about concurrency sequentially</p>
+<p>参考<a target="_blank" rel="noopener" href="https://www.quora.com/How-are-Akka-actors-different-from-Go-channels-How-are-two-related-to-each-other">quora1</a></p>
+<p>Go has a <em>select</em> statement for choosing between alternatives (the CSP <em>choice</em>) which may include channels, timers or simply skipping on to the next thing. This allows what one might call “waiting faster” by picking up from whichever channel is available first. But remember that whilst a goroutine is waiting on the channels (CSP calls them guards) in a <em>select</em>, it consumes no CPU and very little memory.</p>
+<p>Akka implements a fixed kind  network (of variable topology) in CSP terms. One feature of this kind of network is that there is no explicit flow control because no write rendezvous is ever needed on an infinite buffer. The model is fully asynchronous.</p>
+<p>downsides to the actor model</p>
+<ul>
+<li>There are cases where flow control is needed. Although these can be implemented in Akka using handshake dialogues, the code gets messy and it’s not efficient any more</li>
+<li>There is no ability of an actor to <em>refuse</em> to communicate. When a message arrives, it has to be processed or, perhaps, put into a buffer to be dealt with later. 消息ignore机制</li>
+<li>Akka places full reliance on the infinite input buffers never running out of memory - but this is not guaranteed.</li>
+</ul>
+<p>downside to the csp:</p>
+<ul>
+<li>Any network of goroutines that has some mutual dependency may deadlock. The developer must be aware of this and code so that deadlock is eliminated; this involves identifying mutual dependencies and altering them in some way (there are several well-known techniques, the easiest of these being to use a pure client-server pattern, which is known to be deadlock-free).</li>
+</ul>
+<p>The main difference is that a message exchange is synchronous in CSP (i.e. a “touch point” of the execution of two processes where they hand over the message) whereas it is completely decoupled in the Actor model, with message delivery being unconfirmed to the sender and taking an arbitrary amount of time</p>
 
       
     </div>
@@ -503,7 +406,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/17/2019-plan/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/19/completionStage-and-compltetableFuture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -517,7 +420,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/03/17/2019-plan/" class="post-title-link" itemprop="url">2019活下去</a>
+            <a href="/2019/03/19/completionStage-and-compltetableFuture/" class="post-title-link" itemprop="url">CompletionStage and CompltetableFuture</a>
         </h2>
 
         <div class="post-meta">
@@ -527,7 +430,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-03-17 15:17:17" itemprop="dateCreated datePublished" datetime="2019-03-17T15:17:17+08:00">2019-03-17</time>
+              <time title="Created: 2019-03-19 18:24:51" itemprop="dateCreated datePublished" datetime="2019-03-19T18:24:51+08:00">2019-03-19</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -535,7 +438,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/plan/" itemprop="url" rel="index"><span itemprop="name">plan</span></a>
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
                 </span>
             </span>
 
@@ -550,37 +453,122 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>方向的变化，外界的压力，莫名其妙的情绪，很容易让人很丧气，不知道目标和方向在哪里，今天的自己，能否撑到明天。。。</p>
-<p>有时候，挺丧气的，不再是一人吃饱，全家不饿的状态，但是自己不管是状态上，还是心理上，完全没达到相应的状态，很是苦笑。。。</p>
-<p>但不管怎么样，活下去，认真地活下去，不用管后面是什么样，想着可以为现在做一些事情，为后面的人留下一些东西，就够了，这才是应该有的野望。。</p>
-<hr>
-<p>工作上：</p>
-<ul>
-<li>方向上的转换有点快，但是一些主线上的东西，不会变，看能不能基于akka部分，将整套流程能够实现出来</li>
-<li>基础上，尝试运用重构的一些概念理论去重构下整个项目，作为一个实践的课题</li>
-<li>语言上，尝试下rust的学习，例如rust os部分，起码可以尝试去学习一下</li>
-<li>作为转型的机器学习部分，能不能找一些例子，在现有的资源上，做一些东西出来(资源不能浪费)</li>
-</ul>
-<p>业余上：</p>
-<ul>
-<li>rust部分，看能不能按照os的路子，写出来</li>
-<li>blog部分，要保持更新的节奏，尤其是技术上，多写写读后感。。看能不能到550大关，加油</li>
-<li>leetcode。。。<a target="_blank" rel="noopener" href="https://github.com/gqlxj1987/leetcode-daily">leetcode daily</a></li>
-</ul>
-<p>生活上：</p>
-<ul>
-<li>下江南，走西北，去东南亚过年？</li>
-<li>身体锻炼，要恢复起来，周末的跑步，周中的keep以及跳舞部分，要逐渐地恢复起来。。</li>
-<li>电影和书上，要保持频率，是不是可以把布袋戏捡起来了，作为保持节奏的一种？</li>
-<li>相机要重新拿起来，拍一些有意思的东西出来。。</li>
-</ul>
-<p>待人处物上：</p>
-<ul>
-<li>也没有什么小心翼翼的了，既然都做好了打算，没什么好失去的，能留下一点是一点，做好自己就可以了</li>
-<li>尝试去沟通，多去陪伴，不要懒</li>
-<li>身外之物，尝试去长期去看待，起码今年的形势会比去年好，慢慢来，ps4没有的话，换一个显示器+手柄也是可以的</li>
-</ul>
-<p>活下去，认真地活下去，全力以赴，但又不报任何希望，有付出就可以了</p>
+          <p><a target="_blank" rel="noopener" href="http://millross-consultants.com/completion-stage-future-introduction.html">原文链接</a></p>
+<p>CompletionStage pipelines</p>
+<p>CompletableFuture implements the CompletionStage interface.</p>
+<p>A convenient example of this is the thenApply method, which is analogous to map on the streaming API (or on the Optional class, for example).</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// We&#x27;ll allow a 2-sized thread pool for async execution, rather than using the fork/join pool for asynchronous</span></span><br><span class="line"><span class="comment">// value generation</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">Executor</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">demoThenApply</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">1</span>), executor) </span><br><span class="line">        .thenApply(i -&gt; i + <span class="number">3</span>);</span><br><span class="line">    assertThat(future.get(), is(<span class="number">4</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title function_">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> value)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> delayedValueSupplier(value, <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Supplier&lt;Integer&gt; <span class="title function_">delayedValueSupplier</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> value, <span class="keyword">final</span> <span class="type">int</span> delayMs)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> () -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(delayMs);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;Problem while waiting to return value&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>pipeline</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">demoMultiStagePipeline</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="comment">// We&#x27;ll use one future to specify how long a subsequent future will take</span></span><br><span class="line">    <span class="keyword">final</span> CompletableFuture&lt;Integer&gt; future = CompletableFuture</span><br><span class="line">        .supplyAsync(delayedValueSupplier(<span class="number">3</span>), executor)</span><br><span class="line">        .thenApply(i -&gt; &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;First future completed, &quot;</span> + i);</span><br><span class="line">            <span class="keyword">return</span> i + <span class="number">1</span>;</span><br><span class="line">        &#125;)</span><br><span class="line">        .thenCompose(i -&gt; CompletableFuture</span><br><span class="line">            .supplyAsync(delayedValueSupplier(i + <span class="number">2</span>, i * <span class="number">100</span>), executor));</span><br><span class="line">    assertThat(future.get(), is(<span class="number">6</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/03/19/nginx-quick-reference/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/19/nginx-quick-reference/" class="post-title-link" itemprop="url">Nginx Quick Reference</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-03-19 17:39:09" itemprop="dateCreated datePublished" datetime="2019-03-19T17:39:09+08:00">2019-03-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/nginx/" itemprop="url" rel="index"><span itemprop="name">nginx</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://github.com/trimstray/nginx-quick-reference">原文链接</a></p>
+<p>通过map去代替allow&#x2F;deny</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">map $remote_addr $globals_internal_map_acl &#123;</span><br><span class="line"></span><br><span class="line">  # Status code:</span><br><span class="line">  #  - 0 = false</span><br><span class="line">  #  - 1 = true</span><br><span class="line">  default 0;</span><br><span class="line"></span><br><span class="line">  ### INTERNAL ###</span><br><span class="line">  10.255.10.0/24 1;</span><br><span class="line">  10.255.20.0/24 1;</span><br><span class="line">  10.255.30.0/24 1;</span><br><span class="line">  192.168.0.0/16 1;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>map anything</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">map $http_user_agent $device_redirect &#123;</span><br><span class="line"></span><br><span class="line">  default &quot;desktop&quot;;</span><br><span class="line"></span><br><span class="line">  ~(?i)ip(hone|od) &quot;mobile&quot;;</span><br><span class="line">  ~(?i)android.*(mobile|mini) &quot;mobile&quot;;</span><br><span class="line">  ~Mobile.+Firefox &quot;mobile&quot;;</span><br><span class="line">  ~^HTC &quot;mobile&quot;;</span><br><span class="line">  ~Fennec &quot;mobile&quot;;</span><br><span class="line">  ~IEMobile &quot;mobile&quot;;</span><br><span class="line">  ~BB10 &quot;mobile&quot;;</span><br><span class="line">  ~SymbianOS.*AppleWebKit &quot;mobile&quot;;</span><br><span class="line">  ~Opera\sMobi &quot;mobile&quot;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($device_redirect = &quot;mobile&quot;) &#123;</span><br><span class="line"></span><br><span class="line">  return 301 https://m.domain.com$request_uri;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>work_processes</p>
+<blockquote>
+<p>I think for high load proxy servers (also standalone servers) good value is <code>ALL_CORES - 1</code> (please test it before used).</p>
+</blockquote>
+<p>gzip</p>
+<blockquote>
+<p>You shouldn’t use HTTP compression on private responses when using TLS.</p>
+<p>Compression can be (I think) okay to HTTP compress publicly available static content like css or js and HTML content with zero sensitive info (like an “About Us” page).</p>
+</blockquote>
+<p>#####Mitigating Slow HTTP DoS attack (Closing Slow Connections)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">client_body_timeout 10s;</span><br><span class="line">client_header_timeout 10s;</span><br><span class="line">keepalive_timeout 5s 5s;</span><br><span class="line">send_timeout 10s;</span><br></pre></td></tr></table></figure>
+
+
+
 
       
     </div>
@@ -599,7 +587,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/50/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/50/">50</a><span class="page-number current">51</span><a class="page-number" href="/page/52/">52</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/52/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/50/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/50/">50</a><span class="page-number current">51</span><a class="page-number" href="/page/52/">52</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/52/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -667,7 +655,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -680,7 +668,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -708,7 +696,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

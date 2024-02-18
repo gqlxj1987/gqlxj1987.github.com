@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/13/skipList-tips/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/go-memory-management/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/06/13/skipList-tips/" class="post-title-link" itemprop="url">SkipList Tips</a>
+            <a href="/2018/06/21/go-memory-management/" class="post-title-link" itemprop="url">Go Memory Management</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-06-13 16:33:39" itemprop="dateCreated datePublished" datetime="2018-06-13T16:33:39+08:00">2018-06-13</time>
+              <time title="Created: 2018-06-21 10:12:34" itemprop="dateCreated datePublished" datetime="2018-06-21T10:12:34+08:00">2018-06-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/skipList/" itemprop="url" rel="index"><span itemprop="name">skipList</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -200,191 +200,192 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><img src="https://img-blog.csdn.net/20131218143835046?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvaWN0MjAxNA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="skipList结构"></p>
+          <p><a target="_blank" rel="noopener" href="https://povilasv.me/go-memory-management/">原文链接</a></p>
+<p><strong>Virtual Memory Size(VSZ)</strong> is all memory that the process can access, including memory that is swapped out, memory that is allocated, but not used, and memory that is from shared libraries. (<em>Edited</em>, good explanation in <a target="_blank" rel="noopener" href="https://stackoverflow.com/a/21049737/112129">stackoverflow</a>.)</p>
+<p><strong>Resident Set Size(RSS)</strong> is number of memory pages the process has in real memory multiplied by pagesize. This excludes swapped out memory pages.</p>
+<p><a target="_blank" rel="noopener" href="https://www.soasme.com/techshack.weekly/verses/c06f28bc-698b-4586-a170-67f0e9d9ccfc.html">一则</a></p>
+<p>Go 通过 汇编或者 cgo 来调用这些系统调用，而不是 libc，所以它不提供 malloc, 而是直接向 OS 通过 mmap 要内存。Go 使用类似 TCMalloc: Thread-Caching Malloc 的方法管理内存。它比 libc malloc 更快效率更高，做法是使用 thread-local cache 存储预分配的内存对象。具体来说，给对象做大小分级，每个级别的管理都不太一样</p>
+<p><a target="_blank" rel="noopener" href="http://hugozhu.myalert.info/2013/04/20/31-golang-memory-model.html?utm_source=tuicool">golang内存模型</a></p>
+<p>内存模型的目的是为了定义清楚变量的读写在不同执行体里的可见性。理解内存模型在并发编程中非常重要，因为代码的执行顺序和书写的逻辑顺序并不会完全一致，甚至在编译期间编译器也有可能重排代码以最优化CPU执行, 另外还因为有CPU缓存的存在，内存的数据不一定会及时更新，这样对内存中的同一个变量读和写也不一定和期望一样。</p>
+<p>Go的并发模型是基于CSP（<a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">Communicating Sequential Process</a>）的，不同的Goroutine通过一种叫Channel的数据结构来通信；Java的并发模型则基于多线程和共享内存，有较多的概念（violatie, lock, final, construct, thread, atomic等）和场景，当然java.util.concurrent并发工具包大大简化了Java并发编程</p>
+<h2 id="Happens-before-定义"><a href="#Happens-before-定义" class="headerlink" title="Happens-before 定义"></a>Happens-before 定义</h2><p>Happens-before用来指明Go程序里的内存操作的局部顺序。如果一个内存操作事件e1 happens-before e2，则e2 happens-after e1也成立；如果e1不是happens-before e2,也不是happens-after e2，则e1和e2是并发的。</p>
+<h2 id="垃圾回收的时机"><a href="#垃圾回收的时机" class="headerlink" title="垃圾回收的时机"></a>垃圾回收的时机</h2><p>垃圾回收的触发是由一个gcpercent的变量控制的，当新分配的内存占已在使用中的内存的比例超过gcprecent时就会触发。比如，gcpercent&#x3D;100，当前使用了4M的内存，那么当内存分配到达8M时就会再次gc。如果回收完毕后，内存的使用量为5M，那么下次回收的时机则是内存分配达到10M的时候。也就是说，并不是内存分配越多，垃圾回收频率越高，这个算法使得垃圾回收的频率比较稳定，适合应用的场景。</p>
+<p>gcpercent的值是通过环境变量GOGC获取的，如果不设置这个环境变量，默认值是100。如果将它设置成off，则是关闭垃圾回收。</p>
+<ul>
+<li></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/An-Analysis-of-Vgo/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/21/An-Analysis-of-Vgo/" class="post-title-link" itemprop="url">An Analysis of Vgo</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-21 09:45:23" itemprop="dateCreated datePublished" datetime="2018-06-21T09:45:23+08:00">2018-06-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://sdboyer.io/vgo/intro/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_130">原文链接</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/21/miaosha/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/21/miaosha/" class="post-title-link" itemprop="url">解决秒杀一则</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-06-21 09:07:24" itemprop="dateCreated datePublished" datetime="2018-06-21T09:07:24+08:00">2018-06-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%A7%92%E6%9D%80/" itemprop="url" rel="index"><span itemprop="name">秒杀</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/hj0U5V5np4fDsdc7jlzmUg">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/chanjarster/artemis-disruptor-miaosha">repo</a></p>
+<ul>
+<li>300线程，循环1000次，共30w请求</li>
+</ul>
+<p>秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的，放在内存中？</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/eZzl4LXykQwtoJTdVPGMW3QgdBOlR2zP5MgkmSklealPbrL56pZUrdIAhickZcNH0L9AcHXkZRKxg7afOq30daQ/640?wx_fmt=png&wxfrom=5&wx_lazy=1" alt="下单流程"></p>
+<p>通过JMS的消息，作为中间件来</p>
+<p>Disruptor是LMAX公司开源的高性能内存队列。Disruptor能够让开发人员只需写单线程代码，就能够获得非常强悍的性能表现，同时避免了写并发编程的难度和坑。 其本质思想在于多线程未必比单线程跑的快。</p>
+<p>backend利用它把从ActiveMQ Artemis获得请求串行化，判断商品库存是否充足，更新剩余库存，最后异步写入数据库。</p>
+<p>库存充足判断、更新剩余库存的动作都是在内存中进行的，配合Disruptor绕过了并发编程的内存可见性、同步、锁等问题，性能非常强。</p>
+<p>在本项目中商品在内存中相关类是Item.java，在利用jol-cli(点此下载)查看其memory-layout后发现，其大小为24byte：</p>
 <blockquote>
-<p>Skip lists  are data structures  that use probabilistic  balancing rather  than  strictly  enforced balancing. As a result, the algorithms  for insertion  and deletion in skip lists  are much simpler and significantly  faster  than  equivalent  algorithms  for balanced trees.</p>
+<p><a target="_blank" rel="noopener" href="http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar">http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar</a></p>
 </blockquote>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/13/mysql-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/13/mysql-tips/" class="post-title-link" itemprop="url">mysql 简介</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-13 10:49:07" itemprop="dateCreated datePublished" datetime="2018-06-13T10:49:07+08:00">2018-06-13</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://liuzhengyang.github.io/2017/04/18/innodb-mvcc/">原文链接</a></p>
-<p><img src="https://liuzhengyang.github.io/images/mysql-arch.jpg" alt="mysql架构"></p>
-<p>MVCC(Multi Version Concurrency Control)</p>
-<p>redo log 以及undo log部分</p>
-<p>innodb中通过B+树作为索引的数据结构，并且主键所在的索引为ClusterIndex(聚簇索引), ClusterIndex中的叶子节点中保存了对应的数据内容。一个表只能有一个主键，所以只能有一个聚簇索引，如果表没有定义主键，则选择第一个非NULL唯一索引作为聚簇索引，如果还没有则生成一个隐藏id列作为聚簇索引。 除了Cluster Index外的索引是Secondary Index(辅助索引)。辅助索引中的叶子节点保存的是聚簇索引的叶子节点的值。</p>
-<p>主键的索引结构中,既存储了主键值,又存储了行数据,这种结构称为”聚簇索引”</p>
-<p>B-树和B+树最重要的一个区别就是B+树只有叶节点存放数据，其余节点用来索引，而B-树是每个索引节点都会有Data域</p>
-<p>B-树（B类树）的特定就是每层节点数目非常多，层数很少，目的就是为了就少磁盘IO次数，当查询数据的时候，最好的情况就是很快找到目标索引，然后读取数据，使用B+树就能很好的完成这个目的，但是B-树的每个节点都有data域（指针），这无疑增大了节点大小，说白了增加了磁盘IO次数（磁盘IO一次读出的数据量大小是固定的，单个数据变大，每次读出的就少，IO次数增多，一次IO多耗时啊！），原因1：B+树除了叶子节点其它节点并不存储数据，节点小，磁盘IO次数就少。 原因2：B+树所有的Data域在叶子节点，一般来说都会进行一个优化，就是将所有的叶子节点用指针串起来。这样遍历叶子节点就能获得全部数据。</p>
-<p>MyISAM中有两种索引，分别是主索引和辅助索引，在这里面的主索引使用具有唯一性的键值进行创建，而辅助索引中键值可以是相同的。MyISAM分别会存一个索引文件和数据文件。它的主索引是非聚集索引。当我们查询的时候我们找到叶子节点中保存的地址，然后通过地址我们找到所对应的信息。</p>
-<p>InnoDB索引和MyISAM最大的区别是它只有一个数据文件，在InnoDB中，表数据文件本身就是按B+Tree组织的一个索引结构，这棵树的叶节点数据域保存了完整的数据记录。所以我们又把它的主索引叫做聚集索引。而它的辅助索引和MyISAM也会有所不同，它的辅助索引都是将主键作为数据域。所以，这样当我们查找的时候通过辅助索引要先找到主键，然后通过主索引再找到对于的主键，得到信息。</p>
-<p>MyISAM不支持事务，表锁部分，这样，无法支持事务</p>
-<p><a target="_blank" rel="noopener" href="http://blog.codinglabs.org/articles/theory-of-mysql-index.html">原文链接</a></p>
-<p>添加索引的一些经验</p>
-<ul>
-<li>字段的值的分区度部分，加上索引也无法锁定特别少量的数据</li>
-</ul>
-<p>order以及limit会影响查询的速度，对结果的排序部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/12/redis-tips/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/12/redis-tips/" class="post-title-link" itemprop="url">Redis Tips</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-06-12 10:53:57" itemprop="dateCreated datePublished" datetime="2018-06-12T10:53:57+08:00">2018-06-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.soasme.com/techshack.weekly/verses/062e842a-0b1e-4e4b-85a1-71be5f2c7f10.html">原文链接</a></p>
-<ul>
-<li><p>RDB</p>
-<p>单文件，压缩好，</p>
-<p>基本流程：Redis fork, 子进程把数据全量写到 rdb 文件，写完后替换老的 rdb 文件。</p>
-</li>
-<li><p>AOF</p>
-<p>性能好，能在日志太大时自动rewrite，日志大，速度慢，</p>
-<p>Log rewriting 基本流程: fork, 子进程开写新的 AOF 文件，Redis 在内存中暂存数据，写完后把新的写操作应用到 AOF 文件去，最后替换老的 aof 文件</p>
-</li>
-</ul>
-<p><a target="_blank" rel="noopener" href="https://redis.io/commands/expire">原文链接</a></p>
-<p>Redis keys are expired in two ways: a passive way, and an active way.</p>
-<p>A key is passively expired simply when some client tries to access it, and the key is found to be timed out.</p>
-<p>Of course this is not enough as there are expired keys that will never be accessed again. These keys should be expired anyway, so periodically Redis tests a few keys at random among keys with an expire set. All the keys that are already expired are deleted from the keyspace.</p>
-<p>Specifically this is what Redis does 10 times per second:</p>
+<blockquote>
+<p>me.chanjar.jms.server.memdb.Item object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N&#x2F;A 12 4 int Item.amount N&#x2F;A 16 4 Long Item.id N&#x2F;A 20 4 (loss due to the next object alignment) Instance size: 24 bytes Space losses: 0 bytes internal + 4 bytes external &#x3D; 4 bytes total</p>
+</blockquote>
+<p>而Long占用的内存也为24b：</p>
+<blockquote>
+<p>java.lang.Long object internals: OFFSET SIZE TYPE DESCRIPTION VALUE 0 12 (object header) N&#x2F;A 12 4 (alignment&#x2F;padding gap) N&#x2F;A 16 8 long Long.value N&#x2F;A Instance size: 24 bytes Space losses: 4 bytes internal + 0 bytes external &#x3D; 4 bytes total</p>
+</blockquote>
+<p>假设你有100W商品需要秒杀，那么其占用内存 &#x3D; 1,000,000 * (24b + 4b + 24b) &#x3D; 52,000,000b &#x3D; 49m。仅仅只占49m。</p>
+<p>架构上的优化点</p>
 <ol>
-<li>Test 20 random keys from the set of keys with an associated expire.</li>
-<li>Delete all the keys found expired.</li>
-<li>If more than 25% of keys were expired, start again from step 1.</li>
+<li>下单请求异步处理，请求返回的本次请求的ID，客户端拿这个ID到另行发起请求查询结果</li>
+<li>在秒杀期间，商品库存信息在内存中，库存判断及库存扣减都在内存中进行，之后异步到数据库</li>
+<li>利用Disruptor将并发请求串行化，同时避免了多线程编程复杂度</li>
+<li>抛弃数据库事务，采用最终一致性</li>
 </ol>
-<p>This is a trivial probabilistic algorithm, basically the assumption is that our sample is representative of the whole key space, and we continue to expire until the percentage of keys that are likely to be expired is under 25%</p>
-<p>懒删除，以及定时删除，按照25%的概率进行</p>
-<p>bgsave 对应 RDB？</p>
-<p>hash</p>
-<p>List(利用双端链表实现的list)</p>
-<p>Set</p>
-<p>Sorted Set增加score部分，进行有序排列</p>
-<p>Redis sorted set的内部使用HashMap和跳跃表(SkipList)来保证数据的存储和有序，HashMap里放的是成员到score的映射，而跳跃表里存放的是所有的成员，排序依据是HashMap里存的score,使用跳跃表的结构可以获得比较高的查找效率，并且在实现上比较简单。</p>
-<p>关于skipList部分</p>
-<p>HyperLogLog</p>
-<p>A HyperLogLog is a probabilistic data structure used in order to count unique things (technically this is referred to estimating the cardinality of a set). Usually counting unique items requires using an amount of memory proportional to the number of items you want to count, because you need to remember the elements you have already seen in the past in order to avoid counting them multiple times. However there is a set of algorithms that trade memory for precision: you end with an estimated measure with a standard error, in the case of the Redis implementation, which is less than 1%. The magic of this algorithm is that you no longer need to use an amount of memory proportional to the number of items counted, and instead can use a constant amount of memory! 12k bytes in the worst case, or a lot less if your HyperLogLog (We’ll just call them HLL from now) has seen very few elements.</p>
+<p>和JMS相关的优化点</p>
+<ol>
+<li>重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象(Spring的JmsTemplate就是这么干的)</li>
+<li>将JMS Session设定为transacted&#x3D;false, AUTO_ACKNOWLEDGE</li>
+<li>发送JMS消息时DeliveryMode&#x3D;NON_PERSISTENT</li>
+<li>关闭Artemis的重发、消息持久机制</li>
+</ol>
+<p>下单请求的异步处理，将下单流程同单子的查询分为两个不同流程，这样进行异步操作</p>
+<p>同时引入Disruptor，进行相关的串行化的工作</p>
 
       
     </div>
@@ -404,7 +405,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/12/Performance-analysis/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/20/Weber-Fechner-law/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -418,7 +419,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/06/12/Performance-analysis/" class="post-title-link" itemprop="url">Performance analysis</a>
+            <a href="/2018/06/20/Weber-Fechner-law/" class="post-title-link" itemprop="url">Weber-Fechner law</a>
         </h2>
 
         <div class="post-meta">
@@ -428,7 +429,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-06-12 10:06:27" itemprop="dateCreated datePublished" datetime="2018-06-12T10:06:27+08:00">2018-06-12</time>
+              <time title="Created: 2018-06-20 09:41:07" itemprop="dateCreated datePublished" datetime="2018-06-20T09:41:07+08:00">2018-06-20</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -436,7 +437,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/performance/" itemprop="url" rel="index"><span itemprop="name">performance</span></a>
+                  <a href="/categories/Weber/" itemprop="url" rel="index"><span itemprop="name">Weber</span></a>
                 </span>
             </span>
 
@@ -451,8 +452,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://blog.acolyer.org/2018/05/04/performance-analysis-of-cloud-applications/">原文链接</a></p>
-<p><em>coordinated bursty tracing</em> and <em>vertical context injection</em>.</p>
+          <p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E9%9F%8B%E4%BC%AF-%E8%B2%BB%E5%B8%8C%E7%B4%8D%E5%AE%9A%E7%90%86">原文链接</a></p>
+<p>性，用公式来表示，就是<code>△Φ/Φ=C</code>，其中<code>Φ</code>为原刺激量，<code>△Φ</code>为此时的差别阈限，<code>C</code>为常数，又称为韦柏率</p>
+<p>我们的感觉很敏感，但也有惰性：它会蒙骗我们的眼睛，也会加重我们的感受而迷失理性。所以我们应带着谦卑的心对待万物众生，韦伯定律中的生活智慧是：给予方要多做雪中送炭的事，少做锦上添花的事，尽量不做画蛇添足的事；而受予方要懂得珍惜自己的点滴所得，善待身边的人</p>
 
       
     </div>
@@ -472,7 +474,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/11/clean-code/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/06/19/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -486,7 +488,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/06/11/clean-code/" class="post-title-link" itemprop="url">Clean Code</a>
+            <a href="/2018/06/19/one-week/" class="post-title-link" itemprop="url">风动，帆动，然心动也</a>
         </h2>
 
         <div class="post-meta">
@@ -496,7 +498,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-06-11 17:30:47" itemprop="dateCreated datePublished" datetime="2018-06-11T17:30:47+08:00">2018-06-11</time>
+              <time title="Created: 2018-06-19 09:55:05" itemprop="dateCreated datePublished" datetime="2018-06-19T09:55:05+08:00">2018-06-19</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -504,7 +506,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/code/" itemprop="url" rel="index"><span itemprop="name">code</span></a>
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
                 </span>
             </span>
 
@@ -519,19 +521,27 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://gaston.life/books/clean-coder/">原文链接</a></p>
-<p>不止是code的一些clean，更是对自己一些原则的clean以及保持</p>
-<h2 id="Self-Improvement"><a href="#Self-Improvement" class="headerlink" title="Self Improvement"></a>Self Improvement</h2><p>Plan on working 60 hours a week: 40 hours for your employer and 20 hours for you.</p>
-<p>The minimum things you must know are:</p>
+          <p>佛学的禅宗，跟所谓的心学部分？</p>
+<p>心是菩提树，身为明镜台。明镜本清净，何处染尘埃。</p>
+<p>身是菩提树，心如明镜台。时时勤拂拭，莫使有尘埃。</p>
+<hr>
+<p>本周：</p>
 <ul>
-<li>Design patterns: GOF and POSA books.</li>
-<li>Design principles: SOLID and component principles.</li>
-<li>Methods: XP, Scrum, Lean, Kanban, Waterfall, Structured Analysis, and Structured Design.</li>
-<li>Disciplines: TDD, OOD, Structured Programming, CI&#x2F;CD, and Pair Programming</li>
-<li>Artifacts: UML, DFDs, Structure Charts, Petri Nets, State Transition Diagrams and Tables, Flow Charts, and Decision Tables.</li>
+<li>开始刷leetcode部分的题目</li>
+<li>开始总结相关基础部分的知识</li>
+<li>运营广告平台相关内容</li>
 </ul>
-<p>Learn things outside of your comfort zone. Learn Prolog and Forth.</p>
-<p>Do a simple <strong>10-minute programming exercise</strong> in the morning, to warm up, and in the afternoon, to cool down.</p>
+<p>下周：</p>
+<ul>
+<li>整理以及修改简历，配合猎头，进行相关的投递</li>
+<li>继续刷题，巩固基础</li>
+<li>sdk部分的一些策略梳理和整理</li>
+</ul>
+<p>大考部分，算是见了面，不过心理还是挺抗拒的。。。不管是有没有做好准备，还是本身依然在自我怀疑状态。。。被赶鸭子上架了，只能是慢慢去拖一拖，磨一磨了。。</p>
+<p>徐建的事情，算是有一个初步的结果，虽然整体结果不如意，但起码人还在，还有希望在。。。</p>
+<p>感觉最近心不静，不管是之前制定的leetcode刷题计划，还是健身计划，还是面试的一些总结计划什么的，都没有好好地坚持下去。。。</p>
+<p>尽量心静吧，保持学习的心态。。。</p>
+<p>佛在彼岸，也在心中。。。修行。。。</p>
 
       
     </div>
@@ -550,7 +560,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/87/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/87/">87</a><span class="page-number current">88</span><a class="page-number" href="/page/89/">89</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/89/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/87/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/87/">87</a><span class="page-number current">88</span><a class="page-number" href="/page/89/">89</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/89/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -618,7 +628,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -631,7 +641,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -659,7 +669,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

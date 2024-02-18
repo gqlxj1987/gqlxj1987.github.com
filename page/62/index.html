@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/12/kubernetes-running-background-task/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/16/skipper-architecture/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/12/kubernetes-running-background-task/" class="post-title-link" itemprop="url">Kubernetes Running background task</a>
+            <a href="/2019/01/16/skipper-architecture/" class="post-title-link" itemprop="url">skipper Architecture</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-12 15:03:02" itemprop="dateCreated datePublished" datetime="2019-01-12T15:03:02+08:00">2019-01-12</time>
+              <time title="Created: 2019-01-16 21:29:53" itemprop="dateCreated datePublished" datetime="2019-01-16T21:29:53+08:00">2019-01-16</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
+                  <a href="/categories/skipper/" itemprop="url" rel="index"><span itemprop="name">skipper</span></a>
                 </span>
             </span>
 
@@ -200,20 +200,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/google-cloud/kubernetes-running-background-tasks-with-batch-jobs-56482fbc853">原文链接</a></p>
-<p>run a batch-job in a few different ways: <strong>one-time</strong>, <strong>sequential</strong>, and <strong>parallel</strong>.</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">single-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">single</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/single</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
-
-<p>one-time job</p>
-<p>View you will see the new <code>single-job</code> Pod in your Workloads and <code>0/1</code> Pods active. That is because the <code>single-job</code> ran and terminated the Pod when complete</p>
-<p>增加completions参数，batch-job to run 3 times, one after the other</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">sequential-job</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">completions:</span> <span class="number">3</span> <span class="comment"># number of times to run</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">6</span> <span class="comment"># number of retries before throwing error</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">10</span> <span class="comment"># time to allow job to run</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">kubernetes-series</span></span><br><span class="line">        <span class="attr">tier:</span> <span class="string">job</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">OnFailure</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">job</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/PROJECT_NAME/batchjob-container-job:latest</span></span><br><span class="line">          <span class="comment"># environment variables for the Pod</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GCLOUD_PROJECT</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">PROJECT_NAME</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MESSAGE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">I</span> <span class="string">am</span> <span class="string">a</span> <span class="string">sequential</span> <span class="string">run</span> <span class="string">job</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOREIGN_SERVICE</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">http://endpoints.default.svc.cluster.local/sequential</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NODE_ENV</span></span><br><span class="line">            <span class="attr">value:</span> <span class="string">production</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>增加parallelism参数，pod同时运行数</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">parallelism:</span> <span class="number">2</span> <span class="comment"># number of pods that can run in parallel</span></span><br></pre></td></tr></table></figure>
-
+          <p><a target="_blank" rel="noopener" href="https://opensource.zalando.com/skipper/reference/architecture/">原文链接</a></p>
+<p> Skipper is an HTTP router and reverse proxy for service composition. It’s designed to handle large amounts of dynamically configured HTTP route definitions (&gt;800000 routes) with detailed lookup conditions, and flexible augmentation of the request flow with filters</p>
+<p>增强版的nginx部分？</p>
+<p><img src="https://opensource.zalando.com/skipper/img/architecture.svg" alt="skipper arch"></p>
+<p><img src="https://opensource.zalando.com/skipper/img/req-and-resp-processing.svg" alt="skipper机制"></p>
 
       
     </div>
@@ -233,7 +224,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/kubeflow-deploy/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/15/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -247,7 +238,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/10/kubeflow-deploy/" class="post-title-link" itemprop="url">kubeflow pipline deploy</a>
+            <a href="/2019/01/15/one-week/" class="post-title-link" itemprop="url">丢掉幻想</a>
         </h2>
 
         <div class="post-meta">
@@ -257,7 +248,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-10 23:05:40" itemprop="dateCreated datePublished" datetime="2019-01-10T23:05:40+08:00">2019-01-10</time>
+              <time title="Created: 2019-01-15 08:02:32" itemprop="dateCreated datePublished" datetime="2019-01-15T08:02:32+08:00">2019-01-15</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -265,7 +256,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kubeflow/" itemprop="url" rel="index"><span itemprop="name">kubeflow</span></a>
+                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
                 </span>
             </span>
 
@@ -280,100 +271,172 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3">原文链接2</a></p>
-<p>This model has the following steps: </p>
+          <p>预感到出问题了，还是出问题了</p>
+<p>还是不配的，自己都感到厌烦了，换到她的角度，应该是心累了吧</p>
+<p>自己还是躲着吧，不要去连累他人了，自己这样子不值得。。。</p>
+<p>嗯，就这样，孤孤单单地过着。。。</p>
+<hr>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/12/rest-is-the-new-soap/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/12/rest-is-the-new-soap/" class="post-title-link" itemprop="url">REST is the new Soap</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-12 17:00:11" itemprop="dateCreated datePublished" datetime="2019-01-12T17:00:11+08:00">2019-01-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rest/" itemprop="url" rel="index"><span itemprop="name">rest</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://medium.freecodecamp.org/rest-is-the-new-soap-97ff6c09896d">原文链接</a></p>
+<p>RPC was dead, the future was RESTful: resources living each on its own URL, and manipulated exclusively through HTTP protocol</p>
+<p>No more standards, no more precise specifications. Just a vague “RESTful philosophy”, prone to endless metaphysical debates, and as many ugly workarounds.</p>
+<p>分别从verb, error handling, concepts</p>
+<p><strong>REST promised simplicity and delivered complexity.</strong></p>
+<p><strong>REST promised robustness and delivered fragility.</strong></p>
+<p><strong>REST promised interoperability and delivered heterogeneity.</strong></p>
+<p><strong>REST is the new SOAP.</strong></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/12/ray/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/12/ray/" class="post-title-link" itemprop="url">Ray</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-01-12 15:52:53" itemprop="dateCreated datePublished" datetime="2019-01-12T15:52:53+08:00">2019-01-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Ray/" itemprop="url" rel="index"><span itemprop="name">Ray</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/colorant/article/details/80417412">原文链接</a></p>
+<p>目标问题</p>
+<p>一方面，模拟目标系统，收集状态和反馈信息，判断收益，训练参数，生成Action等等行为可能涉及大量的任务和计算（为了选择最佳Action，可能要并发模拟众多可能的行为）。而这些行为本身可能也是千差万别的异构的任务，任务执行的时间也可能长短不一，执行过程有些可能要求同步，也有些可能更适合异步。</p>
+<p>另一方面，整个DAG会在运行过程中，随时变化，系统需要根据前一环节的结果，调整下一个环节的行为和参数</p>
+<p>Ray需要支持异构计算任务，动态计算链路，毫秒级别延迟和每秒调度百万级别任务的能力。</p>
+<p>关于解决问题的思路，比较好玩</p>
+<p>针对海量任务调度部分，不同的框架采用的方式不一样。</p>
 <ul>
-<li>extract data from BigQuery, transform it and write the transformed data to Cloud Storage. </li>
-<li>Train a TensorFlow Estimator API model and do hyperparameter tuning of the model </li>
-<li>Once the best learning rate, batch size, etc. are determined, train the model longer and on more data using those parameters</li>
-<li>Deploy the trained model to Cloud ML Engine.</li>
+<li>flink这样的流式计算，将任务的调度转化为数据和指令的传输问题，换一种处理模型，可能就不需要发起大量的任务调度。统一的lamda架构下，任务的调度转化为数据和任务的传输？</li>
+<li>spark这样的批处理框架，可以通过任务树的拆分，批量统一调度等来分散调度负载。同时，continuous computation，通过建立long run 的任务，简化多个Epoc批次的任务调度流程，减少了需要调度的任务数量。同时，对端到端的计算延迟也有改进</li>
 </ul>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">preprocess = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;preprocess&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-bqtocsv:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    <span class="string">&#x27;--project&#x27;</span>, project,</span><br><span class="line">    <span class="string">&#x27;--mode&#x27;</span>, <span class="string">&#x27;cloud&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;--bucket&#x27;</span>, bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;bucket&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">hparam_train = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;hypertrain&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-hypertrain:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    preprocess.outputs[<span class="string">&#x27;bucket&#x27;</span>]</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;jobname&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;traintuned&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-traintuned-trainer:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    hparam_train.outputs[<span class="string">&#x27;jobname&#x27;</span>],</span><br><span class="line">    bucket</span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;/output.txt&#x27;</span>&#125;</span><br><span class="line">)</span><br><span class="line">train_tuned.set_memory_request(<span class="string">&#x27;2G&#x27;</span>)</span><br><span class="line">train_tuned.set_cpu_request(<span class="string">&#x27;1&#x27;</span>)</span><br><span class="line">deploy_cmle = dsl.ContainerOp(</span><br><span class="line">  name=<span class="string">&#x27;deploycmle&#x27;</span>,</span><br><span class="line">  image=<span class="string">&#x27;gcr.io/cloud-training-demos/babyweight-pipeline-deploycmle:latest&#x27;</span>,</span><br><span class="line">  arguments=[</span><br><span class="line">    train_tuned.outputs[<span class="string">&#x27;train&#x27;</span>],  <span class="comment"># modeldir</span></span><br><span class="line">    <span class="string">&#x27;babyweight&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;mlp&#x27;</span></span><br><span class="line">  ],</span><br><span class="line">  file_outputs=&#123;</span><br><span class="line">    <span class="string">&#x27;model&#x27;</span>: <span class="string">&#x27;/model.txt&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;version&#x27;</span>: <span class="string">&#x27;/version.txt&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p>注意到kubeflow采用文件的方式来交互不同component</p>
-<h4 id="Deploying-the-notebook-as-a-component"><a href="#Deploying-the-notebook-as-a-component" class="headerlink" title="Deploying the notebook as a component"></a>Deploying the notebook as a component</h4><p>打一个镜像</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> kfp.components <span class="keyword">as</span> comp</span><br><span class="line"><span class="keyword">import</span> kfp.dsl <span class="keyword">as</span> dsl</span><br><span class="line"><span class="comment"># a single-op pipeline that runs the flights pipeline on the pod</span></span><br><span class="line"><span class="meta">@dsl.pipeline(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="meta">   name=<span class="string">&#x27;FlightsPipeline&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta">   description=<span class="string">&#x27;Trains, deploys flights model&#x27;</span></span></span></span><br><span class="line"><span class="params"><span class="meta"></span>)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">flights_pipeline</span>(<span class="params"></span></span><br><span class="line"><span class="params">   inputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;inputnb&#x27;</span></span>),</span></span><br><span class="line"><span class="params">   outputnb=dsl.PipelineParam(<span class="params"><span class="string">&#x27;outputnb&#x27;</span></span>),</span></span><br><span class="line"><span class="params">   params=dsl.PipelineParam(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span><br><span class="line"><span class="params"></span>):</span><br><span class="line">    notebookop = dsl.ContainerOp(</span><br><span class="line">      name=<span class="string">&#x27;flightsmodel&#x27;</span>,</span><br><span class="line">      image=<span class="string">&#x27;gcr.io/cloud-training-demos/submitnotebook:latest&#x27;</span>,</span><br><span class="line">      arguments=[</span><br><span class="line">        inputnb,</span><br><span class="line">        outputnb,</span><br><span class="line">        params</span><br><span class="line">      ]</span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/10/graphql-server-design/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/10/graphql-server-design/" class="post-title-link" itemprop="url">Medium GraphQL server design</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-10 22:37:06" itemprop="dateCreated datePublished" datetime="2019-01-10T22:37:06+08:00">2019-01-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/graphql/" itemprop="url" rel="index"><span itemprop="name">graphql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://medium.engineering/graphql-server-design-medium-34862677b4b8">原文链接</a></p>
-<p><strong>It should be easy to alter the shape of the data</strong></p>
-<p>We currently use <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Protocol_Buffers">protocol buffers</a> as a schema for data that comes from our backend</p>
-<p><strong>It should be clear what data is for the client</strong></p>
-<p>Within our GraphQL server, data is being passed around and exists in different stages of “readiness” for the client</p>
-<p><strong>It should be easy to add new data sources</strong></p>
-<p>Fetchers, Repositories (Repos), and the GraphQL Schema.</p>
-<p>Fetchers should correspond to a REST or preferably a gRPC endpoint. Fetchers require a protobuf. This means that any data that is being fetched by a Fetcher must follow the schema defined by the protobuf</p>
-<p><img src="https://cdn-images-1.medium.com/max/1600/1*VCs9aXb1RdBFYMhoFJsjjw.png" alt="data flow"></p>
-<p>The data’s shape becomes more like what the client needs as it passes through each of the distinct layers. It’s clear where the data comes from at each step and we know what each piece of the server is responsible for</p>
-<p>关注数据shape</p>
+<p>毫秒级的延迟，任务调度本身的延迟，还是整体数据计算的延迟。分流式模型和批量模型，不同的思考思路</p>
+<p>异构任务的支持，同批次异构任务的调度</p>
+<p>任务拓扑图动态修改的能力，</p>
+<p>Ray采用自下而上的策略，本地的调度器如果能满足该任务的调度就直接完成调度，在无法满足的情况下，才会提交到全局调度器。</p>
+<p>将任务调度的执行逻辑和任务调度的信息状态进行分离处理，通过全局的GCS来存储状态，调度部分本身是作为一个无状态的服务，从而可以实现任务的迁移、扩展和共享</p>
+<p>actor的重新赋能？变成了有状态的任务，通过暴露特定的方法接口供外部进行远程调用，调用记录也存储下来，这样系统也具备了actor状态重建的能力</p>
+<p>整体上来看，数据往代码上移动，和现在大数据环境下，典型的代码往数据移动的思想正好相反</p>
+<p>全局引入future对象，任务的执行不仅仅是lazy的，结果数据的处理更是异步的。当真正的需要读取数据的时候，才会block等待</p>
+<p><a target="_blank" rel="noopener" href="https://www.jiqizhixin.com/articles/Pandas-on-Ray-Rise-Lab-UC-Berkeley">panda on ray</a></p>
+<p>修改少</p>
 
       
     </div>
@@ -393,7 +456,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/09/python-command-line-interfaces/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/12/debugging-simple-memory-leak-in-go/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -407,7 +470,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2019/01/09/python-command-line-interfaces/" class="post-title-link" itemprop="url">python command-line interfaces</a>
+            <a href="/2019/01/12/debugging-simple-memory-leak-in-go/" class="post-title-link" itemprop="url">Debugging simple memory leak in go</a>
         </h2>
 
         <div class="post-meta">
@@ -417,7 +480,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2019-01-09 23:42:03" itemprop="dateCreated datePublished" datetime="2019-01-09T23:42:03+08:00">2019-01-09</time>
+              <time title="Created: 2019-01-12 15:14:35" itemprop="dateCreated datePublished" datetime="2019-01-12T15:14:35+08:00">2019-01-12</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -425,7 +488,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index"><span itemprop="name">python</span></a>
+                  <a href="/categories/golang-memory/" itemprop="url" rel="index"><span itemprop="name">golang, memory</span></a>
                 </span>
             </span>
 
@@ -440,111 +503,19 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://blog.sicara.com/perfect-python-command-line-interfaces-7d5d4efad6a2">原文链接</a></p>
-<p>In order to achieve that, I advise you to respect 4 guidelines:</p>
-<ol>
-<li>You should provide <strong>default arguments values</strong> when possible</li>
-<li>All <strong>error cases</strong> should be handled (ex: a missing argument, a wrong type, a file not found)</li>
-<li>All arguments and options have to be <strong>documented</strong></li>
-<li>A <strong>progress bar</strong> should be printed for not instantaneous tasks</li>
-</ol>
-<p>We’re in luck: there is a Python library which offers the same features as <code>argparse</code> (and more), with a <strong>prettier code style</strong>: its name is <a target="_blank" rel="noopener" href="https://click.palletsprojects.com/en/7.x/"><code>click</code></a>.</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> click</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> caesar_encryption <span class="keyword">import</span> encrypt</span><br><span class="line"></span><br><span class="line"><span class="meta">@click.command()</span></span><br><span class="line"><span class="meta">@click.argument(<span class="params"><span class="string">&#x27;text&#x27;</span>, nargs=-<span class="number">1</span></span>)</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"><span class="string">&#x27;--decrypt/--encrypt&#x27;</span>, <span class="string">&#x27;-d/-e&#x27;</span></span>)</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"><span class="string">&#x27;--key&#x27;</span>, <span class="string">&#x27;-k&#x27;</span>, default=<span class="number">1</span></span>)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">caesar</span>(<span class="params">text, decrypt, key</span>):</span><br><span class="line">    text_string = <span class="string">&#x27; &#x27;</span>.join(text)</span><br><span class="line">    <span class="keyword">if</span> decrypt:</span><br><span class="line">        key = -key</span><br><span class="line">    cyphertext = encrypt(text_string, key)</span><br><span class="line">    click.echo(cyphertext)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    caesar()</span><br></pre></td></tr></table></figure>
-
-
-
-<p>click第三方，提供更多的功能集，例如，读写文件？</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> click</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> caesar_encryption <span class="keyword">import</span> encrypt</span><br><span class="line"></span><br><span class="line"><span class="meta">@click.command()</span></span><br><span class="line"><span class="meta">@click.option(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="string">&#x27;--input_file&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="built_in">type</span>=click.File(<span class="params"><span class="string">&#x27;r&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="meta">    <span class="built_in">help</span>=<span class="string">&#x27;File in which there is the text you want to encrypt/decrypt.&#x27;</span></span></span></span><br><span class="line"><span class="params"><span class="meta">         <span class="string">&#x27;If not provided, a prompt will allow you to type the input text.&#x27;</span>,</span></span></span><br><span class="line"><span class="params"><span class="meta"></span>)</span></span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">python caesar_script_v2.py --<span class="built_in">help</span></span></span><br><span class="line">Usage: caesar_script_v2.py [OPTIONS]</span><br><span class="line">Options:</span><br><span class="line">  --input_file FILENAME          File in which there is the text you want to encrypt/decrypt. If not provided, a prompt will allow you to type the input text.</span><br><span class="line">  --output_file FILENAME         File in which the encrypted/decrypted text will be written. If not provided, the output text will just be printed.</span><br><span class="line">  -d, --decrypt / -e, --encrypt  Whether you want to encrypt the input text or decrypt it.</span><br><span class="line">  -k, --key INTEGER              The numeric key to use for the caesar encryption / decryption.</span><br><span class="line">  --help                         Show this message and exit.</span><br></pre></td></tr></table></figure>
-
-
-
-<p>还自带help的相关信息，argparse的help信息如何加入？</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">parser = argparse.ArgumentParser(description=<span class="string">&#x27;Process some integers.&#x27;</span>)</span><br><span class="line">parser.add_argument(<span class="string">&#x27;integers&#x27;</span>, metavar=<span class="string">&#x27;N&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, nargs=<span class="string">&#x27;+&#x27;</span>,</span><br><span class="line">                    <span class="built_in">help</span>=<span class="string">&#x27;an integer for the accumulator&#x27;</span>)</span><br><span class="line">parser.add_argument(<span class="string">&#x27;--sum&#x27;</span>, dest=<span class="string">&#x27;accumulate&#x27;</span>, action=<span class="string">&#x27;store_const&#x27;</span>,</span><br><span class="line">                    const=<span class="built_in">sum</span>, default=<span class="built_in">max</span>,</span><br><span class="line">                    <span class="built_in">help</span>=<span class="string">&#x27;sum the integers (default: find the max)&#x27;</span>)</span><br></pre></td></tr></table></figure>
-
-<p>也是类似的</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> key <span class="keyword">in</span> tqdm(<span class="built_in">range</span>(<span class="number">26</span>)):</span><br></pre></td></tr></table></figure>
-
-
-
-<p>显示progress bar部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2019/01/09/graph-algorithm/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/09/graph-algorithm/" class="post-title-link" itemprop="url">Graph Algorithm</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2019-01-09 23:28:51" itemprop="dateCreated datePublished" datetime="2019-01-09T23:28:51+08:00">2019-01-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/algorithm/" itemprop="url" rel="index"><span itemprop="name">algorithm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://becominghuman.ai/to-all-data-scientists-the-one-graph-algorithm-you-need-to-know-59178dbb1ec2">原文链接</a></p>
-<p><strong>Connected Components</strong></p>
-<p><em>You can think of Connected Components in very layman’s terms as sort of a hard clustering algorithm which finds clusters&#x2F;islands in related&#x2F;connected data. As a concrete example: Say you have data about roads joining any two cities in the world. And you need to find out all the continents in the world and which city they contain.</em></p>
-<p>pyspark use graphFrame</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> graphframes <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">vertices</span>(<span class="params">line</span>):</span><br><span class="line">    vert = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> line.split(<span class="string">&quot; &quot;</span>)]</span><br><span class="line">    <span class="keyword">return</span> vert</span><br><span class="line">vertices = adjacency_list.flatMap(<span class="keyword">lambda</span> x: vertices(x)).distinct().collect()</span><br><span class="line">vertices = sqlContext.createDataFrame([[x] <span class="keyword">for</span> x <span class="keyword">in</span> vertices], [<span class="string">&quot;id&quot;</span>])</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">create_edges</span>(<span class="params">line</span>):</span><br><span class="line">    a = [<span class="built_in">int</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> line.split(<span class="string">&quot; &quot;</span>)]</span><br><span class="line">    edges_list=[]</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(a)==<span class="number">1</span>:</span><br><span class="line">        edges_list.append((a[<span class="number">0</span>],a[<span class="number">0</span>]))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="built_in">len</span>(a)-<span class="number">1</span>):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span> ,<span class="built_in">len</span>(a)):</span><br><span class="line">            edges_list.append((a[i],a[j]))</span><br><span class="line">            edges_list.append((a[j],a[i]))</span><br><span class="line">    <span class="keyword">return</span> edges_list</span><br><span class="line">edges = adjacency_list.flatMap(<span class="keyword">lambda</span> x: create_edges(x)).distinct().collect()</span><br><span class="line">edges = sqlContext.createDataFrame(edges, [<span class="string">&quot;src&quot;</span>, <span class="string">&quot;dst&quot;</span>])</span><br><span class="line">g = GraphFrame(vertices, edges)</span><br><span class="line">sc.setCheckpointDir(<span class="string">&quot;.&quot;</span>)</span><br><span class="line"><span class="comment"># graphframes uses the same paper we referenced apparently</span></span><br><span class="line">cc = g.connectedComponents()</span><br><span class="line"><span class="built_in">print</span> cc.show()</span><br></pre></td></tr></table></figure>
-
-
-
+          <p><a target="_blank" rel="noopener" href="https://medium.com/dm03514-tech-blog/sre-debugging-simple-memory-leaks-in-go-e0a9e6d63d4d">原文链接</a></p>
+<h3 id="What-is-a-memory-leak"><a href="#What-is-a-memory-leak" class="headerlink" title="What is a memory leak?"></a><strong>What is a memory leak?</strong></h3><p>If memory grows unbounded and never reaches a steady state then there is probably a leak. The key here is that memory grows without ever reaching a steady state, and eventually causes problems through explicit crashes or by impacting system performance.</p>
+<p>Memory leaks can happen for any number of reasons. There can be logical leaks where data-structures grow unbounded, leaks from complexities of poor object reference handling, or just for any number of other reasons. Regardless of the source, many memory leaks elicit a visually noticeable pattern: the “<strong>sawtooth</strong>”.</p>
+<p><strong>The goal of our analysis is to progressively narrow scope of the problem by whittling away possibilities until we have enough information to form and propose a hypothesis.</strong></p>
+<p>Just to reiterate we’ll try to:</p>
+<ul>
+<li>Ask a question</li>
+<li>Form a Hypothesis</li>
+<li>Analyze the hypothesis</li>
+<li>Repeat until the root cause is found</li>
+</ul>
+<p>按照上述的步骤去分析</p>
+<p>传统方式，还是pprof的方式</p>
 
       
     </div>
@@ -563,7 +534,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/61/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/61/">61</a><span class="page-number current">62</span><a class="page-number" href="/page/63/">63</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/63/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -631,7 +602,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -644,7 +615,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -672,7 +643,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

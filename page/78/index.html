@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/26/golang-in-sigma/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/03/go-modules/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/26/golang-in-sigma/" class="post-title-link" itemprop="url">Golang in Sigma</a>
+            <a href="/2018/09/03/go-modules/" class="post-title-link" itemprop="url">Go Modules初探</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-26 17:05:03" itemprop="dateCreated datePublished" datetime="2018-08-26T17:05:03+08:00">2018-08-26</time>
+              <time title="Created: 2018-09-03 10:39:15" itemprop="dateCreated datePublished" datetime="2018-09-03T10:39:15+08:00">2018-09-03</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,40 +200,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/sBcaibt2jr3KUTaXMUnwVQ">原文链接</a></p>
-<p><img src="https://mmbiz.qpic.cn/mmbiz_png/yvBJb5IiafvnjrMvAm0ibwmDg3ZCOzjJvw4hCY1thZKjCpibO0cJKKJkeBKlicQFPxNwuNS4AgLa3vicKYXJY5dPjow/640?wx_fmt=png&wxfrom=5&wx_lazy=1" alt="sigma架构"></p>
-<h3 id="Api-Server"><a href="#Api-Server" class="headerlink" title="Api Server"></a>Api Server</h3><ul>
-<li>数据一致性</li>
-</ul>
-<p>采用redis&#x2F;etcd，实时+全量的方式</p>
+          <p><a target="_blank" rel="noopener" href="https://tw.saowen.com/a/280205cad1502193482905232ba84e501998fcb7216d8e51b037ca892cb22337?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_140">原文链接</a></p>
+<p>采用go.mod文件进行管理</p>
+<p><code>GO111MODULE</code>环境变量的设置</p>
 <ul>
-<li>状态的一致性</li>
+<li>off，不使用新特性，继续使用gopath</li>
+<li>on，使用新特性，只根据go.mod来查找</li>
+<li>auto或未设定，</li>
 </ul>
-<p>状态的一致性转化为存储的一致性，来降低处理问题的难度</p>
-<ul>
-<li>高可用-无状态</li>
-</ul>
-<p>多master,无状态，以及快速的failover</p>
-<ul>
-<li>简单</li>
-<li>降级-抢占</li>
-</ul>
-<p> APIServer 把前面的发布、扩容等都放在 task，丢到 Redis 里，底层的 Worker 消费一些任务，做到无状态</p>
-<h3 id="Scheduler"><a href="#Scheduler" class="headerlink" title="Scheduler"></a>Scheduler</h3><p><img src="https://mmbiz.qpic.cn/mmbiz_png/yvBJb5IiafvnjrMvAm0ibwmDg3ZCOzjJvwCXZRLEPjTg1mdyQme7J9dZdXcFiclWZIHqoPRctMI9puuApn68GM9ag/640?wx_fmt=png&wxfrom=5&wx_lazy=1" alt="并发架构"></p>
-<p>整个机器的顶层加一个 glock</p>
-<p>加锁部分，尽量在最上层部分？</p>
-<h3 id="map的一些使用"><a href="#map的一些使用" class="headerlink" title="map的一些使用"></a>map的一些使用</h3><ul>
-<li><p>golang针对map的读写冲突</p>
-</li>
-<li><p>map循环中，</p>
-</li>
-</ul>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> key, value :=<span class="keyword">range</span> map_obj</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">export</span> GO111MODULE=on  <span class="comment">#開啟modules</span></span></span><br><span class="line"></span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">go mod init  gitlab.luojilab.com/zeroteam/ddkafka <span class="comment"># 建立go.mod</span></span></span><br><span class="line">go: creating new go.mod: module gitlab.luojilab.com/zeroteam/ddkafka</span><br><span class="line"></span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">ls</span>    <span class="comment"># 真的建立了，google大法好呀</span></span></span><br><span class="line">README.md  go.mod  models.go  mq_interface.go  sarama  segmentio</span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> go.mod    <span class="comment"># 看看裡面什麼東西</span></span></span><br><span class="line">module gitlab.luojilab.com/zeroteam/ddkafka</span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> segmentio/</span></span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka/segmentio (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">go <span class="built_in">test</span>   <span class="comment"># 執行一下看看</span></span></span><br><span class="line">go: finding github.com/segmentio/kafka-go latest</span><br><span class="line">go: finding github.com/golang/glog latest</span><br><span class="line">go: downloading github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b</span><br><span class="line">go: downloading github.com/segmentio/kafka-go v0.0.0-20180716203113-48c37f796910</span><br><span class="line">qiang@DESKTOP-2A835P9 MINGW64 /d/code/gopath/src/gitlab.luojilab.com/zeroteam/ddkafka/segmentio (module)</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">go list -m</span></span><br><span class="line">gitlab.luojilab.com/zeroteam/ddkafka</span><br></pre></td></tr></table></figure>
 
-<p>&amp;value取的value地址不变，而这个地址指向的内容是循环最后一个元素内容</p>
-<h3 id="超时机制"><a href="#超时机制" class="headerlink" title="超时机制"></a>超时机制</h3><p>关于goroutine部分的超时机制</p>
-<p>除了滚动式的交付，还有总体任务时间的控制，这就涉及到两级的 Goroute，第一级 Goroute 是总任务，子任务也是 Goroute,这就会涉及到泄露的问题。假设主任务超时了，就不管子任务，子任务一直在跑就会把资源耗完。</p>
-<p>k8s中的定时任务部分</p>
+<p>go.mod文件可以通過require，replace和exclude語句使用的精確軟體包集。</p>
+<ul>
+<li>require語句指定的依賴項模組</li>
+<li>replace語句可以替換依賴項模組</li>
+<li>exclude語句可以忽略依賴項模組</li>
+</ul>
+<p>go mod的一些命令</p>
+<ul>
+<li>go mod init:初始化modules</li>
+<li>go mod download:下載modules到本地cache</li>
+<li>go mod edit:編輯go.mod文件，選項有-json、-require和-exclude，可以使用幫助go help mod edit</li>
+<li>go mod graph:以文字模式列印模組需求圖</li>
+<li>go mod tidy:刪除錯誤或者不使用的modules</li>
+<li>go mod vendor:生成vendor目錄</li>
+<li>go mod verify:驗證依賴是否正確</li>
+<li>go mod why：查詢依賴</li>
+</ul>
+<p>可以看出，还是兼容了vendor的用法，同时慢慢支持一些依赖树的构成</p>
 
       
     </div>
@@ -253,7 +247,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/26/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/02/Markov-Chains/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -267,7 +261,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/26/one-week/" class="post-title-link" itemprop="url">我的倔强</a>
+            <a href="/2018/09/02/Markov-Chains/" class="post-title-link" itemprop="url">Markov Chains</a>
         </h2>
 
         <div class="post-meta">
@@ -277,7 +271,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-26 16:40:35" itemprop="dateCreated datePublished" datetime="2018-08-26T16:40:35+08:00">2018-08-26</time>
+              <time title="Created: 2018-09-02 21:49:12" itemprop="dateCreated datePublished" datetime="2018-09-02T21:49:12+08:00">2018-09-02</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -285,7 +279,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                  <a href="/categories/markov/" itemprop="url" rel="index"><span itemprop="name">markov</span></a>
                 </span>
             </span>
 
@@ -300,30 +294,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>我就是我自己的神</p>
-<p>在我活的地方</p>
-<p>我和我最后的倔强</p>
-<p>握紧双手绝对不放</p>
-<p>​			– &lt;&lt;倔强&gt;&gt;</p>
-<hr>
-<p>本周完成：</p>
-<ul>
-<li>automl-dag第一版，完成</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>相关automl的使用，以及适应</li>
-</ul>
-<p>下周计划：</p>
-<ul>
-<li>相关技术文档的补全</li>
-<li>代码部分的整理</li>
-<li>接入automl的平台</li>
-</ul>
-<p>感觉跟三年前一样，魔兽新版本开了，工作也换了，一边在适应工作，一边也在适应着魔兽。。。希望这次比上次更好，更快地去适应吧</p>
-<p>感觉不管是选择工作，还是选择来北京，感觉有点后悔了，不该让对方那么累，其实，在家里那么舒服，那么自在，人家凭什么来北京受苦，通勤时间，工作强度，工作内容，哎。。。暂时希望能够熬过去，稍微会好过一点。。。安静地做好一个acer，尽可能地照顾好她，希望外部也能慢慢变好。。。</p>
-<p>时间安排上，早上感觉可以起来早点，做些事情，另外，在地铁上的看书时间，也规划一下看书的内容部分</p>
-<p>锻炼上，恢复一周两跑的强度，距离慢慢地提升上去，看下半年恢复到每周10的路程。。。加油。。。</p>
+          <p><a target="_blank" rel="noopener" href="http://setosa.io/ev/markov-chains/?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_138">原文链接</a></p>
 
       
     </div>
@@ -343,7 +314,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/22/devops/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/02/vim-practise/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -357,7 +328,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/22/devops/" class="post-title-link" itemprop="url">朴素的devops价值观</a>
+            <a href="/2018/09/02/vim-practise/" class="post-title-link" itemprop="url">Vim Practise</a>
         </h2>
 
         <div class="post-meta">
@@ -367,16 +338,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-22 08:15:54" itemprop="dateCreated datePublished" datetime="2018-08-22T08:15:54+08:00">2018-08-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/devops/" itemprop="url" rel="index"><span itemprop="name">devops</span></a>
-                </span>
+              <time title="Created: 2018-09-02 15:34:07" itemprop="dateCreated datePublished" datetime="2018-09-02T15:34:07+08:00">2018-09-02</time>
             </span>
 
           
@@ -390,23 +352,12 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/r54IpCLMofoH5DGxwqZe8g?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_138">原文链接</a></p>
-<p>从DevOps涉及到的几个维度出发：业务、架构与技术；人、流程与工具；原则，方法与实践，于是便有了如下的几句话:</p>
-<ul>
-<li><p>Business matters…Architecture doesn’t</p>
-</li>
-<li><p>Architecture matters…Technology doesn’t</p>
-</li>
-<li><p>People matters…Process doesn’t</p>
-</li>
-<li><p>Process matters…Tool doesn’t</p>
-</li>
-<li><p>Principle matters…Method doesn’t</p>
-</li>
-<li><p>Method matters…Practice doesn’t</p>
-</li>
-</ul>
-<p>优雅的良好的架构更加重要，不要让微服务成为另一座巴别塔。理论上微服务可以最大化利用各种语言的优势，但如果没有好的服务切分与架构设计，微服务只会变成更大的灾难，只会是碎片化而不是去中心化。微服务的目的是更灵活的协同，如果服务之间缺少沟通，就背离了微服务设计的初衷。</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/oldratlee/vim-practice/blob/master/README.md">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?reload=9&v=_NUO4JEtkDw">Learning Vim in a Week</a></p>
+<p>C I )</p>
+<p>change inside parens</p>
+<p>Version control your vimrc</p>
+<p><a target="_blank" rel="noopener" href="http://stevelosh.com/blog/2010/09/coming-home-to-vim/">Coming Home to Vim</a></p>
 
       
     </div>
@@ -426,7 +377,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/22/30-years/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/09/02/go-graceful/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -440,7 +391,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/22/30-years/" class="post-title-link" itemprop="url">30岁转职</a>
+            <a href="/2018/09/02/go-graceful/" class="post-title-link" itemprop="url">Go Graceful优雅重启</a>
         </h2>
 
         <div class="post-meta">
@@ -450,7 +401,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-22 08:08:36" itemprop="dateCreated datePublished" datetime="2018-08-22T08:08:36+08:00">2018-08-22</time>
+              <time title="Created: 2018-09-02 14:39:26" itemprop="dateCreated datePublished" datetime="2018-09-02T14:39:26+08:00">2018-09-02</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -458,7 +409,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/30/" itemprop="url" rel="index"><span itemprop="name">30</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -473,14 +424,30 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://medium.com/@selenaceline/career-change-easy-or-not-3f48a7fca59d">原文链接</a></p>
-<p>但有一天你發現，你正走在一個趨勢下降中的產業，薪水隱約摸到了頂，公司怎麼賺錢都輪不到你分潤。又或者，你在一個不錯的產業中，但感覺不到工作的拚勁與熱情，無法愛你所選，也無法付出更多。</p>
-<p>很想換個環境、踏出所謂的「舒適圈」。</p>
-<p><strong>在經過多次的職涯轉換後，我認為「熱情」「興趣」不是一個很真的議題。</strong>事實上，熱情與興趣，是嘗試後才迸生的。電玩、漫畫、動畫、唱歌這些東西，進入的門檻低，得到的快樂高，很容易就被認同是「興趣」所在；而App Design、素描、競技運動、律法等各種專業技術，獲得的反饋慢、且未必是正向反饋，自然很難被迅速認可為志業。</p>
-<p><strong>也許，興趣只是表象，是個讓你以為「你只適合這個方向」的假象。</strong></p>
-<p>要做得快、做得爽、做得順，其實非常簡單；但要做得好、做出成就、突破挑戰，沒有一點壓力或自制、學習管理自己多餘的精力與時間，甚至繞多一點路學其他東西來輔助，就很難出類拔萃。</p>
-<p><strong>最怕你永遠無法下定決心踏出第一步，那不管過多久還是會保持現狀。</strong></p>
-<p>关于下定决心去踏出第一步，去改变，同时也要不断地积累</p>
+          <p><a target="_blank" rel="noopener" href="https://jiajunhuang.com/articles/2017_10_25-golang_graceful_restart.md.html">原文链接</a></p>
+<p>优雅关闭部分：</p>
+<p>就是服务器要关闭了, 会拒绝新的连接,但是老的连接不会被强制关闭,而是 会等待一定时间, 等待客户端主动关闭, 除非客户端一直没有关闭, 到了预设的超时时间才进行服务器端关闭.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(srv *Server)</span></span> shutdown(shutdown <span class="keyword">chan</span> <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, kill <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) &#123;</span><br><span class="line">	<span class="comment">// Request done notification</span></span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	shutdown &lt;- done</span><br><span class="line"></span><br><span class="line">	srv.stopLock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> srv.stopLock.Unlock()</span><br><span class="line">	<span class="keyword">if</span> srv.Timeout &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-done:</span><br><span class="line">		<span class="keyword">case</span> &lt;-time.After(srv.Timeout):</span><br><span class="line">			<span class="built_in">close</span>(kill)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Close the stopChan to wake up any blocked goroutines.</span></span><br><span class="line">	srv.chanLock.Lock()</span><br><span class="line">	<span class="keyword">if</span> srv.stopChan != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">close</span>(srv.stopChan)</span><br><span class="line">	&#125;</span><br><span class="line">	srv.chanLock.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当进行shutdown部分，会关闭stopChan这个channel</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123; <span class="comment">// goroutine 0</span></span><br><span class="line">	goAway := <span class="literal">false</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;  <span class="comment">// goroutine 1</span></span><br><span class="line">		sig := &lt;-sigs</span><br><span class="line">		fmt.Println(<span class="string">&quot;I have to go...&quot;</span>, sig)</span><br><span class="line">		goAway = <span class="literal">true</span></span><br><span class="line">		srv.Stop(<span class="number">10</span> * time.Second)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (goAway)&#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Println(<span class="string">&quot;Started&quot;</span>)</span><br><span class="line">		srv = &amp;graceful.Server&#123;</span><br><span class="line">			Timeout: <span class="number">10</span> * time.Second,</span><br><span class="line">			NoSignalHandling: <span class="literal">true</span>,</span><br><span class="line"></span><br><span class="line">			ConnState: <span class="function"><span class="keyword">func</span><span class="params">(conn net.Conn, state http.ConnState)</span></span> &#123;</span><br><span class="line">				fmt.Println( <span class="string">&quot;Connection &quot;</span>, state)</span><br><span class="line">			&#125;,</span><br><span class="line"></span><br><span class="line">			Server: &amp;http.Server&#123;</span><br><span class="line">				Addr: <span class="string">&quot;:8001&quot;</span>,</span><br><span class="line">				Handler: userRouter,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">go</span> srv.ListenAndServe()  <span class="comment">// goroutine 2</span></span><br><span class="line">		&lt;- srv.StopChan() <span class="comment">// goroutine 0</span></span><br><span class="line">		fmt.Println(<span class="string">&quot;Stopped&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>得到stopChan channel关闭的消息，这样for循环又可以启动，重新接收相关的请求，重新初始化部分</p>
+<p>可以在同一个socket对上, 共享同一个监听套接字地址, 然后在多个goroutine中执行accept函数，也就是http server中的accept操作</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">l := ln.(*net.TCPListener)</span><br><span class="line">newFile, _ := l.File()</span><br><span class="line">fmt.Println(newFile.Fd())</span><br><span class="line"></span><br><span class="line">anotherListener, _ := net.FileListener(newFile)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>套接字部分，转换给文件描述符</p>
+<p>关于fork部分的操作</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cmd := exec.Command(os.Args[<span class="number">0</span>], <span class="string">&quot;-graceful&quot;</span>)</span><br><span class="line">cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr</span><br><span class="line">cmd.ExtraFiles = []*os.File&#123;newFD&#125;</span><br><span class="line">cmd.Run()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
 
       
     </div>
@@ -500,7 +467,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/20/one-week/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/31/install-kubernetes-cluster-guide/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -514,7 +481,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/20/one-week/" class="post-title-link" itemprop="url">血筑的河山</a>
+            <a href="/2018/08/31/install-kubernetes-cluster-guide/" class="post-title-link" itemprop="url">Install Kubernetes Cluster guide</a>
         </h2>
 
         <div class="post-meta">
@@ -524,7 +491,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-20 07:53:35" itemprop="dateCreated datePublished" datetime="2018-08-20T07:53:35+08:00">2018-08-20</time>
+              <time title="Created: 2018-08-31 10:33:17" itemprop="dateCreated datePublished" datetime="2018-08-31T10:33:17+08:00">2018-08-31</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -532,7 +499,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/weekly/" itemprop="url" rel="index"><span itemprop="name">weekly</span></a>
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
                 </span>
             </span>
 
@@ -547,31 +514,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>告绥远将士书</p>
-<blockquote>
-<p>经过我们血染的山河，一定永久为我们所有。</p>
-<p>民族的生存和荣誉，只有靠自己民族的头颅和鲜血才可保持。</p>
-</blockquote>
-<hr>
-<p>本周工作：</p>
-<ul>
-<li>入职熟悉新的业务，新的系统，新的环境</li>
-<li>dag转换，手动思路建立</li>
-</ul>
-<p>下周工作：</p>
-<ul>
-<li>automl-dag，第一版完成</li>
-<li>相关的技术文档，进行整理</li>
-</ul>
-<p>本周所得：</p>
-<ul>
-<li>关于automl的一些业务部分</li>
-</ul>
-<p>换了新的环境，感觉里面这么像百度的文化。。。也好，重新适应一下百度的文化部分。。。</p>
-<p>算法方面，自己还是有些薄弱，想的太多，想的太杂，没有主线，这块要加强实践，希望能按照计划完成相应的转换。。。</p>
-<p>之前同事推荐的golang方向的职位，居然同事也想走。。。这是庆幸自己逃离了一个坑，但也不确认自己是否能够胜任这边的事情。。。这边的业务方面，可能自己也插不进去，看先从算法转换开始，慢慢着手，找一个方向深入进去，看能不能在机器学习或者架构上，做些事情，尤其是那些外部框架的开源实现部分。。。</p>
-<p>关于时间的安排上，慢慢投入新的工作，改掉一些之前懒散的习惯，重新把神经崩起来，尽快把相关的时间表排起来。。。</p>
-<p>身体锻炼上，有些懈怠了，为了大腿，为了肚子，周末要锻炼起来，晚上也不要吃了。。。</p>
+          <p><a target="_blank" rel="noopener" href="https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.8.14">原文链接</a></p>
+<p>关于一些机器的优化部分</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">cat &gt; kubernetes.conf &lt;&lt;EOF</span><br><span class="line">net.bridge.bridge-nf-call-iptables=1</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables=1</span><br><span class="line">net.ipv4.ip_forward=1</span><br><span class="line">vm.swappiness=0</span><br><span class="line">vm.overcommit_memory=1</span><br><span class="line">vm.panic_on_oom=0</span><br><span class="line">fs.inotify.max_user_watches=89100</span><br><span class="line">fs.file-max=52706963</span><br><span class="line">fs.nr_open=52706963</span><br><span class="line">net.ipv6.conf.all.disable_ipv6=1</span><br><span class="line">net.netfilter.nf_conntrack_max=2310720</span><br><span class="line">EOF</span><br><span class="line">sudo cp kubernetes.conf  /etc/sysctl.d/kubernetes.conf</span><br><span class="line">sudo sysctl -p /etc/sysctl.d/kubernetes.conf</span><br></pre></td></tr></table></figure>
+
+
+
+<p>设置系统时区部分</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">调整系统 TimeZone</span></span><br><span class="line">sudo timedatectl set-timezone Asia/Shanghai</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将当前的 UTC 时间写入硬件时钟</span></span><br><span class="line">sudo timedatectl set-local-rtc 0</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">重启依赖于系统时间的服务</span></span><br><span class="line">sudo systemctl restart rsyslog </span><br><span class="line">sudo systemctl restart crond</span><br></pre></td></tr></table></figure>
+
 
       
     </div>
@@ -590,7 +541,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/77/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/77/">77</a><span class="page-number current">78</span><a class="page-number" href="/page/79/">79</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/79/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/77/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/77/">77</a><span class="page-number current">78</span><a class="page-number" href="/page/79/">79</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/79/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -658,7 +609,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -671,7 +622,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -699,7 +650,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

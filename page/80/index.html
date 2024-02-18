@@ -153,7 +153,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/02/spring-boot-2-0-zero-to-hero/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/14/good-makefile-golang/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -167,7 +167,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/02/spring-boot-2-0-zero-to-hero/" class="post-title-link" itemprop="url">From Zero to Hero with Spring Boot</a>
+            <a href="/2018/08/14/good-makefile-golang/" class="post-title-link" itemprop="url">A Good Makefile for Go</a>
         </h2>
 
         <div class="post-meta">
@@ -177,7 +177,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-02 15:39:12" itemprop="dateCreated datePublished" datetime="2018-08-02T15:39:12+08:00">2018-08-02</time>
+              <time title="Created: 2018-08-14 11:49:42" itemprop="dateCreated datePublished" datetime="2018-08-14T11:49:42+08:00">2018-08-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -185,7 +185,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/spring/" itemprop="url" rel="index"><span itemprop="name">spring</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -200,8 +200,45 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://content.pivotal.io/springone-platform-2017/from-zero-to-hero-with-spring-boot-brian-clozel">原文链接</a></p>
-<p><a target="_blank" rel="noopener" href="https://start.spring.io/">start initializr</a></p>
+          <p><a target="_blank" rel="noopener" href="http://azer.bike/journal/a-good-makefile-for-go/">原文链接</a></p>
+<p>make file includes:</p>
+<ul>
+<li>High-level, simple commands. Such as; <code>compile</code> <code>start</code> <code>stop</code> <code>watch</code>, etc.</li>
+<li>Managing project-specific environment variables. It should inclide <code>.env</code> file.</li>
+<li>Development-mode that auto-compiles on change.</li>
+<li>Development-mode that shows compile error without verbosity around it.</li>
+<li>Project-specific GOPATH, so I can keep dependencies in <code>vendor</code> folder.</li>
+<li>Simplified file watching. e.g <code>make watch run=&quot;go test ./...&quot;</code></li>
+</ul>
+<p>形成make的最终结果是:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"> make</span></span><br><span class="line"></span><br><span class="line">Choose a command run in my-web-server:</span><br><span class="line"></span><br><span class="line">install   Install missing dependencies. Runs `go get` internally.</span><br><span class="line">start     Start in development mode. Auto-starts when code changes.</span><br><span class="line">stop      Stop development mode.</span><br><span class="line">compile   Compile the binary.</span><br><span class="line">watch     Run given command when code changes. e.g; make watch run=&quot;go test ./...&quot;</span><br><span class="line">exec      Run given command, wrapped with custom GOPATH. e.g; make exec run=&quot;go test ./...&quot;</span><br><span class="line">clean     Clean build files. Runs `go clean` internally.</span><br></pre></td></tr></table></figure>
+
+
+
+<p>makefile文件示例</p>
+<p>环境设置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">include .env</span><br><span class="line"></span><br><span class="line">PROJECTNAME=$(shell basename &quot;$(PWD)&quot;)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Go related variables.</span></span><br><span class="line">GOBASE=$(shell pwd)</span><br><span class="line">GOPATH=$(GOBASE)/vendor:$(GOBASE):/home/azer/code/golang # You can remove or change the path after last colon.</span><br><span class="line">GOBIN=$(GOBASE)/bin</span><br><span class="line">GOFILES=$(wildcard *.go)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Redirect error output to a file, so we can show it <span class="keyword">in</span> development mode.</span></span><br><span class="line">STDERR=/tmp/.$(PROJECTNAME)-stderr.txt</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">PID file will store the server process <span class="built_in">id</span> when it<span class="string">&#x27;s running on development mode</span></span></span><br><span class="line">PID=/tmp/.$(PROJECTNAME)-api-server.pid</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">Make is verbose in Linux. Make it silent.</span></span></span><br><span class="line">MAKEFLAGS += --silent</span><br></pre></td></tr></table></figure>
+
+
+
+<p>命令部分的设置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># exec: Run given command, wrapped with custom GOPATH. e.g; make exec run=&quot;go test ./...&quot;</span></span></span><br><span class="line">exec:</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(run)</span><br><span class="line">	</span><br><span class="line">start:</span><br><span class="line">	bash -c &quot;trap &#x27;make stop&#x27; EXIT; $(MAKE) compile start-server watch run=&#x27;make compile start-server&#x27;&quot;</span><br><span class="line"></span><br><span class="line">stop: stop-server</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># watch: Run given command when code changes. e.g; make watch run=&quot;echo &#x27;hey&#x27;&quot;</span></span></span><br><span class="line">watch:</span><br><span class="line">	@yolo -i . -e vendor -e bin -c $(run)</span><br><span class="line"></span><br><span class="line">install: go-get</span><br></pre></td></tr></table></figure>
+
+
+
+<p>一些子命令的设置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">compile:</span><br><span class="line">	@-touch $(STDERR)</span><br><span class="line">	@-rm $(STDERR)</span><br><span class="line"><span class="meta prompt_">	@-$</span><span class="language-bash">(MAKE) -s go-compile 2&gt; $(STDERR)</span></span><br><span class="line">	@cat $(STDERR) | sed -e &#x27;1s/.*/\nError:\n/&#x27;  | sed &#x27;s/make\[.*/ /&#x27; | sed &quot;/^/s/^/     /&quot; 1&gt;&amp;2</span><br><span class="line"></span><br><span class="line">start-server:</span><br><span class="line">	@echo &quot;  &gt;  $(PROJECTNAME) is available at $(ADDR)&quot;</span><br><span class="line"><span class="meta prompt_">	@-$</span><span class="language-bash">(GOBIN)/$(PROJECTNAME) 2&gt;&amp;1 &amp; <span class="built_in">echo</span> $$! &gt; $(PID)</span></span><br><span class="line">	@cat $(PID) | sed &quot;/^/s/^/  \&gt;  PID: /&quot;</span><br><span class="line"></span><br><span class="line">stop-server:</span><br><span class="line">	@-touch $(PID)</span><br><span class="line">	@-kill `cat $(PID)` 2&gt; /dev/null || true</span><br><span class="line">	@-rm $(PID)</span><br><span class="line"></span><br><span class="line">restart-server: stop-server start-server</span><br></pre></td></tr></table></figure>
+
+
+
+<p>一些其他命令的设置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># clean: Clean build files. Runs `go clean` internally.</span></span></span><br><span class="line">clean:</span><br><span class="line">	@(MAKEFILE) go-clean</span><br><span class="line"></span><br><span class="line">go-compile: go-clean go-get go-build</span><br><span class="line"></span><br><span class="line">go-build:</span><br><span class="line">	@echo &quot;  &gt;  Building binary...&quot;</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)</span><br><span class="line"></span><br><span class="line">go-generate:</span><br><span class="line">	@echo &quot;  &gt;  Generating dependency files...&quot;</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go generate $(generate)</span><br><span class="line"></span><br><span class="line">go-get:</span><br><span class="line">	@echo &quot;  &gt;  Checking if there is any missing dependencies...&quot;</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)</span><br><span class="line"></span><br><span class="line">go-install:</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go install $(GOFILES)</span><br><span class="line"></span><br><span class="line">go-clean:</span><br><span class="line">	@echo &quot;  &gt;  Cleaning build cache&quot;</span><br><span class="line">	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go clean</span><br></pre></td></tr></table></figure>
+
+
+
+<p>help部分的设置</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">help: Makefile</span><br><span class="line">	@echo &quot; Choose a command run in &quot;$(PROJECTNAME)&quot;:&quot;</span><br><span class="line">	@sed -n &#x27;s/^##//p&#x27; $&lt; | column -t -s &#x27;:&#x27; |  sed -e &#x27;s/^/ /&#x27;</span><br></pre></td></tr></table></figure>
+
 
       
     </div>
@@ -221,7 +258,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/01/java-tips/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/12/one-week/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -235,7 +272,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/08/01/java-tips/" class="post-title-link" itemprop="url">Java Tips</a>
+            <a href="/2018/08/12/one-week/" class="post-title-link" itemprop="url">未知的远方</a>
         </h2>
 
         <div class="post-meta">
@@ -245,166 +282,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-08-01 11:16:03" itemprop="dateCreated datePublished" datetime="2018-08-01T11:16:03+08:00">2018-08-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/j2IaYU7Y/article/details/81199630?dt_dapp=1">原文链接</a></p>
-<p>贫血模型和领域模型部分，domain和entity的区别</p>
-<p>BeanUtils.copyProperties是一个浅拷贝方法，那么深拷贝的方法是？</p>
-<p>java部分，不同于go部分，做好接口的泛型部分，</p>
-<p>如果做泛型的话，就可以将数据的一些转换部分，放置到entity本身，这样，可以形成一套domain部分</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// com.google.common.base.Convert</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">Converter</span>&lt;A, B&gt; <span class="keyword">implements</span> <span class="title class_">Function</span>&lt;A, B&gt; &#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> B <span class="title function_">doForward</span><span class="params">(A a)</span>;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> A <span class="title function_">doBackward</span><span class="params">(B b)</span>;</span><br><span class="line">    <span class="comment">//其他略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>**jsr 303 ** 验证</p>
-<h4 id="lombok"><a href="#lombok" class="headerlink" title="lombok"></a>lombok</h4><p>lombok的链式调用，使用 @Accessors(chain &#x3D; true)</p>
-<p>关于静态构造方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Accessors(chain = true)</span></span><br><span class="line"><span class="meta">@Setter</span></span><br><span class="line"><span class="meta">@Getter</span></span><br><span class="line"><span class="meta">@RequiredArgsConstructor(staticName = &quot;ofName&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Student</span> &#123;</span><br><span class="line">    <span class="meta">@NonNull</span> <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> Student.ofName(<span class="string">&quot;zs&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<p>builder模式</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Builder</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Student</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>同时，关于@Delegate部分</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/31/kafka-rest-proxy/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/31/kafka-rest-proxy/" class="post-title-link" itemprop="url">Kafka Rest Proxy</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-07-31 15:19:01" itemprop="dateCreated datePublished" datetime="2018-07-31T15:19:01+08:00">2018-07-31</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index"><span itemprop="name">kafka</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://docs.confluent.io/current/kafka-rest/docs/intro.html#quickstart">原文链接</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Produce a message using JSON with the value <span class="string">&#x27;&#123; &quot;foo&quot;: &quot;bar&quot; &#125;&#x27;</span> to the topic jsontest</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">curl -X POST -H <span class="string">&quot;Content-Type: application/vnd.kafka.json.v2+json&quot;</span> \</span></span><br><span class="line"><span class="language-bash">      -H <span class="string">&quot;Accept: application/vnd.kafka.v2+json&quot;</span> \</span></span><br><span class="line"><span class="language-bash">      --data <span class="string">&#x27;&#123;&quot;records&quot;:[&#123;&quot;value&quot;:&#123;&quot;foo&quot;:&quot;bar&quot;&#125;&#125;]&#125;&#x27;</span> <span class="string">&quot;http://localhost:8082/topics/jsontest&quot;</span></span></span><br><span class="line">  &#123;&quot;offsets&quot;:[&#123;&quot;partition&quot;:0,&quot;offset&quot;:0,&quot;error_code&quot;:null,&quot;error&quot;:null&#125;],&quot;key_schema_id&quot;:null,&quot;value_schema_id&quot;:null&#125;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Create a consumer <span class="keyword">for</span> JSON data, starting at the beginning of the topic<span class="string">&#x27;s</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">log and subscribe to a topic. Then consume some data using the base URL in the first response.</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">Finally, close the consumer with a DELETE to make it leave the group and clean up</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">its resources.</span></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="string">curl -X POST -H &quot;Content-Type: application/vnd.kafka.v2+json&quot; \</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      --data &#x27;</span>&#123;<span class="string">&quot;name&quot;</span>: <span class="string">&quot;my_consumer_instance&quot;</span>, <span class="string">&quot;format&quot;</span>: <span class="string">&quot;json&quot;</span>, <span class="string">&quot;auto.offset.reset&quot;</span>: <span class="string">&quot;earliest&quot;</span>&#125;<span class="string">&#x27; \</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      http://localhost:8082/consumers/my_json_consumer</span></span></span><br><span class="line">  &#123;&quot;instance_id&quot;:&quot;my_consumer_instance&quot;,</span><br><span class="line">  &quot;base_uri&quot;:&quot;http://localhost:8082/consumers/my_json_consumer/instances/my_consumer_instance&quot;&#125;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="string">curl -X POST -H &quot;Content-Type: application/vnd.kafka.v2+json&quot; --data &#x27;</span>&#123;<span class="string">&quot;topics&quot;</span>:[<span class="string">&quot;jsontest&quot;</span>]&#125;<span class="string">&#x27; \</span></span></span><br><span class="line"><span class="string"><span class="language-bash"> http://localhost:8082/consumers/my_json_consumer/instances/my_consumer_instance/subscription</span></span></span><br><span class="line"><span class="meta prompt_"> # </span><span class="language-bash"><span class="string">No content in response</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="string">curl -X GET -H &quot;Accept: application/vnd.kafka.json.v2+json&quot; \</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      http://localhost:8082/consumers/my_json_consumer/instances/my_consumer_instance/records</span></span></span><br><span class="line">  [&#123;&quot;key&quot;:null,&quot;value&quot;:&#123;&quot;foo&quot;:&quot;bar&quot;&#125;,&quot;partition&quot;:0,&quot;offset&quot;:0,&quot;topic&quot;:&quot;jsontest&quot;&#125;]</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="string">curl -X DELETE -H &quot;Content-Type: application/vnd.kafka.v2+json&quot; \</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      http://localhost:8082/consumers/my_json_consumer/instances/my_consumer_instance</span></span></span><br><span class="line"><span class="meta prompt_">  # </span><span class="language-bash"><span class="string">No content in response</span></span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>Rest Proxy指的是，rest的接口进行producer以及consumer部分的操作？</p>
-<p><strong>REST Proxy Clusters and Load Balancing</strong> - The REST Proxy is designed to support multiple instances running together to spread load and can safely be run behind various load balancing mechanisms (e.g. round robin DNS, discovery services, load balancers) as long as instances are <a target="_blank" rel="noopener" href="https://docs.confluent.io/current/kafka-rest/docs/deployment.html#kafkarest-deployment">configured correctly</a>.</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/30/one-week/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="gqlxj1987">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="DevilKing's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/30/one-week/" class="post-title-link" itemprop="url">loser</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-07-30 22:14:50" itemprop="dateCreated datePublished" datetime="2018-07-30T22:14:50+08:00">2018-07-30</time>
+              <time title="Created: 2018-08-12 16:19:35" itemprop="dateCreated datePublished" datetime="2018-08-12T16:19:35+08:00">2018-08-12</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -427,30 +305,26 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>アイムアルーザー 　　</p>
-<p>我是个loser 　　</p>
-<p>どうせだったら 　　</p>
-<p>所以就算 　　</p>
-<p>远吠えだっていいだろう 　　</p>
-<p>虚张声势也无所谓吧 　　</p>
-<p>もう一回もう一回行こうぜ 　　</p>
-<p>再一次再一次前行吧</p>
+          <p>未来，到底是什么样子</p>
+<p>远方，究竟有什么值得追寻</p>
 <hr>
-<p>本周工作：</p>
+<p>本周完成：</p>
 <ul>
-<li>交接文档的编写，基本ok</li>
-<li>k8s的一些入门，在本地的minikube的启动部分</li>
+<li>工作的交接</li>
+<li>spring boot 2.0部分</li>
 </ul>
-<p>下周工作：</p>
+<p>下周计划：</p>
 <ul>
-<li>交接部分的讲解，一些查漏补缺</li>
-<li>关于spring boot部分的重新拣起来</li>
+<li>新工作</li>
+<li>熟悉环境</li>
 </ul>
-<p>离职的工作，按部就班地进行，不过，关于新知识的储备方面，感觉还是有些偏慢，要加快一些速度，把本地的一些环境什么的，基本知识什么的重新学习起来。。。</p>
-<p>loser，再一次前行，钱的事情，慢慢挤出来，慢慢地缓解一些压力，先把银行的还了。。。</p>
-<p>果然还是捉摸不定，情绪上时好时坏，是自己太任性了，没有考虑别人的承受能力，一心地想当然，哎。。。或许自己当初的那个决定是错误的，还是希望，有个好的结果，这样起码状态上会有好些，至于自身，还是少些想当然吧，慢慢地承受，尽可能地照顾好别人，这样，别人在追求更好更舒适的环境，自己也稍微能心安理得一些，自己也没什么特别让人家眷恋的地方，人家完全有条件去获得更好的。。。还是当好一个acer，安安静静地就行了。。。</p>
-<p>锻炼上，进一步加强，跑步上，维持在5’30的配速，进一步拉长跑步的时间，加油。。。</p>
-<p>再一次前行！</p>
+<p>告别了三年的新美，心中还是有些怅然，告别了舒适的环境，去迎向不可知的未来，心中还是有点不舍，不过，总是要跳出舒适区，去尝试一下挑战，尝试去向更厉害的人去学习。。</p>
+<p>未来和远方，不是那么确定性，也没法像以前那么安逸了，不过一直保持学习的心态，总不会太差。。</p>
+<p>经过了3年前那次临时的跳槽的话，这次应该也算比较成熟了，也不算初入创业公司的雏鸟了，心态上和工作上，应该会更成熟一些，学习的心态。。。嗯。。</p>
+<p>或许刚开始的时候，就有点不平等吧，不管是自己还是家庭上，感觉还是没有那么门当户对，所以，还是安静地当个acer，安安静静做好自己能做好的，也不要有太多的奢求了。。。</p>
+<p>工作上，进入一个新的方向，尽快地去熟悉和学习，加油。。。</p>
+<p>时间安排上，还有提高的空间，以及相关的计划表部分，要重新梳理一下，按照计划来，相关的锻炼部分，跟上。。</p>
+<p>虽然心中没法做到毫无畏惧，但保持学习的心态，也就无所谓了，只不过去见识一段新的征程，看风景，认识人，做事情，无外乎是于此。。。</p>
 
       
     </div>
@@ -470,7 +344,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/07/30/yaml-intro/">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/09/golang-shengjing/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -484,7 +358,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2018/07/30/yaml-intro/" class="post-title-link" itemprop="url">Yaml Intro</a>
+            <a href="/2018/08/09/golang-shengjing/" class="post-title-link" itemprop="url">golang圣经</a>
         </h2>
 
         <div class="post-meta">
@@ -494,7 +368,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2018-07-30 16:54:18" itemprop="dateCreated datePublished" datetime="2018-07-30T16:54:18+08:00">2018-07-30</time>
+              <time title="Created: 2018-08-09 11:36:43" itemprop="dateCreated datePublished" datetime="2018-08-09T11:36:43+08:00">2018-08-09</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -502,7 +376,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/yaml/" itemprop="url" rel="index"><span itemprop="name">yaml</span></a>
+                  <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
                 </span>
             </span>
 
@@ -517,20 +391,167 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p><a target="_blank" rel="noopener" href="https://arp242.net/weblog/yaml_probably_not_so_great_after_all.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_136">原文链接</a></p>
-<h4 id="can-be-hard-to-edit-for-large-files"><a href="#can-be-hard-to-edit-for-large-files" class="headerlink" title="can be hard to edit, for large files"></a>can be hard to edit, for large files</h4><p>It is difficult to see “where” in the file you are because it may be off the screen. You’ll need to scroll up, but then you need to keep track of the indentation, which can be pretty hard even with indentation guides, especially since 2-space indentation is the norm and <a target="_blank" rel="noopener" href="http://www.yaml.org/faq.html">tab indentation is forbidden</a><a target="_blank" rel="noopener" href="https://arp242.net/weblog/yaml_probably_not_so_great_after_all.html?utm_campaign=CodeTengu&utm_medium=email&utm_source=CodeTengu_136#fn:2">2</a>.</p>
-<p>主要的几种配置文件格式：</p>
-<p>The <a target="_blank" rel="noopener" href="http://yaml.org/spec/1.2/spec.pdf">YAML spec</a> is 23,449 words; for comparison, <a target="_blank" rel="noopener" href="https://github.com/toml-lang/toml">TOML</a> is 3,339 words, <a target="_blank" rel="noopener" href="http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf">JSON</a> is 1,969 words, and <a target="_blank" rel="noopener" href="https://www.w3.org/TR/REC-xml/">XML</a> is 20,603 words.</p>
-<p>一些关于value的类型的解释</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">python:</span> <span class="number">3.5</span><span class="number">.3</span></span><br><span class="line"><span class="attr">postgres:</span> <span class="number">9.3</span></span><br></pre></td></tr></table></figure>
+          <p><a target="_blank" rel="noopener" href="https://docs.hacknode.org/gopl-zh/ch0/ch0-02.html">原文链接</a></p>
+<p>所有的编程语言都反映了语言设计者对编程哲学的反思，通常包括之前的语言所暴露的一些不足地方的改进</p>
+<p>Go语言提供了基于CSP的并发特性支持</p>
+<p>golang部分提供<code>image</code>库</p>
 
-<p>解释成为</p>
-<p><code>&#123;&#39;python&#39;: &#39;3.5.3&#39;, &#39;postgres&#39;: 9.3&#125;</code></p>
-<p>All of this – and more – is why many experienced YAMLers will often quote all strings, even when it’s not strictly required</p>
-<p>不同语言解析上，可能yaml的解析规则上有所不同？</p>
-<p>The reason for this is that there are multiple YAML documents in a single file (<code>---</code> start the document). In Python there is the <code>load_all()</code> function to parse all documents. Ruby’s <code>load()</code> just loads the first document, and as near as I can tell, doesn’t have a way to load multiple documents.</p>
-<h4 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h4><p>并不是说yaml不好，只是指明yaml不能够更greater</p>
-<p>可以尝试更好的方式，such as <a target="_blank" rel="noopener" href="https://github.com/toml-lang/toml">TOML</a></p>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/08/git-problems/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/08/git-problems/" class="post-title-link" itemprop="url">10 Git problems</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-08-08 14:59:49" itemprop="dateCreated datePublished" datetime="2018-08-08T14:59:49+08:00">2018-08-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/git/" itemprop="url" rel="index"><span itemprop="name">git</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://citizen428.net/10-common-git-problems-and-how-to-fix-them-e8d809299f08">原文链接</a></p>
+<p><code>git checkout —</code> 这样子废弃掉本地的修改</p>
+<h3 id="undo-local-commit"><a href="#undo-local-commit" class="headerlink" title="undo local commit"></a>undo local commit</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git reset HEAD~2        # undo last two commits, keep changes</span><br><span class="line">git reset --hard HEAD~2 # undo last two commits, discard changes  </span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Remove-a-file-from-git-without-removing-it-from-your-file-system"><a href="#Remove-a-file-from-git-without-removing-it-from-your-file-system" class="headerlink" title="Remove a file from git without removing it from your file system"></a>Remove a file from git without removing it from your file system</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git reset filename          # or git rm --cached filename</span><br><span class="line">echo filename &gt;&gt; .gitingore # add it to .gitignore to avoid re-adding it</span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>git-amend</code> 操作可以对commit message进行amend操作</p>
+<h3 id="Clean-up-local-commits-before-pushing"><a href="#Clean-up-local-commits-before-pushing" class="headerlink" title="Clean up local commits before pushing"></a>Clean up local commits before pushing</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git rebase --interactive </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="keyword">if</span> you didn<span class="string">&#x27;t specify any tracking information for this branch</span></span> </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">you will have to add upstream and remote branch information:</span></span> </span><br><span class="line">git rebase --interactive origin branch</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://gqlxj1987.github.io/2018/08/06/everything-is-a-file/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gqlxj1987">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="DevilKing's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/06/everything-is-a-file/" class="post-title-link" itemprop="url">Everything is a file in unix</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-08-06 11:32:16" itemprop="dateCreated datePublished" datetime="2018-08-06T11:32:16+08:00">2018-08-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/unix/" itemprop="url" rel="index"><span itemprop="name">unix</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a target="_blank" rel="noopener" href="https://ph7spot.com/musings/in-unix-everything-is-a-file">原文链接</a></p>
+<p>一切皆文件，包含</p>
+<ul>
+<li>一切都是字节流</li>
+<li>文件系统是统一的命名空间</li>
+</ul>
+<p>文件路径可以引用几乎任何东西：文件系统、设备、网络共享或通信通道</p>
+<p>伪文件系统？</p>
 
       
     </div>
@@ -549,7 +570,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/79/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/79/">79</a><span class="page-number current">80</span><a class="page-number" href="/page/81/">81</a><span class="space">&hellip;</span><a class="page-number" href="/page/133/">133</a><a class="extend next" rel="next" href="/page/81/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/79/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/79/">79</a><span class="page-number current">80</span><a class="page-number" href="/page/81/">81</a><span class="space">&hellip;</span><a class="page-number" href="/page/134/">134</a><a class="extend next" rel="next" href="/page/81/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -617,7 +638,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">661</span>
+          <span class="site-state-item-count">666</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -630,7 +651,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">248</span>
+        <span class="site-state-item-count">250</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -658,7 +679,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
