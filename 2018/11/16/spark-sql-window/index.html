@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> November 16, 2018 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p>title: Spark Sql Join部分
+date: 2018-11-16 10:21:52
+categories: spark</p>
+<h2 id="tags-spark">tags: [spark]</h2>
+<h3 id="背景">背景</h3>
+<p>spark 1.6.2 -> spark 2.2</p>
+<p>内存中的数据组织形式</p>
+<p><img src="https://user-images.githubusercontent.com/22542670/26998244-18ed1b40-4d9f-11e7-897d-5d2b032c3001.png" alt="memory"></p>
+<p>在内存中，改成了以列式存储为主</p>
+<p>(1) 与numpy或者tensorflow接入时可实现zero serialization（零序列化）</p>
+<p>(2) 与Spark的in-memory columnar-cache无缝兼容</p>
+<p>(3) 更利于压缩技术的引入</p>
+<h4 id="cbo">CBO</h4>
+<p>基于成本的优化器CBO，是根据计算出的所有可能的物理计划的代价，选择代价最小的物理执行计划。关键点在于能评估一个物理执行计划的代价。</p>
+<ul>
+<li>
+<p>HashJoin中build side and probe side中的问题</p>
+</li>
+<li>
+<p>在 Spark SQL 中，Join主要有两种执行方式，Shuffle-based Join, BroadcastJoin。Shuffle-based Join会有Shuffle，代价比较。BroadcastJoin不需要shuffle，但要求至少有一张表足够小，这样就能通过Broadcast机制，广播到每个Executor中。</p>
+<p>如下图所示，在没CBO的情况下，SparkSQL通过spark.sql.autoBroadcastJoinThreshold来判断是否选择BroadcastJoin（默认值为10MB）。如果判断基于原始表大小，会选用SortMergeJoin。</p>
+<p>在有CBO的情况下，经过Filter后的Table 2的大小正好满足小于10MB的情况下，会正确地采用性能更好的BroadcastJoin。</p>
+</li>
+</ul>
+<p><img src="http://www.jasongj.com/img/spark/spark3_cbo/spark_cbo_join_type.png" alt="broadcast"></p>
+<ul>
+<li>并行的join的情况</li>
+</ul> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

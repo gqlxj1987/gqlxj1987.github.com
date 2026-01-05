@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> November 1, 2015 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <h2 id="title-mysql最大连接数date-2015-11-01-181420categories-mysqltags-mysql">title: mysql最大连接数
+date: 2015-11-01 18:14:20
+categories: mysql
+tags: [mysql]</h2>
+<h4 id="问题出现的背景">问题出现的背景</h4>
+<p>字体管家的后台接口返回很慢，登录到相关机器，发现机器的负载高达28，30左右，定位为数据库的问题</p>
+<h4 id="定位的思路">定位的思路</h4>
+<ul>
+<li>
+<p>查看数据库的慢查询语句，发现相关sdk统计的sql，执行了14s，猜测可能是相关慢查询语句阻碍了正常的查询，导致负载偏高，遂将相关的查询的入口暂时禁掉</p>
+</li>
+<li>
+<p>禁掉后，重启数据库后，发现问题依旧，于是查看show proceslist;的内容，猜测，是否是由于某些大量频繁的sql的短查询导致整体的负载高。在show processlist;的过程中，发现大量的unthencated user；的请求链接</p>
+</li>
+<li>
+<p>通过网上查询，发现，unthencation user 这种请求，可能是mysql的一个Bug，由于是针对需要进行dns反查的这种，于是，在mysql的配置文件中，增加skip-resolve-name选项，取消掉这种dns反查的设置。重启mysql后，发现现象依旧</p>
+</li>
+<li>
+<p>通过观察，发现mysql初期的时候show processlist;还比较正常，但没多久，负载就非常高，猜测可能不是查询的问题导致的。然后，想起来这周将mysql的max-connection调成了5000，结合php使用mysql的方式，定位为该原因。将max-connection调整为1000，重启mysql后，问题解决</p>
+</li>
+</ul>
+<h4 id="问题的结论">问题的结论</h4>
+<p>问题的主要的点，还是在于php使用mysql的方式。由于php没有像java的那种线程池，其对数据库的访问都是以短socket的方式来进行。由于将max-connection设置为5000，由于流量的增大，php就可以不断地获取到数据库的连接，从而进行相关数据的操作。但同时的访问很多，连接不断的增多，导致mysql所需要的资源也越多，这也解释了mysql导致系统负载偏高的原因。</p>
+<p>关于最大连接数这个参数，由于php采用短socket的方式，连接->操作->释放，没有线程池的概念，所以，这块的最大连接数基本代表了1s内的数据库的请求并发数。但是，随着流量变大，请求的增多，请求所需要的连接数也会不断地增大。为了保证数据库操作的快速，迅捷，基本都会增加最大连接数这个参数，保证相关数据库操作能够快速地进行，而不是在那里等待上个数据库连接的释放。但是，增加连接数也带来了另一个问题，相关连接的资源消耗也是巨大的，包括cpu,内存，文件句柄数，网络等等。所以，最大连接数这部分也不宜太大。</p>
+<p>问题出现的原因，就是最大连接数设置的太大，导致php请求，可以无限制地获取到数据库连接，请求的增多，导致瞬间增大了当前的数据库连接数，极大地增加了mysql的资源损耗，从而导致整体系统负载非常高。</p>
+<h4 id="问题的发散">问题的发散</h4>
+<ul>
+<li>关于最大连接数部分，比较适合的参数大小是多少？</li>
+</ul>
+<p>以前的java由于存在连接池的概念，在应用里设置的获取的最大连接数也没超过200，对应日均2000的网站。那这块是否可以借鉴呢？</p>
+<ul>
+<li>php这种短socket的方式，固然可以快速地进行数据库的操作，但它的连接的管理方面，完全靠数据库端来进行，例如：最大连接数等。这块php有没有比较好的思路，借鉴类似java这种连接池的思路来管理这种数据库连接呢？</li>
+</ul> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

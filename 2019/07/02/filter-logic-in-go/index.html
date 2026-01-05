@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> July 2, 2019 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p>title : Filtering Logic in Go
+date : 2019-07-02 19:05:20
+categories : golang
+tags : [golang]</p>
+<hr>
+<p><a href="https://medium.com/@zach_johnson/a-simple-implementation-of-filtering-logic-in-go-f45a24413aaf">原文链接</a></p>
+<p>The simplest solution may be to do filtering in-line, looping through your set of records and discarding whatever records don’t match your business requirements</p>
+<p>Choosing a filtering library comes at cost though — libraries have to be type-agnostic and thus will generally be using reflect under the hood to do type assertions which is not ideal for performance. 关于filtering库的一个实现思路</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#6A737D">// Filter is a filter function applied to a single record.</span></span>
+<span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> Filter</span><span style="color:#F97583"> func</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">string</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">bool</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// FilterBulk is a bulk filter function applied to an entire slice of records.</span></span>
+<span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> FilterBulk</span><span style="color:#F97583"> func</span><span style="color:#E1E4E8">([]</span><span style="color:#F97583">string</span><span style="color:#E1E4E8">) []</span><span style="color:#F97583">string</span></span>
+<span class="line"></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="java"><code><span class="line"><span style="color:#6A737D">// ApplyFilters applies a set of filters to a record list.</span></span>
+<span class="line"><span style="color:#6A737D">// Each record will be checked against each filter.</span></span>
+<span class="line"><span style="color:#6A737D">// The filters are applied in the order they are passed in.</span></span>
+<span class="line"><span style="color:#E1E4E8">func </span><span style="color:#B392F0">ApplyFilters</span><span style="color:#E1E4E8">(records []string, filters ...Filter) []string {</span></span>
+<span class="line"><span style="color:#6A737D">    // Make sure there are actually filters to be applied.</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(filters) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> records</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    filteredRecords </span><span style="color:#F97583">:=</span><span style="color:#B392F0"> make</span><span style="color:#E1E4E8">([]string, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">len</span><span style="color:#E1E4E8">(records))</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">    // Range over the records and apply all the filters to each record.</span></span>
+<span class="line"><span style="color:#6A737D">    // If the record passes all the filters, add it to the final slice.</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> _, r </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> range records {</span></span>
+<span class="line"><span style="color:#E1E4E8">        keep </span><span style="color:#F97583">:=</span><span style="color:#79B8FF"> true</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> _, f </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> range filters {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#F97583"> !</span><span style="color:#B392F0">f</span><span style="color:#E1E4E8">(r) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                keep </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span></span>
+<span class="line"><span style="color:#F97583">                break</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> keep {</span></span>
+<span class="line"><span style="color:#E1E4E8">            filteredRecords </span><span style="color:#F97583">=</span><span style="color:#B392F0"> append</span><span style="color:#E1E4E8">(filteredRecords, r)</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> filteredRecords</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// ApplyBulkFilters applies a set of filters to the entire slice of records.</span></span>
+<span class="line"><span style="color:#6A737D">// Used when each record filter requires knowledge of the other records, e.g. de-duping.</span></span>
+<span class="line"><span style="color:#E1E4E8">func </span><span style="color:#B392F0">ApplyBulkFilters</span><span style="color:#E1E4E8">(records []string, filters ...FilterBulk) []string {</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> _, f </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> range filters {</span></span>
+<span class="line"><span style="color:#E1E4E8">        records </span><span style="color:#F97583">=</span><span style="color:#B392F0"> f</span><span style="color:#E1E4E8">(records)</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> records</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">var</span><span style="color:#E1E4E8"> filters </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> map[</span><span style="color:#F97583">int</span><span style="color:#E1E4E8">]FilterSet{ </span></span>
+<span class="line"><span style="color:#79B8FF">    1</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> FilterForAnimals, </span></span>
+<span class="line"><span style="color:#79B8FF">    2</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> FilterForIDs, </span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// FilterForAnimals applies a set of filters removing any non-animals.</span></span>
+<span class="line"><span style="color:#E1E4E8">func </span><span style="color:#B392F0">FilterForAnimals</span><span style="color:#E1E4E8">(records []string) []string {</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> ApplyBulkFilters</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        ApplyFilters</span><span style="color:#E1E4E8">(records,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FilterMagicalCreatures,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FilterStringLength,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FilterInts,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FilterWords,</span></span>
+<span class="line"><span style="color:#E1E4E8">        ),</span></span>
+<span class="line"><span style="color:#E1E4E8">        FilterDuplicates,</span></span>
+<span class="line"><span style="color:#E1E4E8">    )</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// FilterForIDs applies a set of filters removing any non-IDs.</span></span>
+<span class="line"><span style="color:#E1E4E8">func </span><span style="color:#B392F0">FilterForIDs</span><span style="color:#E1E4E8">(records []string) []string {</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> ApplyBulkFilters</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        ApplyFilters</span><span style="color:#E1E4E8">(records,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FilterIDs,</span></span>
+<span class="line"><span style="color:#E1E4E8">        ),</span></span>
+<span class="line"><span style="color:#E1E4E8">        FilterDuplicates,</span></span>
+<span class="line"><span style="color:#E1E4E8">    )</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> February 12, 2017 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <h2 id="title-使用go处理一百万请求date-2017-02-12-175012categories-golangtags-golang">title: 使用go处理一百万请求
+date: 2017-02-12 17:50:12
+categories: golang
+tags: [golang]</h2>
+<p><a href="http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/">原文链接</a></p>
+<p>Agenda:</p>
+<ul>
+<li>
+<p>The Problem</p>
+</li>
+<li>
+<p>The Solution</p>
+</li>
+<li>
+<p>Conclusion</p>
+</li>
+</ul>
+<h4 id="problem">Problem</h4>
+<p>接收大量的post json数据的请求，并将这些数据上传至s3服务器上</p>
+<p>先期采用worker-tier的方式</p>
+<ul>
+<li>
+<p>Sidekiq</p>
+</li>
+<li>
+<p>Resque</p>
+</li>
+<li>
+<p>DelayedJob</p>
+</li>
+<li>
+<p>Elasticbeanstalk Worker Tier</p>
+</li>
+<li>
+<p>RabbitMQ</p>
+</li>
+<li>
+<p>and so on…</p>
+</li>
+</ul>
+<p>如果采用这种方式，便会分离成为两个cluster，一个处理json请求，一个负责将数据传到s3上</p>
+<p>但如果用go的话，可以在一个将这两个cluster化身成为两个method来进行</p>
+<h4 id="solution">Solution</h4>
+<h5 id="goroutines">goroutines</h5>
+<p>采用的方式便是goroutines，但切忌用navie的方式</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>// Go through each payload and queue items individually to be posted to S3</span></span>
+<span class="line"><span>for _, payload := range content.Payloads {</span></span>
+<span class="line"><span>    go payload.UploadToS3()   // &#x3C;----- DON'T DO THIS</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>考虑到requests的生命周期很短的情况，我们采用chan的方式，chan的方式，其实也类似于内存级的消息队列。</p>
+<p>但随之而来的问题，就是buffer的部分，很容易到达limit，你无法控制limit的增长</p>
+<blockquote>
+<p>We have decided to utilize a common pattern when using Go channels, in order to create a 2-tier channel system, one for queuing jobs and another to control how many workers operate on the JobQueue concurrently.</p>
+</blockquote>
+<p>相关的数据结构为：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>type Worker struct {</span></span>
+<span class="line"><span>	WorkerPool  chan chan Job</span></span>
+<span class="line"><span>	JobChannel  chan Job</span></span>
+<span class="line"><span>	quit    	chan bool</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>首先启动多个worker来进行dispatcher的操作，在dispatcher的操作里，会去先尝试获取一个有效的worker，然后再将这个job传递给这个worker来进行操作，随后，在woerker里，通过jobChannel的方式，获取到相关的job，从而进行s3的上传工作</p>
+<p>关键的代码如下：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>for {</span></span>
+<span class="line"><span>		select {</span></span>
+<span class="line"><span>		case job := &#x3C;-JobQueue:</span></span>
+<span class="line"><span>			// a job request has been received</span></span>
+<span class="line"><span>			go func(job Job) {</span></span>
+<span class="line"><span>				// try to obtain a worker job channel that is available.</span></span>
+<span class="line"><span>				// this will block until a worker is idle</span></span>
+<span class="line"><span>				jobChannel := &#x3C;-d.WorkerPool</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>				// dispatch the job to the worker job channel</span></span>
+<span class="line"><span>				jobChannel &#x3C;- job</span></span>
+<span class="line"><span>			}(job)</span></span>
+<span class="line"><span>		}</span></span>
+<span class="line"><span>	}</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>此处为dispatcher操作</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>// Start method starts the run loop for the worker, listening for a quit channel in</span></span>
+<span class="line"><span>// case we need to stop it</span></span>
+<span class="line"><span>func (w Worker) Start() {</span></span>
+<span class="line"><span>	go func() {</span></span>
+<span class="line"><span>		for {</span></span>
+<span class="line"><span>			// register the current worker into the worker queue.</span></span>
+<span class="line"><span>			w.WorkerPool &#x3C;- w.JobChannel</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>			select {</span></span>
+<span class="line"><span>			case job := &#x3C;-w.JobChannel:</span></span>
+<span class="line"><span>				// we have received a work request.</span></span>
+<span class="line"><span>				if err := job.Payload.UploadToS3(); err != nil {</span></span>
+<span class="line"><span>					log.Errorf("Error uploading to S3: %s", err.Error())</span></span>
+<span class="line"><span>				}</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>			case &#x3C;-w.quit:</span></span>
+<span class="line"><span>				// we have received a signal to stop</span></span>
+<span class="line"><span>				return</span></span>
+<span class="line"><span>			}</span></span>
+<span class="line"><span>		}</span></span>
+<span class="line"><span>	}()</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>此处为worker内部的操作</p>
+<p>带来的效果是，服务器数量从100台drop到20台。</p>
+<h4 id="conclusion">Conclusion</h4>
+<blockquote>
+<p>Simplicity always wins in my book. We could have designed a complex system with many queues, background workers, complex deployments, but instead we decided to leverage the power of Elasticbeanstalk auto-scaling and the efficiency and simple approach to concurrency that Golang provides us out of the box</p>
+</blockquote>
+<p>语言带来的便利性，可能会好于引入其他各种复杂的系统</p>
+<blockquote>
+<p>There is always the right tool for the job</p>
+</blockquote> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

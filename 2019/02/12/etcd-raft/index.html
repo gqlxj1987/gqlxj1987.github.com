@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> February 12, 2019 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <h2 id="title--etcd-raft实现date--2019-02-12-113838categories--rafttags--raft">title : etcd raft实现
+date : 2019-02-12 11:38:38
+categories : raft
+tags : [raft]</h2>
+<p><a href="https://jiajunhuang.com/articles/2018_11_22-etcd_source_code_analysis_raft.md.html">原文链接</a></p>
+<p>raft整体的含义</p>
+<ul>
+<li>Raft集群中，每个server只有三种状态：leader，follower，candidate（选举）。</li>
+<li>follower不会主动发送消息，只会接受和响应消息。</li>
+<li>leader处理所有的客户端请求，如果follower接收到客户端的请求，则转发给leader。</li>
+<li>candidate是选举状态。</li>
+</ul>
+<p>Raft主要是有三点：</p>
+<ul>
+<li>Leader Election: raft集群里是主从的，leader来进行所有操作，follower不会主动向集群内的其他节点发起请求。</li>
+<li>Log Replication: leader处理来自客户端的请求，leader把自己的日志发向follower做复制</li>
+<li>Safety: 只有含有最新的日志的节点可以成为leader，如果收到投票请求时，发现对方的日志没有自己的新，那么久投否决票。</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#F97583">for</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">    // 略略略，准备 rd</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    select</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">    // TODO: maybe buffer the config propose if there exists one (the way</span></span>
+<span class="line"><span style="color:#6A737D">    // described in raft dissertation)</span></span>
+<span class="line"><span style="color:#6A737D">    // Currently it is dropped in Step silently.</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#E1E4E8"> pm </span><span style="color:#F97583">:=</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">propc: </span><span style="color:#6A737D">// proposal 是有结果的消息，应该是用来等待是否成功处理的</span></span>
+<span class="line"><span style="color:#E1E4E8">        m </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> pm.m</span></span>
+<span class="line"><span style="color:#E1E4E8">        m.From </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> r.id</span></span>
+<span class="line"><span style="color:#E1E4E8">        err </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> r.</span><span style="color:#B392F0">Step</span><span style="color:#E1E4E8">(m) </span><span style="color:#6A737D">// 注意，Step 是一个函数，这个函数用来处理消息。但是不同的身份有不同的Step实现，点进去看一下default里的代码，就调用了。参见 raft.go->becomeFollower, raft.go->becomeCandidate等等里的stepXXX函数</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> pm.result </span><span style="color:#F97583">!=</span><span style="color:#79B8FF"> nil</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">            pm.result </span><span style="color:#F97583">&#x3C;-</span><span style="color:#E1E4E8"> err</span></span>
+<span class="line"><span style="color:#B392F0">            close</span><span style="color:#E1E4E8">(pm.result)</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#E1E4E8"> m </span><span style="color:#F97583">:=</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">n.recvc: </span><span style="color:#6A737D">// 收到消息，这里的消息应该是不等待结果的</span></span>
+<span class="line"><span style="color:#6A737D">        // filter out response message from unknown From.</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> pr </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> r.</span><span style="color:#B392F0">getProgress</span><span style="color:#E1E4E8">(m.From); pr </span><span style="color:#F97583">!=</span><span style="color:#79B8FF"> nil</span><span style="color:#F97583"> ||</span><span style="color:#F97583"> !</span><span style="color:#B392F0">IsResponseMsg</span><span style="color:#E1E4E8">(m.Type) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            r.</span><span style="color:#B392F0">Step</span><span style="color:#E1E4E8">(m)</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#E1E4E8"> cc </span><span style="color:#F97583">:=</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">n.confc: </span><span style="color:#6A737D">// 配置变更</span></span>
+<span class="line"><span style="color:#6A737D">        // 略略略</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">n.tickc: </span><span style="color:#6A737D">// 心跳和选举的timeout，参见doc.go</span></span>
+<span class="line"><span style="color:#E1E4E8">        r.</span><span style="color:#B392F0">tick</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#E1E4E8"> readyc </span><span style="color:#F97583">&#x3C;-</span><span style="color:#E1E4E8"> rd: </span><span style="color:#6A737D">// Ready是各种准备好的变更</span></span>
+<span class="line"><span style="color:#6A737D">        // 略略略</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">advancec: </span><span style="color:#6A737D">// 这个是用来确认Ready已经处理完的</span></span>
+<span class="line"><span style="color:#6A737D">        // 略略略</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#E1E4E8"> c </span><span style="color:#F97583">:=</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">n.status: </span><span style="color:#6A737D">// TODO: 好像也是状态变更？？？</span></span>
+<span class="line"><span style="color:#E1E4E8">        c </span><span style="color:#F97583">&#x3C;-</span><span style="color:#B392F0"> getStatus</span><span style="color:#E1E4E8">(r)</span></span>
+<span class="line"><span style="color:#F97583">    case</span><span style="color:#F97583"> &#x3C;-</span><span style="color:#E1E4E8">n.stop: </span><span style="color:#6A737D">// 那就是stop咯</span></span>
+<span class="line"><span style="color:#B392F0">        close</span><span style="color:#E1E4E8">(n.done)</span></span>
+<span class="line"><span style="color:#F97583">        return</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>大致的几个分支部分</p> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>clickhouse 实践 | Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> January 15, 2022 </time> <h1 class="post-title" data-astro-cid-rl3favg5>clickhouse 实践</h1> <div class="post-meta" data-astro-cid-rl3favg5>  <div class="meta-item tags" data-astro-cid-rl3favg5> <span class="tag" data-astro-cid-rl3favg5>#data</span> </div> </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p><a href="https://zhuanlan.zhihu.com/p/419864799">原文链接</a></p>
+<p><a href="https://presentations.clickhouse.com/bdtc_2019/#cover">PPT</a></p>
+<p>目标:</p>
+<ul>
+<li>filter and aggregate as fast as possible</li>
+<li>GROUP BY</li>
+</ul>
+<p>设计方式:</p>
+<ul>
+<li>
+<p>NOT top-down</p>
+</li>
+<li>
+<p>基于硬件能力设计</p>
+</li>
+<li>
+<ul>
+<li>we will do GROUP BY in memory</li>
+<li>will put all data in a hash table</li>
+<li>if the hash table is large, it will not fit in L3 cache of CPU</li>
+<li>if the values of GROUP BY keys are not distributed locally, then we have L3 cache miss for every row in a table</li>
+<li>L3 cache miss has 70..100 ns latency</li>
+<li>How many keys per second we can process?</li>
+</ul>
+</li>
+</ul>
+<p>基于硬件设计，内存，cpu，cache，从底层的角度入手，而非单纯的软件角度在外围在处理。。。</p>
+<ul>
+<li>
+<p>解决一个问题，要分场景，不同场景有不同解决方案</p>
+</li>
+<li>
+<ul>
+<li>Hash Table</li>
+<li>memcpy</li>
+<li>甚至对于小规模数据，有一个特化版本, memcpySmallAllowReadWriteOverflow15</li>
+<li>不排斥新算法，选取实际效果最优的</li>
+</ul>
+</li>
+<li>
+<p>对于不同数据规模，有不同的实现</p>
+</li>
+<li>
+<ul>
+<li>
+<p>quantileTiming</p>
+</li>
+<li>
+<p>uniqCombined</p>
+</li>
+<li>
+<ul>
+<li>小规模: flat array</li>
+<li>中规模: hash table</li>
+<li>极大规模: HyperLogLog</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>keep in mind low-level details when designing your system</li>
+<li>design based on hardware capabilities</li>
+<li>choose data structures and abstractions based on the needs of the task</li>
+<li>provide specializations for special cases</li>
+<li>try the new, “best” algorithms, that you read about yesterday</li>
+<li>choose algorithm in runtime based on statistics</li>
+<li>benchmark on real datasets</li>
+<li>test for performance regressions in CI</li>
+<li>measure and observe everything</li>
+<li>even in production environment</li>
+<li>and rewrite code all the time</li>
+</ul>
+</li>
+<li></li>
+<li></li>
+</ul>
+<p>基于硬件的设计，是很大的一个看重点</p>
+<p>merge tree，定期合并碎片化文件</p>
+<img src="https://tva1.sinaimg.cn/large/008i3skNly1gyi3gqx8y8j314e0dkgnj.jpg" alt="image-20220118195126518" style="zoom:50%;">
+<p>存储与计算分离的思考模式？</p>
+<p>最开始单纯就是解决group by 问题</p>
+<p>算法是最重要，抽象性是其次的，也就是性能是最重要的，普适性并不是一开始考虑的</p> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

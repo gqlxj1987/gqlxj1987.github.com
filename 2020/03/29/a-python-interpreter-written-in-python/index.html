@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>a python interpreter written in python | Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> March 29, 2020 </time> <h1 class="post-title" data-astro-cid-rl3favg5>a python interpreter written in python</h1> <div class="post-meta" data-astro-cid-rl3favg5>  <div class="meta-item tags" data-astro-cid-rl3favg5> <span class="tag" data-astro-cid-rl3favg5>#python</span> </div> </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p><a href="https://qingyunha.github.io/taotao/">原文链接</a></p>
+<p>词法分析，语法解析和编译</p>
+<p>Byterun</p>
+<p>Python解释器是一个<em>字节码解释器</em>：它的输入是一些命令集合称作<em>字节码</em>。当你写Python代码时，词法分析器，语法解析器和编译器生成code object让解释器去操作。每个code object都包含一个要被执行的指令集合 --- 它就是字节码 --- 另外还有一些解释器需要的信息。字节码是Python代码的一个<em>中间层表示</em>：它以一种解释器可以理解的方式来表示源代码。这和汇编语言作为C语言和机器语言的中间表示很类似。</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>what_to_execute = {</span></span>
+<span class="line"><span>    "instructions": [("LOAD_VALUE", 0),  # the first number</span></span>
+<span class="line"><span>                     ("LOAD_VALUE", 1),  # the second number</span></span>
+<span class="line"><span>                     ("ADD_TWO_VALUES", None),</span></span>
+<span class="line"><span>                     ("PRINT_ANSWER", None)],</span></span>
+<span class="line"><span>    "numbers": [7, 5] }</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>对于指令集的解释器</p>
+<p>Python的动态方法查找</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#F97583">def</span><span style="color:#B392F0"> execute</span><span style="color:#E1E4E8">(self, what_to_execute):</span></span>
+<span class="line"><span style="color:#E1E4E8">        instructions </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> what_to_execute[</span><span style="color:#9ECBFF">"instructions"</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> each_step </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> instructions:</span></span>
+<span class="line"><span style="color:#E1E4E8">            instruction, argument </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> each_step</span></span>
+<span class="line"><span style="color:#E1E4E8">            argument </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8">.parse_argument(instruction, argument, what_to_execute)</span></span>
+<span class="line"><span style="color:#E1E4E8">            bytecode_method </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> getattr</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">, instruction)</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> argument </span><span style="color:#F97583">is</span><span style="color:#79B8FF"> None</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                bytecode_method()</span></span>
+<span class="line"><span style="color:#F97583">            else</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                bytecode_method(argument)</span></span>
+<span class="line"></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="shell"><code><span class="line"><span style="color:#E1E4E8">>>> </span><span style="color:#B392F0">dis.dis(cond</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">  2</span><span style="color:#79B8FF">           0</span><span style="color:#9ECBFF"> LOAD_CONST</span><span style="color:#79B8FF">               1</span><span style="color:#E1E4E8"> (3)</span></span>
+<span class="line"><span style="color:#B392F0">              3</span><span style="color:#9ECBFF"> STORE_FAST</span><span style="color:#79B8FF">               0</span><span style="color:#E1E4E8"> (x)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">  3</span><span style="color:#79B8FF">           6</span><span style="color:#9ECBFF"> LOAD_FAST</span><span style="color:#79B8FF">                0</span><span style="color:#E1E4E8"> (x)</span></span>
+<span class="line"><span style="color:#B392F0">              9</span><span style="color:#9ECBFF"> LOAD_CONST</span><span style="color:#79B8FF">               2</span><span style="color:#E1E4E8"> (5)</span></span>
+<span class="line"><span style="color:#B392F0">             12</span><span style="color:#9ECBFF"> COMPARE_OP</span><span style="color:#79B8FF">               0</span><span style="color:#E1E4E8"> (&#x3C;)</span></span>
+<span class="line"><span style="color:#B392F0">             15</span><span style="color:#9ECBFF"> POP_JUMP_IF_FALSE</span><span style="color:#79B8FF">       22</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">  4</span><span style="color:#79B8FF">          18</span><span style="color:#9ECBFF"> LOAD_CONST</span><span style="color:#79B8FF">               3</span><span style="color:#E1E4E8"> (</span><span style="color:#9ECBFF">'yes'</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">             21</span><span style="color:#9ECBFF"> RETURN_VALUE</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">  6</span><span style="color:#F97583">     >></span><span style="color:#79B8FF">   22</span><span style="color:#9ECBFF"> LOAD_CONST</span><span style="color:#79B8FF">               4</span><span style="color:#E1E4E8"> (</span><span style="color:#9ECBFF">'no'</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">             25</span><span style="color:#9ECBFF"> RETURN_VALUE</span></span>
+<span class="line"><span style="color:#B392F0">             26</span><span style="color:#9ECBFF"> LOAD_CONST</span><span style="color:#79B8FF">               0</span><span style="color:#E1E4E8"> (None)</span></span>
+<span class="line"><span style="color:#B392F0">             29</span><span style="color:#9ECBFF"> RETURN_VALUE</span></span>
+<span class="line"></span></code></pre>
+<p>采用python的dis模块，反编译代码部分</p>
+<p>我们已经知道了Python虚拟机是一个栈机器。它能顺序执行指令，在指令间跳转，压入或弹出栈值</p>
+<p>每个frame只有一个code object与之关联，而一个code object可以很多frame。调用栈中的每个frame都有它自己的数据栈和块栈。</p>
+<p>Python真的很少依赖于每个frame有一个数据栈这个特性。在Python中几乎所有的操作都会清空数据栈，所以所有的frame公用一个数据栈是没问题的？</p>
+<p>Byterun中有四种对象。</p>
+<ul>
+<li><code>VirtualMachine</code>类，它管理高层结构，frame调用栈，指令到操作的映射。这是一个比前面<code>Inteprter</code>对象更复杂的版本。</li>
+<li><code>Frame</code>类，每个<code>Frame</code>类都有一个code object，并且管理者其他一些必要的状态信息，全局和局部命名空间，指向调用它的frame的指针和最后执行的字节码指令。</li>
+<li><code>Function</code>类，它被用来代替真正的Python函数。回想一下，调用函数时会创建一个新的frame。我们自己实现<code>Function</code>，所以我们控制新frame的创建。</li>
+<li><code>Block</code>类，它只是包装了代码块的3个属性。（代码块的细节不是解释器的核心，我们不会花时间在它身上，把它列在这里，是因为Byterun需要它。）</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> VirtualMachineError</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">Exception</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#F97583">    pass</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> VirtualMachine</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">object</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#79B8FF"> __init__</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.frames </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []   </span><span style="color:#6A737D"># The call stack of frames.</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.frame </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> None</span><span style="color:#6A737D">  # The current frame.</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.return_value </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> None</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.last_exception </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> None</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> run_code</span><span style="color:#E1E4E8">(self, code, global_names</span><span style="color:#F97583">=</span><span style="color:#79B8FF">None</span><span style="color:#E1E4E8">, local_names</span><span style="color:#F97583">=</span><span style="color:#79B8FF">None</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#9ECBFF">        """ An entry point to execute code using the virtual machine."""</span></span>
+<span class="line"><span style="color:#E1E4E8">        frame </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8">.make_frame(code, </span><span style="color:#FFAB70">global_names</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">global_names, </span></span>
+<span class="line"><span style="color:#FFAB70">                                local_names</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">local_names)</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.run_frame(frame)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> parse_byte_and_args</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#E1E4E8">        f </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8">.frame</span></span>
+<span class="line"><span style="color:#E1E4E8">        opoffset </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.last_instruction</span></span>
+<span class="line"><span style="color:#E1E4E8">        byteCode </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.code_obj.co_code[opoffset]</span></span>
+<span class="line"><span style="color:#E1E4E8">        f.last_instruction </span><span style="color:#F97583">+=</span><span style="color:#79B8FF"> 1</span></span>
+<span class="line"><span style="color:#E1E4E8">        byte_name </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dis.opname[byteCode]</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> byteCode </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> dis.</span><span style="color:#79B8FF">HAVE_ARGUMENT</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#6A737D">            # index into the bytecode</span></span>
+<span class="line"><span style="color:#E1E4E8">            arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.code_obj.co_code[f.last_instruction:f.last_instruction</span><span style="color:#F97583">+</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">]  </span></span>
+<span class="line"><span style="color:#E1E4E8">            f.last_instruction </span><span style="color:#F97583">+=</span><span style="color:#79B8FF"> 2</span><span style="color:#6A737D">   # advance the instruction pointer</span></span>
+<span class="line"><span style="color:#E1E4E8">            arg_val </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> arg[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> (arg[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">*</span><span style="color:#79B8FF"> 256</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> byteCode </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> dis.hasconst:   </span><span style="color:#6A737D"># Look up a constant</span></span>
+<span class="line"><span style="color:#E1E4E8">                arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.code_obj.co_consts[arg_val]</span></span>
+<span class="line"><span style="color:#F97583">            elif</span><span style="color:#E1E4E8"> byteCode </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> dis.hasname:  </span><span style="color:#6A737D"># Look up a name</span></span>
+<span class="line"><span style="color:#E1E4E8">                arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.code_obj.co_names[arg_val]</span></span>
+<span class="line"><span style="color:#F97583">            elif</span><span style="color:#E1E4E8"> byteCode </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> dis.haslocal: </span><span style="color:#6A737D"># Look up a local name</span></span>
+<span class="line"><span style="color:#E1E4E8">                arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.code_obj.co_varnames[arg_val]</span></span>
+<span class="line"><span style="color:#F97583">            elif</span><span style="color:#E1E4E8"> byteCode </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> dis.hasjrel:  </span><span style="color:#6A737D"># Calculate a relative jump</span></span>
+<span class="line"><span style="color:#E1E4E8">                arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> f.last_instruction </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> arg_val</span></span>
+<span class="line"><span style="color:#F97583">            else</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                arg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> arg_val</span></span>
+<span class="line"><span style="color:#E1E4E8">            argument </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> [arg]</span></span>
+<span class="line"><span style="color:#F97583">        else</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            argument </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> byte_name, argument</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> Frame</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">object</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#79B8FF"> __init__</span><span style="color:#E1E4E8">(self, code_obj, global_names, local_names, prev_frame):</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.code_obj </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> code_obj</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.global_names </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> global_names</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.local_names </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> local_names</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.prev_frame </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> prev_frame</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.stack </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> prev_frame:</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.builtin_names </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> prev_frame.builtin_names</span></span>
+<span class="line"><span style="color:#F97583">        else</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.builtin_names </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> local_names[</span><span style="color:#9ECBFF">'__builtins__'</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#79B8FF"> hasattr</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">.builtin_names, </span><span style="color:#9ECBFF">'__dict__'</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#79B8FF">                self</span><span style="color:#E1E4E8">.builtin_names </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8">.builtin_names.</span><span style="color:#79B8FF">__dict__</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.last_instruction </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.block_stack </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"></span>
+<span class="line"></span></code></pre>
+<p>Function部分，重要的是当调用函数时 --- <code>__call__</code>方法被调用 --- 它创建一个新的<code>Frame</code>并运行它。</p>
+<p><code>parse_byte_and_args</code>,以一个字节码为输入，先检查它是否有参数，如果有，就解析它的参数。这个方法同时也更新frame的<code>last_instruction</code>属性，它指向最后执行的指令。一条没有参数的指令只有一个字节长度，而有参数的字节有3个字节长。参数的意义依赖于指令是什么。比如，前面说过，指令<code>POP_JUMP_IF_FALSE</code>,它的参数指的是跳转目标。<code>BUILD_LIST</code>, 它的参数是列表的个数。<code>LOAD_CONST</code>,它的参数是常量的索引。</p>
+<p>我们会为每一个字节码名字定义一个方法，然后用<code>getattr</code>来查找。通过dispatcher来进行分发相应的规则</p>
+<p>Block部分，一个块被用于某种控制流，特别是异常处理和循环。它负责保证当操作完成后数据栈处于正确的状态。</p>
+<p>动态类型带来的问题，就是很多情况下无法进行优化</p> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

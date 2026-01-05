@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>The Dataflow Model | Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> September 9, 2019 </time> <h1 class="post-title" data-astro-cid-rl3favg5>The Dataflow Model</h1> <div class="post-meta" data-astro-cid-rl3favg5>  <div class="meta-item tags" data-astro-cid-rl3favg5> <span class="tag" data-astro-cid-rl3favg5>#data</span> </div> </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p><a href="http://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf">论文地址</a></p>
+<p>针对Unbounded, unordered, global-scale datasets, 考虑correctness, latency, and cost</p>
+<p>举的例子，流式视频的广告投放问题</p>
+<p>关于数据处理的几个重点：</p>
+<ul>
+<li>exactly-once semantics</li>
+<li>temporal primitives necessary for windowing, not provide windowing semantics that are limited totuple- or processing-time-based windows</li>
+<li>provide event-time-based windowing either rely on ordering (SQLStream [27]),or have limited window triggering3semantics in event-timemode (Stratosphere/Flink)</li>
+</ul>
+<p>a single unified model</p>
+<ul>
+<li>Allows for the calculation of event-time5ordered re-sults, windowed by features of the data themselves,over an unbounded, unordered data source, with cor-rectness, latency, and cost tunable across a broad spec-trum of combinations</li>
+<li>Decomposes pipeline implementation across four re-lated dimensions, providing clarity, composability, andflexibility:
+<ul>
+<li>– Whatresults are being computed.</li>
+<li>– Wherein event time they are being computed.</li>
+<li>– Whenin processing time they are materialized.</li>
+<li>– Howearlier results relate to later refinements.</li>
+</ul>
+</li>
+<li>Separates the logical notion of data processing fromthe underlying physical implementation, allowing thechoice of batch, micro-batch, or streaming engine tobecome one of simply correctness, latency, and cost</li>
+</ul>
+<p>那么总结起来：</p>
+<ul>
+<li>a window model</li>
+<li>a triggering model</li>
+<li>a incremental processing model</li>
+<li>scalable implements</li>
+</ul>
+<h3 id="window">Window</h3>
+<p>When dealing with unbounded data,windowing is required for some operations (to delineate fi-nite boundaries in most forms of grouping: aggregation,outer joins, time-bounded operations, etc.), and unneces-sary for others (filtering, mapping, inner joins, etc.).</p>
+<ul>
+<li>Fixed，静态window</li>
+<li>Sliding，滑动窗口</li>
+<li>Sessions，windows that capture some period of activ-ity over a subset of the data，按照key以及timeout来计算</li>
+</ul>
+<p>(particularly time management [28] and semantic models [9], but alsowindowing [22], out-of-order processing [23], punctuations[30], heartbeats [21], watermarks [2], frames)</p>
+<h3 id="data-flow-model">DATA FLOW MODEL</h3>
+<p>核心要素：</p>
+<ul>
+<li>ParDo, Each input ele-ment to be processed (which itself may be a finite col-lection) is provided to a user-defined function (calledaDoFnin Dataflow), which can yield zero or more out-put elements per input. (多输出设定？)</li>
+<li>GroupByKey, key-grouping (key, value) pairs</li>
+</ul>
+<p>可map也可以reduce</p>
+<ul>
+<li>support for un-aligned windows, for which there are two key insights. Thefirst is that it is simpler to treat all windowing strategiesas unaligned from the perspective of the model, and allowunderlying implementations to apply optimizations relevantto the aligned cases where applicable.</li>
+<li>windowing can be broken apart into two related operations: assignWindow and mergedWindow</li>
+</ul>
+<p>pass (key, value, eventtime, window) 4-tuples</p>
+<p>window assign->window merge:</p>
+<ul>
+<li>DropTimestamps- Drops element timestamps, asonly the window is relevant from here on out9.</li>
+<li>GroupByKey- Groups (value, window) tuples by key.</li>
+<li>MergeWindows- Merges the set of currently bufferedwindows for a key. The actual merge logic is definedby the windowing strategy. In this case, the windowsforv1andv4overlap, so the sessions windowing strat-egy merges them into a single new, larger session, asindicated in bold.</li>
+<li>GroupAlsoByWindow- For each key, groups valuesby window. After merging in the prior step,v1andv4are now in identical windows, and thus are groupedtogether at this step</li>
+<li>ExpandToElements- Expands per-key, per-windowgroups of values into (key, value, eventtime, window)tuples, with new per-window timestamps. In this ex-ample, we set the timestamp to the end of the window,but any timestamp greater than or equal to the times-tamp of the earliest event in the window is valid withrespect to watermark correctness</li>
+</ul>
+<img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6w0hvyzo5j30ne18ojy5.jpg" style="zoom:40%">
+<p>有关watermarks，too fast or too slow</p>
+<p>A useful insight in addressing the complete-ness problem is that the Lambda Architecture effectivelysidesteps the issue: it does not solve the completeness prob-lem by somehow providing correct answers faster; it simplyprovides the best low-latency estimate of a result that thestreaming pipeline can provide, with the promise of eventualconsistency and correctness once the batch pipeline runs</p>
+<ul>
+<li>Windowing determines where in event time data are grouped together for processing.</li>
+<li>Triggering determines when in processing time the results of groupings are emitted as panes</li>
+</ul>
+<p>trigger同window的结合</p>
+<ul>
+<li>Discarding: Upon triggering, window contents arediscarded, and later results bear no relation to previ-ous results.</li>
+<li>Accumulating: Upon triggering, window contentsare left intact in persistent state, and later results be-come a refinement of previous results.</li>
+<li>Accumulating &#x26; Retracting: Upon triggering, inaddition to theAccumulatingsemantics, a copy of theemitted value is also stored in persistent state. Whenthe window triggers again in the future, a retraction forthe previous value will be emitted first, followed by thenew value as a normal datum(反馈+反向更新)</li>
+</ul>
+<p>design principles</p>
+<ul>
+<li>Never rely on any notion of completeness.</li>
+<li>Be flexible, to accommodate the diversity of known usecases, and those to come in the future.</li>
+<li>Not only make sense, but also add value, in the contextof each of the envisioned execution engines.</li>
+<li>Encourage clarity of implementation.•Support robust analysis of data in the context in whichthey occurred</li>
+</ul>
+<p>One particularly large log join pipeline runs in streamingmode on MillWheel by default, but has a separate Flume-Java batch implementation used for large scale backfills.</p> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

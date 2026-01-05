@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Build New Goroutine | Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> October 16, 2019 </time> <h1 class="post-title" data-astro-cid-rl3favg5>Build New Goroutine</h1> <div class="post-meta" data-astro-cid-rl3favg5>  <div class="meta-item tags" data-astro-cid-rl3favg5> <span class="tag" data-astro-cid-rl3favg5>#goroutine</span> </div> </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p><a href="https://taohuawu.club/high-performance-implementation-of-goroutine-pool">原文链接</a></p>
+<p>现在主流的线程模型分三种：内核级线程模型、用户级线程模型和两级线程模型（也称混合型线程模型），传统的协程库属于<strong>用户级线程模型</strong>，而goroutine和它的<code>Go Scheduler</code>在底层实现上其实是属于<strong>两级线程模型</strong></p>
+<p>内核调度实体（KSE，Kernel Scheduling Entity）</p>
+<p>用户线程与内核线程KSE是多对一（N : 1）的映射模型，多个用户线程的一般从属于单个进程并且多线程的调度是由用户自己的线程库来完成，线程的创建、销毁以及多线程之间的协调等操作都是由用户自己的线程库来负责而无须借助系统调用来实现。一个进程中所有创建的线程都只和同一个KSE在运行时动态绑定。但是，该模型有个原罪：并不能做到真正意义上的并发，假设在某个用户进程上的某个用户线程因为一个阻塞调用（比如I/O阻塞）而被CPU给中断（抢占式调度）了，那么该进程内的所有线程都被阻塞（因为单个用户进程内的线程自调度是没有CPU时钟中断的，从而没有轮转调度），整个进程被挂起。所以，很多的<strong>协程库</strong>会把自己一些阻塞的操作重新封装为完全的非阻塞形式，然后在以前要阻塞的点上，主动让出自己，并通过某种方式通知或唤醒其他待执行的用户线程在该KSE上运行，从而避免了内核调度器由于KSE阻塞而做上下文切换，这样整个进程也不会被阻塞了</p>
+<p>两级线程模型是博采众长之后的产物，充分吸收前两种线程模型的优点且尽量规避它们的缺点。在此模型下，用户线程与内核KSE是多对多（N : M）的映射模型：首先，区别于用户级线程模型，两级线程模型中的一个进程可以与多个内核线程KSE关联，也就是说一个进程内的多个线程可以分别绑定一个自己的KSE，这点和内核级线程模型相似；其次，又区别于内核级线程模型，它的进程里的线程并不与KSE唯一绑定，而是可以多个用户线程映射到同一个KSE，当某个KSE因为其绑定的线程的阻塞操作被内核调度出CPU时，其关联的进程中其余用户线程可以重新与其他KSE绑定运行。</p>
+<p>###G-P-M</p>
+<ul>
+<li>G: 表示Goroutine，每个Goroutine对应一个G结构体，G存储Goroutine的运行堆栈、状态以及任务函数，可重用。G并非执行体，每个G需要绑定到P才能被调度执行。</li>
+<li>P: Processor，表示逻辑处理器， 对G来说，P相当于CPU核，G只有绑定到P(在P的local runq中)才能被调度。对M来说，P提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等，P的数量决定了系统内最大可并行的G的数量（前提：物理CPU核数 >= P的数量），P的数量由用户设置的GOMAXPROCS决定，但是不论GOMAXPROCS设置为多大，P的数量最大为256。</li>
+<li>M: Machine，OS线程抽象，代表着真正执行计算的资源，在绑定有效的P后，进入schedule循环；而schedule循环的机制大致是从Global队列、P的Local队列以及wait队列中获取G，切换到G的执行栈上并执行G的函数，调用goexit做清理工作并回到M，如此反复。M并不保留G状态，这是G可以跨M调度的基础，M的数量是不定的，由Go Runtime调整，为了防止创建过多OS线程导致系统调度不过来，目前默认最大限制为10000个。</li>
+</ul>
+<p><a href="https://supertech.csail.mit.edu/papers/steal.pdf"><em>work-stealing</em></a>的调度算法：</p>
+<ul>
+<li>每个P维护一个G的本地队列；</li>
+<li>当一个G被创建出来，或者变为可执行状态时，就把他放到P的可执行队列中；</li>
+<li>当一个G在M里执行结束后，P会从队列中把该G取出；如果此时P的队列为空，即没有其他G可以执行， M就随机选择另外一个P，从其可执行的G队列中取走一半。</li>
+</ul>
+<p><strong>G-P-M模型的定义放在<code>src/runtime/runtime2.go</code>里面，而调度过程则放在了<code>src/runtime/proc.go</code>里。</strong></p>
+<p>起因：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#F97583">func</span><span style="color:#E1E4E8"> (</span><span style="color:#FFAB70">srv </span><span style="color:#F97583">*</span><span style="color:#B392F0">Server</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">Serve</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">l</span><span style="color:#B392F0"> net</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Listener</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">	defer</span><span style="color:#E1E4E8"> l.</span><span style="color:#B392F0">Close</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">	...</span></span>
+<span class="line"><span style="color:#6A737D">    // 不断循环取出TCP连接</span></span>
+<span class="line"><span style="color:#F97583">	for</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">        // 看我看我！！！</span></span>
+<span class="line"><span style="color:#E1E4E8">		rw, e </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> l.</span><span style="color:#B392F0">Accept</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">        ...</span></span>
+<span class="line"><span style="color:#6A737D">        // 再看我再看我！！！</span></span>
+<span class="line"><span style="color:#F97583">		go</span><span style="color:#E1E4E8"> c.</span><span style="color:#B392F0">serve</span><span style="color:#E1E4E8">(ctx)</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>请求大量，goroutine，起大量</p>
+<p>goroutine池化是有其现实意义的</p>
+<p>目的：实现一个Goroutine Pool，复用goroutine，减轻runtime的调度压力以及缓解内存压力，依托这些优化，在大规模goroutine并发的场景下可以极大地提高并发性能。</p>
+<blockquote>
+<p>启动服务之时先初始化一个 Goroutine Pool 池，这个Pool维护了一个类似栈的LIFO队列 ，里面存放负责处理任务的Worker，然后在client端提交task到Pool中之后，在Pool内部，接收task之后的核心操作是：</p>
+<ol>
+<li>检查当前Worker队列中是否有可用的Worker，如果有，取出执行当前的task；</li>
+<li>没有可用的Worker，判断当前在运行的Worker是否已超过该Pool的容量：{是 —> 再判断工作池是否为非阻塞模式：[是 ——> 直接返回 nil，否 ——> 阻塞等待直至有Worker被放回Pool]，否 —> 新开一个Worker（goroutine）处理}；</li>
+<li>每个Worker执行完任务之后，放回Pool的队列中等待。</li>
+</ol>
+</blockquote>
+<p>该任务在初始化一个Pool之时启动，每隔一定的时间间隔去检查空闲Worker队列中是否有已经过期的Worker，有则清理掉，通过定时清理过期worker，进一步节省系统资源。</p>
+<p>pool结构</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> sig</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8">{}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> f</span><span style="color:#F97583"> func</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">error</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Pool accept the tasks from client,it limits the total</span></span>
+<span class="line"><span style="color:#6A737D">// of goroutines to a given number by recycling goroutines.</span></span>
+<span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> Pool</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">	// capacity of the pool.</span></span>
+<span class="line"><span style="color:#E1E4E8">	capacity </span><span style="color:#F97583">int32</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	// running is the number of the currently running goroutines.</span></span>
+<span class="line"><span style="color:#E1E4E8">	running </span><span style="color:#F97583">int32</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	// expiryDuration set the expired time (second) of every worker.</span></span>
+<span class="line"><span style="color:#E1E4E8">	expiryDuration </span><span style="color:#B392F0">time</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Duration</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	// workers is a slice that store the available workers.</span></span>
+<span class="line"><span style="color:#E1E4E8">	workers []</span><span style="color:#F97583">*</span><span style="color:#B392F0">Worker</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	// release is used to notice the pool to closed itself.</span></span>
+<span class="line"><span style="color:#E1E4E8">	release </span><span style="color:#F97583">chan</span><span style="color:#B392F0"> sig</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	// lock for synchronous operation.</span></span>
+<span class="line"><span style="color:#E1E4E8">	lock </span><span style="color:#B392F0">sync</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Mutex</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">	once </span><span style="color:#B392F0">sync</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Once</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#6A737D">// get worker</span></span>
+<span class="line"><span style="color:#6A737D">// getWorker returns a available worker to run the tasks.</span></span>
+<span class="line"><span style="color:#F97583">func</span><span style="color:#E1E4E8"> (</span><span style="color:#FFAB70">p </span><span style="color:#F97583">*</span><span style="color:#B392F0">Pool</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">getWorker</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">*</span><span style="color:#B392F0">Worker</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">	var</span><span style="color:#E1E4E8"> w </span><span style="color:#F97583">*</span><span style="color:#B392F0">Worker</span></span>
+<span class="line"><span style="color:#6A737D">	// 标志变量，判断当前正在运行的worker数量是否已到达Pool的容量上限</span></span>
+<span class="line"><span style="color:#E1E4E8">	waiting </span><span style="color:#F97583">:=</span><span style="color:#79B8FF"> false</span></span>
+<span class="line"><span style="color:#6A737D">	// 加锁，检测队列中是否有可用worker，并进行相应操作</span></span>
+<span class="line"><span style="color:#E1E4E8">	p.lock.</span><span style="color:#B392F0">Lock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">	idleWorkers </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> p.workers</span></span>
+<span class="line"><span style="color:#E1E4E8">	n </span><span style="color:#F97583">:=</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(idleWorkers) </span><span style="color:#F97583">-</span><span style="color:#79B8FF"> 1</span></span>
+<span class="line"><span style="color:#6A737D">	// 当前队列中无可用worker</span></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> n </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">		// 判断运行worker数目已达到该Pool的容量上限，置等待标志</span></span>
+<span class="line"><span style="color:#E1E4E8">		waiting </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> p.</span><span style="color:#B392F0">Running</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> p.</span><span style="color:#B392F0">Cap</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">	// 当前队列有可用worker，从队列尾部取出一个使用</span></span>
+<span class="line"><span style="color:#E1E4E8">	} </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">		w </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[n]</span></span>
+<span class="line"><span style="color:#E1E4E8">		idleWorkers[n] </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> nil</span></span>
+<span class="line"><span style="color:#E1E4E8">		p.workers </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[:n]</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"><span style="color:#6A737D">	// 检测完成，解锁</span></span>
+<span class="line"><span style="color:#E1E4E8">	p.lock.</span><span style="color:#B392F0">Unlock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#6A737D">	// Pool容量已满，新请求等待</span></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> waiting {</span></span>
+<span class="line"><span style="color:#6A737D">		// 利用锁阻塞等待直到有空闲worker</span></span>
+<span class="line"><span style="color:#F97583">		for</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.lock.</span><span style="color:#B392F0">Lock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">			idleWorkers </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> p.workers</span></span>
+<span class="line"><span style="color:#E1E4E8">			l </span><span style="color:#F97583">:=</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(idleWorkers) </span><span style="color:#F97583">-</span><span style="color:#79B8FF"> 1</span></span>
+<span class="line"><span style="color:#F97583">			if</span><span style="color:#E1E4E8"> l </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">				p.lock.</span><span style="color:#B392F0">Unlock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">				continue</span></span>
+<span class="line"><span style="color:#E1E4E8">			}</span></span>
+<span class="line"><span style="color:#E1E4E8">			w </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[l]</span></span>
+<span class="line"><span style="color:#E1E4E8">			idleWorkers[l] </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> nil</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.workers </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[:l]</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.lock.</span><span style="color:#B392F0">Unlock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">			break</span></span>
+<span class="line"><span style="color:#E1E4E8">		}</span></span>
+<span class="line"><span style="color:#6A737D">	// 当前无空闲worker但是Pool还没有满，</span></span>
+<span class="line"><span style="color:#6A737D">	// 则可以直接新开一个worker执行任务</span></span>
+<span class="line"><span style="color:#E1E4E8">	} </span><span style="color:#F97583">else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> w </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> nil</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">		w </span><span style="color:#F97583">=</span><span style="color:#F97583"> &#x26;</span><span style="color:#B392F0">Worker</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#E1E4E8">			pool: p,</span></span>
+<span class="line"><span style="color:#E1E4E8">			task: </span><span style="color:#B392F0">make</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">chan</span><span style="color:#B392F0"> f</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">		}</span></span>
+<span class="line"><span style="color:#E1E4E8">		w.</span><span style="color:#B392F0">run</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#6A737D">        // 运行worker数加一</span></span>
+<span class="line"><span style="color:#E1E4E8">		p.</span><span style="color:#B392F0">incRunning</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"><span style="color:#F97583">	return</span><span style="color:#E1E4E8"> w</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>定期清理goroutine</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#6A737D">// clear expired workers periodically.</span></span>
+<span class="line"><span style="color:#F97583">func</span><span style="color:#E1E4E8"> (</span><span style="color:#FFAB70">p </span><span style="color:#F97583">*</span><span style="color:#B392F0">Pool</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">periodicallyPurge</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">	heartbeat </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> time.</span><span style="color:#B392F0">NewTicker</span><span style="color:#E1E4E8">(p.expiryDuration)</span></span>
+<span class="line"><span style="color:#F97583">	for</span><span style="color:#F97583"> range</span><span style="color:#E1E4E8"> heartbeat.C {</span></span>
+<span class="line"><span style="color:#E1E4E8">		currentTime </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> time.</span><span style="color:#B392F0">Now</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">		p.lock.</span><span style="color:#B392F0">Lock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">		idleWorkers </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> p.workers</span></span>
+<span class="line"><span style="color:#F97583">		if</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(idleWorkers) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> p.</span><span style="color:#B392F0">Running</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(p.release) </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.lock.</span><span style="color:#B392F0">Unlock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">			return</span></span>
+<span class="line"><span style="color:#E1E4E8">		}</span></span>
+<span class="line"><span style="color:#E1E4E8">		n </span><span style="color:#F97583">:=</span><span style="color:#79B8FF"> 0</span></span>
+<span class="line"><span style="color:#F97583">		for</span><span style="color:#E1E4E8"> i, w </span><span style="color:#F97583">:=</span><span style="color:#F97583"> range</span><span style="color:#E1E4E8"> idleWorkers {</span></span>
+<span class="line"><span style="color:#F97583">			if</span><span style="color:#E1E4E8"> currentTime.</span><span style="color:#B392F0">Sub</span><span style="color:#E1E4E8">(w.recycleTime) </span><span style="color:#F97583">&#x3C;=</span><span style="color:#E1E4E8"> p.expiryDuration {</span></span>
+<span class="line"><span style="color:#F97583">				break</span></span>
+<span class="line"><span style="color:#E1E4E8">			}</span></span>
+<span class="line"><span style="color:#E1E4E8">			n </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> i</span></span>
+<span class="line"><span style="color:#E1E4E8">			w.task </span><span style="color:#F97583">&#x3C;-</span><span style="color:#79B8FF"> nil</span></span>
+<span class="line"><span style="color:#E1E4E8">			idleWorkers[i] </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> nil</span></span>
+<span class="line"><span style="color:#E1E4E8">		}</span></span>
+<span class="line"><span style="color:#E1E4E8">		n</span><span style="color:#F97583">++</span></span>
+<span class="line"><span style="color:#F97583">		if</span><span style="color:#E1E4E8"> n </span><span style="color:#F97583">>=</span><span style="color:#B392F0"> len</span><span style="color:#E1E4E8">(idleWorkers) {</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.workers </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[:</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#E1E4E8">		} </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">			p.workers </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> idleWorkers[n:]</span></span>
+<span class="line"><span style="color:#E1E4E8">		}</span></span>
+<span class="line"><span style="color:#E1E4E8">		p.lock.</span><span style="color:#B392F0">Unlock</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>Goroutine Pool真正的价值还是在：</p>
+<ol>
+<li>限制并发的goroutine数量；</li>
+<li>复用goroutine，减轻runtime调度压力，提升程序性能；</li>
+<li>规避过多的goroutine侵占系统资源（CPU&#x26;内存）。</li>
+</ol> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 

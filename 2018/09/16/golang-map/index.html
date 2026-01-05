@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.16.19"><title>Blog</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet"><style>:root{--primary: #2563eb;--text-main: #1f2937;--text-muted: #6b7280;--bg-main: #ffffff;--bg-secondary: #f9fafb;--border: #e5e7eb;--max-width: 800px;--font-sans: "Inter", system-ui, -apple-system, sans-serif;--font-mono: "JetBrains Mono", monospace}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-sans);color:var(--text-main);background-color:var(--bg-main);line-height:1.6;-webkit-font-smoothing:antialiased}.app-container{display:flex;flex-direction:column;min-height:100vh}.navbar{border-bottom:1px solid var(--border);position:sticky;top:0;background:#fffc;backdrop-filter:blur(8px);z-index:100}.nav-content{max-width:var(--max-width);margin:0 auto;padding:1rem;display:flex;justify-content:space-between;align-items:center}.logo{text-decoration:none;color:var(--text-main);font-weight:800;font-size:1.5rem}.nav-links{list-style:none;display:flex;gap:1.5rem}.nav-links a{text-decoration:none;color:var(--text-muted);font-size:.95rem;font-weight:500;transition:color .2s}.nav-links a:hover{color:var(--primary)}.main-content{flex:1;max-width:var(--max-width);margin:0 auto;width:100%;padding:3rem 1rem}.footer{border-top:1px solid var(--border);background:var(--bg-secondary);padding:2rem 1rem;margin-top:4rem}.footer-content{max-width:var(--max-width);margin:0 auto;text-align:center;color:var(--text-muted);font-size:.9rem}.post-content h1,.post-content h2,.post-content h3{margin-top:2.5rem;margin-bottom:1rem;line-height:1.3}.post-content p{margin-bottom:1.5rem}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:2rem 0}.post-content pre{border-radius:8px;padding:1.25rem;margin-bottom:2rem;font-family:var(--font-mono);font-size:.9rem;overflow-x:auto}.post-content code:not(pre code){background:var(--bg-secondary);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-mono);font-size:.9em}.post-content blockquote{border-left:4px solid var(--primary);padding-left:1.5rem;font-style:italic;color:var(--text-muted);margin:2rem 0}.post-content ul,.post-content ol{margin-bottom:1.5rem;padding-left:1.5rem}.post-content li{margin-bottom:.5rem}
+.post-header[data-astro-cid-rl3favg5]{margin-bottom:4rem;text-align:center}.post-date[data-astro-cid-rl3favg5]{display:block;font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:1rem}.post-title[data-astro-cid-rl3favg5]{font-size:3rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;letter-spacing:-.025em}.post-meta[data-astro-cid-rl3favg5]{display:flex;justify-content:center;gap:1.5rem;font-size:.95rem;color:var(--text-muted)}.tag[data-astro-cid-rl3favg5]{color:var(--primary);margin-right:.5rem}@media (max-width: 640px){.post-title[data-astro-cid-rl3favg5]{font-size:2rem}}
+</style></head> <body> <div class="app-container"> <header class="navbar"> <div class="nav-content"> <a href="/" class="logo"> <span class="logo-text">Blog</span> </a> <nav> <ul class="nav-links"> <li><a href="/">Home</a></li> <li><a href="/archive">Archive</a></li> <li><a href="/about">About</a></li> </ul> </nav> </div> </header> <main class="main-content">  <article class="post" data-astro-cid-rl3favg5> <header class="post-header" data-astro-cid-rl3favg5> <time class="post-date" data-astro-cid-rl3favg5> September 16, 2018 </time> <h1 class="post-title" data-astro-cid-rl3favg5></h1> <div class="post-meta" data-astro-cid-rl3favg5>   </div> </header> <div class="post-content" data-astro-cid-rl3favg5> <p>title: Golang Map efficiently vs other language
+date: 2018-09-16 15:35:13
+categories: golang</p>
+<h2 id="tags-golang">tags: [golang]</h2>
+<p><a href="https://dave.cheney.net/2018/05/29/how-the-go-runtime-implements-maps-efficiently-without-generics">原文链接</a></p>
+<p>主要是介绍没有泛型的情况下，hashmap实现上的一些高效考虑</p>
+<h3 id="gos-map-is-a-hashmap">Go’s map is a hashmap</h3>
+<p>hash function</p>
+<ul>
+<li>The first is <em>stability</em>. The hash function must be stable. Given the same key, your hash function must return the same answer</li>
+<li>The second property is <em>good distribution</em>. Given two near identical keys, the result should be wildly different</li>
+</ul>
+<p>In this case our hashmap has eight buckets (as this is the value that the Go implementation uses) and each bucket can hold up to eight entries each (again drawn from the Go implementation)</p>
+<p><img src="https://dave.cheney.net/wp-content/uploads/2018/05/Gocon-2018-Maps.021-624x351.png" alt=""></p>
+<p><img src="https://dave.cheney.net/wp-content/uploads/2018/05/Screen-Shot-2018-05-20-at-20.25.36-624x351.png" alt="insert process"></p>
+<h3 id="a-hash-map-four-properties">a hash map four properties</h3>
+<ol>
+<li>You need a hash function for the key.</li>
+<li>You need an equality function to compare keys.</li>
+<li>You need to know the size of the key and,</li>
+<li>You need to know the size of the value because these affect the size of the bucket structure, which the compiler needs to know, as you walk or insert into that structure, how far to advance in memory.</li>
+</ol>
+<h4 id="java">java</h4>
+<p>boxing: boolean<code>, </code>int<code>, </code>short<code>, </code>long<code>, </code>byte<code>, </code>char<code>, </code>float<code>, and </code>double  to java.lang.Object</p>
+<h4 id="c同java实现hashmap的优缺点">c++同java实现hashmap的优缺点</h4>
+<h5 id="c">c++</h5>
+<ul>
+<li>key和value的大小，在compile阶段就知道</li>
+<li>可以进行inlineing</li>
+<li>速度快</li>
+<li>编译和代码上慢，要有不同的types</li>
+</ul>
+<h5 id="java-1">java</h5>
+<ul>
+<li>天然有泛型的含义，一切都是object</li>
+<li>同样也是缺点，boxing等方式，会增大gc的概率</li>
+<li>Buckets are stored as linked lists, not sequential arrays</li>
+</ul>
+<h3 id="golang的实现">golang的实现</h3>
+<p>While we have the <code>container/{list,heap}</code> packages which do use the empty interface, the runtime’s map implementation does not use <code>interface{}</code>.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#E1E4E8">v </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> m[</span><span style="color:#9ECBFF">"key"</span><span style="color:#E1E4E8">]     → runtime.</span><span style="color:#B392F0">mapaccess1</span><span style="color:#E1E4E8">(m, ”key</span><span style="color:#9ECBFF">", &#x26;v)</span></span>
+<span class="line"><span style="color:#9ECBFF">v, ok := m["</span><span style="color:#E1E4E8">key</span><span style="color:#9ECBFF">"] → runtime.mapaccess2(m, ”key”, &#x26;v, &#x26;ok)</span></span>
+<span class="line"><span style="color:#9ECBFF">m["</span><span style="color:#E1E4E8">key</span><span style="color:#9ECBFF">"] = 9001   → runtime.mapinsert(m, ”key"</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">9001</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">delete</span><span style="color:#E1E4E8">(m, </span><span style="color:#9ECBFF">"key"</span><span style="color:#E1E4E8">)  → runtime.</span><span style="color:#B392F0">mapdelete</span><span style="color:#E1E4E8">(m, “key”)</span></span>
+<span class="line"></span></code></pre>
+<p>实际上针对channel的操作？</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#F97583">func</span><span style="color:#B392F0"> mapaccess1</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">t</span><span style="color:#F97583"> *</span><span style="color:#B392F0">maptype</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">h</span><span style="color:#F97583"> *</span><span style="color:#B392F0">hmap</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">key</span><span style="color:#B392F0"> unsafe</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Pointer</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">unsafe</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Pointer</span></span>
+<span class="line"></span></code></pre>
+<p>在mapaccess中，指明maptype，不同于c++部分针对所有的map有不同的实现，golang部分，在compile阶段生成maptype字段</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#F97583">type</span><span style="color:#B392F0"> maptype</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        typ           </span><span style="color:#B392F0">_type</span></span>
+<span class="line"><span style="color:#E1E4E8">        key         </span><span style="color:#F97583">*</span><span style="color:#B392F0">_type</span></span>
+<span class="line"><span style="color:#E1E4E8">        elem        </span><span style="color:#F97583">*</span><span style="color:#B392F0">_type</span></span>
+<span class="line"><span style="color:#E1E4E8">        bucket        </span><span style="color:#F97583">*</span><span style="color:#B392F0">_type</span><span style="color:#6A737D"> // internal type representing a hash bucket </span></span>
+<span class="line"><span style="color:#E1E4E8">        hmap          </span><span style="color:#F97583">*</span><span style="color:#B392F0">_type</span><span style="color:#6A737D"> // internal type representing a hmap</span></span>
+<span class="line"><span style="color:#E1E4E8">        keysize       </span><span style="color:#F97583">uint8</span><span style="color:#6A737D">  // size of key slot</span></span>
+<span class="line"><span style="color:#E1E4E8">        indirectkey   </span><span style="color:#F97583">bool</span><span style="color:#6A737D">   // store ptr to key instead of key itself</span></span>
+<span class="line"><span style="color:#E1E4E8">        valuesize     </span><span style="color:#F97583">uint8</span><span style="color:#6A737D">  // size of value slot</span></span>
+<span class="line"><span style="color:#E1E4E8">        indirectvalue </span><span style="color:#F97583">bool</span><span style="color:#6A737D">   // store ptr to value instead of value itself</span></span>
+<span class="line"><span style="color:#E1E4E8">        bucketsize    </span><span style="color:#F97583">uint16</span><span style="color:#6A737D"> // size of bucket</span></span>
+<span class="line"><span style="color:#E1E4E8">        reflexivekey  </span><span style="color:#F97583">bool</span><span style="color:#6A737D">   // true if k==k for all keys</span></span>
+<span class="line"><span style="color:#E1E4E8">        needkeyupdate </span><span style="color:#F97583">bool</span><span style="color:#6A737D">   // true if we need to update key on overwrite </span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>mapaccess的功能如下：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#6A737D">// mapaccess1 returns a pointer to h[key].  Never returns nil, instead </span></span>
+<span class="line"><span style="color:#6A737D">// it will return a reference to the zero object for the value type if </span></span>
+<span class="line"><span style="color:#6A737D">// the key is not in the map.</span></span>
+<span class="line"><span style="color:#F97583">func</span><span style="color:#B392F0"> mapaccess1</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">t</span><span style="color:#F97583"> *</span><span style="color:#B392F0">maptype</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">h</span><span style="color:#F97583"> *</span><span style="color:#B392F0">hmap</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">key</span><span style="color:#B392F0"> unsafe</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Pointer</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">unsafe</span><span style="color:#E1E4E8">.</span><span style="color:#B392F0">Pointer</span><span style="color:#E1E4E8"> { </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> h </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> nil</span><span style="color:#F97583"> ||</span><span style="color:#E1E4E8"> h.count </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#E1E4E8"> unsafe.</span><span style="color:#B392F0">Pointer</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">zeroVal[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">]) </span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        alg </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> t.key.alg</span></span>
+<span class="line"><span style="color:#E1E4E8">        hash </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> alg.</span><span style="color:#B392F0">hash</span><span style="color:#E1E4E8">(key, </span><span style="color:#F97583">uintptr</span><span style="color:#E1E4E8">(h.hash0))</span></span>
+<span class="line"><span style="color:#E1E4E8">        m </span><span style="color:#F97583">:=</span><span style="color:#B392F0"> bucketMask</span><span style="color:#E1E4E8">(h.B)</span></span>
+<span class="line"><span style="color:#E1E4E8">        b </span><span style="color:#F97583">:=</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#B392F0">bmap</span><span style="color:#E1E4E8">)(</span><span style="color:#B392F0">add</span><span style="color:#E1E4E8">(h.buckets, (hash</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">m)</span><span style="color:#F97583">*uintptr</span><span style="color:#E1E4E8">(t.bucketsize)))</span></span>
+<span class="line"></span></code></pre> </div> </article>  </main> <footer class="footer"> <div class="footer-content"> <p>&copy; 2026 Liu Weifeng. Built with Astro.</p> </div> </footer> </div> </body></html> 
